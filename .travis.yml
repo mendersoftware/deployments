@@ -8,6 +8,7 @@ before_script:
 
 script:
 - go build
+- go test ./...
 
 deploy:
   provider: releases
