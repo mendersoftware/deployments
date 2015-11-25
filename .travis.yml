@@ -10,7 +10,7 @@ before_script:
 script:
 # Insert build information into compiled binary using ldflags
 - go build -race -ldflags "-X main.Commit `echo $TRAVIS_COMMIT`" -ldflags "-X main.Tag `echo $TRAVIS_TAG`" -ldflags "-X main.Branch `echo $TRAVIS_BRANCH`" -ldflags "-X main.BuildNumber `echo $TRAVIS_BUILD_NUMBER`"
-- go test -v -race ./...
+- go test -v -race -ldflags "-X main.Commit `echo $TRAVIS_COMMIT`" -ldflags "-X main.Tag `echo $TRAVIS_TAG`" -ldflags "-X main.Branch `echo $TRAVIS_BRANCH`" -ldflags "-X main.BuildNumber `echo $TRAVIS_BUILD_NUMBER`" ./...
 
 deploy:
   provider: releases
