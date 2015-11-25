@@ -3,11 +3,14 @@ language: go
 go:
 - 1.5
 
+gobuild_args: -v -x -ldflags "-X main.VersionString v1.2.3" -race
+
 before_script:
 - go vet ./...
 
 script:
 - go build
+- go test ./...
 
 deploy:
   provider: releases
