@@ -1,0 +1,15 @@
+language: go
+
+go:
+- 1.5
+
+script:
+- go build
+
+deploy:
+  provider: releases
+  api_key:
+    secure: DNjsTRuSjEeJip6CXu3J5ptw1Bt4o6zgmsiJVN7XcyN0PQsCyNibHnZDNo9UAA4HBHkOEYdVoN+9eiiA8ZBcrXZtU6ZS24T7UcTsitXLXuhvHiDG8V1gZlmXQ8GaG7bi6hbP+o+A/VTZIq1BNxPjedeXyCUMFnzh4248gVMX8y79axsWSPMYjZHQ/mhvBZStsc3zurmsWdxeYnbVYx9fVc/vrOUcczbt/xkrjL3099LGMVmlHm+3xNau53GOZCnA1CYYMDR3a0gu0bVD7LH5br6Iz71GJ0eKn79fGl243FHJPfZqVy0HuMLmywlKBx8QSISaplVCEHUns+KJSFO18j29q16FM5saFPlsJaHRFefZk8Dci8DWFVQQG00x61CaaT7t+/q55L8ZGvVQmABOpfBnqhaQKns2L2P65i6GANSU+UUG0hwMXujWHMy4iqRIXcwcOULPKSx7JVrfpFNlpoR2ZDWUmGMyTkkB8mcmlDD7DtZrNp36PTOCoaaIsnNaamKktHqL+sCQKUoeVRjfg7vU0rokU0xQVMqZtueBZoNKanEzJW5a9zex+Nb9Gc2fBdjS8vEtwRemDKLzrCbZNlIAqUrW7cX6SyIsBLgRpIVMaYVUh3WZGi3Md+PBbBWKls9UK8PcZpIPMlTfA1NOheh+9Nl+RHlMp6im24LQIAw=
+  file: artifacts
+  on:
+    repo: mendersoftware/artifacts
