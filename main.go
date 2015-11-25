@@ -9,11 +9,15 @@ var (
 	BuildNumber string
 )
 
-func main() {
-	fmt.Println("Hello Artefacts!")
-
+func PrintBuildInfo() {
 	fmt.Println("Commit =", Commit)
 	fmt.Println("Tag =", Tag)
 	fmt.Println("Branch =", Branch)
 	fmt.Println("BuildNumber =", BuildNumber)
+}
+
+func main() {
+	fmt.Println("Hello Artifacts!")
+
+	PrintBuildInfo()
 }
