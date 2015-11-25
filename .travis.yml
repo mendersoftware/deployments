@@ -3,7 +3,15 @@ language: go
 go:
 - 1.5
 
-gobuild_args: -v -x -ldflags "-X main.VersionString v1.2.3" -race
+# Insert build information into compiled binary.
+# Global 
+gobuild_args: |
+    -v -x -ldflags "
+    -X main.Commit `echo $TRAVIS_COMMIT`
+    -X main.Tag `echo $TRAVIS_TAG`
+    -X main.Branch `echo $TRAVIS_BRANCH`
+    -X main.BuildNumber `echo $TRAVIS_BUILD_NUMBER`"
+	-race
 
 before_script:
 - go vet ./...
