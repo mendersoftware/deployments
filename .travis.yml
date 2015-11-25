@@ -3,15 +3,14 @@ language: go
 go:
 - 1.5
 
-# Insert build information into compiled binary.
-gobuild_args: -v -ldflags " -X main.Commit `echo $TRAVIS_COMMIT` -X main.Tag `echo $TRAVIS_TAG` -X main.Branch `echo $TRAVIS_BRANCH` -X main.BuildNumber `echo $TRAVIS_BUILD_NUMBER`" -race
 
 before_script:
 - go vet ./...
 
 script:
-- go build
-- go test ./...
+# Insert build information into compiled binary using ldflags
+- go build -race -ldflags "-X main.Commit `echo $TRAVIS_COMMIT`" -ldflags "-X main.Tag `echo $TRAVIS_TAG`" -ldflags "-X main.Branch `echo $TRAVIS_BRANCH`" -ldflags "-X main.BuildNumber `echo $TRAVIS_BUILD_NUMBER`"
+- go test -v -race ./...
 
 deploy:
   provider: releases
