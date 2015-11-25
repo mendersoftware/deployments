@@ -4,14 +4,7 @@ go:
 - 1.5
 
 # Insert build information into compiled binary.
-# Global 
-gobuild_args: |
-    -v -x -ldflags "
-    -X main.Commit `echo $TRAVIS_COMMIT`
-    -X main.Tag `echo $TRAVIS_TAG`
-    -X main.Branch `echo $TRAVIS_BRANCH`
-    -X main.BuildNumber `echo $TRAVIS_BUILD_NUMBER`"
-	-race
+gobuild_args: -v -ldflags " -X main.Commit `echo $TRAVIS_COMMIT` -X main.Tag `echo $TRAVIS_TAG` -X main.Branch `echo $TRAVIS_BRANCH` -X main.BuildNumber `echo $TRAVIS_BUILD_NUMBER`" -race
 
 before_script:
 - go vet ./...
