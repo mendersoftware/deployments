@@ -3,14 +3,21 @@ language: go
 go:
 - 1.5
 
-gobuild_args: -v -x -ldflags "-X main.VersionString v1.2.3" -race
-
 before_script:
+# Print build info that binary is compiled with.
+- echo $TRAVIS_COMMIT
+- echo $TRAVIS_TAG
+- echo $TRAVIS_BRANCH
+- echo $TRAVIS_BUILD_NUMBER
+
+# Perform static code analysys
 - go vet ./...
 
 script:
-- go build
-- go test ./...
+# Insert build information into compiled binary using ldflags
+- go build -race -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
+- go test -v -race  ./...
+
 
 deploy:
   provider: releases
