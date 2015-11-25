@@ -1,0 +1,2 @@
+# artefacts
+Mender artefacts service
