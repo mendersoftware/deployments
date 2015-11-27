@@ -19,7 +19,7 @@ before_script:
 # Test if code was formatted with 'go fmt'
 # Command will format code and return modified files
 # fail if any have been modified.
-- if [ -n "$(go fmt)" ]; then false; fi
+- if [ -n "$(go fmt)" ]; then echo 'Code is not formatted with "go fmt"; false; fi
 
 # Perform static code analysys
 - go vet ./...
