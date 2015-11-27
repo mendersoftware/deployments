@@ -32,11 +32,12 @@ before_script:
 
 script:
 # Use deplist to list all dependency packages for the current directory project, excluding stdlib packages.
-# Listing is based internally on go list -f '{{.Deps}} which lists all dependencies
+# Listing is based internally on go list -f '{{.Deps}} which lists all dependencies.
+# go list supply current top level package import path.
 # Exclude Godeps directory, we don't want to run tests and coverage for all dependencies every time,
 # also including their coverage may introduce to much noice. Concentrate on the coverage of local packages.
 # Execute go test on every local subpackage (resolved as dependencies) and generate covreage report for each.
-- deplist -t=false | grep -v Godeps | xargs -n1 -I {} go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
+- { deplist -t=false; go list; } | grep -v Godeps | xargs -n1 -I {} go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
 
 # Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
 - gover
