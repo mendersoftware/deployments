@@ -26,3 +26,5 @@ _testmain.go
 artifacts
 
 profile.cov
+gover.coverprofile
+profile.coverprofile
