@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/mendersoftware/artifacts/utils/uuid"
+)
 
 func Test() {
 	fmt.Println("Test")
@@ -13,4 +17,7 @@ func main() {
 	fmt.Println("Tag =", Tag)
 	fmt.Println("Branch =", Branch)
 	fmt.Println("BuildNumber =", BuildNumber)
+
+	id, _ := uuid.MakeUUID()
+	fmt.Println("UUID=", id)
 }

@@ -9,6 +9,9 @@ before_install:
 - go get -u github.com/mattn/goveralls
 - go get -u golang.org/x/tools/cmd/cover
 
+# Merge all subpackage code coverage reports into a single one
+- go get -u github.com/modocache/gover
+
 before_script:
 # Print build info that binary is compiled with.
 - echo $TRAVIS_COMMIT
@@ -19,25 +22,37 @@ before_script:
 # Test if code was formatted with 'go fmt'
 # Command will format code and return modified files
 # fail if any have been modified.
-- if [ -n "$(go fmt)" ]; then false; fi
+- if [ -n "$(go fmt)" ]; then echo 'Code is not formatted with "go fmt"'; false; fi
 
 # Perform static code analysys
 - go vet ./...
 
 script:
-# Goveralls executes all tests in verbose mode
-# there is no need for executing stand alone tests by 'go test'
+# go list supply import paths for all sub directories.
+# Exclude Godeps directory, we don't want to run tests and coverage for all dependencies every time,
+# also including their coverage may introduce to much noice. Concentrate on the coverage of local packages.
+# Execute go test on every local subpackage (resolved as dependencies) and generate covreage report for each.
+- go list ./... | grep -v Godeps | xargs -n1 -I {} go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
+
+# Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
+- gover
+
 # Repotoken should not be public (can be regenerated if needed).
-- goveralls -v -service=travis-pro -repotoken='5cu7qC1kxgLj4XPeDvxRorXT794W4evYr'
+- goveralls -service=travis-pro -repotoken='5cu7qC1kxgLj4XPeDvxRorXT794W4evYr' -coverprofile=gover.coverprofile
 
 # Insert build information into compiled binary using ldflags
 - go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
+
+after_success:
+# Make build artifacts directory and copy all artifacts to this directory.
+- mkdir build
+- cp artifacts build/
 
 deploy:
   provider: releases
   api_key:
     secure: DNjsTRuSjEeJip6CXu3J5ptw1Bt4o6zgmsiJVN7XcyN0PQsCyNibHnZDNo9UAA4HBHkOEYdVoN+9eiiA8ZBcrXZtU6ZS24T7UcTsitXLXuhvHiDG8V1gZlmXQ8GaG7bi6hbP+o+A/VTZIq1BNxPjedeXyCUMFnzh4248gVMX8y79axsWSPMYjZHQ/mhvBZStsc3zurmsWdxeYnbVYx9fVc/vrOUcczbt/xkrjL3099LGMVmlHm+3xNau53GOZCnA1CYYMDR3a0gu0bVD7LH5br6Iz71GJ0eKn79fGl243FHJPfZqVy0HuMLmywlKBx8QSISaplVCEHUns+KJSFO18j29q16FM5saFPlsJaHRFefZk8Dci8DWFVQQG00x61CaaT7t+/q55L8ZGvVQmABOpfBnqhaQKns2L2P65i6GANSU+UUG0hwMXujWHMy4iqRIXcwcOULPKSx7JVrfpFNlpoR2ZDWUmGMyTkkB8mcmlDD7DtZrNp36PTOCoaaIsnNaamKktHqL+sCQKUoeVRjfg7vU0rokU0xQVMqZtueBZoNKanEzJW5a9zex+Nb9Gc2fBdjS8vEtwRemDKLzrCbZNlIAqUrW7cX6SyIsBLgRpIVMaYVUh3WZGi3Md+PBbBWKls9UK8PcZpIPMlTfA1NOheh+9Nl+RHlMp6im24LQIAw=
-  file: artifacts
+  file: build/artifacts
   on:
     repo: mendersoftware/artifacts
     tags: true
