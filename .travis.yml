@@ -27,7 +27,8 @@ before_script:
 script:
 # Goveralls executes all tests in verbose mode
 # there is no need for executing stand alone tests by 'go test'
-- goveralls -v -service=travis-pro
+# Repotoken should not be public (can be regenerated if needed).
+- goveralls -v -service=travis-pro -repotoken='5cu7qC1kxgLj4XPeDvxRorXT794W4evYr'
 
 # Insert build information into compiled binary using ldflags
 - go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
