@@ -2,13 +2,6 @@ package main
 
 import "fmt"
 
-var (
-	Commit      string
-	Tag         string
-	Branch      string
-	BuildNumber string
-)
-
 func main() {
 	fmt.Println("Hello Artifacts!")
 
