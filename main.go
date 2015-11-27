@@ -7,7 +7,7 @@ func Test() {
 }
 
 func main() {
-	fmt.Println("Hello Artifacts!")
+fmt.Println("Hello Artifacts!")
 
 	fmt.Println("Commit =", Commit)
 	fmt.Println("Tag =", Tag)
