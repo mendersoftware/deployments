@@ -9,6 +9,12 @@ before_install:
 - go get -u github.com/mattn/goveralls
 - go get -u golang.org/x/tools/cmd/cover
 
+// Merge all subpackage code coverage reports into a single one
+- go get -u github.com/modocache/gover
+
+// List all package dependencies that are not stdlib
+- go get -u github.com/cespare/deplist
+
 before_script:
 # Print build info that binary is compiled with.
 - echo $TRAVIS_COMMIT
@@ -25,10 +31,18 @@ before_script:
 - go vet ./...
 
 script:
-# Goveralls executes all tests in verbose mode
-# there is no need for executing stand alone tests by 'go test'
+# Use deplist to list all dependency packages for the current directory project, excluding stdlib packages.
+# Listing is based internally on go list -f '{{.Deps}} which lists all dependencies
+# Exclude Godeps directory, we don't want to run tests and coverage for all dependencies every time,
+# also including their coverage may introduce to much noice. Concentrate on the coverage of local packages.
+# Execute go test on every local subpackage (resolved as dependencies) and generate covreage report for each.
+- deplist -t=false | grep -v Godeps | xargs -n1 -I {} go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
+
+# Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
+- gover
+
 # Repotoken should not be public (can be regenerated if needed).
-- goveralls -v -service=travis-pro -repotoken='5cu7qC1kxgLj4XPeDvxRorXT794W4evYr'
+- goveralls -service=travis-pro -repotoken='5cu7qC1kxgLj4XPeDvxRorXT794W4evYr' -coverprofile=gover.coverprofile
 
 # Insert build information into compiled binary using ldflags
 - go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
