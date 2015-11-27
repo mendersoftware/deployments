@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/mendersoftware/services/utils/uuid"
+	"github.com/mendersoftware/artifacts/utils/uuid"
 )
 
 func Test() {
