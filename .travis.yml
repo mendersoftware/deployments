@@ -18,6 +18,8 @@ before_script:
 - echo $TRAVIS_TAG
 - echo $TRAVIS_BRANCH
 - echo $TRAVIS_BUILD_NUMBER
+- /usr/bin/uuidgen
+- uuidgen
 
 # Test if code was formatted with 'go fmt'
 # Command will format code and return modified files
