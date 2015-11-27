@@ -3,14 +3,35 @@ language: go
 go:
 - 1.5
 
-gobuild_args: -v -x -ldflags "-X main.VersionString v1.2.3" -race
+before_install:
+# Install code coverage / coveralls tooling
+- go get -u github.com/axw/gocov/gocov
+- go get -u github.com/mattn/goveralls
+- go get -u golang.org/x/tools/cmd/cover
 
 before_script:
+# Print build info that binary is compiled with.
+- echo $TRAVIS_COMMIT
+- echo $TRAVIS_TAG
+- echo $TRAVIS_BRANCH
+- echo $TRAVIS_BUILD_NUMBER
+
+# Test if code was formatted with 'go fmt'
+# Command will format code and return modified files
+# fail if any have been modified.
+- if [ -n "$(go fmt)" ]; then false; fi
+
+# Perform static code analysys
 - go vet ./...
 
 script:
-- go build
-- go test ./...
+# Goveralls executes all tests in verbose mode
+# there is no need for executing stand alone tests by 'go test'
+# Repotoken should not be public (can be regenerated if needed).
+- goveralls -v -service=travis-pro -repotoken='5cu7qC1kxgLj4XPeDvxRorXT794W4evYr'
+
+# Insert build information into compiled binary using ldflags
+- go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
 
 deploy:
   provider: releases
