@@ -3,6 +3,12 @@ language: go
 go:
 - 1.5
 
+before_install:
+# Install code coverage / coveralls tooling
+- go get -u github.com/axw/gocov/gocov
+- go get -u github.com/mattn/goveralls
+- go get -u golang.org/x/tools/cmd/cover
+
 before_script:
 # Print build info that binary is compiled with.
 - echo $TRAVIS_COMMIT
@@ -14,10 +20,12 @@ before_script:
 - go vet ./...
 
 script:
+# Goveralls executes all tests in verbose mode
+# there is no need for executing stand alone tests by 'go test'
+- goveralls -v -service=travis-pro
+
 # Insert build information into compiled binary using ldflags
 - go build -race -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
-- go test -v -race  ./...
-
 
 deploy:
   provider: releases
