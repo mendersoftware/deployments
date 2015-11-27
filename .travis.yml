@@ -33,7 +33,8 @@ script:
 # Exclude Godeps directory, we don't want to run tests and coverage for all dependencies every time,
 # also including their coverage may introduce to much noice. Concentrate on the coverage of local packages.
 # Execute go test on every local subpackage (resolved as dependencies) and generate covreage report for each.
-- go list ./... | grep -v Godeps | xargs -n1 -I {} go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
+# Test packages pararell (xargs -P)
+- go list ./... | grep -v Godeps | xargs -n1 -I {} -P 4 go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
 
 # Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
 - gover
