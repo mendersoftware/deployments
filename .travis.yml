@@ -9,10 +9,10 @@ before_install:
 - go get -u github.com/mattn/goveralls
 - go get -u golang.org/x/tools/cmd/cover
 
-// Merge all subpackage code coverage reports into a single one
+# Merge all subpackage code coverage reports into a single one
 - go get -u github.com/modocache/gover
 
-// List all package dependencies that are not stdlib
+# List all package dependencies that are not stdlib
 - go get -u github.com/cespare/deplist
 
 before_script:
