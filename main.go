@@ -11,6 +11,7 @@ import (
 func main() {
 
 	app := cli.NewApp()
+	slkdjhkfjh
 
 	// Add handling for global flags
 	SetupGlobalFlags(app)
