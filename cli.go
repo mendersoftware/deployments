@@ -49,12 +49,6 @@ const (
 	S3BucketVar         = "MENDER_S3_BUCKET"
 )
 
-var (
-	// This variable value can be overwritten during compile time by a build system.
-	// For example: go build -ldflags "-X main.Version `echo $BUILD_NUMBER`"
-	Version = "0.0.1"
-)
-
 func SetupGlobalFlags(app *cli.App) {
 
 	app.Name = "artifacts"
@@ -63,7 +57,12 @@ func SetupGlobalFlags(app *cli.App) {
 		{"Maciej Mrowiec", "maciej.mrowiec@mender.io"},
 	}
 	app.Email = "contact@mender.io"
-	app.Version = Version
+
+	if Tag != "" {
+		app.Version = Tag
+	} else {
+		app.Version = BuildNumber
+	}
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
