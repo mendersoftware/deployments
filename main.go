@@ -1,23 +1,56 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"net/http"
 
-	"github.com/mendersoftware/artifacts/utils/uuid"
+	"github.com/mendersoftware/services/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
+	"github.com/mendersoftware/services/Godeps/_workspace/src/github.com/codegangsta/cli"
 )
 
-func Test() {
-	fmt.Println("Test")
+func main() {
+
+	app := cli.NewApp()
+
+	// Add handling for global flags
+	SetupGlobalFlags(app)
+
+	// Entry point for application
+	app.Before = ValidateGlobalFlags
+	app.Action = StartServer
+
+	app.RunAndExitOnError()
 }
 
-func main() {
-	fmt.Println("Hello Artifacts!")
+func StartServer(c *cli.Context) {
 
-	fmt.Println("Commit =", Commit)
-	fmt.Println("Tag =", Tag)
-	fmt.Println("Branch =", Branch)
-	fmt.Println("BuildNumber =", BuildNumber)
+	api := rest.NewApi()
 
-	id, _ := uuid.MakeUUID()
-	fmt.Println("UUID=", id)
+	// setup middleware - layers of common pre/post processing of the requests
+	InstallMiddleware(c, api)
+
+	router, err := NewRouter(c)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	api.SetApp(router)
+
+	log.Fatal(Listen(c, api.MakeHandler()))
+}
+
+// Start HTTP/HTTPS server depending on global settings.
+func Listen(c *cli.Context, handler http.Handler) error {
+
+	listen := c.String(ListenFlag)
+	isHttps := c.Bool(HTTPSFlag)
+
+	if isHttps {
+		cert := c.String(TLSCertificateFlag)
+		key := c.String(TLSKeyFlag)
+
+		return http.ListenAndServeTLS(listen, cert, key, handler)
+	}
+
+	return http.ListenAndServe(listen, handler)
 }
