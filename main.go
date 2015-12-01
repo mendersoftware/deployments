@@ -39,6 +39,10 @@ func StartServer(c *cli.Context) {
 	log.Fatal(Listen(c, api.MakeHandler()))
 }
 
+func AAA() {
+	
+}
+
 // Start HTTP/HTTPS server depending on global settings.
 func Listen(c *cli.Context, handler http.Handler) error {
 
