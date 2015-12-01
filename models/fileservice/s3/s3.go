@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mendersoftware/services/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/mendersoftware/services/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/mendersoftware/services/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
-	"github.com/mendersoftware/services/models/fileservice"
+	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
+	"github.com/mendersoftware/artifacts/models/fileservice"
 )
 
 const (

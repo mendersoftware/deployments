@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mendersoftware/services/models/users"
+	"github.com/mendersoftware/artifacts/models/users"
 )
 
 var (

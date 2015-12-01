@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mendersoftware/services/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/services/controllers"
-	"github.com/mendersoftware/services/models/images"
-	"github.com/mendersoftware/services/models/users"
+	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
+	"github.com/mendersoftware/artifacts/controllers"
+	"github.com/mendersoftware/artifacts/models/images"
+	"github.com/mendersoftware/artifacts/models/users"
 )
 
 const (

@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/mendersoftware/services/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/services/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/mendersoftware/services/controllers"
-	"github.com/mendersoftware/services/handlers"
-	"github.com/mendersoftware/services/models/fileservice/s3"
-	"github.com/mendersoftware/services/models/images/memmap"
-	"github.com/mendersoftware/services/utils/safemap"
+	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
+	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/mendersoftware/artifacts/controllers"
+	"github.com/mendersoftware/artifacts/handlers"
+	"github.com/mendersoftware/artifacts/models/fileservice/s3"
+	"github.com/mendersoftware/artifacts/models/images/memmap"
+	"github.com/mendersoftware/artifacts/utils/safemap"
 )
 
 // NewRouter defines all REST API routes.

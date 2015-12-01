@@ -1,8 +1,8 @@
 package handlers
 
 // import (
-// 	"github.com/mendersoftware/services/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
-// 	"github.com/mendersoftware/services/models/image"
+// 	"github.com/ant0ine/go-json-rest/rest"
+// 	"github.com/mendersoftware/artifacts/models/image"
 // 	"math/rand"
 // 	"net/http"
 // 	"strconv"

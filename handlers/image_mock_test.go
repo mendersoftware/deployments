@@ -3,9 +3,9 @@ package handlers
 import (
 	"time"
 
-	"github.com/mendersoftware/services/models/fileservice"
-	"github.com/mendersoftware/services/models/images"
-	"github.com/mendersoftware/services/models/users"
+	"github.com/mendersoftware/artifacts/models/fileservice"
+	"github.com/mendersoftware/artifacts/models/images"
+	"github.com/mendersoftware/artifacts/models/users"
 )
 
 // Mock of ImagesControllerI interafce

@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mendersoftware/services/models/images"
-	"github.com/mendersoftware/services/models/users"
-	"github.com/mendersoftware/services/utils/safemap"
-	"github.com/mendersoftware/services/utils/uuid"
+	"github.com/mendersoftware/artifacts/models/images"
+	"github.com/mendersoftware/artifacts/models/users"
+	"github.com/mendersoftware/artifacts/utils/safemap"
+	"github.com/mendersoftware/artifacts/utils/uuid"
 )
 
 var (
