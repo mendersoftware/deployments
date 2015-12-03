@@ -74,3 +74,7 @@ deploy:
   upload-dir: "services/artifacts/"$TRAVIS_BRANCH"/"$TRAVIS_BUILD_NUMBER"/"$GOOS"_"$GOARCH"/"
   local_dir: build
   skip_cleanup: true
+  on:
+   repo: mendersoftware/artifacts
+   tags: false
+   all_branches: true
