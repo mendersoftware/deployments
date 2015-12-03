@@ -71,7 +71,7 @@ deploy:
    secure: lLKjEWXt54QRxzYR98cV+z+IwWpbU+PgzqpzDIp1IJLCfACIoKS8NRhOhzPWFUfV5MoVWkJvkWfDh9oOSo6NtoShmGp1mOXw8ZfGqxnHT4ltUK6MLqiCBID72A/VBB+/rR3dK/kIzEG8MKgemAzrLBdZOUadQsvp75l3jjWuIPeZMpK2+xuVNq4oSQ4urLuOKbM28M/pe3I2LhJcQAGLDBimjt3RpCg6LhukQDHyhfaKVTnzye5JkxNHehyHZeAbfCt1EQG+6/39ETuQ2PgpyhZLJIIDDRQEsapzTcGWPMRftWDIrAsIbBP3zcHSH4+ICAbgqhOxcRsWAGmxtj2Sigb8FUJ5mzj7hE2Y5htk+9ij/SHu1ClyxFrhyj1wf+BP9JwByhWQcm4hhRzP402eT6/wuEvzAQWrSwXT9YLm1Zvi+ULy/RB9//lu6wjzloyR8VPDdwng5WVk5oLXBL9+pC/6PrJl0jD70rIf/mCaHN2T0xl+c5SwR5/t0H4XBsfmUmtRY8SgKjdAvA6QORVuYodM1tFCVIsnlddqr8hFKNkiYHZ20g6qck4FcPsUUa05zzn023QM2alU95Me11Fz2+Ie85htr+Ove8Iq/pBNWHvoQ6JY9Nqh5WY7gbeVUDd7WM2TZeBq6McVzLfoJr6G+o5ztUvRWpZp6+f3Zze9RNk=
   bucket: mender-buildsystem
   region: eu-west-1
-  upload-dir: services/artifacts/release/$TRAVIS_TAG/$TRAVIS_BUILD_NUMBER/$GOOS_$GOARCH/
+  upload-dir: services/artifacts/release/$TRAVIS_TAG/$TRAVIS_BUILD_NUMBER/$GOOS'_'$GOARCH/
   local_dir: build
   skip_cleanup: true
   on:
@@ -87,7 +87,7 @@ deploy:
    secure: lLKjEWXt54QRxzYR98cV+z+IwWpbU+PgzqpzDIp1IJLCfACIoKS8NRhOhzPWFUfV5MoVWkJvkWfDh9oOSo6NtoShmGp1mOXw8ZfGqxnHT4ltUK6MLqiCBID72A/VBB+/rR3dK/kIzEG8MKgemAzrLBdZOUadQsvp75l3jjWuIPeZMpK2+xuVNq4oSQ4urLuOKbM28M/pe3I2LhJcQAGLDBimjt3RpCg6LhukQDHyhfaKVTnzye5JkxNHehyHZeAbfCt1EQG+6/39ETuQ2PgpyhZLJIIDDRQEsapzTcGWPMRftWDIrAsIbBP3zcHSH4+ICAbgqhOxcRsWAGmxtj2Sigb8FUJ5mzj7hE2Y5htk+9ij/SHu1ClyxFrhyj1wf+BP9JwByhWQcm4hhRzP402eT6/wuEvzAQWrSwXT9YLm1Zvi+ULy/RB9//lu6wjzloyR8VPDdwng5WVk5oLXBL9+pC/6PrJl0jD70rIf/mCaHN2T0xl+c5SwR5/t0H4XBsfmUmtRY8SgKjdAvA6QORVuYodM1tFCVIsnlddqr8hFKNkiYHZ20g6qck4FcPsUUa05zzn023QM2alU95Me11Fz2+Ie85htr+Ove8Iq/pBNWHvoQ6JY9Nqh5WY7gbeVUDd7WM2TZeBq6McVzLfoJr6G+o5ztUvRWpZp6+f3Zze9RNk=
   bucket: mender-buildsystem
   region: eu-west-1
-  upload-dir: services/artifacts/dev/$TRAVIS_BRANCH/$TRAVIS_BUILD_NUMBER/$GOOS_$GOARCH/
+  upload-dir: services/artifacts/dev/$TRAVIS_BRANCH/$TRAVIS_BUILD_NUMBER/$GOOS'_'$GOARCH/
   local_dir: build
   skip_cleanup: true
   on:
@@ -103,6 +103,6 @@ deploy:
    secure: lLKjEWXt54QRxzYR98cV+z+IwWpbU+PgzqpzDIp1IJLCfACIoKS8NRhOhzPWFUfV5MoVWkJvkWfDh9oOSo6NtoShmGp1mOXw8ZfGqxnHT4ltUK6MLqiCBID72A/VBB+/rR3dK/kIzEG8MKgemAzrLBdZOUadQsvp75l3jjWuIPeZMpK2+xuVNq4oSQ4urLuOKbM28M/pe3I2LhJcQAGLDBimjt3RpCg6LhukQDHyhfaKVTnzye5JkxNHehyHZeAbfCt1EQG+6/39ETuQ2PgpyhZLJIIDDRQEsapzTcGWPMRftWDIrAsIbBP3zcHSH4+ICAbgqhOxcRsWAGmxtj2Sigb8FUJ5mzj7hE2Y5htk+9ij/SHu1ClyxFrhyj1wf+BP9JwByhWQcm4hhRzP402eT6/wuEvzAQWrSwXT9YLm1Zvi+ULy/RB9//lu6wjzloyR8VPDdwng5WVk5oLXBL9+pC/6PrJl0jD70rIf/mCaHN2T0xl+c5SwR5/t0H4XBsfmUmtRY8SgKjdAvA6QORVuYodM1tFCVIsnlddqr8hFKNkiYHZ20g6qck4FcPsUUa05zzn023QM2alU95Me11Fz2+Ie85htr+Ove8Iq/pBNWHvoQ6JY9Nqh5WY7gbeVUDd7WM2TZeBq6McVzLfoJr6G+o5ztUvRWpZp6+f3Zze9RNk=
   bucket: mender-buildsystem
   region: eu-west-1
-  upload-dir: services/artifacts/latest/$TRAVIS_BRANCH/$GOOS_$GOARCH/
+  upload-dir: services/artifacts/latest/$TRAVIS_BRANCH/$GOOS'_'$GOARCH/
   local_dir: build
   skip_cleanup: true
