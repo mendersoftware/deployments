@@ -63,7 +63,7 @@ deploy:
    tags: true
    all_branches: true
 
-# Deploy tag builds to S3 in structure /release/tag/build/os_arch/
+# Deploy tag builds to S3 in structure /release/tag/os_arch/
 - provider: s3
   access_key_id:
    secure: urZK1koSPtt2ZcX7UBlS8vlFrGPR2JeWJ5yo7YTdJYYOwnuW0DqZlCUnngTcmawJPEXu0ys+/KZuGLXsTVHfwhYJucb23tJNd0Oik5Xh720gHPlBvdb6e0jjMKItSpeqKtxbjjY/zV8b/0krwy5Uxgw+5YIcJOFOoM3d7XalFvikGRMN+5fB9NHhQZYj35n0CGUDNXfVSc5xqfVuipRd7u4BHofcFOV55KOWZcD7S9JBwCZZTly4Euwqys2O8FNFBjMew2MIP4FM2k7SvOhZwg7vyJEjBw7WQV5J5yObg/w94Mlnf+okFZ5rKynV9H3fDpepXIcuccm9ON8CYZr/F9pleXwr7EmEDqS5BMt23c+ZI5c0PCCDu8dElvDN6HqtExy0V5+B1XlfBszQYNY5u9hFl3Ye1I+WgosHstz3qUxxzbyW0+/p1LEF4AhzfKkokmGjprdo9XsjNprACOB+0zoQ2BmjVkorfBP55Ny+0L/b4dwKCooF6q7DyFSRmQOgKpP3RnkJd8EZGMcyyCIWEUXlg+O3cColK3RqBcFNxar0lqKx2cTkRFQBVTnWUBmeUVCO3DUzHtNpd0vMMiA7sO3NVU6JICOFgQXsJI5hIPLWBqUsoI6d/CEDn2Wj1dQqi9vLlqirkVL8O4sFSPo2zwBhakAxoiVt0ge/rZCx1UM=
@@ -71,7 +71,7 @@ deploy:
    secure: lLKjEWXt54QRxzYR98cV+z+IwWpbU+PgzqpzDIp1IJLCfACIoKS8NRhOhzPWFUfV5MoVWkJvkWfDh9oOSo6NtoShmGp1mOXw8ZfGqxnHT4ltUK6MLqiCBID72A/VBB+/rR3dK/kIzEG8MKgemAzrLBdZOUadQsvp75l3jjWuIPeZMpK2+xuVNq4oSQ4urLuOKbM28M/pe3I2LhJcQAGLDBimjt3RpCg6LhukQDHyhfaKVTnzye5JkxNHehyHZeAbfCt1EQG+6/39ETuQ2PgpyhZLJIIDDRQEsapzTcGWPMRftWDIrAsIbBP3zcHSH4+ICAbgqhOxcRsWAGmxtj2Sigb8FUJ5mzj7hE2Y5htk+9ij/SHu1ClyxFrhyj1wf+BP9JwByhWQcm4hhRzP402eT6/wuEvzAQWrSwXT9YLm1Zvi+ULy/RB9//lu6wjzloyR8VPDdwng5WVk5oLXBL9+pC/6PrJl0jD70rIf/mCaHN2T0xl+c5SwR5/t0H4XBsfmUmtRY8SgKjdAvA6QORVuYodM1tFCVIsnlddqr8hFKNkiYHZ20g6qck4FcPsUUa05zzn023QM2alU95Me11Fz2+Ie85htr+Ove8Iq/pBNWHvoQ6JY9Nqh5WY7gbeVUDd7WM2TZeBq6McVzLfoJr6G+o5ztUvRWpZp6+f3Zze9RNk=
   bucket: mender-buildsystem
   region: eu-west-1
-  upload-dir: services/artifacts/release/$TRAVIS_TAG/$TRAVIS_BUILD_NUMBER/`go env GOOS`_`go env GOARCH`
+  upload-dir: services/artifacts/release/$TRAVIS_TAG/`go env GOOS`_`go env GOARCH`
   local_dir: build
   skip_cleanup: true
   on:
@@ -106,3 +106,5 @@ deploy:
   upload-dir: services/artifacts/latest/$TRAVIS_BRANCH/`go env GOOS`_`go env GOARCH`
   local_dir: build
   skip_cleanup: true
+  on:
+   repo: mendersoftware/artifacts
