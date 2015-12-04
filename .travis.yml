@@ -4,10 +4,6 @@ language: go
 go:
 - 1.5.1
 
-env:
-# Define build matrix
-- GOOS=linux GOARCH=amd64
-
 before_install:
 # Install code coverage / coveralls tooling
 - go get -u github.com/axw/gocov/gocov
