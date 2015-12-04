@@ -5,11 +5,9 @@ go:
 
 env:
 # Define build matrix
-- GIMME_OS=linux GIMME_ARCH=amd64 GOOS=linux GOARCH=amd64 TE=lala
-- GIMME_OS=darwin GIMME_ARCH=amd64 GOOS=darwin GOARCH=amd64 TE=lala
-- GOOS=linux GOARCH=amd64 TE=lala
-- GOOS=darwin GOARCH=amd64 TE=lala
-- GOOS=linux GOARCH=arm TE=lala
+- BUILD_GOOS=linux BUILD_GOARCH=amd64
+- BUILD_GOOS=darwin BUILD_GOARCH=amd64
+- BUILD_GOOS=linux BUILD_GOARCH=arm
 
 before_install:
 # Install code coverage / coveralls tooling
@@ -22,6 +20,8 @@ before_install:
 
 before_script:
 # Print build info that binary is compiled with.
+- export GOOS=$BUILD_GOOS
+- export GOARCH=$BUILD_GOARCH
 - echo $TRAVIS_COMMIT
 - echo $TRAVIS_TAG
 - echo $TRAVIS_BRANCH
@@ -29,8 +29,8 @@ before_script:
 - echo $GOOS
 - echo $GOARCH
 - echo $TE
-- echo GIMME_OS
-- echo GIMME_ARCH
+- echo $GIMME_OS
+- echo $GIMME_ARCH
 
 # Test if code was formatted with 'go fmt'
 # Command will format code and return modified files
