@@ -6,7 +6,8 @@ go:
 
 env:
 # Define build matrix
-- GOOS=linux GOARCH=amd64
+- GIMME_OS=linux GIMME_ARCH=amd64
+- GIMME_OS=darwin GIMME_ARCH=amd64
 
 before_install:
 # Install code coverage / coveralls tooling
