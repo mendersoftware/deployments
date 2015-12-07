@@ -45,7 +45,7 @@ const (
 
 	S3BucketFlag        = "bucket"
 	S3BucketDescription = "S3 bucket name for image storage."
-	S3BucketDefault     = "mender-file-storage"
+	S3BucketDefault     = "mender-artifact-storage"
 	S3BucketVar         = "MENDER_S3_BUCKET"
 )
 
