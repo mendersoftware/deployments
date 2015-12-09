@@ -10,6 +10,9 @@ before_install:
 - go get -u github.com/mattn/goveralls
 - go get -u golang.org/x/tools/cmd/cover
 
+# Install godep for dependency management
+- go get -u github.com/tools/godep
+
 # Merge all subpackage code coverage reports into a single report
 - go get -u github.com/modocache/gover
 
@@ -34,8 +37,7 @@ script:
 # also including their coverage may introduce to much noice. Concentrate on the coverage of local packages.
 # Execute go test on every local subpackage (resolved as dependencies) and generate covreage report for each.
 # Test packages pararell (xargs -P)
-# Use godep to point into ventored dependencies.
-- go list ./... | grep -v Godeps | xargs -n1 -I {} -P 4 godep go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
+- go list ./... | grep -v Godeps | xargs -n1 -I {} -P 4 go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
 
 # Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
 - gover
@@ -46,8 +48,7 @@ script:
 - goveralls -service=travis-pro -repotoken='5cu7qC1kxgLj4XPeDvxRorXT794W4evYr' -coverprofile=gover.coverprofile
 
 # Insert build information into compiled binary using ldflags
-# Build with vendored dependencies (using godep)
-- godep go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
+- go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
 
 after_success:
 # Make build artifacts directory and copy all artifacts to this directory.
