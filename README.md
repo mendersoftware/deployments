@@ -42,10 +42,11 @@ GLOBAL OPTIONS:
    --https                          Serve under HTTPS. Requires key and cerfiticate. [$MENDER_ARTIFACT_HTTPS]
    --listen "localhost:8080"        TCP network address. [$MENDER_ARTIFACT_LISTEN]
    --env "dev"                      Environment prod|dev [$MENDER_ARTIFACT_ENV]
-   --aws-id 				        AWS access id key with S3 read/write permissions for specified bucket (required). [$AWS_ACCESS_KEY_ID]
-   --aws_secret 			        AWS secret key with S3 read/write permissions for specified bucket (required). [$AWS_SECRET_ACCESS_KEY]
+   --aws-id 				        AWS access id key with S3 read/write permissions for specified bucket (required if now ec2). [$AWS_ACCESS_KEY_ID]
+   --aws_secret 			        AWS secret key with S3 read/write permissions for specified bucket (required if now ec2). [$AWS_SECRET_ACCESS_KEY]
    --bucket "mender-file-storage"   S3 bucket name for image storage. [$MENDER_S3_BUCKET]
    --aws-region "eu-west-1"         AWS region. [$AWS_REGION]
+   --ec2				            Executing in EC2. Automatically load IAM credentials. [$MENDER_EC2]
    --help, -h                       show help
    --version, -v                    print the version
 

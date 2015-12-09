@@ -8,6 +8,10 @@ import (
 )
 
 const (
+	EC2Flag        = "ec2"
+	EC2Description = "Executing in EC2. Automatically load IAM credentials."
+	EC2Var         = "MENDER_EC2"
+
 	TLSCertificateFlag        = "certificate"
 	TLSCertificateDescription = "HTTPS certificate filename."
 	TLSCertificateVar         = "MENDER_ARTIFACT_CERT"
@@ -31,11 +35,11 @@ const (
 	EnvVar         = "MENDER_ARTIFACT_ENV"
 
 	AwsAccessKeyIdFlag        = "aws-id"
-	AwsAccessKeyIdDescription = "AWS access id key with S3 read/write permissions for specified bucket (required)."
+	AwsAccessKeyIdDescription = "AWS access id key with S3 read/write permissions for specified bucket (required if now ec2)."
 	AwsAccessKeyIdVar         = "AWS_ACCESS_KEY_ID"
 
 	AwsAccessKeySecretFlag        = "aws_secret"
-	AwsAccessKeySecretDescription = "AWS secret key with S3 read/write permissions for specified bucket (required)."
+	AwsAccessKeySecretDescription = "AWS secret key with S3 read/write permissions for specified bucket (required if not ec2)."
 	AwsAccessKeySecretVar         = "AWS_SECRET_ACCESS_KEY"
 
 	AwsS3RegionFlag        = "aws-region"
@@ -115,6 +119,11 @@ func SetupGlobalFlags(app *cli.App) {
 			Value:  AwsS3RegionDefault,
 			EnvVar: AwsS3RegionVar,
 		},
+		cli.BoolFlag{
+			Name:   EC2Flag,
+			Usage:  EC2Description,
+			EnvVar: EC2Var,
+		},
 	}
 }
 
@@ -142,13 +151,16 @@ func validateAWSFlags(c *cli.Context) error {
 	key := c.String(AwsAccessKeyIdFlag)
 	secret := c.String(AwsAccessKeySecretFlag)
 	region := c.String(AwsS3RegionFlag)
+	ec2 := c.Bool(EC2Flag)
 
-	if key == "" {
-		return MissingOptionError(AwsAccessKeyIdFlag)
-	}
+	if !ec2 {
+		if key == "" {
+			return MissingOptionError(AwsAccessKeyIdFlag)
+		}
 
-	if secret == "" {
-		return MissingOptionError(AwsAccessKeySecretFlag)
+		if secret == "" {
+			return MissingOptionError(AwsAccessKeySecretFlag)
+		}
 	}
 
 	if region == "" {
