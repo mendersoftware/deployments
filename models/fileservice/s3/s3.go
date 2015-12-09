@@ -7,7 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/defaults"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mendersoftware/artifacts/models/fileservice"
 )
@@ -30,8 +30,10 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token string) *S
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
 
+	sess := session.New(config)
+
 	return &SimpleStorageService{
-		client: s3.New(config),
+		client: s3.New(sess),
 		bucket: bucket,
 	}
 }
@@ -41,11 +43,10 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token string) *S
 // aws profile file and ec2 iam role
 func NewSimpleStorageServiceDefaults(bucket, region string) *SimpleStorageService {
 
-	config := aws.NewConfig().WithCredentials(defaults.DefaultChainCredentials).
-		WithRegion(region)
+	sess := session.New(aws.NewConfig().WithRegion(region))
 
 	return &SimpleStorageService{
-		client: s3.New(config),
+		client: s3.New(sess),
 		bucket: bucket,
 	}
 }
