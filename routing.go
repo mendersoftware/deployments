@@ -19,8 +19,14 @@ func NewRouter(c *cli.Context) (rest.App, error) {
 	awsKey := c.String(AwsAccessKeyIdFlag)
 	awsSecret := c.String(AwsAccessKeySecretFlag)
 	region := c.String(AwsS3RegionFlag)
+	ec2 := c.Bool(EC2Flag)
 
-	fileStorage := s3.NewSimpleStorageService(bucket, awsKey, awsSecret, region, "")
+	var fileStorage *s3.SimpleStorageService
+	if ec2 {
+		fileStorage = s3.NewSimpleStorageServiceDefaults(bucket, region)
+	} else {
+		fileStorage = s3.NewSimpleStorageServiceStatic(bucket, awsKey, awsSecret, region, "")
+	}
 
 	meta := handlers.NewImageMeta(controllers.NewImagesController(images, fileStorage))
 

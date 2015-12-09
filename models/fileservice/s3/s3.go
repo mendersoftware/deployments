@@ -7,6 +7,7 @@ import (
 
 	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mendersoftware/artifacts/models/fileservice"
 )
@@ -24,10 +25,24 @@ type SimpleStorageService struct {
 
 // NewSimpleStorageService create new S3 client model.
 // AWS authentication keys are automatically reloaded from env variables.
-func NewSimpleStorageService(bucket, key, secret, region, token string) *SimpleStorageService {
+func NewSimpleStorageServiceStatic(bucket, key, secret, region, token string) *SimpleStorageService {
 
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
+
+	return &SimpleStorageService{
+		client: s3.New(config),
+		bucket: bucket,
+	}
+}
+
+// NewSimpleStorageService create new S3 client model.
+// Use default authentication provides which looks at env variables,
+// aws profile file and ec2 iam role
+func NewSimpleStorageServiceDefaults(bucket, region string) *SimpleStorageService {
+
+	config := aws.NewConfig().WithCredentials(defaults.DefaultChainCredentials).
+		WithRegion(region)
 
 	return &SimpleStorageService{
 		client: s3.New(config),

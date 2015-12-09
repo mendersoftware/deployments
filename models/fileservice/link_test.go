@@ -1,5 +1,20 @@
 package fileservice
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
-func TestPlaceholder(t *testing.T) {}
+func TestNewLink(t *testing.T) {
+	now := time.Now()
+	uri := "http://example.com"
+	link := NewLink(uri, now)
+
+	if link.Uri != uri {
+		t.FailNow()
+	}
+
+	if link.Expire != now {
+		t.FailNow()
+	}
+}
