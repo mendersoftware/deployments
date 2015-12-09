@@ -35,7 +35,7 @@ const (
 	EnvVar         = "MENDER_ARTIFACT_ENV"
 
 	AwsAccessKeyIdFlag        = "aws-id"
-	AwsAccessKeyIdDescription = "AWS access id key with S3 read/write permissions for specified bucket (required if now ec2)."
+	AwsAccessKeyIdDescription = "AWS access id key with S3 read/write permissions for specified bucket (required if not ec2)."
 	AwsAccessKeyIdVar         = "AWS_ACCESS_KEY_ID"
 
 	AwsAccessKeySecretFlag        = "aws_secret"
