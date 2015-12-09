@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/vaughan0/go-ini"
+	"github.com/vaughan0/go-ini"
 
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
 var (

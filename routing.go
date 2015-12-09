@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/codegangsta/cli"
 	"github.com/mendersoftware/artifacts/controllers"
 	"github.com/mendersoftware/artifacts/handlers"
 	"github.com/mendersoftware/artifacts/models/fileservice/s3"

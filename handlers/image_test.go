@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest/test"
+	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/ant0ine/go-json-rest/rest/test"
 	"github.com/mendersoftware/artifacts/controllers"
 	"github.com/mendersoftware/artifacts/models/images"
 	"github.com/mendersoftware/artifacts/models/users"

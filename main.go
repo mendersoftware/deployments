@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/codegangsta/cli"
 )
 
 func main() {
