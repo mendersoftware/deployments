@@ -58,7 +58,7 @@ after_success:
 # CodeDeploy bundle required packaged archive
 - mkdir codedeploy
 - cp build/* appspec.yml codedeploy/
-- cd codedeploy-bundle/ && tar -zcvf ../build/codedeploy.tgz . && cd ..
+- cd codedeploy && tar -zcvf ../build/codedeploy.tgz . && cd ..
 
 deploy:
 # In case tag is set. Deploy build as github release.
