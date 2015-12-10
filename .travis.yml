@@ -123,6 +123,7 @@ deploy:
   deployment_group: mender-artifacts-dev
   bundle_type: tar
   skip_cleanup: true
+  region: eu-west-1
   on:
    repo: mendersoftware/artifacts
    branch: master
