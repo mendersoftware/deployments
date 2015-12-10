@@ -55,6 +55,10 @@ after_success:
 - mkdir build
 - cp artifacts build/
 
+# CodeDeploy required packaged archive
+- tar -cvf build.tar ./build
+- mv build.tar ./build
+
 deploy:
 # In case tag is set. Deploy build as github release.
 - provider: releases
@@ -109,13 +113,16 @@ deploy:
   on:
    repo: mendersoftware/artifacts
 
-# Automatically deploy all builds to dedicated EC2 instance
+# Automatically deploy all master builds to dedicated EC2 instance
 - provider: codedeploy
   access_key_id: *1
   secret_access_key: *2
   bucket: mender-buildsystem
-  key: services/artifacts/latest/master/linux_amd64/artifact
+  key: services/artifacts/latest/master/linux_amd64/build.tar
   application: Mender
   deployment_group: mender-artifacts-dev
+  bundle_type: tar
+  skip_cleanup: true
   on:
    repo: mendersoftware/artifacts
+   branch: master
