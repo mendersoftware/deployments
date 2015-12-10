@@ -268,8 +268,9 @@ GOPATH environment variable set corectly.
 
 ```
 go get github.com/mendersoftware/artifatcs
-go build
-go test ./...
+cd $GOPATH/src/github.com/mendersoftware/artifatcs
+godep go build
+godep go test ./...
 ```
 
 All dependencies are vendored using [godep](https://github.com/tools/godep) tool.
@@ -279,25 +280,25 @@ All dependencies are vendored using [godep](https://github.com/tools/godep) tool
 Run tests on current package:
 
 ```
-go test
+godep go test
 ```
 
 Run tests on all subdirectories:
 
 ```
-go test ./...
+godep go test ./...
 ```
 
-Run benchmarks:
+Run benchmarks on local package:
 
 ```
-go test -bench=.
+godep go test -bench=.
 ```
 
 Code coverage for package:
 
 ```
-go test -cover
+godep go test -cover
 ```
 
 Note this include test coverage only for code in current package.
