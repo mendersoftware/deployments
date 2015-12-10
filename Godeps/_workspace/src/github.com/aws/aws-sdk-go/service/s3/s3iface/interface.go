@@ -4,8 +4,8 @@
 package s3iface
 
 import (
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 // S3API is the interface type for s3.S3.
@@ -242,3 +242,5 @@ type S3API interface {
 
 	UploadPartCopy(*s3.UploadPartCopyInput) (*s3.UploadPartCopyOutput, error)
 }
+
+var _ S3API = (*s3.S3)(nil)

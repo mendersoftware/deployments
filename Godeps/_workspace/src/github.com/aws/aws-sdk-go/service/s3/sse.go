@@ -4,16 +4,16 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awsutil"
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
+	"github.com/aws/aws-sdk-go/aws/request"
 )
 
 var errSSERequiresSSL = awserr.New("ConfigError", "cannot send SSE keys over HTTP.", nil)
 
 func validateSSERequiresSSL(r *request.Request) {
 	if r.HTTPRequest.URL.Scheme != "https" {
-		p := awsutil.ValuesAtPath(r.Params, "SSECustomerKey||CopySourceSSECustomerKey")
+		p, _ := awsutil.ValuesAtPath(r.Params, "SSECustomerKey||CopySourceSSECustomerKey")
 		if len(p) > 0 {
 			r.Error = errSSERequiresSSL
 		}

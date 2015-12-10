@@ -1,7 +1,7 @@
 package credentials
 
 import (
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
 var (
@@ -36,7 +36,9 @@ var (
 //     creds := NewChainCredentials(
 //         []Provider{
 //             &EnvProvider{},
-//             &EC2RoleProvider{},
+//             &EC2RoleProvider{
+//                 Client: ec2metadata.New(sess),
+//             },
 //         })
 //
 //     // Usage of ChainCredentials with aws.Config

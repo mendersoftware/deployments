@@ -4,10 +4,10 @@ import (
 	"io/ioutil"
 	"regexp"
 
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awsutil"
-	"github.com/mendersoftware/artifacts/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
+	"github.com/aws/aws-sdk-go/aws/request"
 )
 
 var reBucketLocation = regexp.MustCompile(`>([^<>]+)<\/Location`)
@@ -30,13 +30,13 @@ func buildGetBucketLocation(r *request.Request) {
 }
 
 func populateLocationConstraint(r *request.Request) {
-	if r.ParamsFilled() && aws.StringValue(r.Service.Config.Region) != "us-east-1" {
+	if r.ParamsFilled() && aws.StringValue(r.Config.Region) != "us-east-1" {
 		in := r.Params.(*CreateBucketInput)
 		if in.CreateBucketConfiguration == nil {
 			r.Params = awsutil.CopyOf(r.Params)
 			in = r.Params.(*CreateBucketInput)
 			in.CreateBucketConfiguration = &CreateBucketConfiguration{
-				LocationConstraint: r.Service.Config.Region,
+				LocationConstraint: r.Config.Region,
 			}
 		}
 	}
