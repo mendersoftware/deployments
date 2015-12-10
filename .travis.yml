@@ -108,3 +108,14 @@ deploy:
   skip_cleanup: true
   on:
    repo: mendersoftware/artifacts
+
+# Automatically deploy all builds to dedicated EC2 instance
+- provider: codedeploy
+  access_key_id: *1
+  secret_access_key: *2
+  bucket: mender-buildsystem
+  key: services/artifacts/latest/master/linux_amd64/artifact
+  application: Mender
+  deployment_group: mender-artifacts-dev
+  on:
+   repo: mendersoftware/artifacts
