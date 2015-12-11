@@ -40,10 +40,6 @@ func NewRouter(c *cli.Context) (rest.App, error) {
 
 		rest.Get("/api/0.0.1/images/:id/upload", meta.UploadLink),
 		rest.Get("/api/0.0.1/images/:id/download", meta.DownloadLink),
-
-		// rest.Post("/api/0.0.1/images/:id/verify", verifier.CreateJob),
-		// rest.Get("/api/0.0.1/images/:id/verify/:job", verifier.GetJob),
-		// rest.Delete("/api/0.0.1/images/:id/verify/:job", verifier.DeleteJob),
 	)
 
 	return app, err
