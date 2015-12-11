@@ -69,6 +69,15 @@ func InstallMiddleware(c *cli.Context, api *rest.Api) {
 		log.Fatal(InvalidValueError(EnvFlag, env))
 	}
 
+	api.Use(&rest.CorsMiddleware{
+		RejectNonCorsRequests: false,
+		// Accept all requests
+		// Should be tested with some list
+		OriginValidator: func(origin string, request *rest.Request) bool {
+			return true
+		},
+	})
+
 	api.Use(&rest.AuthBasicMiddleware{
 		Realm: "artifacts",
 		Authenticator: func(userId string, password string) bool {
