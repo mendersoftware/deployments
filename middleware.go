@@ -77,14 +77,4 @@ func InstallMiddleware(c *cli.Context, api *rest.Api) {
 			return true
 		},
 	})
-
-	api.Use(&rest.AuthBasicMiddleware{
-		Realm: "artifacts",
-		Authenticator: func(userId string, password string) bool {
-			if userId == password {
-				return true
-			}
-			return false
-		},
-	})
 }
