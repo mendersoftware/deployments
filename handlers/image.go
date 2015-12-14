@@ -32,7 +32,7 @@ func NewImageMeta(controler controllers.ImagesControllerI) *ImageMeta {
 
 func (m *ImageMeta) Lookup(w rest.ResponseWriter, r *rest.Request) {
 
-	u := users.NewDummyUser(r.Env["REMOTE_USER"].(string))
+	u := users.NewDummyUser("user")
 
 	images, err := m.controler.Lookup(u)
 	if err != nil {
@@ -45,7 +45,7 @@ func (m *ImageMeta) Lookup(w rest.ResponseWriter, r *rest.Request) {
 
 func (m *ImageMeta) Get(w rest.ResponseWriter, r *rest.Request) {
 
-	u := users.NewDummyUser(r.Env["REMOTE_USER"].(string))
+	u := users.NewDummyUser("user")
 	id := r.PathParam("id")
 
 	image, err := m.controler.Get(u, id)
@@ -61,7 +61,7 @@ func (m *ImageMeta) Get(w rest.ResponseWriter, r *rest.Request) {
 // Location for GET object is hardcoded here.
 func (m *ImageMeta) Create(w rest.ResponseWriter, r *rest.Request) {
 
-	u := users.NewDummyUser(r.Env["REMOTE_USER"].(string))
+	u := users.NewDummyUser("user")
 
 	// Validate incomming request
 
@@ -92,7 +92,7 @@ func (m *ImageMeta) Create(w rest.ResponseWriter, r *rest.Request) {
 
 func (m *ImageMeta) Edit(w rest.ResponseWriter, r *rest.Request) {
 
-	u := users.NewDummyUser(r.Env["REMOTE_USER"].(string))
+	u := users.NewDummyUser("user")
 	id := r.PathParam("id")
 
 	// Validate incomming request
@@ -126,7 +126,7 @@ func (m *ImageMeta) Edit(w rest.ResponseWriter, r *rest.Request) {
 
 func (m *ImageMeta) Delete(w rest.ResponseWriter, r *rest.Request) {
 
-	u := users.NewDummyUser(r.Env["REMOTE_USER"].(string))
+	u := users.NewDummyUser("user")
 	id := r.PathParam("id")
 
 	if err := m.controler.Delete(u, id); err != nil {
@@ -144,7 +144,7 @@ func (m *ImageMeta) Delete(w rest.ResponseWriter, r *rest.Request) {
 
 func (m *ImageMeta) UploadLink(w rest.ResponseWriter, r *rest.Request) {
 
-	u := users.NewDummyUser(r.Env["REMOTE_USER"].(string))
+	u := users.NewDummyUser("user")
 	id := r.PathParam("id")
 
 	minutes, err := ParseAndValidateUIntQuery(QueryExpireName,
@@ -174,7 +174,7 @@ func (m *ImageMeta) UploadLink(w rest.ResponseWriter, r *rest.Request) {
 
 func (m *ImageMeta) DownloadLink(w rest.ResponseWriter, r *rest.Request) {
 
-	u := users.NewDummyUser(r.Env["REMOTE_USER"].(string))
+	u := users.NewDummyUser("user")
 	id := r.PathParam("id")
 
 	minutes, err := ParseAndValidateUIntQuery(QueryExpireName,
