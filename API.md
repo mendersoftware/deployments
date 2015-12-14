@@ -26,11 +26,11 @@ Available resources, operations and their responses.
 
 ### Lookup available images.
 
-**URI:** Get /api/0.0.1/images/
+**URI:** Get /api/0.0.1/images
 
 ### Insert image meta data.
 
-**URI:** Post /api/0.0.1/images/
+**URI:** Post /api/0.0.1/images
 
 Content-Type: application/json
 

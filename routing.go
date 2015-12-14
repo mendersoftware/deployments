@@ -31,8 +31,8 @@ func NewRouter(c *cli.Context) (rest.App, error) {
 	meta := handlers.NewImageMeta(controllers.NewImagesController(images, fileStorage))
 
 	app, err := rest.MakeRouter(
-		rest.Get("/api/0.0.1/images/", meta.Lookup),
-		rest.Post("/api/0.0.1/images/", meta.Create),
+		rest.Get("/api/0.0.1/images", meta.Lookup),
+		rest.Post("/api/0.0.1/images", meta.Create),
 
 		rest.Get("/api/0.0.1/images/:id", meta.Get),
 		rest.Put("/api/0.0.1/images/:id", meta.Edit),
