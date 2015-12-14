@@ -12,6 +12,14 @@ Common error response:
 }
 ```
 
+## Options request
+
+OPTIONS http method is supported for all paths.
+
+## CORS
+
+CORS requests are supported. At the moment all requests are allowed, also none-CORS requests.
+
 ## Dates
 
 Dates are formatted with [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) standard.
@@ -26,11 +34,11 @@ Available resources, operations and their responses.
 
 ### Lookup available images.
 
-**URI:** Get /api/0.0.1/images/
+**URI:** Get /api/0.0.1/images
 
 ### Insert image meta data.
 
-**URI:** Post /api/0.0.1/images/
+**URI:** Post /api/0.0.1/images
 
 Content-Type: application/json
 

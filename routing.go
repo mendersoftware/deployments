@@ -31,15 +31,22 @@ func NewRouter(c *cli.Context) (rest.App, error) {
 	meta := handlers.NewImageMeta(controllers.NewImagesController(images, fileStorage))
 
 	app, err := rest.MakeRouter(
-		rest.Get("/api/0.0.1/images/", meta.Lookup),
-		rest.Post("/api/0.0.1/images/", meta.Create),
+		rest.Get("/api/0.0.1/images", meta.Lookup),
+		rest.Post("/api/0.0.1/images", meta.Create),
+		rest.Options("/api/0.0.1/images", handlers.NewOptionsHandler(handlers.HttpMethodGet,
+			handlers.HttpMethodPost).Handle),
 
 		rest.Get("/api/0.0.1/images/:id", meta.Get),
 		rest.Put("/api/0.0.1/images/:id", meta.Edit),
 		rest.Delete("/api/0.0.1/images/:id", meta.Delete),
+		rest.Options("/api/0.0.1/images/:id", handlers.NewOptionsHandler(handlers.HttpMethodGet,
+			handlers.HttpMethodPut, handlers.HttpMethodDelete).Handle),
 
 		rest.Get("/api/0.0.1/images/:id/upload", meta.UploadLink),
+		rest.Options("/api/0.0.1/images/:id/upload", handlers.NewOptionsHandler(handlers.HttpMethodGet).Handle),
+
 		rest.Get("/api/0.0.1/images/:id/download", meta.DownloadLink),
+		rest.Options("/api/0.0.1/images/:id/download", handlers.NewOptionsHandler(handlers.HttpMethodGet).Handle),
 	)
 
 	return app, err
