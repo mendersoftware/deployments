@@ -40,7 +40,7 @@ type ImageMetaPublic struct {
 	Name string `json:"name"`
 
 	Description string `json:"description"`
-	Md5         string `json:"md5"`
+	Checksum    string `json:"checksum"`
 	Model       string `json:"model"`
 }
 
