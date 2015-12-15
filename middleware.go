@@ -6,6 +6,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/codegangsta/cli"
+	"github.com/mendersoftware/artifacts/handlers"
 )
 
 const (
@@ -71,10 +72,23 @@ func InstallMiddleware(c *cli.Context, api *rest.Api) {
 
 	api.Use(&rest.CorsMiddleware{
 		RejectNonCorsRequests: false,
-		// Accept all requests
+
 		// Should be tested with some list
 		OriginValidator: func(origin string, request *rest.Request) bool {
+			// Accept all requests
 			return true
 		},
+
+		// Preflight request cache lenght
+		AccessControlMaxAge: 60,
+
+		// Allow authentication requests
+		AccessControlAllowCredentials: true,
+
+		// Allowed headers
+		AllowedMethods: []string{handlers.HttpMethodGet, handlers.HttpMethodPost, handlers.HttpMethodPut, handlers.HttpMethodDelete, handlers.HttpMethodOptions},
+
+		// Allowed heardes
+		AllowedHeaders: []string{"Accept", "Content-type", "Origin", "Authorization", "Accept-Encoding", "Access-Control-Request-Headers", "Access-Control-Request-Method"},
 	})
 }
