@@ -54,7 +54,7 @@ func (m *ImageMeta) Get(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	w.Header().Set("Last-Modified", image.LastUpdated.UTC().Format(http.TimeFormat))
+	w.Header().Set(HttpHeaderLastModified, image.LastUpdated.UTC().Format(http.TimeFormat))
 	w.WriteJson(image)
 }
 
@@ -84,7 +84,7 @@ func (m *ImageMeta) Create(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	w.Header().Add("Location", "/api/0.0.1/images/"+imgNew.Id)
+	w.Header().Add(HttpHeaderLocation, "/api/0.0.1/images/"+imgNew.Id)
 	w.WriteHeader(http.StatusCreated)
 	w.WriteJson(imgNew)
 
@@ -120,7 +120,7 @@ func (m *ImageMeta) Edit(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	w.Header().Add("Location", r.RequestURI)
+	w.Header().Add(HttpHeaderLocation, r.RequestURI)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -168,7 +168,7 @@ func (m *ImageMeta) UploadLink(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	w.Header().Set("Expires", link.Expire.UTC().Format(http.TimeFormat))
+	w.Header().Set(HttpHeaderExpires, link.Expire.UTC().Format(http.TimeFormat))
 	w.WriteJson(link)
 }
 
@@ -198,7 +198,7 @@ func (m *ImageMeta) DownloadLink(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	w.Header().Set("Expires", link.Expire.UTC().Format(http.TimeFormat))
+	w.Header().Set(HttpHeaderExpires, link.Expire.UTC().Format(http.TimeFormat))
 	w.WriteJson(link)
 
 }
