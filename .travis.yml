@@ -60,7 +60,7 @@ before_install:
     - go get -u github.com/tools/godep
 
     # Merge all subpackage code coverage reports into a single report
-    - go get -u github.com/modocache/goverr
+    - go get -u github.com/modocache/gover
 
 before_script:
     # Print build info that binary is compiled with.
