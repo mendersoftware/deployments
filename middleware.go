@@ -86,9 +86,23 @@ func InstallMiddleware(c *cli.Context, api *rest.Api) {
 		AccessControlAllowCredentials: true,
 
 		// Allowed headers
-		AllowedMethods: []string{handlers.HttpMethodGet, handlers.HttpMethodPost, handlers.HttpMethodPut, handlers.HttpMethodDelete, handlers.HttpMethodOptions},
+		AllowedMethods: []string{
+			handlers.HttpMethodGet,
+			handlers.HttpMethodPost,
+			handlers.HttpMethodPut,
+			handlers.HttpMethodDelete,
+			handlers.HttpMethodOptions,
+		},
 
 		// Allowed heardes
-		AllowedHeaders: []string{"Accept", "Content-type", "Origin", "Authorization", "Accept-Encoding", "Access-Control-Request-Headers", "Access-Control-Request-Method"},
+		AllowedHeaders: []string{
+			handlers.HttpHeaderAllow,
+			handlers.HttpHeaderContentType,
+			handlers.HttpHeaderOrigin,
+			handlers.HttpHeaderAuthorization,
+			handlers.HttpHeaderAcceptEncoding,
+			handlers.HttpHeaderAccessControlRequestHeaders,
+			handlers.HttpHeaderAccessControlRequestMethod,
+		},
 	})
 }

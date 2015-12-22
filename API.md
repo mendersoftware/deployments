@@ -47,7 +47,7 @@ Body Payload (example):
 ```
 {
   "name":"MyName",
-  "md5": "ui2ehu2h3823",
+  "checksum": "ui2ehu2h3823",
   "model": "model1"
 }
 ```
@@ -62,7 +62,7 @@ Output payload contains created object.
 {
     "name": "MyName1",
     "description": "",
-    "md5": "ui2ehu2h3823",
+    "checksum": "ui2ehu2h3823",
     "model": "model1",
     "id": "0C13A0E6-6B63-475D-8260-EE42A590E8FF",
     "verified": false,
@@ -97,7 +97,7 @@ Body Payload (example):
 ```
 {
   "name":"MyName",
-  "md5": "ui2ehu2h3823",
+  "checksum": "ui2ehu2h3823",
   "model": "model1"
 }
 ```

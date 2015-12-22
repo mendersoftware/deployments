@@ -4,10 +4,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
-const (
-	HttpHeaderAllow string = "Allow"
-)
-
 type OptionsHandler struct {
 	// Shared  reads, need locking of any write mathod is introduced.
 	methods map[string]bool
