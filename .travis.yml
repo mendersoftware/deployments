@@ -36,6 +36,9 @@ env:
         # Can be overridden by travis private variable set in travis settings: DEPLOY_REPO_OVERRIDE
         - DEPLOY_REPO_DEFAULT=mendersoftware/artifacts
 
+        # Default configuration file (to be uploaded to S3 and Github Release).
+        - CONFIG_FILE=config.yaml
+
         # Binary name to be uploaded to github release.
         - GITHUB_RELEASE_BINARY=artifacts
 
@@ -99,7 +102,7 @@ after_success:
 
     # Make build directory and copy all artifacts to this directory.
     - mkdir build
-    - cp $BUILD_ARTIFATS build/
+    - cp $BUILD_ARTIFATS $CONFIG_FILE build/
 
     # CodeDeploy bundle required packaged archive
     - mkdir codedeploy
@@ -112,7 +115,9 @@ deploy:
     -
         provider: releases
         api_key: $GITHUB_RELEASE_TOKEN
-        file: $GITHUB_RELEASE_BINARY
+        file:
+            -$GITHUB_RELEASE_BINARY
+            -$CONFIG_FILE
         skip_cleanup: true
         on:
             repo: $DEPLOY_REPO

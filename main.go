@@ -1,56 +1,44 @@
 package main
 
 import (
+	"flag"
 	"log"
-	"net/http"
 
-	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/codegangsta/cli"
+	"github.com/mendersoftware/artifacts/config"
+	"github.com/spf13/viper"
 )
 
 func main() {
 
-	app := cli.NewApp()
+	var configPath string
+	flag.StringVar(&configPath, "config", "config.yaml", "Configuration file path. Supports JSON, TOML, YAML and HCL formatted configs.")
 
-	// Add handling for global flags
-	SetupGlobalFlags(app)
+	flag.Parse()
 
-	// Entry point for application
-	app.Before = ValidateGlobalFlags
-	app.Action = StartServer
+	c := viper.New()
+	c.SetConfigFile(configPath)
 
-	app.RunAndExitOnError()
-}
+	// Set default values for config
+	SetDefaultConfigs(c)
 
-func StartServer(c *cli.Context) {
-
-	api := rest.NewApi()
-
-	// setup middleware - layers of common pre/post processing of the requests
-	InstallMiddleware(c, api)
-
-	router, err := NewRouter(c)
-	if err != nil {
-		log.Fatal(err)
+	// Find and read the config file
+	if err := c.ReadInConfig(); err != nil {
+		log.Fatalln(err)
 	}
 
-	api.SetApp(router)
-
-	log.Fatal(Listen(c, api.MakeHandler()))
-}
-
-// Start HTTP/HTTPS server depending on global settings.
-func Listen(c *cli.Context, handler http.Handler) error {
-
-	listen := c.String(ListenFlag)
-	isHttps := c.Bool(HTTPSFlag)
-
-	if isHttps {
-		cert := c.String(TLSCertificateFlag)
-		key := c.String(TLSKeyFlag)
-
-		return http.ListenAndServeTLS(listen, cert, key, handler)
+	// Validate config
+	if err := config.ValidateConfig(c,
+		ValidateAwsAuth,
+		ValidateHttps,
+	); err != nil {
+		log.Fatalln(err)
 	}
 
-	return http.ListenAndServe(listen, handler)
+	log.Fatalln(RunServer(c))
+}
+
+func SetDefaultConfigs(config *viper.Viper) {
+	config.SetDefault(SettingListen, SettingListenDefault)
+	config.SetDefault(SettingAwsS3Region, SettingAwsS3RegionDefault)
+	config.SetDefault(SettingAweS3Bucket, SettingAwsS3BucketDefault)
 }
