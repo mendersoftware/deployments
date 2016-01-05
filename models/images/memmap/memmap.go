@@ -9,7 +9,7 @@ import (
 	"github.com/mendersoftware/artifacts/models/images"
 	"github.com/mendersoftware/artifacts/models/users"
 	"github.com/mendersoftware/artifacts/utils/safemap"
-	"github.com/mendersoftware/artifacts/utils/uuid"
+	"github.com/satori/go.uuid"
 )
 
 var (
@@ -158,13 +158,8 @@ func (i *ImagesInMem) FindByName(user users.UserI, name string) ([]*images.Image
 
 func (i *ImagesInMem) makeID() (string, error) {
 	var id string
-	var err error
 	for {
-		id, err = uuid.MakeUUID()
-		if err != nil {
-			return "", err
-		}
-
+		id = uuid.NewV4().String()
 		if found := i.storage.Has(id); !found {
 			break
 		}
