@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/mendersoftware/artifacts/config"
 	"github.com/spf13/viper"
@@ -11,19 +13,36 @@ import (
 func main() {
 
 	var configPath string
+	var printVersion bool
 	flag.StringVar(&configPath, "config", "config.yaml", "Configuration file path. Supports JSON, TOML, YAML and HCL formatted configs.")
+	flag.BoolVar(&printVersion, "version", false, "Show version")
 
 	flag.Parse()
 
+	if printVersion {
+		fmt.Println(CreateVersionString())
+		os.Exit(0)
+	}
+
+	configuration, err := HandleConfigFile(configPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Fatalln(RunServer(configuration))
+}
+
+func HandleConfigFile(filePath string) (config.ConfigReader, error) {
+
 	c := viper.New()
-	c.SetConfigFile(configPath)
+	c.SetConfigFile(filePath)
 
 	// Set default values for config
 	SetDefaultConfigs(c)
 
 	// Find and read the config file
 	if err := c.ReadInConfig(); err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 
 	// Validate config
@@ -31,10 +50,10 @@ func main() {
 		ValidateAwsAuth,
 		ValidateHttps,
 	); err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 
-	log.Fatalln(RunServer(c))
+	return c, nil
 }
 
 func SetDefaultConfigs(config *viper.Viper) {
