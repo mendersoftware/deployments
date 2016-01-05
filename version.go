@@ -16,3 +16,24 @@ var (
 	// The number of the current build (for example, “4”).
 	BuildNumber string
 )
+
+func CreateVersionString() string {
+
+	version := "unknown"
+
+	switch {
+	case Tag != "":
+		version = Tag
+
+	case Commit != "" && Branch != "":
+		version = Branch + "_" + Commit
+	}
+
+	out := "Version: " + version
+
+	if BuildNumber != "" {
+		out = out + " BuildNumber: " + BuildNumber
+	}
+
+	return out
+}
