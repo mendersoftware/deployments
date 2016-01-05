@@ -13,6 +13,11 @@ Manual how to use and operate the service.
 $ artifacts --help
 ```
 
+## Configuration
+
+Service is configured by providing configuration file. Supports JSON, TOML, YAML and HCL formatting.
+Default configuration file is provided.
+
 ## Version 0.0.1 Features:
 * Create image metadata
 * List image metadata
@@ -20,7 +25,7 @@ $ artifacts --help
 * Edit image metadata
 * Delete image (from metadata and S3)
 * Generate TTLd link for uploading image file to S3
-* Generate TTLd link for downloading image file from S3 
+* Generate TTLd link for downloading image file from S3
 
 ## Authentication (DUMMY)
 

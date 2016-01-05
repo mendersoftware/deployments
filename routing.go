@@ -2,33 +2,38 @@ package main
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/codegangsta/cli"
+	"github.com/mendersoftware/artifacts/config"
 	"github.com/mendersoftware/artifacts/controllers"
 	"github.com/mendersoftware/artifacts/handlers"
+	"github.com/mendersoftware/artifacts/models/fileservice"
 	"github.com/mendersoftware/artifacts/models/fileservice/s3"
 	"github.com/mendersoftware/artifacts/models/images/memmap"
 	"github.com/mendersoftware/artifacts/utils/safemap"
 )
 
-// NewRouter defines all REST API routes.
-func NewRouter(c *cli.Context) (rest.App, error) {
+func SetupFileStorage(c config.ConfigReader) fileservice.FileServiceModelI {
 
-	images := memmap.NewImagesInMem(safemap.NewStringMap())
+	bucket := c.GetString(SettingAweS3Bucket)
+	region := c.GetString(SettingAwsS3Region)
 
-	bucket := c.String(S3BucketFlag)
-	awsKey := c.String(AwsAccessKeyIdFlag)
-	awsSecret := c.String(AwsAccessKeySecretFlag)
-	region := c.String(AwsS3RegionFlag)
-	ec2 := c.Bool(EC2Flag)
-
-	var fileStorage *s3.SimpleStorageService
-	if ec2 {
-		fileStorage = s3.NewSimpleStorageServiceDefaults(bucket, region)
-	} else {
-		fileStorage = s3.NewSimpleStorageServiceStatic(bucket, awsKey, awsSecret, region, "")
+	if c.IsSet(SettingsAwsAuth) {
+		return s3.NewSimpleStorageServiceStatic(
+			bucket,
+			c.GetString(SettingAwsAuthKeyId),
+			c.GetString(SettingAwsAuthSecret),
+			region,
+			c.GetString(SettingAwsAuthToken),
+		)
 	}
 
-	meta := handlers.NewImageMeta(controllers.NewImagesController(images, fileStorage))
+	return s3.NewSimpleStorageServiceDefaults(bucket, region)
+}
+
+// NewRouter defines all REST API routes.
+func NewRouter(c config.ConfigReader) (rest.App, error) {
+
+	images := memmap.NewImagesInMem(safemap.NewStringMap())
+	meta := handlers.NewImageMeta(controllers.NewImagesController(images, SetupFileStorage(c)))
 
 	app, err := rest.MakeRouter(
 		rest.Get("/api/0.0.1/images", meta.Lookup),

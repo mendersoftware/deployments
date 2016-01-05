@@ -1,56 +1,63 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
-	"net/http"
+	"os"
 
-	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/codegangsta/cli"
+	"github.com/mendersoftware/artifacts/config"
+	"github.com/spf13/viper"
 )
 
 func main() {
 
-	app := cli.NewApp()
+	var configPath string
+	var printVersion bool
+	flag.StringVar(&configPath, "config", "config.yaml", "Configuration file path. Supports JSON, TOML, YAML and HCL formatted configs.")
+	flag.BoolVar(&printVersion, "version", false, "Show version")
 
-	// Add handling for global flags
-	SetupGlobalFlags(app)
+	flag.Parse()
 
-	// Entry point for application
-	app.Before = ValidateGlobalFlags
-	app.Action = StartServer
+	if printVersion {
+		fmt.Println(CreateVersionString())
+		os.Exit(0)
+	}
 
-	app.RunAndExitOnError()
-}
-
-func StartServer(c *cli.Context) {
-
-	api := rest.NewApi()
-
-	// setup middleware - layers of common pre/post processing of the requests
-	InstallMiddleware(c, api)
-
-	router, err := NewRouter(c)
+	configuration, err := HandleConfigFile(configPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
-	api.SetApp(router)
-
-	log.Fatal(Listen(c, api.MakeHandler()))
+	log.Fatalln(RunServer(configuration))
 }
 
-// Start HTTP/HTTPS server depending on global settings.
-func Listen(c *cli.Context, handler http.Handler) error {
+func HandleConfigFile(filePath string) (config.ConfigReader, error) {
 
-	listen := c.String(ListenFlag)
-	isHttps := c.Bool(HTTPSFlag)
+	c := viper.New()
+	c.SetConfigFile(filePath)
 
-	if isHttps {
-		cert := c.String(TLSCertificateFlag)
-		key := c.String(TLSKeyFlag)
+	// Set default values for config
+	SetDefaultConfigs(c)
 
-		return http.ListenAndServeTLS(listen, cert, key, handler)
+	// Find and read the config file
+	if err := c.ReadInConfig(); err != nil {
+		return nil, err
 	}
 
-	return http.ListenAndServe(listen, handler)
+	// Validate config
+	if err := config.ValidateConfig(c,
+		ValidateAwsAuth,
+		ValidateHttps,
+	); err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+func SetDefaultConfigs(config *viper.Viper) {
+	config.SetDefault(SettingListen, SettingListenDefault)
+	config.SetDefault(SettingAwsS3Region, SettingAwsS3RegionDefault)
+	config.SetDefault(SettingAweS3Bucket, SettingAwsS3BucketDefault)
 }

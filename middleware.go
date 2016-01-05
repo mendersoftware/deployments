@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/codegangsta/cli"
+	"github.com/mendersoftware/artifacts/config"
 	"github.com/mendersoftware/artifacts/handlers"
 )
 
@@ -57,18 +57,9 @@ var DefaultProdStack = []rest.Middleware{
 	&rest.ContentTypeCheckerMiddleware{},
 }
 
-func InstallMiddleware(c *cli.Context, api *rest.Api) {
+func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 
-	env := c.String(EnvFlag)
-
-	switch env {
-	case EnvProd:
-		api.Use(DefaultProdStack...)
-	case EnvDev:
-		api.Use(DefaultDevStack...)
-	default:
-		log.Fatal(InvalidValueError(EnvFlag, env))
-	}
+	api.Use(DefaultDevStack...)
 
 	api.Use(&rest.CorsMiddleware{
 		RejectNonCorsRequests: false,
