@@ -9,7 +9,7 @@ import (
 )
 
 func TestOptionsHandle(t *testing.T) {
-	router, err := rest.MakeRouter(rest.Options("/r", NewOptionsHandler(HttpMethodGet, HttpMethodGet).Handle))
+	router, err := rest.MakeRouter(rest.Options("/r", NewOptionsHandler(HttpMethodGet, HttpMethodGet)))
 	if err != nil {
 		t.FailNow()
 	}
