@@ -30,54 +30,39 @@ func (mw *SetUserMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.Handl
 
 func TestImageMetaLookup(t *testing.T) {
 
-	mock := &ImageControllerMock{
-		mockLookup: func(user users.UserI) ([]*images.ImageMeta, error) {
-			return make([]*images.ImageMeta, 0), nil
-		},
+	testList := []struct {
+		responseCode int
+		body         string
+		results      []*images.ImageMeta
+		err          error
+	}{
+		{http.StatusOK, "[]", make([]*images.ImageMeta, 0), nil},
+		{http.StatusInternalServerError, RestErrorMsg(errors.New("My dummy error")), nil, errors.New("My dummy error")},
 	}
 
-	router, err := rest.MakeRouter(rest.Get("/r", NewImageMeta(mock).Lookup))
-	if err != nil {
-		t.FailNow()
+	for _, testCase := range testList {
+		mock := &ImageControllerMock{
+			mockLookup: func(user users.UserI) ([]*images.ImageMeta, error) {
+				return testCase.results, testCase.err
+			},
+		}
+
+		router, err := rest.MakeRouter(rest.Get("/r", NewImageMeta(mock).Lookup))
+		if err != nil {
+			t.FailNow()
+		}
+
+		api := rest.NewApi()
+		api.Use(&SetUserMiddleware{})
+		api.SetApp(router)
+
+		recorded := test.RunRequest(t, api.MakeHandler(),
+			test.MakeSimpleRequest("GET", "http://1.2.3.4/r", nil))
+
+		recorded.CodeIs(testCase.responseCode)
+		recorded.ContentTypeIsJson()
+		recorded.BodyIs(testCase.body)
 	}
-
-	api := rest.NewApi()
-	api.Use(&SetUserMiddleware{})
-	api.SetApp(router)
-
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://1.2.3.4/r", nil))
-
-	recorded.CodeIs(http.StatusOK)
-	recorded.ContentTypeIsJson()
-	recorded.BodyIs("[]")
-}
-
-func TestImageMetaLookupError(t *testing.T) {
-
-	apiErr := errors.New("My dummy error")
-
-	mock := &ImageControllerMock{
-		mockLookup: func(user users.UserI) ([]*images.ImageMeta, error) {
-			return nil, apiErr
-		},
-	}
-
-	router, err := rest.MakeRouter(rest.Get("/r", NewImageMeta(mock).Lookup))
-	if err != nil {
-		t.FailNow()
-	}
-
-	api := rest.NewApi()
-	api.Use(&SetUserMiddleware{})
-	api.SetApp(router)
-
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://1.2.3.4/r", nil))
-
-	recorded.CodeIs(http.StatusInternalServerError)
-	recorded.ContentTypeIsJson()
-	recorded.BodyIs(RestErrorMsg(apiErr))
 }
 
 func TestImageMetaGetNotFound(t *testing.T) {
