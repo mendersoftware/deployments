@@ -10,18 +10,19 @@ import (
 )
 
 type MockResponseWriter struct {
-	data interface{}
+	methods []string
 }
 
 func (m *MockResponseWriter) Header() http.Header                      { return nil }
-func (m *MockResponseWriter) WriteJson(v interface{}) error            { m.data = v; return nil }
+func (m *MockResponseWriter) WriteJson(v interface{}) error            { return nil }
 func (m *MockResponseWriter) EncodeJson(v interface{}) ([]byte, error) { return nil, nil }
 func (m *MockResponseWriter) WriteHeader(int)                          {}
 
 func NewMockOptionsHandler(methods ...string) rest.HandlerFunc {
 	return func(w rest.ResponseWriter, r *rest.Request) {
 		sort.Strings(methods)
-		w.WriteJson(methods)
+		mockWriter, _ := w.(*MockResponseWriter)
+		mockWriter.methods = methods
 	}
 }
 
@@ -124,7 +125,7 @@ func TestAutogenOptionsRoutes(t *testing.T) {
 				recived := &MockResponseWriter{}
 				out[idx].Func(recived, nil)
 
-				if !reflect.DeepEqual(exp.data, recived.data) {
+				if !reflect.DeepEqual(exp.methods, recived.methods) {
 					t.FailNow()
 				}
 			}
