@@ -19,6 +19,18 @@ func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
+func ToJson(data interface{}) string {
+	j, _ := json.Marshal(data)
+	return string(j)
+}
+
+func MakeImageMeta(setTime time.Time, id string, public *images.ImageMetaPublic) *images.ImageMeta {
+	img := images.NewImageMetaFromPublic(public)
+	img.LastUpdated = setTime
+	img.Id = id
+	return img
+}
+
 type SetUserMiddleware struct{}
 
 func (mw *SetUserMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
@@ -30,227 +42,286 @@ func (mw *SetUserMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.Handl
 
 func TestImageMetaLookup(t *testing.T) {
 
-	mock := &ImageControllerMock{
-		mockLookup: func(user users.UserI) ([]*images.ImageMeta, error) {
-			return make([]*images.ImageMeta, 0), nil
-		},
+	testList := []struct {
+		responseCode int
+		body         string
+		results      []*images.ImageMeta
+		err          error
+	}{
+		{http.StatusOK, ToJson([]string{}), make([]*images.ImageMeta, 0), nil},
+		{http.StatusInternalServerError, RestErrorMsg(errors.New("My dummy error")), nil, errors.New("My dummy error")},
 	}
 
-	router, err := rest.MakeRouter(rest.Get("/r", NewImageMeta(mock).Lookup))
-	if err != nil {
-		t.FailNow()
+	for _, testCase := range testList {
+		mock := &ImageControllerMock{
+			mockLookup: func(user users.UserI) ([]*images.ImageMeta, error) {
+				return testCase.results, testCase.err
+			},
+		}
+
+		router, err := rest.MakeRouter(rest.Get("/r", NewImageMeta(mock).Lookup))
+		if err != nil {
+			t.FailNow()
+		}
+
+		api := rest.NewApi()
+		api.Use(&SetUserMiddleware{})
+		api.SetApp(router)
+
+		recorded := test.RunRequest(t, api.MakeHandler(),
+			test.MakeSimpleRequest("GET", "http://1.2.3.4/r", nil))
+
+		recorded.CodeIs(testCase.responseCode)
+		recorded.ContentTypeIsJson()
+		recorded.BodyIs(testCase.body)
 	}
-
-	api := rest.NewApi()
-	api.Use(&SetUserMiddleware{})
-	api.SetApp(router)
-
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://1.2.3.4/r", nil))
-
-	recorded.CodeIs(http.StatusOK)
-	recorded.ContentTypeIsJson()
-	recorded.BodyIs("[]")
-}
-
-func TestImageMetaLookupError(t *testing.T) {
-
-	apiErr := errors.New("My dummy error")
-
-	mock := &ImageControllerMock{
-		mockLookup: func(user users.UserI) ([]*images.ImageMeta, error) {
-			return nil, apiErr
-		},
-	}
-
-	router, err := rest.MakeRouter(rest.Get("/r", NewImageMeta(mock).Lookup))
-	if err != nil {
-		t.FailNow()
-	}
-
-	api := rest.NewApi()
-	api.Use(&SetUserMiddleware{})
-	api.SetApp(router)
-
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://1.2.3.4/r", nil))
-
-	recorded.CodeIs(http.StatusInternalServerError)
-	recorded.ContentTypeIsJson()
-	recorded.BodyIs(RestErrorMsg(apiErr))
-}
-
-func TestImageMetaGetNotFound(t *testing.T) {
-
-	mock := &ImageControllerMock{
-		mockGet: func(user users.UserI, id string) (*images.ImageMeta, error) {
-			return nil, controllers.ErrNotFound
-		},
-	}
-
-	router, err := rest.MakeRouter(rest.Get("/r/:id", NewImageMeta(mock).Get))
-	if err != nil {
-		t.FailNow()
-	}
-
-	api := rest.NewApi()
-	api.Use(&SetUserMiddleware{})
-	api.SetApp(router)
-
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://1.2.3.4/r/test", nil))
-
-	recorded.CodeIs(http.StatusNotFound)
-	recorded.ContentTypeIsJson()
-	recorded.BodyIs(RestErrorMsg(controllers.ErrNotFound))
 }
 
 func TestImageMetaGet(t *testing.T) {
 
-	img := images.NewImageMetaFromPublic(nil)
-	now := time.Now()
-	img.LastUpdated = now
-	j, _ := json.Marshal(img)
-
-	mock := &ImageControllerMock{
-		mockGet: func(user users.UserI, id string) (*images.ImageMeta, error) {
-			return img, nil
+	testList := []struct {
+		responseCode int
+		body         string
+		image        *images.ImageMeta
+		err          error
+		time         time.Time
+	}{
+		{
+			http.StatusNotFound,
+			RestErrorMsg(controllers.ErrNotFound),
+			nil,
+			controllers.ErrNotFound,
+			time.Time{},
+		},
+		{
+			http.StatusOK,
+			ToJson(MakeImageMeta(time.Unix(12345, 0), "id1", nil)),
+			MakeImageMeta(time.Unix(12345, 0), "id1", nil),
+			nil,
+			time.Unix(12345, 0),
 		},
 	}
 
-	router, err := rest.MakeRouter(rest.Get("/r/:id", NewImageMeta(mock).Get))
-	if err != nil {
-		t.FailNow()
+	for _, testCase := range testList {
+		mock := &ImageControllerMock{
+			mockGet: func(user users.UserI, id string) (*images.ImageMeta, error) {
+				return testCase.image, testCase.err
+			},
+		}
+
+		router, err := rest.MakeRouter(rest.Get("/r/:id", NewImageMeta(mock).Get))
+		if err != nil {
+			t.FailNow()
+		}
+
+		api := rest.NewApi()
+		api.Use(&SetUserMiddleware{})
+		api.SetApp(router)
+
+		recorded := test.RunRequest(t, api.MakeHandler(),
+			test.MakeSimpleRequest("GET", "http://1.2.3.4/r/test", nil))
+
+		recorded.CodeIs(testCase.responseCode)
+		recorded.ContentTypeIsJson()
+		recorded.BodyIs(testCase.body)
+
+		if !testCase.time.Equal(time.Time{}) {
+			recorded.HeaderIs("Last-Modified", testCase.time.UTC().Format(http.TimeFormat))
+		}
 	}
-
-	api := rest.NewApi()
-	api.Use(&SetUserMiddleware{})
-	api.SetApp(router)
-
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://1.2.3.4/r/test", nil))
-
-	recorded.CodeIs(http.StatusOK)
-	recorded.ContentTypeIsJson()
-	recorded.BodyIs(string(j))
-	recorded.HeaderIs("Last-Modified", now.UTC().Format(http.TimeFormat))
 }
 
 func TestImageMetaCreate(t *testing.T) {
 
-	id := "123-dummy-id-123"
-	now := time.Now()
+	const Id string = "123-123-123"
 
-	img := images.NewImageMetaFromPublic(images.NewImageMetaPublic("My name"))
-	img.LastUpdated = now
-	img.Id = id
-	j, _ := json.Marshal(img)
-
-	mock := &ImageControllerMock{
-		mockCreate: func(user users.UserI, public *images.ImageMetaPublic) (*images.ImageMeta, error) {
-			i := images.NewImageMetaFromPublic(public)
-			i.LastUpdated = now
-			i.Id = id
-
-			return i, nil
+	testList := []struct {
+		outResponseCode int
+		outBody         string
+		inPayload       interface{}
+		inCreateError   error
+	}{
+		{
+			http.StatusBadRequest,
+			RestErrorMsg(errors.New("json: cannot unmarshal string into Go value of type images.ImageMetaPublic")),
+			"{ invalid payload",
+			nil,
+		},
+		{
+			http.StatusBadRequest,
+			RestErrorMsg(images.ErrMissingImageAttrName),
+			images.NewImageMetaPublic(""),
+			nil,
+		},
+		{
+			http.StatusInternalServerError,
+			RestErrorMsg(errors.New("TestError")),
+			images.NewImageMetaPublic("MyImage"),
+			errors.New("TestError"),
+		},
+		{
+			http.StatusCreated,
+			ToJson(MakeImageMeta(time.Unix(123, 0), Id, images.NewImageMetaPublic("MyImage"))),
+			images.NewImageMetaPublic("MyImage"),
+			nil,
 		},
 	}
 
-	router, err := rest.MakeRouter(rest.Post("/r/", NewImageMeta(mock).Create))
-	if err != nil {
-		t.FailNow()
+	for _, testCase := range testList {
+
+		mock := &ImageControllerMock{
+			mockCreate: func(user users.UserI, public *images.ImageMetaPublic) (*images.ImageMeta, error) {
+				img := images.NewImageMetaFromPublic(public)
+				img.LastUpdated = time.Unix(123, 0)
+				img.Id = Id
+				return img, testCase.inCreateError
+			},
+		}
+
+		router, err := rest.MakeRouter(rest.Post("/r/", NewImageMeta(mock).Create))
+		if err != nil {
+			t.FailNow()
+		}
+
+		api := rest.NewApi()
+		api.Use(&SetUserMiddleware{})
+		api.SetApp(router)
+
+		recorded := test.RunRequest(t, api.MakeHandler(),
+			test.MakeSimpleRequest("POST", "http://1.2.3.4/r/", testCase.inPayload))
+
+		recorded.CodeIs(testCase.outResponseCode)
+		recorded.ContentTypeIsJson()
+		recorded.BodyIs(testCase.outBody)
+
+		// Header should be set only for successul opration
+		if testCase.outResponseCode == http.StatusCreated {
+			recorded.HeaderIs("Location", "/api/0.0.1/images/"+Id)
+		}
 	}
-
-	api := rest.NewApi()
-	api.Use(&SetUserMiddleware{})
-	api.SetApp(router)
-
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("POST", "http://1.2.3.4/r/", img))
-
-	recorded.CodeIs(http.StatusCreated)
-	recorded.ContentTypeIsJson()
-	recorded.HeaderIs("Location", "/api/0.0.1/images/"+id)
-	recorded.BodyIs(string(j))
 }
 
-func TestImageMetaCreateInvalidAttr(t *testing.T) {
+func TestImageMetaEdit(t *testing.T) {
 
-	img := images.NewImageMetaFromPublic(images.NewImageMetaPublic(""))
+	const Id string = "123-123-123"
 
-	mock := &ImageControllerMock{
-		mockCreate: func(user users.UserI, public *images.ImageMetaPublic) (*images.ImageMeta, error) {
-			return images.NewImageMetaFromPublic(public), nil
+	testList := []struct {
+		outResponseCode int
+		outBody         string
+		inPayload       interface{}
+		inError         error
+	}{
+		{
+			http.StatusBadRequest,
+			RestErrorMsg(errors.New("json: cannot unmarshal string into Go value of type images.ImageMetaPublic")),
+			"{ invalid payload",
+			nil,
+		},
+		{
+			http.StatusBadRequest,
+			RestErrorMsg(images.ErrMissingImageAttrName),
+			images.NewImageMetaPublic(""),
+			nil,
+		},
+		{
+			http.StatusInternalServerError,
+			RestErrorMsg(errors.New("TestError")),
+			images.NewImageMetaPublic("MyImage"),
+			errors.New("TestError"),
+		},
+		{
+			http.StatusNotFound,
+			RestErrorMsg(errors.New("Resource not found")),
+			images.NewImageMetaPublic("MyImage"),
+			controllers.ErrNotFound,
+		},
+		{
+			http.StatusNoContent,
+			"",
+			images.NewImageMetaPublic("MyImage"),
+			nil,
 		},
 	}
 
-	router, err := rest.MakeRouter(rest.Post("/r/", NewImageMeta(mock).Create))
-	if err != nil {
-		t.FailNow()
+	for _, testCase := range testList {
+
+		mock := &ImageControllerMock{
+			mockEdit: func(user users.UserI, id string, public *images.ImageMetaPublic) error {
+				return testCase.inError
+			},
+		}
+
+		router, err := rest.MakeRouter(rest.Put("/r/:id", NewImageMeta(mock).Edit))
+		if err != nil {
+			t.FailNow()
+		}
+
+		api := rest.NewApi()
+		api.Use(&SetUserMiddleware{})
+		api.SetApp(router)
+
+		recorded := test.RunRequest(t, api.MakeHandler(),
+			test.MakeSimpleRequest("PUT", "http://1.2.3.4/r/"+Id, testCase.inPayload))
+
+		recorded.CodeIs(testCase.outResponseCode)
+		recorded.ContentTypeIsJson()
+		recorded.BodyIs(testCase.outBody)
+
+		// Header should be set only for successul opration
+		if testCase.outResponseCode == http.StatusNoContent {
+			recorded.HeaderIs("Location", "/r/"+Id)
+		}
 	}
-
-	api := rest.NewApi()
-	api.Use(&SetUserMiddleware{})
-	api.SetApp(router)
-
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("POST", "http://1.2.3.4/r/", img))
-
-	recorded.CodeIs(http.StatusBadRequest)
-	recorded.ContentTypeIsJson()
-	recorded.BodyIs(RestErrorMsg(images.ErrMissingImageAttrName))
 }
 
-func TestImageMetaCreateInvalidPayload(t *testing.T) {
+func TestImageMetaDelete(t *testing.T) {
 
-	mock := &ImageControllerMock{
-		mockCreate: func(user users.UserI, public *images.ImageMetaPublic) (*images.ImageMeta, error) {
-			return images.NewImageMetaFromPublic(public), nil
+	const Id string = "123-123-123"
+
+	testList := []struct {
+		outResponseCode int
+		outBody         string
+		inError         error
+	}{
+		{
+			http.StatusInternalServerError,
+			RestErrorMsg(errors.New("TestError")),
+			errors.New("TestError"),
+		},
+		{
+			http.StatusNotFound,
+			RestErrorMsg(errors.New("Resource not found")),
+			controllers.ErrNotFound,
+		},
+		{
+			http.StatusNoContent,
+			"",
+			nil,
 		},
 	}
 
-	router, err := rest.MakeRouter(rest.Post("/r/", NewImageMeta(mock).Create))
-	if err != nil {
-		t.FailNow()
+	for _, testCase := range testList {
+
+		mock := &ImageControllerMock{
+			mockDelete: func(user users.UserI, id string) error {
+				return testCase.inError
+			},
+		}
+
+		router, err := rest.MakeRouter(rest.Delete("/r/:id", NewImageMeta(mock).Delete))
+		if err != nil {
+			t.FailNow()
+		}
+
+		api := rest.NewApi()
+		api.Use(&SetUserMiddleware{})
+		api.SetApp(router)
+
+		recorded := test.RunRequest(t, api.MakeHandler(),
+			test.MakeSimpleRequest("DELETE", "http://1.2.3.4/r/"+Id, nil))
+
+		recorded.CodeIs(testCase.outResponseCode)
+		recorded.ContentTypeIsJson()
+		recorded.BodyIs(testCase.outBody)
 	}
-
-	api := rest.NewApi()
-	api.Use(&SetUserMiddleware{})
-	api.SetApp(router)
-
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("POST", "http://1.2.3.4/r/", "ala ma kota"))
-
-	recorded.CodeIs(http.StatusBadRequest)
-	recorded.ContentTypeIsJson()
-	recorded.BodyIs(RestErrorMsg(
-		errors.New("json: cannot unmarshal string into Go value of type images.ImageMetaPublic")))
-}
-
-func TestImageMetaCreateControlerError(t *testing.T) {
-
-	apiError := errors.New("Dummy error")
-	img := images.NewImageMetaFromPublic(images.NewImageMetaPublic("Name"))
-
-	mock := &ImageControllerMock{
-		mockCreate: func(user users.UserI, public *images.ImageMetaPublic) (*images.ImageMeta, error) {
-			return nil, apiError
-		},
-	}
-
-	router, err := rest.MakeRouter(rest.Post("/r/", NewImageMeta(mock).Create))
-	if err != nil {
-		t.FailNow()
-	}
-
-	api := rest.NewApi()
-	api.Use(&SetUserMiddleware{})
-	api.SetApp(router)
-
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("POST", "http://1.2.3.4/r/", img))
-
-	recorded.CodeIs(http.StatusInternalServerError)
-	recorded.ContentTypeIsJson()
-	recorded.BodyIs(RestErrorMsg(apiError))
 }
