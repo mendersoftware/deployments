@@ -10,9 +10,9 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	"github.com/mendersoftware/artifacts/controllers"
 	"github.com/mendersoftware/artifacts/models/images"
 	"github.com/mendersoftware/artifacts/models/users"
-	"github.com/mendersoftware/services/controllers"
 )
 
 func init() {
