@@ -111,7 +111,7 @@ func (m *ImageMeta) Edit(w rest.ResponseWriter, r *rest.Request) {
 
 	// Pass to controller
 	if err := m.controler.Edit(u, id, imagePub); err != nil {
-		if err == controllers.ErrNotFound {
+		if err.Error() == controllers.ErrNotFound.Error() {
 			rest.NotFound(w, r)
 			return
 		}
@@ -120,7 +120,7 @@ func (m *ImageMeta) Edit(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	w.Header().Add(HttpHeaderLocation, r.RequestURI)
+	w.Header().Add(HttpHeaderLocation, r.URL.RequestURI())
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -130,7 +130,7 @@ func (m *ImageMeta) Delete(w rest.ResponseWriter, r *rest.Request) {
 	id := r.PathParam("id")
 
 	if err := m.controler.Delete(u, id); err != nil {
-		if err == controllers.ErrNotFound {
+		if err.Error() == controllers.ErrNotFound.Error() {
 			rest.NotFound(w, r)
 			return
 		}
@@ -159,7 +159,7 @@ func (m *ImageMeta) UploadLink(w rest.ResponseWriter, r *rest.Request) {
 	link, err := m.controler.UploadLink(u, id, time.Duration(minutes)*time.Minute)
 
 	if err != nil {
-		if err == controllers.ErrNotFound {
+		if err.Error() == controllers.ErrNotFound.Error() {
 			rest.NotFound(w, r)
 			return
 		}
@@ -189,7 +189,7 @@ func (m *ImageMeta) DownloadLink(w rest.ResponseWriter, r *rest.Request) {
 	link, err := m.controler.DownloadLink(u, id, time.Duration(minutes)*time.Minute)
 
 	if err != nil {
-		if err == controllers.ErrNotFound {
+		if err.Error() == controllers.ErrNotFound.Error() {
 			rest.NotFound(w, r)
 			return
 		}
