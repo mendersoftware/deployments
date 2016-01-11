@@ -20,13 +20,13 @@ os: linux
 #   may cause associated deployments to fail.
 files:
   - source: /artifacts
-    destination: /usr/sbin/artifacts
+    destination: /usr/sbin/
 
   - source: /config.yaml
-    destination: /etc/artifacts/config.yaml
+    destination: /etc/artifacts/
 
-  - source: /scripts/init.d/artifacts_rhel
-    destination: /etc/init.d/artifacts
+  - source: /scripts/rhel/init.d/artifacts
+    destination: /etc/init.d/
 
 # For deployments to Amazon Linux, Ubuntu Server, or RHEL instances,
 #   you can specify a "permissions"
