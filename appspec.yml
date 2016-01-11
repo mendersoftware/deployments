@@ -74,6 +74,7 @@ hooks:
 #   revision's file bundle.
   ApplicationStop:
     - location: /scripts/codedeploy/application_stop.sh
+      runas: root
 
 # During the BeforeInstall deployment lifecycle event, run the commands
 #   in the script specified in "location".
@@ -97,8 +98,10 @@ hooks:
 #   in the script specified in "location".
   ApplicationStart:
     - location: /scripts/codedeploy/application_start.sh
+      runas: root
 
 # During the ValidateService deployment lifecycle event, run the commands
 #   in the script specified in "location".
   ValidateService:
     - location: /scripts/codedeploy/validate_service.sh
+      runas: root
