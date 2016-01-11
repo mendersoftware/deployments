@@ -26,7 +26,7 @@ files:
     destination: /etc/artifacts/config.yaml
 
   - source: /scripts/init.d/artifacts_rhel
-    destication: /etc/init.d/artifacts
+    destination: /etc/init.d/artifacts
 
 # For deployments to Amazon Linux, Ubuntu Server, or RHEL instances,
 #   you can specify a "permissions"
