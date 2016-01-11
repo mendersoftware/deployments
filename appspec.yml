@@ -25,7 +25,7 @@ files:
   - source: /config.yaml
     destination: /etc/artifacts/config.yaml
 
-  - source: /init.d/artifacts_rhel
+  - source: /scripts/init.d/artifacts_rhel
     destication: /etc/init.d/artifacts
 
 # For deployments to Amazon Linux, Ubuntu Server, or RHEL instances,
