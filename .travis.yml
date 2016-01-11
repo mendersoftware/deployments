@@ -106,7 +106,7 @@ after_success:
 
     # CodeDeploy bundle required packaged archive
     - mkdir codedeploy
-    - cp build/* appspec.yml codedeploy/
+    - cp -r build/* appspec.yml scripts codedeploy/
     - cd codedeploy && tar -zcvf ../build/codedeploy.tgz . && cd ..
 
 deploy:
