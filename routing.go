@@ -34,7 +34,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 	images := memmap.NewImagesInMem(safemap.NewStringMap())
 	meta := handlers.NewImageMeta(controllers.NewImagesController(images, SetupFileStorage(c)))
-	version := handlers.NewVersion(CreateVersionString())
+	version := handlers.NewVersion(CreateVersionString(), BuildNumber)
 
 	// Define routers and autogen OPTIONS method for each route.
 	routes := []*rest.Route{

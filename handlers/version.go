@@ -9,15 +9,17 @@ type VersionHandlerI interface {
 }
 
 type Version struct {
-	version string
+	Version string `json:"version,omitempty"`
+	Build   string `json:"build,omitempty"`
 }
 
-func NewVersion(version string) *Version {
+func NewVersion(version, build string) *Version {
 	return &Version{
-		version: version,
+		Version: version,
+		Build:   build,
 	}
 }
 
 func (v *Version) Get(w rest.ResponseWriter, r *rest.Request) {
-	w.WriteJson(v.version)
+	w.WriteJson(v)
 }
