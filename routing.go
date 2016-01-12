@@ -43,20 +43,13 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 		rest.Get("/api/0.0.1/images", meta.Lookup),
 		rest.Post("/api/0.0.1/images", meta.Create),
-		// rest.Options("/api/0.0.1/images", handlers.NewOptionsHandler(handlers.HttpMethodGet,
-		// 	handlers.HttpMethodPost)),
 
 		rest.Get("/api/0.0.1/images/:id", meta.Get),
 		rest.Put("/api/0.0.1/images/:id", meta.Edit),
 		rest.Delete("/api/0.0.1/images/:id", meta.Delete),
-		// rest.Options("/api/0.0.1/images/:id", handlers.NewOptionsHandler(handlers.HttpMethodGet,
-		// 	handlers.HttpMethodPut, handlers.HttpMethodDelete)),
 
 		rest.Get("/api/0.0.1/images/:id/upload", meta.UploadLink),
-		// rest.Options("/api/0.0.1/images/:id/upload", handlers.NewOptionsHandler(handlers.HttpMethodGet)),
-
 		rest.Get("/api/0.0.1/images/:id/download", meta.DownloadLink),
-		// rest.Options("/api/0.0.1/images/:id/download", handlers.NewOptionsHandler(handlers.HttpMethodGet)),
 	}
 
 	return rest.MakeRouter(AutogenOptionsRoutes(handlers.NewOptionsHandler, routes...)...)
