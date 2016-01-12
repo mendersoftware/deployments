@@ -109,7 +109,7 @@ after_success:
 
     # CodeDeploy bundle required packaged archive
     - mkdir codedeploy
-    - cp build/* appspec.yml codedeploy/
+    - cp -r build/* appspec.yml scripts codedeploy/
     - cd codedeploy && tar -zcvf ../build/codedeploy.tgz . && cd ..
 
 deploy:
@@ -174,13 +174,13 @@ deploy:
             repo: $DEPLOY_REPO
 
 
-    # Automatically deploy all master builds to dedicated EC2 instance
+    # Automatically deploy all master dev builds to dedicated EC2 instance
     -
         provider: codedeploy
         access_key_id: $AWS_ACCESS_KEY_ID
         secret_access_key: $AWS_SECRET_ACCESS_KEY
         bucket: $AWS_BUCKET
-        key: $DEPLOY_REPO/latest/master/linux_amd64/codedeploy.tgz
+        key: $DEPLOY_REPO/dev/master/$TRAVIS_BUILD_NUMBER/linux_amd64/codedeploy.tgz
         application: Mender
         deployment_group: mender-artifacts-dev
         bundle_type: tgz

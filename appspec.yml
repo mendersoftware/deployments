@@ -1,7 +1,3 @@
-# This is an appspec.yml template file for use with AWS CodeDeploy.
-# The lines in this template starting with the hashtag symbol are
-#   instructional comments and can be safely left in the file or
-#   ignored.
 # For help completing this file, see the "AppSpec File Reference" in the
 #   "AWS CodeDeploy User Guide" at
 #   http://docs.aws.amazon.com/codedeploy/latest/userguide/app-spec-ref.html
@@ -24,7 +20,13 @@ os: linux
 #   may cause associated deployments to fail.
 files:
   - source: /artifacts
-    destination: /home/ec2-user/
+    destination: /usr/sbin/
+
+  - source: /config.yaml
+    destination: /etc/artifacts/
+
+  - source: /scripts/rhel/init.d/artifacts
+    destination: /etc/init.d/
 
 # For deployments to Amazon Linux, Ubuntu Server, or RHEL instances,
 #   you can specify a "permissions"
@@ -37,26 +39,16 @@ files:
 #   "permissions" section altogether. A blank or incomplete "permissions"
 #   section may cause associated deployments to fail.
 
-# permissions:
-#   - object:
-#     pattern:
-#     except:
-#     owner:
-#     group:
-#     mode:
-#     acls:
-#       -
-#     context:
-#       user:
-#       type:
-#       range:
-#     type:
-#       -
+permissions:
+  - object: /etc/init.d/artifacts
+    owner: root
+    group: root
+    mode: 755
 
 # If you are not running any commands on the instance, then remove
 #   the "hooks" section altogether. A blank or incomplete "hooks" section
 #   may cause associated deployments to fail.
-# hooks:
+hooks:
 # For each deployment lifecycle event, specify multiple "location" entries
 #   if you want to run multiple scripts during that event.
 # You can specify "timeout" as the number of seconds to wait until failing the deployment
@@ -80,13 +72,10 @@ files:
 # During the ApplicationStop deployment lifecycle event, run the commands
 #   in the script specified in "location" starting from the root of the
 #   revision's file bundle.
-  # ApplicationStop:
-  #   - location:
-  #     timeout:
-  #     runas:
-  #   - location:
-  #     timeout:
-  #     runas:
+  ApplicationStop:
+    - location: /scripts/codedeploy/application_stop.sh
+      runas: root
+
 # During the BeforeInstall deployment lifecycle event, run the commands
 #   in the script specified in "location".
   # BeforeInstall:
@@ -107,19 +96,12 @@ files:
   #     runas:
 # During the ApplicationInstall deployment lifecycle event, run the commands
 #   in the script specified in "location".
-  # ApplicationStart:
-  #   - location:
-  #     timeout:
-  #     runas:
-  #   - location:
-  #     timeout:
-  #     runas:
+  ApplicationStart:
+    - location: /scripts/codedeploy/application_start.sh
+      runas: root
+
 # During the ValidateService deployment lifecycle event, run the commands
 #   in the script specified in "location".
-  # ValidateService:
-  #   - location:
-  #     timeout:
-  #     runas:
-  #   - location:
-  #     timeout:
-  #     runas:
+  ValidateService:
+    - location: /scripts/codedeploy/validate_service.sh
+      runas: root

@@ -20,7 +20,8 @@ func main() {
 	flag.Parse()
 
 	if printVersion {
-		fmt.Println(CreateVersionString())
+		fmt.Println("Version:", CreateVersionString())
+		fmt.Println("BuildNumber:", BuildNumber)
 		os.Exit(0)
 	}
 

@@ -19,21 +19,13 @@ var (
 
 func CreateVersionString() string {
 
-	version := "unknown"
-
 	switch {
 	case Tag != "":
-		version = Tag
+		return Tag
 
 	case Commit != "" && Branch != "":
-		version = Branch + "_" + Commit
+		return Branch + "_" + Commit
 	}
 
-	out := "Version: " + version
-
-	if BuildNumber != "" {
-		out = out + " BuildNumber: " + BuildNumber
-	}
-
-	return out
+	return "unknown"
 }

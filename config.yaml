@@ -1,6 +1,6 @@
 # API server listen address
-# Defauls to: "localhost:8080"
-listen: localhost:8080
+# Defauls to: ":8080" which will listen on all avalable interfaces.
+listen: :8080
 
 # HTTPS configuration
 # To enable listening using HTTPS protocol please uncomment and configure following section.
