@@ -14,7 +14,7 @@ const (
 	SettingHttpsKey         = SettingHttps + ".key"
 
 	SettingListen        = "listen"
-	SettingListenDefault = "localhost:8080"
+	SettingListenDefault = ":8080"
 
 	SettingsAws               = "aws"
 	SettingAwsS3Region        = SettingsAws + ".region"
