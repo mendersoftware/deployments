@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -10,21 +11,28 @@ import (
 
 func TestVersionGet(t *testing.T) {
 
+	toJson := func(data interface{}) string {
+		j, _ := json.Marshal(data)
+		return string(j)
+	}
+
 	testList := []struct {
 		outResponseCode int
 		outBody         string
 		inVersion       string
+		inBuild         string
 	}{
 		{
 			http.StatusOK,
-			`"0.0.1"`,
+			toJson(Version{Version: "0.0.1", Build: "123"}),
 			"0.0.1",
+			"123",
 		},
 	}
 
 	for _, testCase := range testList {
 
-		router, err := rest.MakeRouter(rest.Get("/r/", NewVersion(testCase.inVersion).Get))
+		router, err := rest.MakeRouter(rest.Get("/r/", NewVersion(testCase.inVersion, testCase.inBuild).Get))
 		if err != nil {
 			t.FailNow()
 		}
