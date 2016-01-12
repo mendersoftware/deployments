@@ -34,9 +34,13 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 	images := memmap.NewImagesInMem(safemap.NewStringMap())
 	meta := handlers.NewImageMeta(controllers.NewImagesController(images, SetupFileStorage(c)))
+	version := handlers.NewVersion(CreateVersionString())
 
 	// Define routers and autogen OPTIONS method for each route.
 	routes := []*rest.Route{
+
+		rest.Get("/api", version.Get),
+
 		rest.Get("/api/0.0.1/images", meta.Lookup),
 		rest.Post("/api/0.0.1/images", meta.Create),
 		// rest.Options("/api/0.0.1/images", handlers.NewOptionsHandler(handlers.HttpMethodGet,

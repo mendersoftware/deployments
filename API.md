@@ -32,6 +32,10 @@ If Content-Type is provided be the client request it is expected to be set to 'a
 
 Available resources, operations and their responses.
 
+### Server version
+
+**URI:** Get /api
+
 ### Lookup available images.
 
 **URI:** Get /api/0.0.1/images
