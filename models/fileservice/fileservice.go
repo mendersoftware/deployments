@@ -12,6 +12,7 @@ type FileServiceModelI interface {
 	// Delete stored object. If not found return error.
 	Delete(customerId, objectId string) error
 	Exists(customerId, objectId string) (bool, error)
+	LastModified(customerId, objectId string) (time.Time, error)
 	PutRequest(customerId, objectId string, duration time.Duration) (*Link, error)
 	GetRequest(customerId, objectId string, duration time.Duration) (*Link, error)
 }

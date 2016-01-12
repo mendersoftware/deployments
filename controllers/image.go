@@ -45,14 +45,53 @@ func NewImagesController(images images.ImagesModelI,
 	}
 }
 
+func (i *ImagesControler) syncLastModifiedTimeWithFileUpload(user users.UserI, image *images.ImageMeta) error {
+	lastModified, err := i.fileStorage.LastModified(user.GetCustomerID(), image.Id)
+	switch {
+	case err == fileservice.ErrNotFound:
+		return nil
+	case err != nil:
+		return err
+	}
+
+	if image.LastUpdated.Before(lastModified) {
+		image.LastUpdated = lastModified
+		if err := i.images.Update(user, image); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Lookup images
 func (i *ImagesControler) Lookup(user users.UserI) ([]*images.ImageMeta, error) {
-	return i.images.Find(user)
+	images, err := i.images.Find(user)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, image := range images {
+		if err := i.syncLastModifiedTimeWithFileUpload(user, image); err != nil {
+			return nil, err
+		}
+	}
+
+	return images, nil
 }
 
 // Get image by id
 func (i *ImagesControler) Get(user users.UserI, id string) (*images.ImageMeta, error) {
-	return i.images.FindOne(user, id)
+	image, err := i.images.FindOne(user, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := i.syncLastModifiedTimeWithFileUpload(user, image); err != nil {
+		return nil, err
+	}
+
+	return image, nil
 }
 
 // Create new image metadata entry
