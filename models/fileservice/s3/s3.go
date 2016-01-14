@@ -104,7 +104,7 @@ func (s *SimpleStorageService) Exists(customerId, objectId string) (bool, error)
 
 	// Note: Response should contain max 1 object (MaxKetys=1)
 	// Double check if it's exact match as object search matches prefix.
-	if resp.Contents[0].Key == aws.String("id") {
+	if *resp.Contents[0].Key == id {
 		return true, nil
 	}
 
@@ -195,7 +195,7 @@ func (s *SimpleStorageService) LastModified(customerId, objectId string) (time.T
 
 	// Note: Response should contain max 1 object (MaxKetys=1)
 	// Double check if it's exact match as object search matches prefix.
-	if resp.Contents[0].Key != aws.String("id") {
+	if *resp.Contents[0].Key != id {
 		return time.Time{}, fileservice.ErrNotFound
 	}
 
