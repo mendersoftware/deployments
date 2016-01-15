@@ -112,12 +112,12 @@ func (s *SimpleStorageService) Exists(customerId, objectId string) (bool, error)
 	}
 
 	if len(resp.Contents) == 0 {
-		return false, nil
+		return false, fileservice.ErrNotFound
 	}
 
 	// Note: Response should contain max 1 object (MaxKetys=1)
 	// Double check if it's exact match as object search matches prefix.
-	if resp.Contents[0].Key == aws.String("id") {
+	if *resp.Contents[0].Key == id {
 		return true, nil
 	}
 
@@ -182,4 +182,35 @@ func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) er
 	}
 
 	return nil
+}
+
+func (s *SimpleStorageService) LastModified(customerId, objectId string) (time.Time, error) {
+
+	id := s.makeFileId(customerId, objectId)
+
+	params := &s3.ListObjectsInput{
+		// Required
+		Bucket: aws.String(s.bucket),
+
+		// Optional
+		MaxKeys: aws.Int64(1),
+		Prefix:  aws.String(id),
+	}
+
+	resp, err := s.client.ListObjects(params)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if len(resp.Contents) == 0 {
+		return time.Time{}, fileservice.ErrNotFound
+	}
+
+	// Note: Response should contain max 1 object (MaxKetys=1)
+	// Double check if it's exact match as object search matches prefix.
+	if *resp.Contents[0].Key != id {
+		return time.Time{}, fileservice.ErrNotFound
+	}
+
+	return *resp.Contents[0].LastModified, nil
 }
