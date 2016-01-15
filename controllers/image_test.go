@@ -13,6 +13,190 @@
 //    limitations under the License.
 package controllers
 
-import "testing"
+import (
+	"errors"
+	"reflect"
+	"testing"
+	"time"
 
-func TestPlaceholder(t *testing.T) {}
+	"github.com/mendersoftware/artifacts/models/fileservice"
+	"github.com/mendersoftware/artifacts/models/images"
+	"github.com/mendersoftware/artifacts/models/users"
+)
+
+type MockUser struct{}
+
+func (user *MockUser) GetUserID() string     { return "user" }
+func (user *MockUser) GetCustomerID() string { return "customer" }
+
+type MockImagesModel struct {
+	mockFind    func(user users.UserI) ([]*images.ImageMeta, error)
+	mockFindOne func(user users.UserI, id string) (*images.ImageMeta, error)
+	mockExists  func(user users.UserI, id string) (bool, error)
+	mockInsert  func(user users.UserI, image *images.ImageMeta) (string, error)
+	mockUpdate  func(user users.UserI, image *images.ImageMeta) error
+	mockDelete  func(user users.UserI, id string) error
+}
+
+func (model *MockImagesModel) Find(user users.UserI) ([]*images.ImageMeta, error) {
+	return model.mockFind(user)
+}
+func (model *MockImagesModel) FindOne(user users.UserI, id string) (*images.ImageMeta, error) {
+	return model.mockFindOne(user, id)
+}
+func (model *MockImagesModel) Exists(user users.UserI, id string) (bool, error) {
+	return model.mockExists(user, id)
+}
+func (model *MockImagesModel) Insert(user users.UserI, image *images.ImageMeta) (string, error) {
+	return model.mockInsert(user, image)
+}
+func (model *MockImagesModel) Update(user users.UserI, image *images.ImageMeta) error {
+	return model.mockUpdate(user, image)
+}
+func (model *MockImagesModel) Delete(user users.UserI, id string) error {
+	return model.mockDelete(user, id)
+}
+
+type MockFileService struct {
+	mockDelete       func(customerId, objectId string) error
+	mockExists       func(customerId, objectId string) (bool, error)
+	mockLastModified func(customerId, objectId string) (time.Time, error)
+	mockPutRequest   func(customerId, objectId string, duration time.Duration) (*fileservice.Link, error)
+	mockGetRequest   func(customerId, objectId string, duration time.Duration) (*fileservice.Link, error)
+}
+
+func (service *MockFileService) Delete(customerId, objectId string) error {
+	return service.mockDelete(customerId, objectId)
+}
+func (service *MockFileService) Exists(customerId, objectId string) (bool, error) {
+	return service.mockExists(customerId, objectId)
+}
+func (service *MockFileService) LastModified(customerId, objectId string) (time.Time, error) {
+	return service.mockLastModified(customerId, objectId)
+}
+func (service *MockFileService) PutRequest(customerId, objectId string, duration time.Duration) (*fileservice.Link, error) {
+	return service.mockPutRequest(customerId, objectId, duration)
+}
+func (service *MockFileService) GetRequest(customerId, objectId string, duration time.Duration) (*fileservice.Link, error) {
+	return service.mockGetRequest(customerId, objectId, duration)
+}
+
+func TestImagesControlerGet(t *testing.T) {
+
+	testList := []struct {
+		expectedImage *images.ImageMeta
+		expectedError error
+
+		mockModelFindOneImage *images.ImageMeta
+		mockModelFindOneError error
+		mockModelUpdateError  error
+
+		mockFileServiceLastModificationTime  time.Time
+		mockFileServiceLastModificationError error
+	}{
+		{
+			expectedImage: nil,
+			expectedError: errors.New("Internal Issue"),
+
+			mockModelFindOneError: errors.New("Internal Issue"),
+		},
+		{
+			expectedImage: nil,
+			expectedError: errors.New("Internal Issue"),
+
+			mockModelFindOneImage:                &images.ImageMeta{ImageMetaPrivate: &images.ImageMetaPrivate{}},
+			mockModelFindOneError:                nil,
+			mockFileServiceLastModificationError: errors.New("Internal Issue"),
+		},
+		{
+			expectedImage: &images.ImageMeta{ImageMetaPrivate: &images.ImageMetaPrivate{}},
+			expectedError: nil,
+
+			mockModelFindOneImage:                &images.ImageMeta{ImageMetaPrivate: &images.ImageMetaPrivate{}},
+			mockModelFindOneError:                nil,
+			mockFileServiceLastModificationError: fileservice.ErrNotFound,
+		},
+		{
+			expectedImage: nil,
+			expectedError: errors.New("Internal Issue"),
+
+			mockModelFindOneImage:                &images.ImageMeta{ImageMetaPrivate: &images.ImageMetaPrivate{}},
+			mockModelFindOneError:                nil,
+			mockFileServiceLastModificationError: nil,
+			mockFileServiceLastModificationTime:  time.Now(),
+			mockModelUpdateError:                 errors.New("Internal Issue"),
+		},
+		{
+			expectedImage: &images.ImageMeta{
+				ImageMetaPrivate: &images.ImageMetaPrivate{
+					LastUpdated: time.Unix(200, 0),
+				},
+			},
+			expectedError: nil,
+
+			mockModelFindOneImage: &images.ImageMeta{
+				ImageMetaPrivate: &images.ImageMetaPrivate{
+					LastUpdated: time.Unix(200, 0),
+				},
+			},
+			mockModelFindOneError:                nil,
+			mockFileServiceLastModificationError: nil,
+			mockFileServiceLastModificationTime:  time.Unix(100, 0),
+			mockModelUpdateError:                 nil,
+		},
+		{
+			expectedImage: &images.ImageMeta{
+				ImageMetaPrivate: &images.ImageMetaPrivate{
+					LastUpdated: time.Unix(100, 0),
+				},
+			},
+			expectedError: nil,
+
+			mockModelFindOneImage: &images.ImageMeta{
+				ImageMetaPrivate: &images.ImageMetaPrivate{
+					LastUpdated: time.Unix(50, 0),
+				},
+			},
+			mockModelFindOneError:                nil,
+			mockFileServiceLastModificationError: nil,
+			mockFileServiceLastModificationTime:  time.Unix(100, 0),
+			mockModelUpdateError:                 nil,
+		},
+	}
+
+	for _, test := range testList {
+
+		model := &MockImagesModel{
+			mockFindOne: func(user users.UserI, id string) (*images.ImageMeta, error) {
+				return test.mockModelFindOneImage, test.mockModelFindOneError
+			},
+			mockUpdate: func(user users.UserI, image *images.ImageMeta) error {
+				return test.mockModelUpdateError
+			},
+		}
+
+		fileService := &MockFileService{
+			mockLastModified: func(customerId, objectId string) (time.Time, error) {
+				return test.mockFileServiceLastModificationTime, test.mockFileServiceLastModificationError
+			},
+		}
+
+		controller := NewImagesController(model, fileService)
+		image, err := controller.Get(&MockUser{}, "id_123")
+
+		if test.expectedError == nil || err == nil {
+			if err != test.expectedError {
+				t.Log(err, test.expectedError)
+				t.FailNow()
+			}
+		} else if test.expectedError.Error() != err.Error() {
+			t.Log(err, test.expectedError)
+			t.FailNow()
+		}
+
+		if !reflect.DeepEqual(image, test.expectedImage) {
+			t.Log(image, test.expectedImage)
+			t.FailNow()
+		}
+	}
+}
