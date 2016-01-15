@@ -327,25 +327,17 @@ func TestImagesControlerLookup(t *testing.T) {
 
 		if test.expectedError == nil || err == nil {
 			if err != test.expectedError {
-				t.Log(test.expectedError, err)
-				t.Log(test.expectedImages, images)
 				t.FailNow()
 			}
 		} else if test.expectedError.Error() != err.Error() {
-			t.Log(test.expectedError, err)
-			t.Log(test.expectedImages, images)
 			t.FailNow()
 		}
 
 		if len(images) != len(test.expectedImages) {
-			t.Log(test.expectedError, err)
-			t.Log(test.expectedImages, images)
 			t.FailNow()
 		}
 
 		if !reflect.DeepEqual(images, test.expectedImages) {
-			t.Log(test.expectedError, err)
-			t.Log(test.expectedImages, images)
 			t.FailNow()
 		}
 	}
