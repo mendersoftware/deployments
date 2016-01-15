@@ -355,7 +355,7 @@ func TestImagesControlerCreate(t *testing.T) {
 		mockModelInsertError error
 	}{
 		{
-			&images.ImageMeta{
+			expectedImage: &images.ImageMeta{
 				ImageMetaPrivate: &images.ImageMetaPrivate{
 					Id:          ID,
 					LastUpdated: time.Unix(123, 0),
@@ -364,17 +364,17 @@ func TestImagesControlerCreate(t *testing.T) {
 					Name: "MyName",
 				},
 			},
-			nil,
-			&images.ImageMetaPublic{
+			expectedError: nil,
+			inImageMeta: &images.ImageMetaPublic{
 				Name: "MyName",
 			},
-			nil,
+			mockModelInsertError: nil,
 		},
 		{
-			nil,
-			errors.New("Internal issue"),
-			nil,
-			errors.New("Internal issue"),
+			expectedImage:        nil,
+			expectedError:        errors.New("Internal issue"),
+			inImageMeta:          nil,
+			mockModelInsertError: errors.New("Internal issue"),
 		},
 	}
 
@@ -408,8 +408,6 @@ func TestImagesControlerCreate(t *testing.T) {
 		image.LastUpdated = test.expectedImage.LastUpdated
 
 		if !reflect.DeepEqual(test.expectedImage, image) {
-			t.Log(*test.expectedImage.ImageMetaPrivate, *image.ImageMetaPrivate)
-			t.Log(test.expectedImage.ImageMetaPublic, image.ImageMetaPublic)
 			t.FailNow()
 		}
 	}
