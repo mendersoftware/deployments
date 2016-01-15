@@ -412,3 +412,88 @@ func TestImagesControlerCreate(t *testing.T) {
 		}
 	}
 }
+
+func TestImagesControlerEdit(t *testing.T) {
+
+	const ID string = "1234-12-1234"
+
+	testList := []struct {
+		expectedError error
+
+		inImageMeta *images.ImageMetaPublic
+
+		mockModelFindOneImage *images.ImageMeta
+		mockModelFindOneError error
+		mockModelUpdateError  error
+	}{
+		{
+			expectedError: errors.New("Internal issue"),
+			inImageMeta: &images.ImageMetaPublic{
+				Name: "MyName",
+			},
+			mockModelFindOneImage: nil,
+			mockModelFindOneError: errors.New("Internal issue"),
+			mockModelUpdateError:  nil,
+		},
+		{
+			expectedError: ErrNotFound,
+			inImageMeta: &images.ImageMetaPublic{
+				Name: "MyName",
+			},
+			mockModelFindOneImage: nil,
+			mockModelFindOneError: nil,
+			mockModelUpdateError:  nil,
+		},
+		{
+			expectedError: errors.New("Internal issue"),
+			inImageMeta: &images.ImageMetaPublic{
+				Name: "MyName",
+			},
+			mockModelFindOneImage: &images.ImageMeta{
+				ImageMetaPrivate: &images.ImageMetaPrivate{},
+				ImageMetaPublic: &images.ImageMetaPublic{
+					Name: "MyName",
+				},
+			},
+			mockModelFindOneError: nil,
+			mockModelUpdateError:  errors.New("Internal issue"),
+		},
+		{
+			expectedError: nil,
+			inImageMeta: &images.ImageMetaPublic{
+				Name: "MyName",
+			},
+			mockModelFindOneImage: &images.ImageMeta{
+				ImageMetaPrivate: &images.ImageMetaPrivate{},
+				ImageMetaPublic: &images.ImageMetaPublic{
+					Name: "MyName",
+				},
+			},
+			mockModelFindOneError: nil,
+			mockModelUpdateError:  nil,
+		},
+	}
+
+	for _, test := range testList {
+
+		model := &MockImagesModel{
+			mockFindOne: func(user users.UserI, id string) (*images.ImageMeta, error) {
+				return test.mockModelFindOneImage, test.mockModelFindOneError
+			},
+			mockUpdate: func(user users.UserI, image *images.ImageMeta) error {
+				return test.mockModelUpdateError
+			},
+		}
+
+		controller := NewImagesController(model, nil)
+		err := controller.Edit(&MockUser{}, "123-12-123", test.inImageMeta)
+
+		if test.expectedError == nil || err == nil {
+			if err != test.expectedError {
+				t.FailNow()
+			}
+		} else if test.expectedError.Error() != err.Error() {
+			t.FailNow()
+		}
+	}
+}
