@@ -186,16 +186,13 @@ func TestImagesControlerGet(t *testing.T) {
 
 		if test.expectedError == nil || err == nil {
 			if err != test.expectedError {
-				t.Log(err, test.expectedError)
 				t.FailNow()
 			}
 		} else if test.expectedError.Error() != err.Error() {
-			t.Log(err, test.expectedError)
 			t.FailNow()
 		}
 
 		if !reflect.DeepEqual(image, test.expectedImage) {
-			t.Log(image, test.expectedImage)
 			t.FailNow()
 		}
 	}
