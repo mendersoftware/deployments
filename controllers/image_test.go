@@ -342,3 +342,75 @@ func TestImagesControlerLookup(t *testing.T) {
 		}
 	}
 }
+
+func TestImagesControlerCreate(t *testing.T) {
+
+	const ID string = "1234-12-1234"
+
+	testList := []struct {
+		expectedImage *images.ImageMeta
+		expectedError error
+
+		inImageMeta          *images.ImageMetaPublic
+		mockModelInsertError error
+	}{
+		{
+			&images.ImageMeta{
+				ImageMetaPrivate: &images.ImageMetaPrivate{
+					Id:          ID,
+					LastUpdated: time.Unix(123, 0),
+				},
+				ImageMetaPublic: &images.ImageMetaPublic{
+					Name: "MyName",
+				},
+			},
+			nil,
+			&images.ImageMetaPublic{
+				Name: "MyName",
+			},
+			nil,
+		},
+		{
+			nil,
+			errors.New("Internal issue"),
+			nil,
+			errors.New("Internal issue"),
+		},
+	}
+
+	for _, test := range testList {
+
+		model := &MockImagesModel{
+			mockInsert: func(user users.UserI, image *images.ImageMeta) (string, error) {
+				return ID, test.mockModelInsertError
+			},
+		}
+
+		controller := NewImagesController(model, nil)
+		image, err := controller.Create(&MockUser{}, test.inImageMeta)
+
+		if test.expectedError == nil || err == nil {
+			if err != test.expectedError {
+				t.FailNow()
+			}
+		} else if test.expectedError.Error() != err.Error() {
+			t.FailNow()
+		}
+
+		if test.expectedImage == nil || image == nil {
+			if image != test.expectedImage {
+				t.FailNow()
+			}
+
+			return
+		}
+
+		image.LastUpdated = test.expectedImage.LastUpdated
+
+		if !reflect.DeepEqual(test.expectedImage, image) {
+			t.Log(*test.expectedImage.ImageMetaPrivate, *image.ImageMetaPrivate)
+			t.Log(test.expectedImage.ImageMetaPublic, image.ImageMetaPublic)
+			t.FailNow()
+		}
+	}
+}
