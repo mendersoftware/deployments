@@ -197,3 +197,156 @@ func TestImagesControlerGet(t *testing.T) {
 		}
 	}
 }
+
+func TestImagesControlerLookup(t *testing.T) {
+
+	testList := []struct {
+		expectedImages []*images.ImageMeta
+		expectedError  error
+
+		mockModelFindImages  []*images.ImageMeta
+		mockModelFindError   error
+		mockModelUpdateError error
+
+		mockFileServiceLastModificationTime  time.Time
+		mockFileServiceLastModificationError error
+	}{
+		{
+			expectedImages: nil,
+			expectedError:  errors.New("Internal Issue"),
+
+			mockModelFindError: errors.New("Internal Issue"),
+		},
+		{
+			expectedImages: nil,
+			expectedError:  errors.New("Internal Issue"),
+
+			mockModelFindImages: []*images.ImageMeta{
+				&images.ImageMeta{
+					ImageMetaPrivate: &images.ImageMetaPrivate{},
+				},
+			},
+			mockModelFindError:                   nil,
+			mockFileServiceLastModificationError: errors.New("Internal Issue"),
+		},
+		{
+			expectedImages: []*images.ImageMeta{
+				&images.ImageMeta{
+					ImageMetaPrivate: &images.ImageMetaPrivate{},
+				},
+			},
+			expectedError: nil,
+
+			mockModelFindImages: []*images.ImageMeta{
+				&images.ImageMeta{
+					ImageMetaPrivate: &images.ImageMetaPrivate{},
+				},
+			},
+			mockModelFindError:                   nil,
+			mockFileServiceLastModificationError: fileservice.ErrNotFound,
+		},
+		{
+			expectedImages: nil,
+			expectedError:  errors.New("Internal Issue"),
+
+			mockModelFindImages: []*images.ImageMeta{
+				&images.ImageMeta{
+					ImageMetaPrivate: &images.ImageMetaPrivate{},
+				},
+			},
+			mockModelFindError:                   nil,
+			mockFileServiceLastModificationError: nil,
+			mockFileServiceLastModificationTime:  time.Now(),
+			mockModelUpdateError:                 errors.New("Internal Issue"),
+		},
+		{
+			expectedImages: []*images.ImageMeta{
+				&images.ImageMeta{
+					ImageMetaPrivate: &images.ImageMetaPrivate{
+						LastUpdated: time.Unix(200, 0),
+					},
+				},
+			},
+			expectedError: nil,
+
+			mockModelFindImages: []*images.ImageMeta{
+				&images.ImageMeta{
+					ImageMetaPrivate: &images.ImageMetaPrivate{
+						LastUpdated: time.Unix(200, 0),
+					},
+				},
+			},
+			mockModelFindError:                   nil,
+			mockFileServiceLastModificationError: nil,
+			mockFileServiceLastModificationTime:  time.Unix(100, 0),
+			mockModelUpdateError:                 nil,
+		},
+		{
+			expectedImages: []*images.ImageMeta{
+				&images.ImageMeta{
+					ImageMetaPrivate: &images.ImageMetaPrivate{
+						LastUpdated: time.Unix(200, 0),
+					},
+				},
+			},
+			expectedError: nil,
+
+			mockModelFindImages: []*images.ImageMeta{
+				&images.ImageMeta{
+					ImageMetaPrivate: &images.ImageMetaPrivate{
+						LastUpdated: time.Unix(100, 0),
+					},
+				},
+			},
+			mockModelFindError:                   nil,
+			mockFileServiceLastModificationError: nil,
+			mockFileServiceLastModificationTime:  time.Unix(200, 0),
+			mockModelUpdateError:                 nil,
+		},
+	}
+
+	for _, test := range testList {
+
+		model := &MockImagesModel{
+			mockFind: func(user users.UserI) ([]*images.ImageMeta, error) {
+				return test.mockModelFindImages, test.mockModelFindError
+			},
+			mockUpdate: func(user users.UserI, image *images.ImageMeta) error {
+				return test.mockModelUpdateError
+			},
+		}
+
+		fileService := &MockFileService{
+			mockLastModified: func(customerId, objectId string) (time.Time, error) {
+				return test.mockFileServiceLastModificationTime, test.mockFileServiceLastModificationError
+			},
+		}
+
+		controller := NewImagesController(model, fileService)
+		images, err := controller.Lookup(&MockUser{})
+
+		if test.expectedError == nil || err == nil {
+			if err != test.expectedError {
+				t.Log(test.expectedError, err)
+				t.Log(test.expectedImages, images)
+				t.FailNow()
+			}
+		} else if test.expectedError.Error() != err.Error() {
+			t.Log(test.expectedError, err)
+			t.Log(test.expectedImages, images)
+			t.FailNow()
+		}
+
+		if len(images) != len(test.expectedImages) {
+			t.Log(test.expectedError, err)
+			t.Log(test.expectedImages, images)
+			t.FailNow()
+		}
+
+		if !reflect.DeepEqual(images, test.expectedImages) {
+			t.Log(test.expectedError, err)
+			t.Log(test.expectedImages, images)
+			t.FailNow()
+		}
+	}
+}
