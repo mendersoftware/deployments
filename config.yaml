@@ -17,6 +17,16 @@ aws:
 
     # S3 bucket where the uploaded images will be stored and served from.
     # Bucket is required to be created before running the service.
+    # Bucket should allow PUT/GET methods using CORS, example CORS conifg:
+    #     <CORSConfiguration>
+    #     <CORSRule>
+    #         <AllowedOrigin>*</AllowedOrigin>
+    #         <AllowedMethod>PUT</AllowedMethod>
+    #         <AllowedMethod>GET</AllowedMethod>
+    #         <MaxAgeSeconds>3000</MaxAgeSeconds>
+    #         <AllowedHeader>*</AllowedHeader>
+    #     </CORSRule>
+    #     </CORSConfiguration>
     # Defaults to: "mender-artifact-storage"
     bucket: mender-artifact-storage
 
