@@ -11,23 +11,10 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package images
+package fileservice
 
-import "testing"
+import "errors"
 
-func TestImageMetaPublicValid(t *testing.T) {
-
-	testList := []struct {
-		out   error
-		image *ImageMetaPublic
-	}{
-		{ErrMissingImageAttrName, &ImageMetaPublic{}},
-		{nil, NewImageMetaPublic("SOMETHING")},
-	}
-
-	for _, test := range testList {
-		if test.out != test.image.Valid() {
-			t.FailNow()
-		}
-	}
-}
+var (
+	ErrNotFound error = errors.New("File not found")
+)

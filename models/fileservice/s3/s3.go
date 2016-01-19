@@ -1,3 +1,16 @@
+// Copyright 2016 Mender Software AS
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
 package s3
 
 import (
@@ -99,12 +112,12 @@ func (s *SimpleStorageService) Exists(customerId, objectId string) (bool, error)
 	}
 
 	if len(resp.Contents) == 0 {
-		return false, nil
+		return false, fileservice.ErrNotFound
 	}
 
 	// Note: Response should contain max 1 object (MaxKetys=1)
 	// Double check if it's exact match as object search matches prefix.
-	if resp.Contents[0].Key == aws.String("id") {
+	if *resp.Contents[0].Key == id {
 		return true, nil
 	}
 
@@ -169,4 +182,35 @@ func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) er
 	}
 
 	return nil
+}
+
+func (s *SimpleStorageService) LastModified(customerId, objectId string) (time.Time, error) {
+
+	id := s.makeFileId(customerId, objectId)
+
+	params := &s3.ListObjectsInput{
+		// Required
+		Bucket: aws.String(s.bucket),
+
+		// Optional
+		MaxKeys: aws.Int64(1),
+		Prefix:  aws.String(id),
+	}
+
+	resp, err := s.client.ListObjects(params)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if len(resp.Contents) == 0 {
+		return time.Time{}, fileservice.ErrNotFound
+	}
+
+	// Note: Response should contain max 1 object (MaxKetys=1)
+	// Double check if it's exact match as object search matches prefix.
+	if *resp.Contents[0].Key != id {
+		return time.Time{}, fileservice.ErrNotFound
+	}
+
+	return *resp.Contents[0].LastModified, nil
 }
