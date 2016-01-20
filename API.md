@@ -116,7 +116,7 @@ Note:
 
 Removes also file (download links will throw not found resource)
 
-### Get image dowload URL
+### Get image download URL
 
 Request presigned HTTP GET request for image file. Request is valid for **expire** time.
 
@@ -142,7 +142,7 @@ For more information about using presigned requests [visit](http://docs.aws.amaz
 
 Request presigned HTTP PUT to upload file. Request is valid for **expire** time.
 
-URI: GET /api/0.0.1/images/:id/download
+URI: GET /api/0.0.1/images/:id/upload
 
 Supported query parameters:
 
