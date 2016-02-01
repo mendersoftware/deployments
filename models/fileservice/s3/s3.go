@@ -112,7 +112,7 @@ func (s *SimpleStorageService) Exists(customerId, objectId string) (bool, error)
 	}
 
 	if len(resp.Contents) == 0 {
-		return false, fileservice.ErrNotFound
+		return false, nil
 	}
 
 	// Note: Response should contain max 1 object (MaxKetys=1)
