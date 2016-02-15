@@ -16,7 +16,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
+	"github.com/mendersoftware/log"
 	"os"
 
 	"github.com/mendersoftware/artifacts/config"
