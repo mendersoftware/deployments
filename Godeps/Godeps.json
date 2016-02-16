@@ -1,14 +1,16 @@
 {
 	"ImportPath": "github.com/mendersoftware/artifacts",
 	"GoVersion": "go1.4.2",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
 			"Comment": "v0.1.0-21-g056c9bc",
 			"Rev": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
+		},
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.9.0",
+			"Rev": "be52937128b38f1d99787bb476c789e2af1147f1"
 		},
 		{
 			"ImportPath": "github.com/ant0ine/go-json-rest/rest",
@@ -83,6 +85,14 @@
 			"ImportPath": "github.com/magiconair/properties",
 			"Comment": "v1.5.4-11-g23b847e",
 			"Rev": "23b847ebbbdaada7234bf4b3da1e50e601fbf63b"
+		},
+		{
+			"ImportPath": "github.com/mendersoftware/log",
+			"Rev": "57b90bcceb46b1f8a8b60c83f177a2d40bd7b44d"
+		},
+		{
+			"ImportPath": "github.com/mendersoftware/scopestack",
+			"Rev": "feb2f3f2bec86824d6ac1963e934c790c51b2776"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/mapstructure",

@@ -14,7 +14,9 @@
 package main
 
 import (
-	"log"
+	// Make it clear that this is distinct from the mender logging.
+	golog "log"
+
 	"os"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -53,7 +55,7 @@ var DefaultProdStack = []rest.Middleware{
 	// logging
 	&rest.AccessLogJsonMiddleware{
 		// No prefix or other fields, entire output is JSON encoded and could break it.
-		Logger: log.New(os.Stdout, "", 0),
+		Logger: golog.New(os.Stdout, "", 0),
 	},
 	&rest.TimerMiddleware{},
 	&rest.RecorderMiddleware{},
