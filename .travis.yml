@@ -82,7 +82,7 @@ before_script:
     - ./check_license.sh
 
     # Perform static code analysys
-    - go vet ./....
+    - go tool vet -unsafeptr=false -unreachable=false `go list ./... | grep -v Godeps | sed -e "s,^,$GOPATH/src/,;s,.*:,,"`
 
 script:
     # go list supply import paths for all sub directories.
