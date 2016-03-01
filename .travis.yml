@@ -52,6 +52,10 @@ env:
         - AWS_S3_ACL=${AWS_S3_ACL_OVERRIDE:-$AWS_S3_ACL_DEFAULT}
         - DEPLOY_REPO=${DEPLOY_REPO_OVERRIDE:-$DEPLOY_REPO_DEFAULT}
         - BUILD_ARTIFATS=${BUILD_ARTIFATS_OVERRIDE:-$BUILD_ARTIFATS_DEFAULT}
+addons:
+    apt:
+        packages:
+        - nodejs
 
 before_install:
     # Install code coverage / coveralls tooling
@@ -84,6 +88,12 @@ before_script:
     # Perform static code analysys
     - go tool vet -unsafeptr=false -unreachable=false `go list ./... | grep -v Godeps | sed -e "s,^,$GOPATH/src/,;s,.*:,,"`
 
+    # Install jasmine-node
+    - npm install -g jasmine-node --registry http://registry.npmjs.org/
+
+    # Install frisby
+    - npm install frisby --save-dev --registry http://registry.npmjs.org/
+
 script:
     # go list supply import paths for all sub directories.
     # Exclude Godeps directory, we don't want to run tests and coverage for all dependencies every time,
@@ -95,9 +105,13 @@ script:
     # Insert build information into compiled binary using ldflags
     - go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
 
+    # Run acceptance tests
+    - jasmine-node tests_spec.js --verbose --junitreport
+
 after_success:
     # Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
     - gover
+
 
     # Send code coverage report to coveralls.io
     # Requires COVERALLS_TOKEN environment variable set.
