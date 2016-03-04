@@ -62,6 +62,7 @@ before_install:
     - go get -u github.com/axw/gocov/gocov
     - go get -u github.com/mattn/goveralls
     - go get -u golang.org/x/tools/cmd/cover
+    - go get -u github.com/fzipp/gocyclo
 
     # Install godep for dependency management
     - go get -u github.com/tools/godep
@@ -111,6 +112,7 @@ script:
 after_success:
     # Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
     - gover
+    - gocyclo
 
 
     # Send code coverage report to coveralls.io
