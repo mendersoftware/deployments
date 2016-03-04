@@ -110,7 +110,7 @@ script:
     - jasmine-node tests_spec.js --verbose --junitreport
 
     # Fail builds when the cyclomatic complexity reaches 15 or more
-    - gocyclo -over 16 `find . -iname '*.go' | grep -v 'Godeps' | grep -v '_test.go'`
+    - gocyclo -over 1 `find . -iname '*.go' | grep -v 'Godeps' | grep -v '_test.go'`
 
 after_success:
     # Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
