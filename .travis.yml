@@ -58,13 +58,15 @@ before_install:
     - go get -u github.com/axw/gocov/gocov
     - go get -u github.com/mattn/goveralls
     - go get -u golang.org/x/tools/cmd/cover
-    - go get -u github.com/fzipp/gocyclo
 
     # Install godep for dependency management
     - go get -u github.com/tools/godep
 
     # Merge all subpackage code coverage reports into a single report
     - go get -u github.com/modocache/gover
+
+    # Install cyclomatic dependency analysis tool
+    - go get -u github.com/fzipp/gocyclo
 
 before_script:
     # Print build info that binary is compiled with.
