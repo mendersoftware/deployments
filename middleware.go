@@ -111,9 +111,9 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 			handlers.HttpHeaderAccessControlRequestMethod,
 		},
 
-        // Headers that can be exposed to JS
-        AccessControlExposeHeaders: []string{
-            handlers.HttpHeaderLocation,
-        },
+		// Headers that can be exposed to JS
+		AccessControlExposeHeaders: []string{
+			handlers.HttpHeaderLocation,
+		},
 	})
 }
