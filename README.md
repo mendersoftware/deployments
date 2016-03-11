@@ -48,10 +48,6 @@ When production environment is specified JSON is formatted as compact and pretty
 
 In development environment in case of panic, stack trace is provided included in error response.
 
-## Requirements:
-
-* **uuidgen** installed and available on the path.
-
 ## Development
 
 Golang dev environment required.
@@ -65,31 +61,3 @@ $ go test ./...
 ```
 
 All dependencies are vendored using [godep](https://github.com/tools/godep) tool.
-
-## Testing
-
-Run tests on current package:
-
-```
-$ go test
-```
-
-Run tests on all subdirectories:
-
-```
-$ go test ./...
-```
-
-Run benchmarks on local package:
-
-```
-$ go test -bench=.
-```
-
-Code coverage for package:
-
-```
-$ go test -cover
-```
-
-Note this include test coverage only for code in current package.
