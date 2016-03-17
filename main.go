@@ -16,8 +16,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/mendersoftware/log"
 	"os"
+
+	"github.com/mendersoftware/log"
 
 	"github.com/mendersoftware/artifacts/config"
 	"github.com/spf13/viper"
@@ -74,4 +75,5 @@ func SetDefaultConfigs(config *viper.Viper) {
 	config.SetDefault(SettingListen, SettingListenDefault)
 	config.SetDefault(SettingAwsS3Region, SettingAwsS3RegionDefault)
 	config.SetDefault(SettingAweS3Bucket, SettingAwsS3BucketDefault)
+	config.SetDefault(SettingMongo, SettingMongoDefault)
 }
