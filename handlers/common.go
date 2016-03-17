@@ -20,6 +20,18 @@ import (
 	"strconv"
 )
 
+const (
+	HttpHeaderContentType                 string = "Content-type"
+	HttpHeaderOrigin                      string = "Origin"
+	HttpHeaderAuthorization               string = "Authorization"
+	HttpHeaderAcceptEncoding              string = "Accept-Encoding"
+	HttpHeaderAccessControlRequestHeaders string = "Access-Control-Request-Headers"
+	HttpHeaderAccessControlRequestMethod  string = "Access-Control-Request-Method"
+	HttpHeaderLastModified                string = "Last-Modified"
+	HttpHeaderExpires                     string = "Expires"
+	HttpHeaderLocation                    string = "Location"
+)
+
 func MissingRequiredQueryMsg(name string) string {
 	return fmt.Sprintf("Required query parameter missing: '%s'", name)
 }

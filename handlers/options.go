@@ -14,7 +14,13 @@
 package handlers
 
 import (
+	"net/http"
+
 	"github.com/ant0ine/go-json-rest/rest"
+)
+
+const (
+	HttpHeaderAllow string = "Allow"
 )
 
 type CreateOptionsHandler func(methods ...string) rest.HandlerFunc
@@ -36,8 +42,8 @@ func NewOptionsHandler(methods ...string) rest.HandlerFunc {
 		handler.methods[method] = true
 	}
 
-	if _, ok := handler.methods[HttpMethodOptions]; !ok {
-		handler.methods[HttpMethodOptions] = true
+	if _, ok := handler.methods[http.MethodOptions]; !ok {
+		handler.methods[http.MethodOptions] = true
 	}
 
 	return handler.handle
