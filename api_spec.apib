@@ -299,6 +299,28 @@ Deploy version of software to specified devices.
 
             Location: /api/0.0.1/deployments/{id}
 
++ Response 400 (application/json)
+    Bad request. The request could not be understood by the server due to malformed syntax.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+                }
+
 + Response 404 (application/json)
     Resource not found
 
