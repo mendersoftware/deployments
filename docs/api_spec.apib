@@ -84,6 +84,28 @@ Allows `location` header exposure.
 
     + Body
 
++ Response 400 (application/json)
+    Invalid request.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
 + Response 404 (application/json)
     Resource not found.
 
