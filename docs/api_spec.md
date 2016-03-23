@@ -712,7 +712,7 @@ Device statuses for the deployment.
                     "status": "pending",
                     "started": "2016-03-02 23:20:00 +0000 UTC",
                     "model": "Raspberry Pi 3",
-                    "image_id": "Application 0.1"
+                    "image_id": "60a0c91e6-7dec-11d0-a765-f81d4faebf6"
                 }
             ]
 
@@ -939,6 +939,7 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                 },
                 "required": [
                     "name",
+                    "model"
                 ]
             }
 
