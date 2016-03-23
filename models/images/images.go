@@ -22,7 +22,8 @@ import (
 
 var (
 	// Missing required attibute
-	ErrMissingImageAttrName = errors.New("Required field missing: 'name'")
+	ErrMissingImageAttrName  = errors.New("Required field missing: 'name'")
+	ErrMissingImageAttrModel = errors.New("Required field missing: 'model'")
 )
 
 type ImagesModelI interface {
@@ -70,6 +71,10 @@ func (i *ImageMetaPublic) Valid() error {
 
 	if i.Name == "" {
 		return ErrMissingImageAttrName
+	}
+
+	if i.Model == "" {
+		return ErrMissingImageAttrModel
 	}
 
 	return nil
