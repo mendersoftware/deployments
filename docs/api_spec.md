@@ -58,7 +58,6 @@ Allows `location` header exposure.
                         "required": [
                             "uri",
                             "id"
-                            "expire"
                         ]
                     },
                     "id": {
