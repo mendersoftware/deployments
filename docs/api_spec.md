@@ -49,12 +49,16 @@ Allows `location` header exposure.
                             "id": {
                                 "id": "id",
                                 "type": "string"
+                            },
+                            "expire": {
+                                "id": "expire",
+                                "type": "string"
                             }
                         },
                         "required": [
                             "uri",
-                            "checksum",
                             "id"
+                            "expire"
                         ]
                     },
                     "id": {
@@ -74,7 +78,8 @@ Allows `location` header exposure.
                 "image": {
                     "uri": "https://aws.my_update_bucket.com/yocto_image123",
                     "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                    "id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+                    "id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
+                    "expire": "2016-03-11T13:03:17.063493443Z"
                 },
                 "id": "w81s4fae-7dec-11d0-a765-00a0c91e6bf6"
             }
