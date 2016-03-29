@@ -157,7 +157,7 @@ Allows `location` header exposure.
 # Group Deployment
 
 ## Lookup deployments [GET /api/0.0.1/deployments{?status,name}]
-Lookup deployments in the system, including active and history.
+Lookup deployments in the system, including active and history. (TODO)
 
 + Parameters
     + status: `pending` (enum[string], optional) - Deployment status
@@ -423,7 +423,6 @@ Check status for specified deployment
                     "name": {
                         "id": "name",
                         "type": "string",
-                        "additionalItems": false
                     },
                     "version": {
                         "id": "version",
@@ -501,7 +500,7 @@ Check status for specified deployment
             }
 
 ### Cancel [DELETE]
-Cancel deployment.
+Cancel deployment. (TODO)
 
 + Parameters
     + id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
@@ -551,7 +550,7 @@ Cancel deployment.
             }
 
 ### Statistics [GET /api/0.0.1/deployments/{deployment_id}/statistics]
-Statistics for the deployment.
+Statistics for the deployment. (TODO)
 
 + Parameters
     + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
@@ -651,7 +650,7 @@ Statistics for the deployment.
             }
 
 ### List devices [GET /api/0.0.1/deployments/{deployment_id}/devices]
-Device statuses for the deployment.
+Device statuses for the deployment. (TODO)
 
 + Parameters
     + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
@@ -763,7 +762,7 @@ Device statuses for the deployment.
             }
 
 ### Deployment log [GET /api/0.0.1/deployments/{deployment_id}/devices/{device_id}/log]
-Device statuses for the deployment.
+Device statuses for the deployment. (TODO)
 
 + Parameters
     + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
