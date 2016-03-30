@@ -22,7 +22,7 @@ import (
 )
 
 func TestOptionsHandle(t *testing.T) {
-	router, err := rest.MakeRouter(rest.Options("/r", NewOptionsHandler(HttpMethodGet, HttpMethodGet)))
+	router, err := rest.MakeRouter(rest.Options("/r", NewOptionsHandler(http.MethodGet, http.MethodGet)))
 	if err != nil {
 		t.FailNow()
 	}
@@ -31,7 +31,7 @@ func TestOptionsHandle(t *testing.T) {
 	api.SetApp(router)
 
 	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest(HttpMethodOptions, "http://1.2.3.4/r", nil))
+		test.MakeSimpleRequest(http.MethodOptions, "http://1.2.3.4/r", nil))
 
 	recorded.CodeIs(http.StatusOK)
 
@@ -41,9 +41,9 @@ func TestOptionsHandle(t *testing.T) {
 
 	for _, method := range recorded.Recorder.Header()[HttpHeaderAllow] {
 		switch method {
-		case HttpMethodGet:
+		case http.MethodGet:
 			continue
-		case HttpMethodOptions:
+		case http.MethodOptions:
 			continue
 		default:
 			t.FailNow()
