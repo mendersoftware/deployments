@@ -15,7 +15,7 @@ $ artifacts --help
 ## Configuration
 
 Service is configured by providing configuration file. Supports JSON, TOML, YAML and HCL formatting.
-Default configuration file is provided.
+Default configuration file is provided (config.yaml).
 
 ## Version 0.0.1 Features:
 * Create image metadata
