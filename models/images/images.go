@@ -22,8 +22,9 @@ import (
 
 var (
 	// Missing required attibute
-	ErrMissingImageAttrName  = errors.New("Required field missing: 'name'")
-	ErrMissingImageAttrModel = errors.New("Required field missing: 'model'")
+	ErrMissingImageAttrName    = errors.New("Required field missing: 'name'")
+	ErrMissingImageAttrModel   = errors.New("Required field missing: 'model'")
+	ErrMissingImageAttrYoctoId = errors.New("Required field missing: 'yocto_id'")
 )
 
 type ImagesModelI interface {
@@ -50,18 +51,24 @@ type ImageMetaPrivate struct {
 // Public - WRITTABLE (CREATE / EDIT)
 type ImageMetaPublic struct {
 
-	//Unique field
+	//Unique & required field
 	Name string `json:"name"`
 
+	// Optional
 	Description string `json:"description"`
 	Checksum    string `json:"checksum"`
-	Model       string `json:"model"`
+
+	// Required
+	Model   string `json:"model"`
+	YoctoId string `json:"yocto_id"`
 }
 
-// NewImageMetaPublic create new struct. Name is required field.
-func NewImageMetaPublic(name string) *ImageMetaPublic {
+// NewImageMetaPublic create new struct
+func NewImageMetaPublic(name, model, yoctoId string) *ImageMetaPublic {
 	return &ImageMetaPublic{
-		Name: name,
+		Name:    name,
+		Model:   model,
+		YoctoId: yoctoId,
 	}
 }
 
@@ -75,6 +82,10 @@ func (i *ImageMetaPublic) Valid() error {
 
 	if i.Model == "" {
 		return ErrMissingImageAttrModel
+	}
+
+	if i.YoctoId == "" {
+		return ErrMissingImageAttrYoctoId
 	}
 
 	return nil

@@ -163,25 +163,24 @@ func TestImageMetaCreate(t *testing.T) {
 		{
 			http.StatusBadRequest,
 			RestErrorMsg(images.ErrMissingImageAttrName),
-			images.NewImageMetaPublic(""),
+			images.NewImageMetaPublic("", "", ""),
 			nil,
 		},
 		{
 			http.StatusInternalServerError,
 			RestErrorMsg(errors.New("TestError")),
-			images.NewImageMetaPublic("MyImage"),
+			images.NewImageMetaPublic("MyImage", "MyModel", "MyYoctoId"),
 			errors.New("TestError"),
 		},
 		{
 			http.StatusCreated,
-			ToJson(MakeImageMeta(time.Unix(123, 0), Id, images.NewImageMetaPublic("MyImage"))),
-			images.NewImageMetaPublic("MyImage"),
+			ToJson(MakeImageMeta(time.Unix(123, 0), Id, images.NewImageMetaPublic("MyImage", "MyModel", "MyYoctoId"))),
+			images.NewImageMetaPublic("MyImage", "MyModel", "MyYoctoId"),
 			nil,
 		},
 	}
 
-	for _, testCase := range testList {
-
+	for id, testCase := range testList {
 		mock := &ImageControllerMock{
 			mockCreate: func(user users.UserI, public *images.ImageMetaPublic) (*images.ImageMeta, error) {
 				img := images.NewImageMetaFromPublic(public)
@@ -193,7 +192,8 @@ func TestImageMetaCreate(t *testing.T) {
 
 		router, err := rest.MakeRouter(rest.Post("/r/", NewImageMeta(mock).Create))
 		if err != nil {
-			t.FailNow()
+			t.Errorf("TestCase: %d Error: %s", id, err)
+			continue
 		}
 
 		api := rest.NewApi()
@@ -233,25 +233,25 @@ func TestImageMetaEdit(t *testing.T) {
 		{
 			http.StatusBadRequest,
 			RestErrorMsg(images.ErrMissingImageAttrName),
-			images.NewImageMetaPublic(""),
+			images.NewImageMetaPublic("", "", ""),
 			nil,
 		},
 		{
 			http.StatusInternalServerError,
 			RestErrorMsg(errors.New("TestError")),
-			images.NewImageMetaPublic("MyImage"),
+			images.NewImageMetaPublic("MyImage", "MyModel", "MyYoctoId"),
 			errors.New("TestError"),
 		},
 		{
 			http.StatusNotFound,
 			RestErrorMsg(errors.New("Resource not found")),
-			images.NewImageMetaPublic("MyImage"),
+			images.NewImageMetaPublic("MyImage", "MyModel", "MyYoctoId"),
 			controllers.ErrNotFound,
 		},
 		{
 			http.StatusNoContent,
 			"",
-			images.NewImageMetaPublic("MyImage"),
+			images.NewImageMetaPublic("MyImage", "MyModel", "MyYoctoId"),
 			nil,
 		},
 	}

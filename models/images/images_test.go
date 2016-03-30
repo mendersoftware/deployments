@@ -22,12 +22,15 @@ func TestImageMetaPublicValid(t *testing.T) {
 		image *ImageMetaPublic
 	}{
 		{ErrMissingImageAttrName, &ImageMetaPublic{}},
-		{nil, NewImageMetaPublic("SOMETHING")},
+		{nil, NewImageMetaPublic("SOMETHING", "SOMETHING", "SOMETHING")},
+		{ErrMissingImageAttrModel, NewImageMetaPublic("SOMETHING", "", "SOMETHING")},
+		{ErrMissingImageAttrYoctoId, NewImageMetaPublic("SOMETHING", "SOMETHING", "")},
 	}
 
-	for _, test := range testList {
-		if test.out != test.image.Valid() {
-			t.FailNow()
+	for id, test := range testList {
+		if err := test.out; err != test.image.Valid() {
+			t.Errorf("TestCase: %d Error: %s", id, err)
+			continue
 		}
 	}
 }

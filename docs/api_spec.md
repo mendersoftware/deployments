@@ -53,11 +53,16 @@ Allows `location` header exposure.
                             "expire": {
                                 "id": "expire",
                                 "type": "string"
+                            },
+                            "yocto_id": {
+                                "id": "yocto_id",
+                                "type": "string"
                             }
                         },
                         "required": [
                             "uri",
-                            "id"
+                            "id",
+                            "yocto_id"
                         ]
                     },
                     "id": {
@@ -78,7 +83,8 @@ Allows `location` header exposure.
                     "uri": "https://aws.my_update_bucket.com/yocto_image123",
                     "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
                     "id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
-                    "expire": "2016-03-11T13:03:17.063493443Z"
+                    "expire": "2016-03-11T13:03:17.063493443Z",
+                    "yocto_id": "TODO"
                 },
                 "id": "w81s4fae-7dec-11d0-a765-00a0c91e6bf6"
             }
@@ -862,6 +868,10 @@ List all YOCTO images.
                             "id": "modified",
                             "type": "string",
                             "description": "represent creation / last edition of any of the image properties, including image file upload or rewrite "
+                        },
+                        "yocto_id": {
+                            "id": "yocto_id",
+                            "type": "string"
                         }
                     },
                     "required": [
@@ -871,7 +881,8 @@ List all YOCTO images.
                         "model",
                         "id",
                         "verified",
-                        "modified"
+                        "modified",
+                        "yocto_id"
                     ]
                 }
             }
@@ -886,7 +897,8 @@ List all YOCTO images.
                     "model": "Beagle Bone",
                     "id": "0C13A0E6-6B63-475D-8260-EE42A590E8FF",
                     "verified": false,
-                    "modified": "2016-03-02 23:20:00 +0000 UTC"
+                    "modified": "2016-03-02 23:20:00 +0000 UTC",
+                    "yocto_id": "TODO"
                 }
             ]
 
@@ -925,7 +937,7 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                     "name": {
                         "id": "name",
                         "type": "string",
-                        "description": "reqired to be uniqe across all images"
+                        "description": "required to be unique across all images"
                     },
                     "description": {
                         "id": "description",
@@ -938,11 +950,16 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                     "model": {
                         "id": "model",
                         "type": "string"
+                    },
+                    "yocto_id": {
+                        "id": "yocto_id",
+                        "type": "string"
                     }
                 },
                 "required": [
                     "name",
-                    "model"
+                    "model",
+                    "yocto_id"
                 ]
             }
 
@@ -952,7 +969,8 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                 "name": "Application 1.1",
                 "description": "Monday build for production",
                 "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                "model": "Beagle Bone"
+                "model": "Beagle Bone",
+                "yocto_id": "TODO"
             }
 
 + Response 201
@@ -1048,6 +1066,10 @@ Image datails.
                         "id": "modified",
                         "type": "string",
                         "description": "represent creation / last edition of any of the image properties, including image file upload or rewrite "
+                    },
+                    "yocto_id": {
+                        "id": "yocto_id",
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -1057,7 +1079,8 @@ Image datails.
                     "model",
                     "id",
                     "verified",
-                    "modified"
+                    "modified",
+                    "yocto_id"
                 ]
             }
 
@@ -1070,7 +1093,8 @@ Image datails.
                 "model": "Beagle Bone",
                 "id": "0C13A0E6-6B63-475D-8260-EE42A590E8FF",
                 "verified": false,
-                "modified": "2016-03-02 23:20:00 +0000 UTC"
+                "modified": "2016-03-02 23:20:00 +0000 UTC",
+                "yocto_id": "TODO"
             }
 
 + Response 404 (application/json)
@@ -1144,10 +1168,16 @@ Edit image information.
                     "model": {
                         "id": "model",
                         "type": "string"
+                    },
+                    "yocto_id": {
+                        "id": "yocto_id",
+                        "type": "string"
                     }
                 },
                 "required": [
                     "name",
+                    "yocto_id",
+                    "model"
                 ]
             }
 
@@ -1157,7 +1187,8 @@ Edit image information.
                 "name": "Application 1.1",
                 "description": "Monday build for production",
                 "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                "model": "Beagle Bone"
+                "model": "Beagle Bone",
+                "yocto_id": "TODO"
             }
 
 + Response 204
