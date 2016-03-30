@@ -26,12 +26,6 @@ Default configuration file is provided.
 * Generate TTLd link for uploading image file to S3
 * Generate TTLd link for downloading image file from S3
 
-## Authentication (DUMMY)
-
-Supports base auth. (Required)
-Authenticates user if username and pass are the same.
-Uses username as customerID.
-
 ## Logging
 
 Apache style error log is provided on stderr.
