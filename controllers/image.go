@@ -15,6 +15,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/mendersoftware/artifacts/models/fileservice"
@@ -215,4 +216,34 @@ func (i *ImagesControler) DownloadLink(user users.UserI, id string, expire time.
 	}
 
 	return link, nil
+}
+
+// FindImageByApplicationAndModel searches matching image by application vesion and device model.
+// Images without files uploaded will be excluded from the result.
+func (i *ImagesControler) FindImageByApplicationAndModel(user users.UserI, version, model string) (*images.ImageMeta, error) {
+	images, err := i.images.Find(user)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("images: %v\n", images)
+	fmt.Printf("search: model: %v version: %v user: %v\n", model, version, user)
+
+	for _, image := range images {
+		// Check if image have been uploaded
+		if image.Name == version && image.Model == model {
+			found, err := i.fileStorage.Exists(user.GetCustomerID(), image.Id)
+			fmt.Printf("image: %v %v %v\n", image, found, err)
+			if err != nil {
+				return nil, err
+			}
+			if !found {
+				return nil, nil
+			}
+
+			return image, nil
+		}
+	}
+
+	return nil, nil
 }

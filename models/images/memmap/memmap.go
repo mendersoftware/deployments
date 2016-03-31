@@ -26,8 +26,7 @@ import (
 )
 
 var (
-	ErrNotFound                    = errors.New("Entry not found.")
-	ErrAttributeValueNotUniqueName = errors.New("Name attribute value is already exists.")
+	ErrNotFound = errors.New("Entry not found.")
 )
 
 // Mem mapped file based simple model implementation
@@ -90,15 +89,6 @@ func (i *ImagesInMem) Insert(user users.UserI, image *images.ImageMeta) (string,
 		return "", err
 	}
 
-	listWithNames, err := i.FindByName(user, image.Name)
-	if err != nil {
-		return "", err
-	}
-
-	if len(listWithNames) != 0 {
-		return "", ErrAttributeValueNotUniqueName
-	}
-
 	id, err := i.makeID()
 	if err != nil {
 		return "", err
@@ -120,18 +110,6 @@ func (i *ImagesInMem) Update(user users.UserI, image *images.ImageMeta) error {
 		return ErrNotFound
 	}
 
-	// Name was changed
-	if local.(*images.ImageMeta).Name != image.Name {
-		listWithNames, err := i.FindByName(user, image.Name)
-		if err != nil {
-			return err
-		}
-
-		if (len(listWithNames) > 0 && listWithNames[0].Id != image.Id) || len(listWithNames) > 1 {
-			return ErrAttributeValueNotUniqueName
-		}
-	}
-
 	local.(*images.ImageMeta).LastUpdated = time.Now()
 	i.storage.Set(makeInternamKey(user.GetCustomerID(), image.Id), image)
 
@@ -143,6 +121,7 @@ func (i *ImagesInMem) Delete(user users.UserI, id string) error {
 	return nil
 }
 
+// TODO: Not used anymore, possibly can be removed
 func (i *ImagesInMem) FindByName(user users.UserI, name string) ([]*images.ImageMeta, error) {
 	keys := i.storage.Keys()
 	sort.Strings(keys)

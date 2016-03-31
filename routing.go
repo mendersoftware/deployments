@@ -18,10 +18,13 @@ import (
 	"github.com/mendersoftware/artifacts/config"
 	"github.com/mendersoftware/artifacts/controllers"
 	"github.com/mendersoftware/artifacts/handlers"
+	"github.com/mendersoftware/artifacts/models"
 	"github.com/mendersoftware/artifacts/models/fileservice"
 	"github.com/mendersoftware/artifacts/models/fileservice/s3"
 	"github.com/mendersoftware/artifacts/models/images/memmap"
+	"github.com/mendersoftware/artifacts/mvc"
 	"github.com/mendersoftware/artifacts/utils/safemap"
+	"gopkg.in/mgo.v2"
 )
 
 func SetupFileStorage(c config.ConfigReader) fileservice.FileServiceModelI {
@@ -44,25 +47,41 @@ func SetupFileStorage(c config.ConfigReader) fileservice.FileServiceModelI {
 
 // NewRouter defines all REST API routes.
 func NewRouter(c config.ConfigReader) (rest.App, error) {
-
-	images := memmap.NewImagesInMem(safemap.NewStringMap())
-	meta := handlers.NewImageMeta(controllers.NewImagesController(images, SetupFileStorage(c)))
 	version := handlers.NewVersion(CreateVersionString(), BuildNumber)
+
+	// Image management
+	imagesStorage := memmap.NewImagesInMem(safemap.NewStringMap())
+	fileStorage := SetupFileStorage(c)
+	imagesController := controllers.NewImagesController(imagesStorage, fileStorage)
+	meta := handlers.NewImageMeta(imagesController)
+
+	// Software deployments
+	dbSession, err := mgo.Dial(c.GetString(SettingMongo))
+	if err != nil {
+		return nil, err
+	}
+	deploymentModel := models.NewDeploymentModel(dbSession, imagesController)
 
 	// Define routers and autogen OPTIONS method for each route.
 	routes := []*rest.Route{
 
 		rest.Get("/api", version.Get),
 
+		// Images
 		rest.Get("/api/0.0.1/images", meta.Lookup),
 		rest.Post("/api/0.0.1/images", meta.Create),
-
 		rest.Get("/api/0.0.1/images/:id", meta.Get),
 		rest.Put("/api/0.0.1/images/:id", meta.Edit),
 		rest.Delete("/api/0.0.1/images/:id", meta.Delete),
-
 		rest.Get("/api/0.0.1/images/:id/upload", meta.UploadLink),
 		rest.Get("/api/0.0.1/images/:id/download", meta.DownloadLink),
+
+		// Deployments
+		rest.Post("/api/0.0.1/deployments", mvc.NewCreateController(deploymentModel, mvc.NewViewRestPost("/api/0.0.1/deployments"))),
+		rest.Get("/api/0.0.1/deployments/:id", mvc.NewFindOneController(deploymentModel, mvc.NewViewRestGetOne())),
+
+		// Devices
+		rest.Get("/api/0.0.1/devices/:id/update", mvc.NewFindOneController(models.NewDeviceUpdateModel(dbSession, fileStorage), mvc.NewViewRestGetOne())),
 	}
 
 	return rest.MakeRouter(AutogenOptionsRoutes(handlers.NewOptionsHandler, routes...)...)

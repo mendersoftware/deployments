@@ -20,6 +20,8 @@ Allows `location` header exposure.
 # Group Device
 
 ## List updates for device [GET /api/0.0.1/devices/{id}/update]
+List next update to be installed on the device.
+TODO: As there is no mechanism for device to report update status (yet), server will blindly assume that if information about the update was presented to device, update succeeds immediately and automatically .
 
 + Parameters
     + id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string, required) -  Device ID
@@ -282,7 +284,8 @@ Lookup deployments in the system, including active and history. (TODO)
             }
 
 ## Deploy software version [POST /api/0.0.1/deployments]
-Deploy version of software to specified devices.
+Deploy version of software to specified devices. Image is auto assigned to the device from all available images based on software name and device model.
+TODO: Because of lack of inventory system, service assumes hardcoded device model for each device: "BB-8"
 
 + Request (application/json)
     + Schema
@@ -936,8 +939,7 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                 "properties": {
                     "name": {
                         "id": "name",
-                        "type": "string",
-                        "description": "required to be unique across all images"
+                        "type": "string"
                     },
                     "description": {
                         "id": "description",
