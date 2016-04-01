@@ -86,6 +86,7 @@ before_script:
 
     # dangerous, never commit upstream
     - printenv
+    - pwd
 
     # Perform static code analysys
     - go list -f '{{range .GoFiles}} '`echo $HOME`'/gopath/src/{{$.ImportPath}}/{{.}} {{end}}' ./... | xargs -n1 -I {} -P 4 go tool vet {}
