@@ -147,7 +147,7 @@ func (s *SimpleStorageService) PutRequest(customerId, objectId string, duration 
 		return nil, err
 	}
 
-	return fileservice.NewLink(uri, req.Time), nil
+	return fileservice.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
@@ -172,7 +172,7 @@ func (s *SimpleStorageService) GetRequest(customerId, objectId string, duration 
 		return nil, err
 	}
 
-	return fileservice.NewLink(uri, req.Time), nil
+	return fileservice.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
 }
 
 func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) error {

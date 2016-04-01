@@ -216,3 +216,29 @@ func (i *ImagesControler) DownloadLink(user users.UserI, id string, expire time.
 
 	return link, nil
 }
+
+// FindImageByApplicationAndModel searches matching image by application vesion and device model.
+// Images without files uploaded will be excluded from the result.
+func (i *ImagesControler) FindImageByApplicationAndModel(user users.UserI, version, model string) (*images.ImageMeta, error) {
+	images, err := i.images.Find(user)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, image := range images {
+		// Check if image have been uploaded
+		if image.Name == version && image.Model == model {
+			found, err := i.fileStorage.Exists(user.GetCustomerID(), image.Id)
+			if err != nil {
+				return nil, err
+			}
+			if !found {
+				return nil, nil
+			}
+
+			return image, nil
+		}
+	}
+
+	return nil, nil
+}

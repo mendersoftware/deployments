@@ -11,26 +11,18 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package images
+package models
 
-import "testing"
+import "errors"
 
-func TestImageMetaPublicValid(t *testing.T) {
+const (
+	// Database settings
+	DatabaseName          string = "deployment_service"
+	DeploymentsCollection string = "deployments"
+	DevicesCollection     string = "devices"
+)
 
-	testList := []struct {
-		out   error
-		image *ImageMetaPublic
-	}{
-		{ErrMissingImageAttrName, &ImageMetaPublic{}},
-		{nil, NewImageMetaPublic("SOMETHING", "SOMETHING", "SOMETHING")},
-		{ErrMissingImageAttrModel, NewImageMetaPublic("SOMETHING", "", "SOMETHING")},
-		{ErrMissingImageAttrYoctoId, NewImageMetaPublic("SOMETHING", "SOMETHING", "")},
-	}
-
-	for id, test := range testList {
-		if err := test.out; err != test.image.Valid() {
-			t.Errorf("TestCase: %d Error: %s", id, err)
-			continue
-		}
-	}
-}
+var (
+	// Common error responses
+	ErrInvalidId error = errors.New("invalid id")
+)

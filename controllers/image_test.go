@@ -361,12 +361,16 @@ func TestImagesControlerCreate(t *testing.T) {
 					LastUpdated: time.Unix(123, 0),
 				},
 				ImageMetaPublic: &images.ImageMetaPublic{
-					Name: "MyName",
+					Name:    "MyName",
+					Model:   "MyModel",
+					YoctoId: "MyYoctoId",
 				},
 			},
 			expectedError: nil,
 			inImageMeta: &images.ImageMetaPublic{
-				Name: "MyName",
+				Name:    "MyName",
+				Model:   "MyModel",
+				YoctoId: "MyYoctoId",
 			},
 			mockModelInsertError: nil,
 		},
@@ -378,7 +382,7 @@ func TestImagesControlerCreate(t *testing.T) {
 		},
 	}
 
-	for _, test := range testList {
+	for id, test := range testList {
 
 		model := &MockImagesModel{
 			mockInsert: func(user users.UserI, image *images.ImageMeta) (string, error) {
@@ -391,24 +395,27 @@ func TestImagesControlerCreate(t *testing.T) {
 
 		if test.expectedError == nil || err == nil {
 			if err != test.expectedError {
-				t.FailNow()
+				t.Errorf("TestCase: %d Error: %s", id, err)
+				continue
 			}
 		} else if test.expectedError.Error() != err.Error() {
-			t.FailNow()
+			t.Errorf("TestCase: %d Error: %s", id, err)
+			continue
 		}
 
 		if test.expectedImage == nil || image == nil {
 			if image != test.expectedImage {
-				t.FailNow()
+				t.Errorf("TestCase: %d Error: %s", id, err)
+				continue
 			}
-
-			return
+			continue
 		}
 
 		image.LastUpdated = test.expectedImage.LastUpdated
 
 		if !reflect.DeepEqual(test.expectedImage, image) {
-			t.FailNow()
+			t.Errorf("TestCase: %d Error: %s", id, err)
+			continue
 		}
 	}
 }

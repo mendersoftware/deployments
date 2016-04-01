@@ -20,6 +20,8 @@ Allows `location` header exposure.
 # Group Device
 
 ## List updates for device [GET /api/0.0.1/devices/{id}/update]
+List next update to be installed on the device.
+NOTE: As there is no mechanism for device to report update status (yet), server will blindly assume that if information about the update was presented to device, update succeeds immediately and automatically .
 
 + Parameters
     + id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string, required) -  Device ID
@@ -49,12 +51,20 @@ Allows `location` header exposure.
                             "id": {
                                 "id": "id",
                                 "type": "string"
+                            },
+                            "expire": {
+                                "id": "expire",
+                                "type": "string"
+                            },
+                            "yocto_id": {
+                                "id": "yocto_id",
+                                "type": "string"
                             }
                         },
                         "required": [
                             "uri",
-                            "checksum",
-                            "id"
+                            "id",
+                            "yocto_id"
                         ]
                     },
                     "id": {
@@ -74,7 +84,9 @@ Allows `location` header exposure.
                 "image": {
                     "uri": "https://aws.my_update_bucket.com/yocto_image123",
                     "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                    "id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+                    "id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
+                    "expire": "2016-03-11T13:03:17.063493443Z",
+                    "yocto_id": "core-image-full-cmdline-20160330201408"
                 },
                 "id": "w81s4fae-7dec-11d0-a765-00a0c91e6bf6"
             }
@@ -83,6 +95,28 @@ Allows `location` header exposure.
     No updates for the device are available.
 
     + Body
+
++ Response 400 (application/json)
+    Invalid request.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
 
 + Response 404 (application/json)
     Resource not found.
@@ -134,13 +168,13 @@ Allows `location` header exposure.
 Lookup deployments in the system, including active and history.
 
 + Parameters
-    + status: `pending` (enum[string], optional) - Deployment status
+    + status: `pending` (enum[string], optional) - Deployment status (TODO: To be implemented)
         + Members
             + `pending` - Pending to start
             + `inprogress` - In progress
             + `success` - Finished with success
             + `failure` - Finished with failure
-    + name: `Jonas fix` (string, optional) - Deployment name
+    + name: `Jonas fix` (string, optional) - Deployment name (TODO: To be implemented)
 
 + Response 200 (application/json)
     + Schema
@@ -167,8 +201,7 @@ Lookup deployments in the system, including active and history.
                         },
                         "name": {
                             "id": "name",
-                            "type": "string",
-                            "additionalItems": false
+                            "type": "string"
                         },
                         "version": {
                             "id": "version",
@@ -251,7 +284,8 @@ Lookup deployments in the system, including active and history.
             }
 
 ## Deploy software version [POST /api/0.0.1/deployments]
-Deploy version of software to specified devices.
+Deploy version of software to specified devices. Image is auto assigned to the device from all available images based on software name and device model.
+NOTE: Because of lack of inventory system, service assumes hardcoded device model for each device: "TestDevice"
 
 + Request (application/json)
     + Schema
@@ -298,6 +332,28 @@ Deploy version of software to specified devices.
     + Headers
 
             Location: /api/0.0.1/deployments/{id}
+
++ Response 400 (application/json)
+    Bad request. The request could not be understood by the server due to malformed syntax.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+                }
 
 + Response 404 (application/json)
     Resource not found
@@ -348,6 +404,7 @@ Manage specific deployment.
 
 ### Status [GET]
 Check status for specified deployment
+TODO: finished field is not set
 
 + Parameters
     + id (string,required) - Deployment identifier
@@ -376,7 +433,6 @@ Check status for specified deployment
                     "name": {
                         "id": "name",
                         "type": "string",
-                        "additionalItems": false
                     },
                     "version": {
                         "id": "version",
@@ -455,6 +511,7 @@ Check status for specified deployment
 
 ### Cancel [DELETE]
 Cancel deployment.
+TODO: To be implemented
 
 + Parameters
     + id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
@@ -505,6 +562,7 @@ Cancel deployment.
 
 ### Statistics [GET /api/0.0.1/deployments/{deployment_id}/statistics]
 Statistics for the deployment.
+TODO: To be implemented
 
 + Parameters
     + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
@@ -605,6 +663,7 @@ Statistics for the deployment.
 
 ### List devices [GET /api/0.0.1/deployments/{deployment_id}/devices]
 Device statuses for the deployment.
+TODO: To be implemented
 
 + Parameters
     + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
@@ -647,8 +706,8 @@ Device statuses for the deployment.
                             "id": "model",
                             "type": "string"
                         },
-                        "version_from": {
-                            "id": "version_from",
+                        "image_id": {
+                            "id": "image_id",
                             "type": "string"
                         }
                     },
@@ -669,7 +728,7 @@ Device statuses for the deployment.
                     "status": "pending",
                     "started": "2016-03-02 23:20:00 +0000 UTC",
                     "model": "Raspberry Pi 3",
-                    "version_from": "Application 0.1"
+                    "image_id": "60a0c91e6-7dec-11d0-a765-f81d4faebf6"
                 }
             ]
 
@@ -717,6 +776,7 @@ Device statuses for the deployment.
 
 ### Deployment log [GET /api/0.0.1/deployments/{deployment_id}/devices/{device_id}/log]
 Device statuses for the deployment.
+TODO: To be implemented
 
 + Parameters
     + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
@@ -816,6 +876,10 @@ List all YOCTO images.
                             "id": "modified",
                             "type": "string",
                             "description": "represent creation / last edition of any of the image properties, including image file upload or rewrite "
+                        },
+                        "yocto_id": {
+                            "id": "yocto_id",
+                            "type": "string"
                         }
                     },
                     "required": [
@@ -825,7 +889,8 @@ List all YOCTO images.
                         "model",
                         "id",
                         "verified",
-                        "modified"
+                        "modified",
+                        "yocto_id"
                     ]
                 }
             }
@@ -840,7 +905,8 @@ List all YOCTO images.
                     "model": "Beagle Bone",
                     "id": "0C13A0E6-6B63-475D-8260-EE42A590E8FF",
                     "verified": false,
-                    "modified": "2016-03-02 23:20:00 +0000 UTC"
+                    "modified": "2016-03-02 23:20:00 +0000 UTC",
+                    "yocto_id": "core-image-full-cmdline-20160330201408"
                 }
             ]
 
@@ -878,8 +944,7 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                 "properties": {
                     "name": {
                         "id": "name",
-                        "type": "string",
-                        "description": "reqired to be uniqe across all images"
+                        "type": "string"
                     },
                     "description": {
                         "id": "description",
@@ -892,10 +957,16 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                     "model": {
                         "id": "model",
                         "type": "string"
+                    },
+                    "yocto_id": {
+                        "id": "yocto_id",
+                        "type": "string"
                     }
                 },
                 "required": [
                     "name",
+                    "model",
+                    "yocto_id"
                 ]
             }
 
@@ -905,7 +976,8 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                 "name": "Application 1.1",
                 "description": "Monday build for production",
                 "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                "model": "Beagle Bone"
+                "model": "TestDevice",
+                "yocto_id": "core-image-full-cmdline-20160330201408"
             }
 
 + Response 201
@@ -1001,6 +1073,10 @@ Image datails.
                         "id": "modified",
                         "type": "string",
                         "description": "represent creation / last edition of any of the image properties, including image file upload or rewrite "
+                    },
+                    "yocto_id": {
+                        "id": "yocto_id",
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -1010,7 +1086,8 @@ Image datails.
                     "model",
                     "id",
                     "verified",
-                    "modified"
+                    "modified",
+                    "yocto_id"
                 ]
             }
 
@@ -1020,10 +1097,11 @@ Image datails.
                 "name": "MySecretApp v2",
                 "description": "Johns Monday test build",
                 "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                "model": "Beagle Bone",
+                "model": "TestDevice",
                 "id": "0C13A0E6-6B63-475D-8260-EE42A590E8FF",
                 "verified": false,
-                "modified": "2016-03-02 23:20:00 +0000 UTC"
+                "modified": "2016-03-02 23:20:00 +0000 UTC",
+                "yocto_id": "core-image-full-cmdline-20160330201408"
             }
 
 + Response 404 (application/json)
@@ -1097,10 +1175,16 @@ Edit image information.
                     "model": {
                         "id": "model",
                         "type": "string"
+                    },
+                    "yocto_id": {
+                        "id": "yocto_id",
+                        "type": "string"
                     }
                 },
                 "required": [
                     "name",
+                    "yocto_id",
+                    "model"
                 ]
             }
 
@@ -1110,7 +1194,8 @@ Edit image information.
                 "name": "Application 1.1",
                 "description": "Monday build for production",
                 "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                "model": "Beagle Bone"
+                "model": "Beagle Bone",
+                "yocto_id": "core-image-full-cmdline-20160330201408"
             }
 
 + Response 204
@@ -1240,6 +1325,7 @@ In case link is used multiple times to upload file, file will be overwritten.
 + Parameters
     + id: `0C13A0E6-6B63-475D-8260-EE42A590E8FF` (string, required) - Image ID
     + expire: 60 (number, required) - Link validity length in minutes. Min 1 minute, max 10080 (1 week)
+        + Default: 10
 
 + Response 200 (application/json)
     + Headers
@@ -1350,6 +1436,7 @@ To be able to recieve download link, image file have to be uploaded first.
 + Parameters
     + id: `0C13A0E6-6B63-475D-8260-EE42A590E8FF` (string, required) - Image ID
     + expire: 60 (number, required) - Link validity length in minutes. Min 1 minute, max 10080 (1 week)
+        + Default: 60
 
 + Response 200 (application/json)
     + Headers

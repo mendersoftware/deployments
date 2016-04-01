@@ -22,9 +22,9 @@ type DummyUser struct {
 	Name string
 }
 
-func NewDummyUser(name string) *DummyUser {
+func NewDummyUser() *DummyUser {
 	return &DummyUser{
-		Name: name,
+		Name: "user",
 	}
 }
 

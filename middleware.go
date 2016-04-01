@@ -17,6 +17,7 @@ import (
 	// Make it clear that this is distinct from the mender logging.
 	golog "log"
 
+	"net/http"
 	"os"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -93,11 +94,11 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 
 		// Allowed headers
 		AllowedMethods: []string{
-			handlers.HttpMethodGet,
-			handlers.HttpMethodPost,
-			handlers.HttpMethodPut,
-			handlers.HttpMethodDelete,
-			handlers.HttpMethodOptions,
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodDelete,
+			http.MethodOptions,
 		},
 
 		// Allowed heardes

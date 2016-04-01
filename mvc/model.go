@@ -11,26 +11,14 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package images
+package mvc
 
-import "testing"
+type CreateModeler interface {
+	NewObject() interface{}
+	Validate(interface{}) error
+	Create(interface{}) (string, error)
+}
 
-func TestImageMetaPublicValid(t *testing.T) {
-
-	testList := []struct {
-		out   error
-		image *ImageMetaPublic
-	}{
-		{ErrMissingImageAttrName, &ImageMetaPublic{}},
-		{nil, NewImageMetaPublic("SOMETHING", "SOMETHING", "SOMETHING")},
-		{ErrMissingImageAttrModel, NewImageMetaPublic("SOMETHING", "", "SOMETHING")},
-		{ErrMissingImageAttrYoctoId, NewImageMetaPublic("SOMETHING", "SOMETHING", "")},
-	}
-
-	for id, test := range testList {
-		if err := test.out; err != test.image.Valid() {
-			t.Errorf("TestCase: %d Error: %s", id, err)
-			continue
-		}
-	}
+type GetObjectModeler interface {
+	GetObject(id string) (interface{}, error)
 }

@@ -39,6 +39,9 @@ const (
 	SettingAwsAuthKeyId  = SettingsAwsAuth + ".key"
 	SettingAwsAuthSecret = SettingsAwsAuth + ".secret"
 	SettingAwsAuthToken  = SettingsAwsAuth + ".token"
+
+	SettingMongo        = "mongo-url"
+	SettingMongoDefault = "localhost"
 )
 
 // ValidateAwsAuth validates configuration of SettingsAwsAuth section if provided.
