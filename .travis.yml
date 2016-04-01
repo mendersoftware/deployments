@@ -84,6 +84,9 @@ before_script:
     # Test if the license strings are present in every .go file, with exceptions.
     - ./check_license.sh
 
+    # dangerous, never commit upstream
+    - printenv
+
     # Perform static code analysys
     - go list -f '{{range .GoFiles}} '`echo $HOME`'/gopath/src/{{$.ImportPath}}/{{.}} {{end}}' ./... | xargs -n1 -I {} -P 4 go tool vet {}
 
