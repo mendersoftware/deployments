@@ -172,8 +172,6 @@ func (s *SimpleStorageService) GetRequest(customerId, objectId string, duration 
 		return nil, err
 	}
 
-	fmt.Printf("URI: '%s'\n", uri)
-
 	return fileservice.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
 }
 

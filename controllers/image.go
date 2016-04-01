@@ -15,7 +15,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/mendersoftware/artifacts/models/fileservice"
@@ -226,14 +225,10 @@ func (i *ImagesControler) FindImageByApplicationAndModel(user users.UserI, versi
 		return nil, err
 	}
 
-	fmt.Printf("images: %v\n", images)
-	fmt.Printf("search: model: %v version: %v user: %v\n", model, version, user)
-
 	for _, image := range images {
 		// Check if image have been uploaded
 		if image.Name == version && image.Model == model {
 			found, err := i.fileStorage.Exists(user.GetCustomerID(), image.Id)
-			fmt.Printf("image: %v %v %v\n", image, found, err)
 			if err != nil {
 				return nil, err
 			}
