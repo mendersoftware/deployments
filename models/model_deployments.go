@@ -134,7 +134,7 @@ func (d *DeploymentsModel) AssignImage(version, model string) (*SoftwareImage, e
 	return softwareImage, nil
 }
 
-func (d *DeploymentsModel) FindOne(id string) (interface{}, error) {
+func (d *DeploymentsModel) GetObject(id string) (interface{}, error) {
 	if id == "" {
 		return nil, ErrInvalidId
 	}

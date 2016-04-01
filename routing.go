@@ -78,10 +78,10 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 		// Deployments
 		rest.Post("/api/0.0.1/deployments", mvc.NewCreateController(deploymentModel, mvc.NewViewRestPost("/api/0.0.1/deployments"))),
-		rest.Get("/api/0.0.1/deployments/:id", mvc.NewFindOneController(deploymentModel, mvc.NewViewRestGetOne())),
+		rest.Get("/api/0.0.1/deployments/:id", mvc.NewGetObjectController(deploymentModel, mvc.NewViewRestGetOne())),
 
 		// Devices
-		rest.Get("/api/0.0.1/devices/:id/update", mvc.NewFindOneController(models.NewDeviceUpdateModel(dbSession, fileStorage), mvc.NewViewRestGetOne())),
+		rest.Get("/api/0.0.1/devices/:id/update", mvc.NewGetObjectController(models.NewDeviceUpdateModel(dbSession, fileStorage), mvc.NewViewRestGetOne())),
 	}
 
 	return rest.MakeRouter(AutogenOptionsRoutes(handlers.NewOptionsHandler, routes...)...)

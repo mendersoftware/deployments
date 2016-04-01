@@ -19,6 +19,6 @@ type CreateModeler interface {
 	Create(interface{}) (string, error)
 }
 
-type FindOneModeler interface {
-	FindOne(id string) (interface{}, error)
+type GetObjectModeler interface {
+	GetObject(id string) (interface{}, error)
 }

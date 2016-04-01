@@ -44,9 +44,9 @@ func NewCreateController(model CreateModeler, view Viewer) rest.HandlerFunc {
 	}
 }
 
-func NewFindOneController(model FindOneModeler, view Viewer) rest.HandlerFunc {
+func NewGetObjectController(model GetObjectModeler, view Viewer) rest.HandlerFunc {
 	return func(w rest.ResponseWriter, r *rest.Request) {
-		response, err := model.FindOne(r.PathParam("id"))
+		response, err := model.GetObject(r.PathParam("id"))
 		if err != nil {
 			view.RenderError(w, err, http.StatusInternalServerError)
 			return

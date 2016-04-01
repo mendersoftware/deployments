@@ -38,7 +38,7 @@ func NewDeviceUpdateModel(session *mgo.Session, fileStorage fileservice.FileServ
 // TODO: Authenticate device to request to access only it's updates
 // TODO: Hardcoded 'admin' customer id , add support for user object
 // TODO: Fake successful update, set status to success when device requests next update due to lack of mechanism for devcie to update status by itself.
-func (d *DeviceUpdateModel) FindOne(id string) (interface{}, error) {
+func (d *DeviceUpdateModel) GetObject(id string) (interface{}, error) {
 	if id == "" {
 		return nil, ErrInvalidId
 	}
