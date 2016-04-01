@@ -66,5 +66,10 @@ func (v *ViewRestPost) RenderSuccess(w rest.ResponseWriter, object interface{}) 
 type ViewRestError struct{}
 
 func (v *ViewRestError) RenderError(w rest.ResponseWriter, err error, status int) {
+	if err == nil {
+		w.WriteHeader(status)
+		return
+	}
+
 	rest.Error(w, err.Error(), status)
 }
