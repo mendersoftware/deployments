@@ -2,56 +2,52 @@
 [![Build Status](https://travis-ci.com/mendersoftware/artifacts.svg?token=rx8YqsZ2ZyaopcMPmDmo&branch=master)](https://travis-ci.com/mendersoftware/artifacts)
 [![Coverage Status](https://coveralls.io/repos/mendersoftware/artifacts/badge.svg?branch=master&service=github&t=xZ0vYT)](https://coveralls.io/github/mendersoftware/artifacts?branch=master)
 
-Service responsible for artifact management and distribution.
+Service responsible for software deployment and image management.
 
-## Usage
+    [Installation](#Installation)
+    [Configuration](#Configuration)
+    [API documentation](#API documentation)
+    [Logging](#Logging)
 
-Manual how to use and operate the service.
+## Installation
+    Install instructions.
 
-```
-$ artifacts --help
-```
+### Binaries (Linux x64)
+    Latest build of binaries for Linux 64bit are [available](LINK).
+    ```
+        wget <link>
+    ```
+
+### Source
+    Golang toolchain is required to build the application. [Installation instructions.](https://golang.org/doc/install)
+
+    In addition for managing dependencies it depends on [godep](https://github.com/tools/godep) tool. Can be installed with following command:
+
+    ```
+        go get -u github.com/tools/godep
+    ```
+
+    Build instructions:
+
+    ```
+    $ go get -u github.com/mendersoftware/artifatcs
+    $ cd $GOPATH/src/github.com/mendersoftware/artifatcs
+    $ godep go build
+    $ godep go test ./...
+    ```
 
 ## Configuration
+    Service is configured by providing configuration file. Supports JSON, TOML, YAML and HCL formatting.
+    Default configuration file is provided to be downloaded from [config.yaml](https://github.com/mendersoftware/artifacts/blob/master/config.yaml).
 
-Service is configured by providing configuration file. Supports JSON, TOML, YAML and HCL formatting.
-Default configuration file is provided (config.yaml).
+    Application requirements:
+    * Access to AWS S3 bucket, keys can be configured in several ways, documented in the configuration file.
+    * Access to MongoDB instance and configured in config file. [Installation instructions](https://www.mongodb.org/downloads#)
 
-## Version 0.0.1 Features:
-* Create image metadata
-* List image metadata
-* Get image metadata
-* Edit image metadata
-* Delete image (from metadata and S3)
-* Generate TTLd link for uploading image file to S3
-* Generate TTLd link for downloading image file from S3
+## API documentation
+    Application exposes REST API over HTTP protocol. Detailed documentation is specified in the following [document](https://github.com/mendersoftware/artifacts/blob/master/docs/api_spec.md).
+    Format: [API Blueprint](https://apiblueprint.org)
+
 
 ## Logging
-
-Apache style error log is provided on stderr.
-
-## Compression
-
-When executing in production environment responses are compressed with gzip if the request Accept-Encoding specifies support for gzip.
-
-## Response format
-
-When production environment is specified JSON is formatted as compact and pretty print in development environment.
-
-## Panic recovery
-
-In development environment in case of panic, stack trace is provided included in error response.
-
-## Development
-
-Golang dev environment required.
-
-```
-$ go get github.com/mendersoftware/artifatcs
-$ cd $GOPATH/src/github.com/mendersoftware/artifatcs
-$ godep restore
-$ go build
-$ go test ./...
-```
-
-All dependencies are vendored using [godep](https://github.com/tools/godep) tool.
+    Apache style error log is provided on stderr.

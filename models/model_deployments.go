@@ -111,7 +111,7 @@ func (d *DeploymentsModel) Create(obj interface{}) (string, error) {
 // TODO: This should be provided as a part of inventory service driver (dependency)
 // TODO: Model is hardcoded
 func (d *DeploymentsModel) CheckModel(deviceId string) (string, error) {
-	return "BB-8", nil
+	return "TestDevice", nil
 }
 
 // TODO: Mess with the old vs new image types, need to migrate to SoftwareImage
