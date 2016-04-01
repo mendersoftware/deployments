@@ -28,16 +28,16 @@ type Viewer interface {
 	RenderError(w rest.ResponseWriter, err error, status int)
 }
 
-type ViewRestGetOne struct {
+type ViewRestGetObject struct {
 	ViewRestError
 }
 
-func NewViewRestGetOne() *ViewRestGetOne {
-	return &ViewRestGetOne{}
+func NewViewRestGetObject() *ViewRestGetObject {
+	return &ViewRestGetObject{}
 }
 
 // RenderSuccess returns "204 No Content" on nil object or renders object with "200 Success"
-func (v *ViewRestGetOne) RenderSuccess(w rest.ResponseWriter, object interface{}) {
+func (v *ViewRestGetObject) RenderSuccess(w rest.ResponseWriter, object interface{}) {
 	if object == nil {
 		w.WriteHeader(http.StatusNoContent)
 		return
