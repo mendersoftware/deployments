@@ -84,12 +84,8 @@ before_script:
     # Test if the license strings are present in every .go file, with exceptions.
     - ./check_license.sh
 
-    # dangerous, never commit upstream
-    - printenv
-    - pwd
-
     # Perform static code analysys
-    - go list -f '{{range .GoFiles}} '`echo $HOME`'/gopath/src/{{$.ImportPath}}/{{.}} {{end}}' ./... | xargs -n1 -I {} -P 4 go tool vet {}
+    - go list -f '{{range .GoFiles}} {{$.Dir}}/{{.}} {{end}}' ./... | xargs -n1 -I {} -P 4 go tool vet {}
 
     # Fail builds when the cyclomatic complexity reaches 15 or more
     - gocyclo -over 15 `find . -iname '*.go' | grep -v 'Godeps' | grep -v '_test.go'`
