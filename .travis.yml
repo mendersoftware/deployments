@@ -99,7 +99,7 @@ script:
     - go list ./... | grep -v Godeps | xargs -n1 -I {} -P 4 go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
 
     # Insert build information into compiled binary using ldflags
-    - go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
+    - CGO_ENABLED=0 go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
 
 after_success:
     # Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
