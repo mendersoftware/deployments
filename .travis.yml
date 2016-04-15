@@ -1,5 +1,11 @@
 language: go
 
+# Forces travis to use VM insted container, required to be able to build containers.
+sudo: required
+
+services:
+    - docker
+
 # Golang version matrix
 go:
     - 1.6
@@ -12,9 +18,12 @@ env:
         - COVERALLS_TOKEN=5cu7qC1kxgLj4XPeDvxRorXT794W4evYr
 
         # Should be encrypted or set as private travis variables (in travis settings):
-        # - AWS_ACCESS_KEY_ID=''
-        # - AWS_SECRET_ACCESS_KEY=''
-        # - GITHUB_RELEASE_TOKEN=''
+        # AWS_ACCESS_KEY_ID
+        # AWS_SECRET_ACCESS_KEY
+        # GITHUB_RELEASE_TOKEN
+        # DOCKER_HUB_EMAIL
+        # DOCKER_HUB_USERNAME
+        # DOCKER_HUB_PASSWORD
 
         # AWS S3 bucket name, need to have access setup.
         # Can be overridden by travis private variable set in travis settings: AWS_BUCKET_OVERRIDE
@@ -45,6 +54,9 @@ env:
         # Build artifacts list, fomat: "file1 file2 ./dir/file3"
         # Can be overridden by travis private variable set in travis settings: BUILD_ARTIFATS_OVERRIDE
         - BUILD_ARTIFATS_DEFAULT="artifacts"
+
+        # Docker repository name
+        - DOCKER_REPOSITORY="mendersoftware/deployments"
 
         # INTERNAL VARIABLES (for default/overrite management)
         - AWS_BUCKET=${AWS_BUCKET_OVERRIDE:-$AWS_BUCKET_DEFAULT}
@@ -117,6 +129,20 @@ after_success:
     - mkdir codedeploy
     - cp -r build/* appspec.yml scripts codedeploy/
     - cd codedeploy && tar -zcvf ../build/codedeploy.tgz . && cd ..
+
+before_deploy:
+    # Build docker image from docker file
+    - docker build -t $DOCKER_REPOSITORY .
+
+    # Master is always lastest
+    - if [ "$TRAVIS_BRANCH" = "master" ]; then docker tag $DOCKER_REPOSITORY $DOCKER_REPOSITORY:latest; fi
+
+    # If GIT TAG is set then tag image with git tag, otherwhise use branch name
+    - if [ ! -z "$TRAVIS_TAG" ]; then export IMAGE_TAG=$TRAVIS_TAG; else export IMAGE_TAG=$TRAVIS_BRANCH; fi
+    - docker tag $DOCKER_REPOSITORY $DOCKER_REPOSITORY:$IMAGE_TAG
+
+    # Upload image to docker registry only on PUSH
+    - if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then docker login --email=$DOCKER_HUB_EMAIL --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD && docker push $DOCKER_REPOSITORY; fi
 
 deploy:
     # In case tag is set. Deploy build as github release.
