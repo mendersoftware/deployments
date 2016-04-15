@@ -61,3 +61,7 @@ $ go test ./...
 ```
 
 All dependencies are vendored using [godep](https://github.com/tools/godep) tool.
+
+## API
+
+API is described in Swagger 2.0 format in `api_spec.yaml` file.

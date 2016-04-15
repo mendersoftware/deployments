@@ -1,0 +1,779 @@
+swagger: '2.0'
+info:
+  title: Artifacts Service API
+  version: '0.0.1'
+  description: |
+    Common information about all exposed API endpoints.
+    Dates are formatted according to  [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt)
+    standard. Each endpoint supports OPTIONS HTTP method.
+
+    CORS and none-CORS requests are supported. Details
+    [wikipedia](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing#Simple_example).
+
+    Allows `Location` header exposure.
+paths:
+  '/devices/{id}/update':
+    parameters:
+      - name: id
+        in: path
+        description: Device ID
+        required: true
+        type: string
+    get:
+      description: List updates for device
+      produces:
+        - application/json
+      tags:
+        - Device
+      responses:
+        '200':
+          description: OK
+          examples:
+            application/json:
+              image:
+                uri: 'https://aws.my_update_bucket.com/yocto_image123'
+                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                id: f81d4fae-7dec-11d0-a765-00a0c91e6bf6
+              id: w81s4fae-7dec-11d0-a765-00a0c91e6bf6
+          schema:
+            type: object
+            properties:
+              image:
+                type: object
+                properties:
+                  uri:
+                    type: string
+                  checksum:
+                    type: string
+                  id:
+                    type: string
+                required:
+                  - uri
+                  - checksum
+                  - id
+              id:
+                type: string
+            required:
+              - image
+              - id
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+  /deployments:
+    get:
+      responses:
+        '200':
+          description: OK
+          examples:
+            application/json:
+              - created: '2016-03-02 23:00:00 +0000 UTC'
+                status: inprogress
+                name: production
+                version: Application 0.0.1
+                id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+                finished: '2016-03-02 24:00:00 +0000 UTC'
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                created:
+                  type: string
+                status:
+                  type: string
+                  enum:
+                    - inprogress
+                    - pending
+                    - success
+                    - failure
+                name:
+                  type: string
+                version:
+                  type: string
+                id:
+                  type: string
+                finished:
+                  type: string
+              required:
+                - created
+                - status
+                - name
+                - version
+                - id
+        '400':
+          description: Bad Request
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Lookup deployments
+      description: Lookup deployments in the system, including active and history.
+      tags:
+        - Deployment
+      parameters:
+        - name: status
+          in: query
+          description: Deployment status
+          required: false
+          type: string
+          enum:
+            - pending
+            - inprogress
+            - success
+            - failure
+        - name: name
+          in: query
+          description: Deployment name
+          required: false
+          type: string
+    post:
+      responses:
+        '201':
+          description: Created
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Deploy software version
+      description: Deploy version of software to specified devices.
+      tags:
+        - Deployment
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              version:
+                type: string
+              devices:
+                type: array
+                items:
+                  type: string
+            required:
+              - name
+              - version
+              - devices
+  '/deployments/{id}':
+    get:
+      responses:
+        '200':
+          description: OK
+          examples:
+            application/json:
+              created: '2016-03-02 23:00:00 +0000 UTC'
+              status: inprogress
+              name: production
+              version: Application 0.0.1
+              id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+              finished: '2016-03-02 24:00:00 +0000 UTC'
+          schema:
+            type: object
+            properties:
+              created:
+                type: string
+              status:
+                type: string
+                enum:
+                  - inprogress
+                  - pending
+                  - success
+                  - failure
+              name:
+                type: string
+              version:
+                type: string
+              id:
+                type: string
+              finished:
+                type: string
+            required:
+              - created
+              - status
+              - name
+              - version
+              - id
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Status
+      description: |
+        Check status for specified deployment
+      tags:
+        - Deployment
+      parameters:
+        - name: id
+          in: path
+          description: Deployment identifier
+          required: true
+          type: string
+    delete:
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Cancel
+      description: |
+        Cancel deployment.
+      tags:
+        - Deployment
+      parameters:
+        - name: id
+          in: path
+          description: Deployment identifier
+          required: true
+          type: string
+  '/deployments/{deployment_id}/statistics':
+    get:
+      responses:
+        '200':
+          description: OK
+          examples:
+            application/json:
+              successful: 3
+              pending: 1
+              inprogress: 23
+              failure: 0
+              noimage: 1
+          schema:
+            type: object
+            properties:
+              successful:
+                type: integer
+                description: Number of successful deployments
+              pending:
+                type: integer
+                description: Number of pending deployments
+              inprogress:
+                type: integer
+                description: Number of deployments in progress
+              failure:
+                type: integer
+                description: Number of failer deployments.
+              noimage:
+                type: integer
+                description: Do not have apropriate image for the device model.
+            required:
+              - successful
+              - pending
+              - inprogress
+              - failure
+              - noimage
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Statistics
+      description: Statistics for the deployment
+      tags:
+        - Deployment
+      parameters:
+        - name: deployment_id
+          in: path
+          description: Deployment identifier
+          required: true
+          type: string
+  '/deployments/{deployment_id}/devices':
+    get:
+      responses:
+        '200':
+          description: OK
+          examples:
+            application/json:
+              - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+                finished: '2016-03-02 24:00:00 +0000 UTC'
+                status: pending
+                started: '2016-03-02 23:20:00 +0000 UTC'
+                model: Raspberry Pi 3
+                version_from: Application 0.1
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: string
+                finished:
+                  type: string
+                status:
+                  type: string
+                  enum:
+                    - inprogress
+                    - pending
+                    - success
+                    - failure
+                    - noimage
+                started:
+                  type: string
+                model:
+                  type: string
+                version_from:
+                  type: string
+              required:
+                - id
+                - status
+                - model
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: List devices
+      description: |
+        Device statuses for the deployment.
+      tags:
+        - Deployment
+      parameters:
+        - name: deployment_id
+          in: path
+          description: Deployment identifier
+          required: true
+          type: string
+  '/deployments/{deployment_id}/devices/{device_id}/log':
+    get:
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Deployment log
+      description: Device statuses for the deployment.
+      tags:
+        - Deployment
+      parameters:
+        - name: deployment_id
+          in: path
+          description: Deployment identifier
+          required: true
+          type: string
+        - name: device_id
+          in: path
+          description: Device identifier
+          required: true
+          type: string
+  /images:
+    get:
+      responses:
+        '200':
+          description: OK
+          examples:
+            application/json:
+              - name: MySecretApp v2
+                description: Johns Monday test build
+                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                model: Beagle Bone
+                id: 0C13A0E6-6B63-475D-8260-EE42A590E8FF
+                verified: false
+                modified: '2016-03-02 23:20:00 +0000 UTC'
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                checksum:
+                  type: string
+                model:
+                  type: string
+                id:
+                  type: string
+                verified:
+                  type: boolean
+                modified:
+                  type: string
+                  description: 'represent creation / last edition of any of the image properties, including image file upload or rewrite '
+              required:
+                - name
+                - description
+                - checksum
+                - model
+                - id
+                - verified
+                - modified
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Lookup images
+      description: |
+        List all firmware images.
+      tags:
+        - Firmware Images
+    post:
+      responses:
+        '201':
+          description: Created
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Create image
+      description: |
+        Create firmware image. Afterwards upload link can be generated to upload
+        image file.
+      tags:
+        - Firmware Images
+  '/images/{id}':
+    get:
+      responses:
+        '200':
+          description: OK
+          examples:
+            application/json:
+              name: MySecretApp v2
+              description: Johns Monday test build
+              checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+              model: Beagle Bone
+              id: 0C13A0E6-6B63-475D-8260-EE42A590E8FF
+              verified: false
+              modified: '2016-03-02 23:20:00 +0000 UTC'
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              checksum:
+                type: string
+              model:
+                type: string
+              id:
+                type: string
+              verified:
+                type: boolean
+              modified:
+                type: string
+                description: 'represent creation / last edition of any of the image properties, including image file upload or rewrite '
+            required:
+              - name
+              - description
+              - checksum
+              - model
+              - id
+              - verified
+              - modified
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Image details
+      description: |
+        Image datails.
+      tags:
+        - Firmware Images
+      parameters:
+        - name: id
+          in: path
+          description: Image ID
+          required: true
+          type: string
+    put:
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Edit image
+      description: |
+        Edit image information.
+      tags:
+        - Firmware Images
+      parameters:
+        - name: id
+          in: path
+          description: Image ID
+          required: true
+          type: string
+    delete:
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Remove image
+      description: |
+        Remove firmware image.
+      tags:
+        - Firmware Images
+      parameters:
+        - name: id
+          in: path
+          description: Image ID
+          required: true
+          type: string
+  '/images/{id}/upload':
+    get:
+      responses:
+        '200':
+          description: OK
+          examples:
+            application/json:
+              uri: 'https://exmple.com/file123'
+              expire: '2016-03-11T13:03:17.063493443Z'
+          schema:
+            type: object
+            properties:
+              uri:
+                type: string
+              expire:
+                type: string
+            required:
+              - uri
+              - expire
+        '400':
+          description: Bad Request
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Generate upload link
+      description: |
+        Generate signed URL for uploading image file.
+        URI can be used only with PUT HTTP method.
+        It is valid for specified period if time.
+        In case link is used multiple times to upload file, file will be
+        overwritten.
+      tags:
+        - Firmware Images
+      parameters:
+        - name: id
+          in: path
+          description: Image ID
+          required: true
+          type: string
+        - name: expire
+          in: query
+          description: 'Link validity length in minutes. Min 1 minute, max 10080 (1 week)'
+          required: true
+          type: number
+  '/images/{id}/download':
+    get:
+      responses:
+        '200':
+          description: OK
+          examples:
+            application/json:
+              uri: 'https://exmple.com/file123'
+              expire: '2016-03-11T13:03:17.063493443Z'
+          schema:
+            type: object
+            properties:
+              uri:
+                type: string
+              expire:
+                type: string
+            required:
+              - uri
+              - expire
+        '400':
+          description: Bad Request
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+        '500':
+          description: Internal Server Error
+          examples:
+            application/json:
+              error: Detailed error message
+          schema:
+            $ref: "#/definitions/SimpleError"
+      summary: Generate download link
+      description: |
+        Generate signed URL for downloading image file.
+        URI can be used only with GET HTTP method.
+        Link supports such HTTP headers: `Range`, `If-Modified-Since`,
+        `If-Unmodified-Since`
+        It is valid for specified period if time.
+        To be able to recieve download link, image file have to be uploaded
+        first.
+      tags:
+        - Firmware Images
+      parameters:
+        - name: id
+          in: path
+          description: Image ID
+          required: true
+          type: string
+        - name: expire
+          in: query
+          description: 'Link validity length in minutes. Min 1 minute, max 10080 (1 week)'
+          required: true
+          type: number
+definitions:
+  SimpleError:
+    description: Simple error descriptor
+    type: object
+    properties:
+      error:
+        description: Description of error
+        type: string
