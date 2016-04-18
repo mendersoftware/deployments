@@ -13,18 +13,18 @@ info:
     Allows `Location` header exposure.
 paths:
   '/devices/{id}/update':
-    parameters:
-      - name: id
-        in: path
-        description: Device ID
-        required: true
-        type: string
     get:
       description: List updates for device
       produces:
         - application/json
       tags:
         - Device
+      parameters:
+        - name: id
+          in: path
+          description: Device ID
+          required: true
+          type: string
       responses:
         '200':
           description: OK
