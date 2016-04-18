@@ -270,8 +270,7 @@ paths:
           schema:
             $ref: "#/definitions/SimpleError"
       summary: Cancel
-      description: |
-        Cancel deployment.
+      description: Cancel deployment
       tags:
         - Deployment
       parameters:
@@ -395,8 +394,7 @@ paths:
           schema:
             $ref: "#/definitions/SimpleError"
       summary: List devices
-      description: |
-        Device statuses for the deployment.
+      description: Device statuses for the deployment
       tags:
         - Deployment
       parameters:
@@ -489,8 +487,7 @@ paths:
           schema:
             $ref: "#/definitions/SimpleError"
       summary: Lookup images
-      description: |
-        List all firmware images.
+      description: List all firmware images.
       tags:
         - Firmware Images
     post:
@@ -548,7 +545,10 @@ paths:
                 type: boolean
               modified:
                 type: string
-                description: 'represent creation / last edition of any of the image properties, including image file upload or rewrite '
+                description: |
+                  represent creation / last edition of any of the
+                  image properties, including image file upload or
+                  rewrite
             required:
               - name
               - description
@@ -572,8 +572,7 @@ paths:
           schema:
             $ref: "#/definitions/SimpleError"
       summary: Image details
-      description: |
-        Image datails.
+      description: Image datails
       tags:
         - Firmware Images
       parameters:
@@ -608,8 +607,7 @@ paths:
           schema:
             $ref: "#/definitions/SimpleError"
       summary: Edit image
-      description: |
-        Edit image information.
+      description: Edit image information
       tags:
         - Firmware Images
       parameters:
@@ -637,8 +635,7 @@ paths:
           schema:
             $ref: "#/definitions/SimpleError"
       summary: Remove image
-      description: |
-        Remove firmware image.
+      description: Remove firmware image
       tags:
         - Firmware Images
       parameters:
