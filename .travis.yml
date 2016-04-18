@@ -136,9 +136,11 @@ after_success:
 before_deploy:
     # Master is always lastest
     - if [ "$TRAVIS_BRANCH" = "master" ]; then docker tag $DOCKER_REPOSITORY $DOCKER_REPOSITORY:latest; fi
+    - if [ ! -z "$TRAVIS_TAG" ]; then export IMAGE_TAG=$TRAVIS_TAG; else export IMAGE_TAG=$TRAVIS_BRANCH; fi
 
     # Upload image to docker registry only on PUSH
     - docker login --email=$DOCKER_HUB_EMAIL --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD
+
     # Set latest tag only for HEAD of master branch
     - if [ "$TRAVIS_BRANCH" = "master" ]; then docker push $DOCKER_REPOSITORY:latest; fi
     - docker push $DOCKER_REPOSITORY:$IMAGE_TAG
