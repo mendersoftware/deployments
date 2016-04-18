@@ -113,6 +113,9 @@ script:
     # Insert build information into compiled binary using ldflags
     - CGO_ENABLED=0 go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
 
+    # Build docker image from docker file
+    - sudo docker build -t $DOCKER_REPOSITORY .
+
 after_success:
     # Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
     - gover
@@ -131,9 +134,6 @@ after_success:
     - cd codedeploy && tar -zcvf ../build/codedeploy.tgz . && cd ..
 
 before_deploy:
-    # Build docker image from docker file
-    - docker build -t $DOCKER_REPOSITORY .
-
     # Master is always lastest
     - if [ "$TRAVIS_BRANCH" = "master" ]; then docker tag $DOCKER_REPOSITORY $DOCKER_REPOSITORY:latest; fi
 
