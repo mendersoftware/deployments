@@ -14,7 +14,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -86,5 +85,5 @@ func ValidateHttps(c config.ConfigReader) error {
 
 // Generate error with missing reuired option message.
 func MissingOptionError(option string) error {
-	return errors.New(fmt.Sprintf("Required option: '%s'", option))
+	return fmt.Errorf("Required option: '%s'", option)
 }

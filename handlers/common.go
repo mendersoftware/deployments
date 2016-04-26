@@ -45,8 +45,8 @@ func ParseAndValidateUIntQuery(name, value string, min, max uint64) (uint64, err
 	}
 
 	if uintValue < min || uintValue > max {
-		return 0, errors.New(fmt.Sprintf("Invalid query '%s' value '%d'. Min='%d' Max='%d'.",
-			name, uintValue, min, max))
+		return 0, fmt.Errorf("Invalid query '%s' value '%d'. Min='%d' Max='%d'.",
+			name, uintValue, min, max)
 	}
 
 	return uintValue, nil

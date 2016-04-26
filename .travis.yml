@@ -1,5 +1,11 @@
 language: go
 
+# Forces travis to use VM insted container, required to be able to build containers.
+sudo: required
+
+services:
+    - docker
+
 # Golang version matrix
 go:
     - 1.6
@@ -12,9 +18,12 @@ env:
         - COVERALLS_TOKEN=5cu7qC1kxgLj4XPeDvxRorXT794W4evYr
 
         # Should be encrypted or set as private travis variables (in travis settings):
-        # - AWS_ACCESS_KEY_ID=''
-        # - AWS_SECRET_ACCESS_KEY=''
-        # - GITHUB_RELEASE_TOKEN=''
+        # AWS_ACCESS_KEY_ID
+        # AWS_SECRET_ACCESS_KEY
+        # GITHUB_RELEASE_TOKEN
+        # DOCKER_HUB_EMAIL
+        # DOCKER_HUB_USERNAME
+        # DOCKER_HUB_PASSWORD
 
         # AWS S3 bucket name, need to have access setup.
         # Can be overridden by travis private variable set in travis settings: AWS_BUCKET_OVERRIDE
@@ -45,6 +54,9 @@ env:
         # Build artifacts list, fomat: "file1 file2 ./dir/file3"
         # Can be overridden by travis private variable set in travis settings: BUILD_ARTIFATS_OVERRIDE
         - BUILD_ARTIFATS_DEFAULT="artifacts"
+
+        # Docker repository name
+        - DOCKER_REPOSITORY="mendersoftware/deployments"
 
         # INTERNAL VARIABLES (for default/overrite management)
         - AWS_BUCKET=${AWS_BUCKET_OVERRIDE:-$AWS_BUCKET_DEFAULT}
@@ -84,6 +96,9 @@ before_script:
     # Test if the license strings are present in every .go file, with exceptions.
     - ./check_license.sh
 
+    # Test if all new commits are signed-off
+    - ./check_signed_off.sh
+
     # Perform static code analysys
     - go tool vet -unsafeptr=false -unreachable=false `go list ./... | grep -v Godeps | sed -e "s,^,$GOPATH/src/,;s,.*:,,"`
 
@@ -99,7 +114,10 @@ script:
     - go list ./... | grep -v Godeps | xargs -n1 -I {} -P 4 go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
 
     # Insert build information into compiled binary using ldflags
-    - go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
+    - CGO_ENABLED=0 go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
+
+    # Build docker image from docker file
+    - sudo docker build -t $DOCKER_REPOSITORY .
 
 after_success:
     # Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
@@ -117,6 +135,18 @@ after_success:
     - mkdir codedeploy
     - cp -r build/* appspec.yml scripts codedeploy/
     - cd codedeploy && tar -zcvf ../build/codedeploy.tgz . && cd ..
+
+before_deploy:
+    # Master is always lastest
+    - if [ ! -z "$TRAVIS_TAG" ]; then export IMAGE_TAG=$TRAVIS_TAG; else export IMAGE_TAG=$TRAVIS_BRANCH; fi
+    - docker tag -f $DOCKER_REPOSITORY $DOCKER_REPOSITORY:$IMAGE_TAG
+
+    # Upload image to docker registry only on PUSH
+    - docker login --email=$DOCKER_HUB_EMAIL --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD
+
+    # Set latest tag only for HEAD of master branch
+    - if [ "$TRAVIS_BRANCH" = "master" ]; then docker push $DOCKER_REPOSITORY:latest; fi
+    - docker push $DOCKER_REPOSITORY:$IMAGE_TAG
 
 deploy:
     # In case tag is set. Deploy build as github release.
