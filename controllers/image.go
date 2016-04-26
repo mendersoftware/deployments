@@ -209,7 +209,7 @@ func (i *ImagesControler) DownloadLink(user users.UserI, id string, expire time.
 		return nil, ErrNotFound
 	}
 
-	link, err := i.fileStorage.PutRequest(user.GetCustomerID(), id, expire)
+	link, err := i.fileStorage.GetRequest(user.GetCustomerID(), id, expire)
 	if err != nil {
 		return nil, err
 	}
