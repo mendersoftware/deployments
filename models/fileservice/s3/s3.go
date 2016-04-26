@@ -14,7 +14,6 @@
 package s3
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -177,8 +176,8 @@ func (s *SimpleStorageService) GetRequest(customerId, objectId string, duration 
 
 func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) error {
 	if duration > ExpireMaxLimit || duration < ExpireMinLimit {
-		return errors.New(fmt.Sprintf("Expire duration out of range: %d[ns] allowed %d-%d[ns]",
-			duration, ExpireMinLimit, ExpireMaxLimit))
+		return fmt.Errorf("Expire duration out of range: %d[ns] allowed %d-%d[ns]",
+			duration, ExpireMinLimit, ExpireMaxLimit)
 	}
 
 	return nil
