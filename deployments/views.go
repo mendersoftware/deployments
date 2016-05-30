@@ -12,34 +12,19 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package main
+package deployments
 
 import (
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/artifacts/config"
+	"github.com/mendersoftware/artifacts/mvc"
 )
 
-func RunServer(c config.ConfigReader) error {
-	router, err := NewRouter(c)
-	if err != nil {
-		return err
-	}
+type DeploymentsViews struct {
+	mvc.RESTViewDefaults
+}
 
-	api := rest.NewApi()
-	SetupMiddleware(c, api)
-	api.SetApp(router)
-
-	listen := c.GetString(SettingListen)
-
-	if c.IsSet(SettingHttps) {
-
-		cert := c.GetString(SettingHttpsCertificate)
-		key := c.GetString(SettingHttpsKey)
-
-		return http.ListenAndServeTLS(listen, cert, key, api.MakeHandler())
-	}
-
-	return http.ListenAndServe(listen, api.MakeHandler())
+func (d *DeploymentsViews) RenderNoUpdateForDevice(w rest.ResponseWriter) {
+	w.WriteHeader(http.StatusNoContent)
 }

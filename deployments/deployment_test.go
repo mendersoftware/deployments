@@ -11,16 +11,5 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package deployments
-
-const (
-	// Database settings
-	DatabaseName          string = "deployment_service"
-	CollectionDeployments string = "deployments"
-	CollectionDevices     string = "devices"
-)
-
-// Error mesages used across the package
-const (
-	ErrMsgInvalidID = "Invalid ID"
-)

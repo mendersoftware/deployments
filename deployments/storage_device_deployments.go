@@ -15,17 +15,20 @@
 package deployments
 
 import (
-	"strings"
-
 	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
+// Database settings
 const (
-	ErrMsgInvalidDeviceDeployment   = "Invalid device deployment"
-	ErrMsgInvalidDeviceDeploymentID = "Invalid device deploymnt ID"
+	CollectionDevices = "devices"
+)
+
+// Errors
+var (
+	ErrStorageInvalidDeviceDeployment = errors.New("Invalid device deployment")
 )
 
 // DeviceDeploymentsStorage is a data layer for deployments based on MongoDB
@@ -41,7 +44,7 @@ func NewDeviceDeploymentsStorage(session *mgo.Session) *DeviceDeploymentsStorage
 }
 
 // InsertMany stores multiple device deployment objects.
-// TODO: Handle error cleanup, multi insert is not atomic
+// TODO: Handle error cleanup, multi insert is not atomic, loop into two-phase commits
 func (d *DeviceDeploymentsStorage) InsertMany(deployments ...*DeviceDeployment) error {
 
 	if len(deployments) == 0 {
@@ -51,19 +54,20 @@ func (d *DeviceDeploymentsStorage) InsertMany(deployments ...*DeviceDeployment) 
 	// Writing to another interface list addresses golang gatcha interface{} == []interface{}
 	var list []interface{}
 	for _, deployment := range deployments {
+
 		if deployment == nil {
-			return errors.New(ErrMsgInvalidDeviceDeployment)
+			return ErrStorageInvalidDeviceDeployment
 		}
 
-		if deployment.Id == nil || len(strings.TrimSpace(*deployment.Id)) == 0 {
-			return errors.New(ErrMsgInvalidDeviceDeploymentID)
+		if err := deployment.Validate(); err != nil {
+			return errors.Wrap(err, "Validating device deployment")
 		}
 
 		list = append(list, deployment)
 	}
 
 	if err := d.session.DB(DatabaseName).C(CollectionDeployments).Insert(list...); err != nil {
-		return errors.Wrap(err, ErrMsgDatabaseError)
+		return err
 	}
 
 	return nil
@@ -74,7 +78,7 @@ func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(imageID s
 
 	// Verify ID formatting
 	if !govalidator.IsUUIDv4(imageID) {
-		return false, errors.New(ErrMsgInvalidID)
+		return false, ErrStorageInvalidID
 	}
 
 	query := bson.M{StorageKeyDeviceDeploymentAssignedImageId: imageID}
@@ -96,7 +100,7 @@ func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(imageID s
 	}
 
 	if err != nil {
-		return false, errors.Wrap(err, ErrMsgDatabaseError)
+		return false, err
 	}
 
 	return true, nil
@@ -107,35 +111,27 @@ func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 
 	// Verify ID formatting
 	if !govalidator.IsUUIDv4(deviceID) {
-		return nil, errors.New(ErrMsgInvalidID)
+		return nil, ErrStorageInvalidID
 	}
 
-	// 	session := d.session.Copy()
-	// defer session.Close()
+	session := d.session.Copy()
+	defer session.Close()
 
-	// // Device should know only on deployments in progress and pending.
-	// query := bson.M{
-	// 	StorageKeyDeviceDeploymentDeviceId: id,
-	// 	StorageKeyDeviceDeploymentStatus: bson.M{
-	// 		"$in": []string{
-	// 			DeviceDeploymentStatusPending,
-	// 			DeviceDeploymentStatusInProgress,
-	// 		},
-	// 	},
-	// }
+	// Device should know only about deployments that are not finished
+	query := bson.M{
+		StorageKeyDeviceDeploymentDeviceId: deviceID,
+		StorageKeyDeviceDeploymentStatus:   bson.M{"$in": statuses},
+	}
 
-	// // Select only the oldest one that have not been finished yet.
-	// var deployment DeviceDeployment
-	// err := session.DB(DatabaseName).C(CollectionDevices).Find(query).Sort("created").One(&deployment)
-	// if err != nil {
-	// 	// No updates found
-	// 	if err.Error() == mgo.ErrNotFound.Error() {
-	// 		return nil, nil
-	// 	}
+	// Select only the oldest one that have not been finished yet.
+	var deployment *DeviceDeployment
+	if err := session.DB(DatabaseName).C(CollectionDevices).Find(query).Sort("created").One(deployment); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, nil
+		}
 
-	// 	log.Error(err)
-	// 	return nil, ErrWhileSearchingForDeviceDeployments
-	// }
+		return nil, err
+	}
 
-	return nil, nil
+	return deployment, nil
 }

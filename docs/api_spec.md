@@ -163,16 +163,10 @@ List next update to be installed on the device.
 
 # Group Deployment
 
-## Lookup deployments [GET /api/0.0.1/deployments{?status,name}]
+## Lookup deployments [GET /api/0.0.1/deployments{?name}]
 Lookup deployments in the system, including active and history.
 
 + Parameters
-    + status: `pending` (enum[string], optional) - Deployment status (TODO: To be implemented)
-        + Members
-            + `pending` - Pending to start
-            + `inprogress` - In progress
-            + `success` - Finished with success
-            + `failure` - Finished with failure
     + name: `Jonas fix` (string, optional) - Deployment name (TODO: To be implemented)
 
 + Response 200 (application/json)
@@ -187,16 +181,6 @@ Lookup deployments in the system, including active and history.
                         "created": {
                             "id": "created",
                             "type": "string"
-                        },
-                        "status": {
-                            "id": "status",
-                            "type": "string",
-                            "enum": [
-                                "inprogress",
-                                "pending",
-                                "success",
-                                "failure"
-                            ]
                         },
                         "name": {
                             "id": "name",
@@ -217,7 +201,6 @@ Lookup deployments in the system, including active and history.
                     },
                     "required": [
                         "created",
-                        "status",
                         "name",
                         "version",
                         "id"
@@ -230,7 +213,6 @@ Lookup deployments in the system, including active and history.
             [
                 {
                     "created": "2016-02-11T13:03:17.063493443Z",
-                    "status": "inprogress",
                     "name": "production",
                     "version": "Application 0.0.1",
                     "id": "00a0c91e6-7dec-11d0-a765-f81d4faebf6",
@@ -282,9 +264,9 @@ Lookup deployments in the system, including active and history.
                 "error": "Detailed error message"
             }
 
-## Deploy software version [POST /api/0.0.1/deployments]
-Deploy version of software to specified devices. Image is auto assigned to the device from all available images based on software name and device model.
-NOTE: Because of lack of inventory system, service assumes hardcoded device model for each device: "TestDevice"
+## Deploy software [POST /api/0.0.1/deployments]
+Deploy software to specified devices. Image is auto assigned to the device from all available images based on artifact name and device type.
+NOTE: Because of lack of inventory system, service assumes hardcoded device type for each device: "TestDevice"
 
 + Request (application/json)
     + Schema
@@ -292,13 +274,13 @@ NOTE: Because of lack of inventory system, service assumes hardcoded device mode
             {
                 "$schema": "http://json-schema.org/draft-04/schema#",
                 "type": "object",
-                "properties": {
+                "properties": ¸{
                     "name": {
                         "id": "name",
                         "type": "string"
                     },
-                    "version": {
-                        "id": "version",
+                    "artifact_name": {
+                        "id": "artifact_name",
                         "type": "string"
                     },
                     "devices": {
@@ -311,7 +293,7 @@ NOTE: Because of lack of inventory system, service assumes hardcoded device mode
                 },
                 "required": [
                     "name",
-                    "version",
+                    "artifact_name",
                     "devices"
                 ]
             }
@@ -320,7 +302,7 @@ NOTE: Because of lack of inventory system, service assumes hardcoded device mode
 
             {
                 "name": "Monthly update: January",
-                "version": "MySecretApp v2",
+                "artifact_name": "MySecretApp v2",
                 "devices": [
                     "00a0c91e6-7dec-11d0-a765-f81d4faebf6",
                     "50b0c91e6-1drc-51d0-a165-g81d4faebry"
@@ -403,7 +385,6 @@ Manage specific deployment.
 
 ### Status [GET]
 Check status for specified deployment
-TODO: finished field is not set
 
 + Parameters
     + id (string,required) - Deployment identifier
@@ -419,22 +400,12 @@ TODO: finished field is not set
                         "id": "created",
                         "type": "string"
                     },
-                    "status": {
-                        "id": "status",
-                        "type": "string",
-                        "enum": [
-                        "inprogress",
-                        "pending",
-                        "success",
-                        "failure"
-                        ]
-                    },
                     "name": {
                         "id": "name",
                         "type": "string",
                     },
-                    "version": {
-                        "id": "version",
+                    "artifact_name": {
+                        "id": "artifact_name",
                         "type": "string"
                     },
                     "id": {
@@ -448,9 +419,8 @@ TODO: finished field is not set
                 },
                 "required": [
                     "created",
-                    "status",
                     "name",
-                    "version",
+                    "artifact_name",
                     "id"
                 ]
             }
@@ -459,9 +429,8 @@ TODO: finished field is not set
 
             {
                 "created": "2016-02-11T13:03:17.063493443Z",
-                "status": "inprogress",
                 "name": "production",
-                "version": "Application 0.0.1",
+                "artifact_name": "Application 0.0.1",
                 "id": "00a0c91e6-7dec-11d0-a765-f81d4faebf6",
                 "finished": "2016-03-11T13:03:17.063493443Z"
             }
@@ -561,7 +530,7 @@ TODO: To be implemented
 
 ### Statistics [GET /api/0.0.1/deployments/{deployment_id}/statistics]
 Statistics for the deployment.
-TODO: To be implemented
+TODO: To be implemented & statuses may change
 
 + Parameters
     + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
@@ -701,19 +670,19 @@ TODO: To be implemented
                             "id": "started",
                             "type": "string"
                         },
-                        "model": {
-                            "id": "model",
+                        "device_type": {
+                            "id": "device_type",
                             "type": "string"
                         },
-                        "image_id": {
-                            "id": "image_id",
+                        "artifact_id": {
+                            "id": "artifact_id",
                             "type": "string"
                         }
                     },
                     "required": [
                         "id",
                         "status",
-                        "model"
+                        "device_type"
                     ]
                 }
             }
@@ -726,8 +695,8 @@ TODO: To be implemented
                     "finished": "2016-03-11T13:03:17.063493443Z",
                     "status": "pending",
                     "started": "2016-02-11T13:03:17.063493443Z",
-                    "model": "Raspberry Pi 3",
-                    "image_id": "60a0c91e6-7dec-11d0-a765-f81d4faebf6"
+                    "device_type": "Raspberry Pi 3",
+                    "artifact_id": "60a0c91e6-7dec-11d0-a765-f81d4faebf6"
                 }
             ]
 
@@ -859,8 +828,8 @@ List all YOCTO images.
                             "id": "checksum",
                             "type": "string"
                         },
-                        "model": {
-                            "id": "model",
+                        "device_type": {
+                            "id": "device_type",
                             "type": "string"
                         },
                         "id": {
@@ -885,7 +854,7 @@ List all YOCTO images.
                         "name",
                         "description",
                         "checksum",
-                        "model",
+                        "device_type",
                         "id",
                         "verified",
                         "modified",
@@ -901,7 +870,7 @@ List all YOCTO images.
                     "name": "MySecretApp v2",
                     "description": "Johns Monday test build",
                     "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                    "model": "Beagle Bone",
+                    "device_type": "Beagle Bone",
                     "id": "0C13A0E6-6B63-475D-8260-EE42A590E8FF",
                     "verified": false,
                     "modified": "2016-03-11T13:03:17.063493443Z",
@@ -953,8 +922,8 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                         "id": "checksum",
                         "type": "string"
                     },
-                    "model": {
-                        "id": "model",
+                    "device_type": {
+                        "id": "device_type",
                         "type": "string"
                     },
                     "yocto_id": {
@@ -964,7 +933,7 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                 },
                 "required": [
                     "name",
-                    "model",
+                    "device_type",
                     "yocto_id"
                 ]
             }
@@ -975,7 +944,7 @@ Create YOCTO image. Afterwards upload link can be generated to upload image file
                 "name": "Application 1.1",
                 "description": "Monday build for production",
                 "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                "model": "TestDevice",
+                "device_type": "TestDevice",
                 "yocto_id": "core-image-full-cmdline-20160330201408"
             }
 
@@ -1056,8 +1025,8 @@ Image datails.
                         "id": "checksum",
                         "type": "string"
                     },
-                    "model": {
-                        "id": "model",
+                    "device_type": {
+                        "id": "device_type",
                         "type": "string"
                     },
                     "id": {
@@ -1082,7 +1051,7 @@ Image datails.
                     "name",
                     "description",
                     "checksum",
-                    "model",
+                    "device_type",
                     "id",
                     "verified",
                     "modified",
@@ -1096,7 +1065,7 @@ Image datails.
                 "name": "MySecretApp v2",
                 "description": "Johns Monday test build",
                 "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                "model": "TestDevice",
+                "device_type": "TestDevice",
                 "id": "0C13A0E6-6B63-475D-8260-EE42A590E8FF",
                 "verified": false,
                 "modified": "2016-03-11T13:03:17.063493443Z",
@@ -1172,8 +1141,8 @@ Image is not allowed to be edited if it was used in any deployment.
                         "id": "checksum",
                         "type": "string"
                     },
-                    "model": {
-                        "id": "model",
+                    "device_type": {
+                        "id": "device_type",
                         "type": "string"
                     },
                     "yocto_id": {
@@ -1194,7 +1163,7 @@ Image is not allowed to be edited if it was used in any deployment.
                 "name": "Application 1.1",
                 "description": "Monday build for production",
                 "checksum": "cc436f982bc60a8255fe1926a450db5f195a19ad",
-                "model": "Beagle Bone",
+                "device_type": "Beagle Bone",
                 "yocto_id": "core-image-full-cmdline-20160330201408"
             }
 

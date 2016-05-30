@@ -15,28 +15,29 @@
 package deployments
 
 import (
-	"strings"
+	"time"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/artifacts/images"
 	"github.com/pkg/errors"
 )
 
+// Defaults
 const (
-	ErrMsgInvalidDeployment             = "Invalid deployment"
-	ErrMsgInvalidDeploymentID           = "Invalid deployment ID"
-	ErrMsgStoringDeployment             = "Storing deployment"
-	ErrMsgStoringDeviceDeployments      = "Storing device deployments"
-	ErrMsgInvalidDeviceID               = "Invalid device ID"
-	ErrMsgAssignImageToDeviceDeployment = "Assigning image to deployment for device"
-	ErrMsgCheckingModelOfTheDevice      = "Checking hardware model of the device."
-	ErrMsgImageUsedInActiveDeployment   = "Check if image is used by active deployment"
-	ErrMsgImageUsedInDeployment         = "Check if image is used by any deployment"
-	ErrMsgSearchingForDeployment        = "Searching for specified deployment"
+	DefaultUpdateDownloadLinkExpire = 24 * time.Hour
 )
 
-type FindImageByApplicationAndModeler interface {
-	FindImageByApplicationAndModel(version, model string) (*images.SoftwareImage, error)
+// Errors
+var (
+	ErrModelMissingInput    = errors.New("Missing input deplyoment data")
+	ErrModelInvalidDeviceID = errors.New("Invalid device ID")
+)
+
+type FindImageByNameAndDeviceTyper interface {
+	FindImageByNameAndDeviceType(name, model string) (*images.SoftwareImage, error)
+}
+
+type GetImageLinker interface {
+	GetRequest(objectId string, duration time.Duration) (*images.Link, error)
 }
 
 type DeploymentsStorager interface {
@@ -48,50 +49,49 @@ type DeploymentsStorager interface {
 type DeviceDeploymentStorager interface {
 	InsertMany(deployment ...*DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(id string, statuses ...string) (bool, error)
+	FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*DeviceDeployment, error)
 }
 
 type DeploymentsModel struct {
-	imageFinder              FindImageByApplicationAndModeler
+	imageFinder              FindImageByNameAndDeviceTyper
 	deploymentsStorage       DeploymentsStorager
 	deviceDeploymentsStorage DeviceDeploymentStorager
+	imageLinker              GetImageLinker
 }
 
 func NewDeploymentModel(
 	deploymentsStorage DeploymentsStorager,
-	imageFinder FindImageByApplicationAndModeler,
+	imageFinder FindImageByNameAndDeviceTyper,
 	deviceDeploymentsStorage DeviceDeploymentStorager,
+	imageLinker GetImageLinker,
 ) *DeploymentsModel {
 	return &DeploymentsModel{
 		imageFinder:              imageFinder,
 		deploymentsStorage:       deploymentsStorage,
 		deviceDeploymentsStorage: deviceDeploymentsStorage,
+		imageLinker:              imageLinker,
 	}
 }
 
-func (d *DeploymentsModel) NewObject() interface{} {
-	return NewDeploymentConstructor()
-}
+// CreateDeployment precomputes new deplyomet and schedules it for devices.
+// Automatically assigns matching images to target device types.
+// In case no image is available for target device, noimage status is set.
+// TODO: check if specified devices are bootstrapped (when have a way to do this)
+func (d *DeploymentsModel) CreateDeployment(constructor *DeploymentConstructor) (string, error) {
 
-func (d *DeploymentsModel) Validate(deployment interface{}) error {
-	return deployment.(*DeploymentConstructor).Validate()
-}
-
-func (d *DeploymentsModel) Create(obj interface{}) (string, error) {
-
-	if obj == nil {
-		return "", errors.New(ErrMsgInvalidDeployment)
+	if constructor == nil {
+		return "", ErrModelMissingInput
 	}
 
-	constructorData := obj.(*DeploymentConstructor)
-	deployment := NewDeploymentFromConstructor(constructorData)
+	if err := constructor.Validate(); err != nil {
+		return "", errors.Wrap(err, "Validating deployment")
+	}
+
+	deployment := NewDeploymentFromConstructor(constructor)
 
 	// Generate deployment for each specified device.
-	deviceDeployments := make([]*DeviceDeployment, 0, len(constructorData.Devices))
-	for _, id := range constructorData.Devices {
-
-		if len(strings.TrimSpace(id)) == 0 {
-			return "", errors.New(ErrMsgInvalidDeviceID)
-		}
+	deviceDeployments := make([]*DeviceDeployment, 0, len(constructor.Devices))
+	for _, id := range constructor.Devices {
 
 		deviceDeployment, err := d.prepareDeviceDeployment(deployment, id)
 		if err != nil {
@@ -102,7 +102,7 @@ func (d *DeploymentsModel) Create(obj interface{}) (string, error) {
 	}
 
 	if err := d.deploymentsStorage.Insert(deployment); err != nil {
-		return "", errors.Wrap(err, ErrMsgStoringDeployment)
+		return "", errors.Wrap(err, "Storing deplyoment data")
 	}
 
 	if err := d.deviceDeploymentsStorage.InsertMany(deviceDeployments...); err != nil {
@@ -110,7 +110,7 @@ func (d *DeploymentsModel) Create(obj interface{}) (string, error) {
 			err = errors.Wrap(err, errCleanup.Error())
 		}
 
-		return "", errors.Wrap(err, ErrMsgStoringDeviceDeployments)
+		return "", errors.Wrap(err, "Storing assigned deployments to devices")
 	}
 
 	return *deployment.Id, nil
@@ -118,21 +118,22 @@ func (d *DeploymentsModel) Create(obj interface{}) (string, error) {
 
 func (d *DeploymentsModel) prepareDeviceDeployment(deployment *Deployment, deviceID string) (*DeviceDeployment, error) {
 
-	model, err := d.checkModel(deviceID)
+	deviceType, err := d.checkDeviceType(deviceID)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrMsgCheckingModelOfTheDevice)
+		return nil, errors.Wrap(err, "Checking target device type")
 	}
 
-	image, err := d.assignImage(*deployment.Version, model)
+	image, err := d.assignImage(*deployment.ArtifactName, deviceType)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrMsgAssignImageToDeviceDeployment)
+		return nil, errors.Wrap(err, "Assigning image targeted for device type")
 	}
 
 	deviceDeployment := NewDeviceDeployment(deviceID, *deployment.Id)
-	deviceDeployment.Model = &model
+	deviceDeployment.DeviceType = &deviceType
 	deviceDeployment.Image = image
 	deviceDeployment.Created = deployment.Created
 
+	// If not having appropriate image, set noimage status
 	if deviceDeployment.Image == nil {
 		status := DeviceDeploymentStatusNoImage
 		deviceDeployment.Status = &status
@@ -142,25 +143,20 @@ func (d *DeploymentsModel) prepareDeviceDeployment(deployment *Deployment, devic
 }
 
 // TODO: This should be provided as a part of inventory service driver (dependency)
-func (d *DeploymentsModel) checkModel(deviceId string) (string, error) {
+func (d *DeploymentsModel) checkDeviceType(deviceID string) (string, error) {
 	return "TestDevice", nil
 }
 
-func (d *DeploymentsModel) assignImage(version, model string) (*images.SoftwareImage, error) {
-	return d.imageFinder.FindImageByApplicationAndModel(version, model)
+func (d *DeploymentsModel) assignImage(name, deviceType string) (*images.SoftwareImage, error) {
+	return d.imageFinder.FindImageByNameAndDeviceType(name, deviceType)
 }
 
-// TODO: aggregre status by device (return only the worsed overall)
-func (d *DeploymentsModel) GetObject(deploymentID string) (interface{}, error) {
-
-	// Verify ID formatting
-	if !govalidator.IsUUIDv4(deploymentID) {
-		return nil, errors.New(ErrMsgInvalidID)
-	}
+// GetDeployment fetches deplyoment by ID
+func (d *DeploymentsModel) GetDeployment(deploymentID string) (*Deployment, error) {
 
 	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrMsgSearchingForDeployment)
+		return nil, errors.Wrap(err, "Searching for deployment by ID")
 	}
 
 	return deployment, nil
@@ -168,16 +164,11 @@ func (d *DeploymentsModel) GetObject(deploymentID string) (interface{}, error) {
 
 // ImageUsedInActiveDeployment checks if specified image is in use by deployments
 // Image is considered to be in use if it's participating in at lest one non success/error deployment.
-func (d *DeploymentsModel) ImageUsedInActiveDeployment(imageId string) (bool, error) {
+func (d *DeploymentsModel) ImageUsedInActiveDeployment(imageID string) (bool, error) {
 
-	// Verify ID formatting
-	if !govalidator.IsUUIDv4(imageId) {
-		return false, errors.New(ErrMsgInvalidID)
-	}
-
-	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageId, ActiveDeploymentStatuses()...)
+	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageID, d.ActiveDeploymentStatuses()...)
 	if err != nil {
-		return false, errors.Wrap(err, ErrMsgImageUsedInActiveDeployment)
+		return false, errors.Wrap(err, "Checking if image is used by active deplyoment")
 	}
 
 	return found, nil
@@ -185,17 +176,61 @@ func (d *DeploymentsModel) ImageUsedInActiveDeployment(imageId string) (bool, er
 
 // ImageUsedInDeployment checks if specified image is in use by deployments
 // Image is considered to be in use if it's participating in any deployment.
-func (d *DeploymentsModel) ImageUsedInDeployment(imageId string) (bool, error) {
+func (d *DeploymentsModel) ImageUsedInDeployment(imageID string) (bool, error) {
 
-	// Verify ID formatting
-	if !govalidator.IsUUIDv4(imageId) {
-		return false, errors.New(ErrMsgInvalidID)
-	}
-
-	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageId)
+	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageID)
 	if err != nil {
-		return false, errors.Wrap(err, ErrMsgImageUsedInDeployment)
+		return false, errors.Wrap(err, "Checking if image is used in deployment")
 	}
 
 	return found, nil
+}
+
+// GetDeploymentForDevice returns deployment for the device: currenclty still in progress or next to install.
+// nil in case of nothing deploy for device.
+func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (interface{}, error) {
+
+	deployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(deviceID, d.ActiveDeploymentStatuses()...)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "Searching for oldest active deployment for the device")
+	}
+
+	if deployment == nil {
+		return nil, nil
+	}
+
+	link, err := d.imageLinker.GetRequest(*deployment.Image.Id, DefaultUpdateDownloadLinkExpire)
+	if err != nil {
+		return nil, errors.Wrap(err, "Generating download link for the device")
+	}
+
+	type Image struct {
+		*images.Link
+		*images.SoftwareImage
+	}
+
+	// reponse object
+	update := &struct {
+		ID    *string `json:"id"`
+		Image Image   `json:"image"`
+	}{
+		ID: deployment.Id,
+		Image: Image{
+			link,
+			deployment.Image,
+		},
+	}
+
+	return update, nil
+}
+
+// ActiveDeploymentStatuses lists statuses that represent deployment in active state (not finished).
+func (d *DeploymentsModel) ActiveDeploymentStatuses() []string {
+	return []string{
+		DeviceDeploymentStatusPending,
+		DeviceDeploymentStatusDownloading,
+		DeviceDeploymentStatusInstalling,
+		DeviceDeploymentStatusRebooting,
+	}
 }

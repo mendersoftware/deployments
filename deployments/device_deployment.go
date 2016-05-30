@@ -16,16 +16,20 @@ package deployments
 import (
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/artifacts/images"
 	"github.com/satori/go.uuid"
 )
 
+// Deployment statuses
 const (
-	DeviceDeploymentStatusInProgress = "inprogress"
-	DeviceDeploymentStatusPending    = "pending"
-	DeviceDeploymentStatusSuccess    = "success"
-	DeviceDeploymentStatusFailure    = "failure"
-	DeviceDeploymentStatusNoImage    = "noimage"
+	DeviceDeploymentStatusDownloading = "downloading"
+	DeviceDeploymentStatusInstalling  = "installing"
+	DeviceDeploymentStatusRebooting   = "rebooting"
+	DeviceDeploymentStatusPending     = "pending"
+	DeviceDeploymentStatusSuccess     = "success"
+	DeviceDeploymentStatusFailure     = "failure"
+	DeviceDeploymentStatusNoImage     = "noimage"
 )
 
 const (
@@ -37,38 +41,37 @@ const (
 )
 
 type DeviceDeployment struct {
-	// Internal field of initial creation of deployment, required
-	Created *time.Time `json:"-"`
+	// Internal field of initial creation of deployment
+	Created *time.Time `json:"created" valid:"-"`
 
-	// Start deployment start time, optional
-	Started *time.Time `json:"created,omitempty"`
+	// Update finish time
+	Finished *time.Time `json:"finished,omitempty" valid:"-"`
 
-	// Update finish time, optional
-	Finished *time.Time `json:"finished,omitempty"`
+	// Status
+	Status *string `json:"status" valid:"-"`
 
-	// Status, required, enum: "inprogress", "pending", "success", "failure"
-	Status *string `json:"status"`
-
-	// Device id, required
-	DeviceId *string `json:"id"`
+	// Device id
+	DeviceId *string `json:"id" valid:"-"`
 
 	// Deplyoment id
-	DeploymentId *string `json:"-"`
+	DeploymentId *string `json:"-" valid:"-"`
 
 	// ID
-	Id *string `json:"-" bson:"_id"`
+	Id *string `json:"-" bson:"_id" valid:"uuidv4,required"`
 
-	// Assigned image
-	Image *images.SoftwareImage `json:"-"`
+	// Assigned software image
+	Image *images.SoftwareImage `json:"-" valid:"-"`
 
-	// Cache: device model
-	Model *string `json:"model,omitempty"`
+	// Target device type
+	DeviceType *string `json:"device_type,omitempty" valid:"-"`
 }
 
 func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
+
 	now := time.Now()
-	initStatus := "pending"
+	initStatus := DeviceDeploymentStatusPending
 	id := uuid.NewV4().String()
+
 	return &DeviceDeployment{
 		Status:       &initStatus,
 		DeviceId:     &deviceId,
@@ -76,4 +79,9 @@ func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
 		Id:           &id,
 		Created:      &now,
 	}
+}
+
+func (d *DeviceDeployment) Validate() error {
+	_, err := govalidator.ValidateStruct(d)
+	return err
 }

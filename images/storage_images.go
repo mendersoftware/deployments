@@ -27,14 +27,14 @@ import (
 const (
 	// Keys are corelated to field names in SoftwareImage structure
 	// Need to be kept in sync with that structure filed names
-	StorageKeySoftwareImageModel = "softwareimageconstructor.model"
-	StorageKeySoftwareImageName  = "softwareimageconstructor.name"
-	StorageKeySoftwareImageId    = "_id"
+	StorageKeySoftwareImageDeviceType = "softwareimageconstructor.devicetype"
+	StorageKeySoftwareImageName       = "softwareimageconstructor.name"
+	StorageKeySoftwareImageId         = "_id"
 )
 
 // Indexes
 const (
-	IndexUniqeNameVersionStr = "uniqueNameVersionIndex"
+	IndexUniqeNameAndDeviceTypeStr = "uniqueNameAndDeviceTypeIndex"
 )
 
 // Database
@@ -45,10 +45,10 @@ const (
 
 // Errors
 var (
-	ErrStorageInvalidID      = errors.New("Invalid id")
-	ErrStorageInvalidVersion = errors.New("Invalid version")
-	ErrStorageInvalidModel   = errors.New("Invalid model")
-	ErrStorageInvalidImage   = errors.New("Invalid image")
+	ErrStorageInvalidID         = errors.New("Invalid id")
+	ErrStorageInvalidName       = errors.New("Invalid name")
+	ErrStorageInvalidDeviceType = errors.New("Invalid device type")
+	ErrStorageInvalidImage      = errors.New("Invalid image")
 )
 
 // SoftwareImagesStorage is a data layer for SoftwareImages based on MongoDB
@@ -72,9 +72,9 @@ func (i *SoftwareImagesStorage) IndexStorage() error {
 	defer session.Close()
 
 	uniqueNameVersionIndex := mgo.Index{
-		Key:    []string{StorageKeySoftwareImageName, StorageKeySoftwareImageModel},
+		Key:    []string{StorageKeySoftwareImageName, StorageKeySoftwareImageDeviceType},
 		Unique: true,
-		Name:   IndexUniqeNameVersionStr,
+		Name:   IndexUniqeNameAndDeviceTypeStr,
 		// Build index upfront - make sure this index is allways on.
 		Background: false,
 	}
@@ -135,22 +135,21 @@ func (i *SoftwareImagesStorage) Update(image *SoftwareImage) (bool, error) {
 	return true, nil
 }
 
-// FindImageByApplicationAndModel find image with speficied application name and targed device model
-// Implements FindImageByApplicationAndModeler interface
-func (i *SoftwareImagesStorage) FindImageByApplicationAndModel(version, model string) (*SoftwareImage, error) {
+// FindImageByNameAndDeviceType find image with speficied application name and targed device type
+func (i *SoftwareImagesStorage) FindImageByNameAndDeviceType(name, deviceType string) (*SoftwareImage, error) {
 
-	if !govalidator.IsNull(version) {
-		return nil, ErrStorageInvalidVersion
+	if !govalidator.IsNull(name) {
+		return nil, ErrStorageInvalidName
 	}
 
-	if !govalidator.IsNull(model) {
-		return nil, ErrStorageInvalidModel
+	if !govalidator.IsNull(deviceType) {
+		return nil, ErrStorageInvalidDeviceType
 	}
 
-	// equal to model & software version (application name + version)
+	// equal to device type & software version (application name + version)
 	query := bson.M{
-		StorageKeySoftwareImageModel: model,
-		StorageKeySoftwareImageName:  version,
+		StorageKeySoftwareImageDeviceType: deviceType,
+		StorageKeySoftwareImageName:       name,
 	}
 
 	session := i.session.Copy()

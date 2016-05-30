@@ -11,28 +11,5 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package mvc_old
 
-type CreateModeler interface {
-	NewObject() interface{}
-	Validate(interface{}) error
-	Create(interface{}) (string, error)
-}
-
-type GetObjectModeler interface {
-	GetObject(id string) (interface{}, error)
-}
-
-type DeleteObjectModeler interface {
-	DeleteObject(id string) error
-}
-
-type ListObjectsModeler interface {
-	ListObjects(map[string]string) (interface{}, error)
-}
-
-type EditObjectModeler interface {
-	NewObject() interface{}
-	Validate(interface{}) error
-	EditObject(id string, object interface{}) (bool, error)
-}
+package deployments

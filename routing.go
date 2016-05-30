@@ -11,6 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package main
 
 import (
@@ -59,16 +60,16 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	}
 
 	// Domian Models
-	deploymentModel := deployments.NewDeploymentModel(deploymentsStorage, imagesStorage, deviceDeploymentsStorage)
+	deploymentModel := deployments.NewDeploymentModel(deploymentsStorage, imagesStorage, deviceDeploymentsStorage, fileStorage)
 	imagesModel := images.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
-	// deviceDeployment := deployments.NewDeviceUpdateModel(deviceDeploymentsStorage, fileStorage)
 
 	// Controllers
 	imagesController := images.NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+	deploymentsController := deployments.NewDeploymentsController(deploymentModel, deployments.DeploymentsViews{})
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)
-	deploymentsRoutes := NewDeploymentsResourceRoutes()
+	deploymentsRoutes := NewDeploymentsResourceRoutes(deploymentsController)
 
 	routes := append(imageRoutes, deploymentsRoutes...)
 
@@ -94,15 +95,19 @@ func NewImagesResourceRoutes(controller *images.SoftwareImagesController) []*res
 	}
 }
 
-func NewDeploymentsResourceRoutes() []*rest.Route {
+func NewDeploymentsResourceRoutes(controller *deployments.DeploymentsController) []*rest.Route {
+
+	if controller == nil {
+		return []*rest.Route{}
+	}
 
 	return []*rest.Route{
 
-	// Deployments
-	// rest.Post("/api/0.0.1/deployments", mvc.NewCreateController(deploymentModel, mvc.NewViewRestPost("/api/0.0.1/deployments"))),
-	// rest.Get("/api/0.0.1/deployments/:id", mvc.NewGetObjectController(deploymentModel, mvc.NewViewRestGetDeviceUpdateObject())),
+		// Deployments
+		rest.Post("/api/0.0.1/deployments", controller.PostDeployment),
+		rest.Get("/api/0.0.1/deployments/:id", controller.GetDeployment),
 
-	// Devices
-	// rest.Get("/api/0.0.1/devices/:id/update", mvc.NewGetDeviceUpdateController(deviceDeployment, mvc.NewViewRestGetDeviceUpdateObject())),
+		// Devices
+		rest.Get("/api/0.0.1/devices/:id/update", controller.GetDeploymentForDevice),
 	}
 }
