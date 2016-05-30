@@ -15,16 +15,22 @@
 package deployments
 
 import (
-	"strings"
-
+	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 
 	"gopkg.in/mgo.v2"
 )
 
+// Database settings
 const (
-	// Errors
-	ErrMsgDatabaseError = "Database error"
+	DatabaseName          = "deployment_service"
+	CollectionDeployments = "deployments"
+)
+
+// Errors
+var (
+	ErrDeploymentStorageInvalidDeployment = errors.New("Invalid deployment")
+	ErrStorageInvalidID                   = errors.New("Invalid id")
 )
 
 // DeploymentsStorage is a data layer for deployments based on MongoDB
@@ -43,18 +49,18 @@ func NewDeploymentsStorage(session *mgo.Session) *DeploymentsStorage {
 func (d *DeploymentsStorage) Insert(deployment *Deployment) error {
 
 	if deployment == nil {
-		return errors.New(ErrMsgInvalidDeployment)
+		return ErrDeploymentStorageInvalidDeployment
 	}
 
-	if deployment.Id == nil || len(strings.TrimSpace(*deployment.Id)) == 0 {
-		return errors.New(ErrMsgInvalidDeploymentID)
+	if err := deployment.Validate(); err != nil {
+		return err
 	}
 
 	session := d.session.Copy()
 	defer session.Close()
 
 	if err := session.DB(DatabaseName).C(CollectionDeployments).Insert(deployment); err != nil {
-		return errors.Wrap(err, ErrMsgDatabaseError)
+		return err
 	}
 
 	return nil
@@ -64,8 +70,8 @@ func (d *DeploymentsStorage) Insert(deployment *Deployment) error {
 // Noop on ID not found
 func (d *DeploymentsStorage) Delete(id string) error {
 
-	if len(strings.TrimSpace(id)) == 0 {
-		return errors.New(ErrMsgInvalidDeploymentID)
+	if !govalidator.IsNull(id) {
+		return ErrStorageInvalidID
 	}
 
 	session := d.session.Copy()
@@ -78,7 +84,7 @@ func (d *DeploymentsStorage) Delete(id string) error {
 	}
 
 	if err != nil {
-		return errors.Wrap(err, ErrMsgDatabaseError)
+		return err
 	}
 
 	return nil
@@ -86,8 +92,8 @@ func (d *DeploymentsStorage) Delete(id string) error {
 
 func (d *DeploymentsStorage) FindByID(id string) (*Deployment, error) {
 
-	if len(strings.TrimSpace(id)) == 0 {
-		return nil, errors.New(ErrMsgInvalidID)
+	if !govalidator.IsNull(id) {
+		return nil, ErrStorageInvalidID
 	}
 
 	session := d.session.Copy()
@@ -100,7 +106,7 @@ func (d *DeploymentsStorage) FindByID(id string) (*Deployment, error) {
 	}
 
 	if err != nil {
-		return nil, errors.Wrap(err, ErrMsgDatabaseError)
+		return nil, err
 	}
 
 	return deployment, nil

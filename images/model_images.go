@@ -36,7 +36,6 @@ type SoftwareImagesStorager interface {
 }
 
 type FileStorager interface {
-	// Delete stored object. If not found return error.
 	Delete(objectId string) error
 	Exists(objectId string) (bool, error)
 	LastModified(objectId string) (time.Time, error)

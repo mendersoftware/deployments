@@ -29,7 +29,7 @@ type SoftwareImageConstructor struct {
 	Name *string `json:"name" valid:"length(1|4096),required"`
 
 	// Compatible device model for the application
-	Model *string `json:"model" valid:"length(1|4096),required"`
+	DeviceType *string `json:"device_type" valid:"length(1|4096),required"`
 
 	// Image description
 	Description *string `json:"description,omitempty" valid:"length(1|4096),optional"`
@@ -54,7 +54,7 @@ type SoftwareImage struct {
 	*SoftwareImageConstructor
 
 	// Image ID
-	Id *string `json:"id" bson:"_id" valid:"uuidv4"`
+	Id *string `json:"id" bson:"_id" valid:"uuidv4,required"`
 
 	// Status if image was verified after upload
 	Verified bool `json:"verified" valid:"-"`
