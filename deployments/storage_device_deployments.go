@@ -15,8 +15,6 @@
 package deployments
 
 import (
-	"fmt"
-
 	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
@@ -91,16 +89,12 @@ func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(imageID s
 		}
 	}
 
-	fmt.Println(query)
-
 	session := d.session.Copy()
 	defer session.Close()
 
 	// if found at least one then image in active deployment
 	var tmp interface{}
 	err := session.DB(DatabaseName).C(CollectionDevices).Find(query).One(&tmp)
-	fmt.Println(err)
-	fmt.Println(tmp)
 	if err != nil && err.Error() == mgo.ErrNotFound.Error() {
 		return false, nil
 	}
