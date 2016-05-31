@@ -42,19 +42,19 @@ const (
 
 type DeviceDeployment struct {
 	// Internal field of initial creation of deployment
-	Created *time.Time `json:"created" valid:"-"`
+	Created *time.Time `json:"created" valid:"required"`
 
 	// Update finish time
 	Finished *time.Time `json:"finished,omitempty" valid:"-"`
 
 	// Status
-	Status *string `json:"status" valid:"-"`
+	Status *string `json:"status" valid:"required"`
 
 	// Device id
-	DeviceId *string `json:"id" valid:"-"`
+	DeviceId *string `json:"id" valid:"uuidv4,required"`
 
 	// Deplyoment id
-	DeploymentId *string `json:"-" valid:"-"`
+	DeploymentId *string `json:"-" valid:"uuidv4,required"`
 
 	// ID
 	Id *string `json:"-" bson:"_id" valid:"uuidv4,required"`
