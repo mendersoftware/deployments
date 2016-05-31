@@ -205,24 +205,7 @@ func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (interface{},
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}
 
-	type Image struct {
-		*images.Link
-		*images.SoftwareImage
-	}
-
-	// reponse object
-	update := &struct {
-		ID    *string `json:"id"`
-		Image Image   `json:"image"`
-	}{
-		ID: deployment.Id,
-		Image: Image{
-			link,
-			deployment.Image,
-		},
-	}
-
-	return update, nil
+	return NewDeploymentInstructions(*deployment.Id, link, deployment.Image), nil
 }
 
 // ActiveDeploymentStatuses lists statuses that represent deployment in active state (not finished).
