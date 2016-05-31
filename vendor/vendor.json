@@ -171,6 +171,12 @@
 			"revisionTime": "2015-12-08T20:45:36Z"
 		},
 		{
+			"checksumSHA1": "5rPfda8jFccr3A6heL+JAmi9K9g=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d",
+			"revisionTime": "2015-11-05T21:09:06Z"
+		},
+		{
 			"checksumSHA1": "FCeEm2BWZV/n4oTy+SGd/k0Ab5c=",
 			"origin": "github.com/aws/aws-sdk-go/vendor/github.com/go-ini/ini",
 			"path": "github.com/go-ini/ini",
@@ -227,6 +233,12 @@
 			"revisionTime": "2016-05-10T21:41:07Z"
 		},
 		{
+			"checksumSHA1": "u62GoEI9HBTtKT7JoTI+JxRPN/s=",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": "e8554b8641db39598be7f6342874b958f12ae1d4",
+			"revisionTime": "2015-12-07T18:24:34Z"
+		},
+		{
 			"checksumSHA1": "TvF3ym5sZVNqGlUOS9HgOIl/sZM=",
 			"path": "github.com/satori/go.uuid",
 			"revision": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048",
@@ -255,6 +267,12 @@
 			"path": "github.com/spf13/viper",
 			"revision": "e37b56e207dda4d79b9defe0548e960658ee8b6b",
 			"revisionTime": "2015-11-10T04:22:04Z"
+		},
+		{
+			"checksumSHA1": "5XAzjZrdlLh1mgd7xEvoK6LeLCA=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "e3a8ff8ce36581f87a15341206f205b1da467059",
+			"revisionTime": "2015-12-08T00:24:04Z"
 		},
 		{
 			"checksumSHA1": "dXPnE1PCrMs4HzhZOpESEFeryXg=",
