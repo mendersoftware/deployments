@@ -89,7 +89,7 @@ func (i *SoftwareImagesStorage) IndexStorage() error {
 // Exists checks if object with ID exists
 func (i *SoftwareImagesStorage) Exists(id string) (bool, error) {
 
-	if !govalidator.IsNull(id) {
+	if govalidator.IsNull(id) {
 		return false, ErrStorageInvalidID
 	}
 
@@ -138,11 +138,11 @@ func (i *SoftwareImagesStorage) Update(image *SoftwareImage) (bool, error) {
 // FindImageByNameAndDeviceType find image with speficied application name and targed device type
 func (i *SoftwareImagesStorage) FindImageByNameAndDeviceType(name, deviceType string) (*SoftwareImage, error) {
 
-	if !govalidator.IsNull(name) {
+	if govalidator.IsNull(name) {
 		return nil, ErrStorageInvalidName
 	}
 
-	if !govalidator.IsNull(deviceType) {
+	if govalidator.IsNull(deviceType) {
 		return nil, ErrStorageInvalidDeviceType
 	}
 
@@ -195,7 +195,7 @@ func (i *SoftwareImagesStorage) Insert(image *SoftwareImage) error {
 // FindByID search storage for image with ID, returns nil if not found
 func (i *SoftwareImagesStorage) FindByID(id string) (*SoftwareImage, error) {
 
-	if !govalidator.IsNull(id) {
+	if govalidator.IsNull(id) {
 		return nil, ErrStorageInvalidID
 	}
 
@@ -219,7 +219,7 @@ func (i *SoftwareImagesStorage) FindByID(id string) (*SoftwareImage, error) {
 // Noop on if not found.
 func (i *SoftwareImagesStorage) Delete(id string) error {
 
-	if !govalidator.IsNull(id) {
+	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
 	}
 
