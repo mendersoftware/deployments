@@ -186,8 +186,8 @@ Lookup deployments in the system, including active and history.
                             "id": "name",
                             "type": "string"
                         },
-                        "version": {
-                            "id": "version",
+                        "artifact_name": {
+                            "id": "artifact_name",
                             "type": "string"
                         },
                         "id": {
@@ -202,7 +202,7 @@ Lookup deployments in the system, including active and history.
                     "required": [
                         "created",
                         "name",
-                        "version",
+                        "artifact_name",
                         "id"
                     ]
                 }
@@ -214,7 +214,7 @@ Lookup deployments in the system, including active and history.
                 {
                     "created": "2016-02-11T13:03:17.063493443Z",
                     "name": "production",
-                    "version": "Application 0.0.1",
+                    "artifact_name": "Application 0.0.1",
                     "id": "00a0c91e6-7dec-11d0-a765-f81d4faebf6",
                     "finished": "2016-03-11T13:03:17.063493443Z"
                 }
