@@ -62,7 +62,7 @@ func (c *DeploymentConstructor) Validate() error {
 
 type Deployment struct {
 	// User provided field set
-	*DeploymentConstructor
+	*DeploymentConstructor `valid:"required"`
 
 	// Auto set on create, required
 	Created *time.Time `json:"created" valid:"required"`
