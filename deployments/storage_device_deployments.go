@@ -77,7 +77,7 @@ func (d *DeviceDeploymentsStorage) InsertMany(deployments ...*DeviceDeployment) 
 func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(imageID string, statuses ...string) (bool, error) {
 
 	// Verify ID formatting
-	if !govalidator.IsUUIDv4(imageID) {
+	if govalidator.IsNull(imageID) {
 		return false, ErrStorageInvalidID
 	}
 
@@ -110,7 +110,7 @@ func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(imageID s
 func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*DeviceDeployment, error) {
 
 	// Verify ID formatting
-	if !govalidator.IsUUIDv4(deviceID) {
+	if govalidator.IsNull(deviceID) {
 		return nil, ErrStorageInvalidID
 	}
 

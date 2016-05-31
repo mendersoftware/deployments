@@ -70,7 +70,7 @@ func (d *DeploymentsStorage) Insert(deployment *Deployment) error {
 // Noop on ID not found
 func (d *DeploymentsStorage) Delete(id string) error {
 
-	if !govalidator.IsNull(id) {
+	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
 	}
 
@@ -92,7 +92,7 @@ func (d *DeploymentsStorage) Delete(id string) error {
 
 func (d *DeploymentsStorage) FindByID(id string) (*Deployment, error) {
 
-	if !govalidator.IsNull(id) {
+	if govalidator.IsNull(id) {
 		return nil, ErrStorageInvalidID
 	}
 
