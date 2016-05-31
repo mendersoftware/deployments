@@ -16,6 +16,7 @@ package mvc
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -34,7 +35,7 @@ type RESTViewDefaults struct {
 
 func (p *RESTViewDefaults) RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string) {
 	w.WriteHeader(http.StatusCreated)
-	w.Header().Add(HttpHeaderLocation, r.UrlFor(id, nil).String())
+	w.Header().Add(HttpHeaderLocation, fmt.Sprintf("%s/%s", r.URL.String(), id))
 }
 
 func (p *RESTViewDefaults) RenderSuccessGet(w rest.ResponseWriter, object interface{}) {
