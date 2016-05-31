@@ -37,7 +37,7 @@ type DeploymentConstructor struct {
 	ArtifactName *string `json:"artifact_name,omitempty" valid:"length(1|4096),required"`
 
 	// List of device id's targeted for deployments, required
-	Devices []string `json:"devices,omitempty" valid:"required"`
+	Devices []string `json:"devices,omitempty" valid:"required" bson:"-"`
 }
 
 func NewDeploymentConstructor() *DeploymentConstructor {
