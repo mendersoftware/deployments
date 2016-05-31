@@ -81,7 +81,7 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 		},
 	}
 
-	for _, test := range testCases {
+	for id, test := range testCases {
 
 		dep := NewDeploymentConstructor()
 		dep.Name = test.InputName
@@ -90,7 +90,7 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 
 		err := dep.Validate()
 
-		t.Log(err)
+		t.Log(id, err)
 
 		if !test.IsValid {
 			assert.Error(t, err)
@@ -133,7 +133,7 @@ func TestDeploymentValidate(t *testing.T) {
 		},
 	}
 
-	for _, test := range testCases {
+	for id, test := range testCases {
 
 		pub := NewDeploymentConstructor()
 		pub.Name = test.InputName
@@ -144,7 +144,7 @@ func TestDeploymentValidate(t *testing.T) {
 
 		err := dep.Validate()
 
-		t.Log(err)
+		t.Log(id, err)
 
 		if !test.IsValid {
 			assert.Error(t, err)
@@ -155,7 +155,7 @@ func TestDeploymentValidate(t *testing.T) {
 
 }
 
-func TestMarshalJSON(t *testing.T) {
+func TestDeploymentMarshalJSON(t *testing.T) {
 
 	dep := NewDeployment()
 	dep.Name = StringToPointer("Region: NYC")
