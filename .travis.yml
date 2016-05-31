@@ -97,7 +97,7 @@ before_script:
     - ./check_signed_off.sh
 
     # Perform static code analysys
-    - go vet `go list ./...`
+    - go vet `go list ./... | grep -v vendor`
 
     # Fail builds when the cyclomatic complexity reaches 15 or more
     - gocyclo -over 15 `find . -iname '*.go' | grep -v 'vendor' | grep -v '_test.go'`
