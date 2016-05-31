@@ -66,7 +66,7 @@ func (d *DeviceDeploymentsStorage) InsertMany(deployments ...*DeviceDeployment) 
 		list = append(list, deployment)
 	}
 
-	if err := d.session.DB(DatabaseName).C(CollectionDeployments).Insert(list...); err != nil {
+	if err := d.session.DB(DatabaseName).C(CollectionDevices).Insert(list...); err != nil {
 		return err
 	}
 
@@ -125,7 +125,7 @@ func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 
 	// Select only the oldest one that have not been finished yet.
 	var deployment *DeviceDeployment
-	if err := session.DB(DatabaseName).C(CollectionDevices).Find(query).Sort("created").One(deployment); err != nil {
+	if err := session.DB(DatabaseName).C(CollectionDevices).Find(query).Sort("created").One(&deployment); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return nil, nil
 		}
