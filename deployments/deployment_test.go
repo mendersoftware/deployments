@@ -161,17 +161,17 @@ func TestMarshalJSON(t *testing.T) {
 	dep.Name = StringToPointer("Region: NYC")
 	dep.ArtifactName = StringToPointer("App 123")
 	dep.Devices = []string{"Device 123"}
-	dep.Created = TimeToPointer(time.Unix(1, 1))
 	dep.Id = StringToPointer("14ddec54-30be-49bf-aa6b-97ce271d71f5")
 
 	j, err := dep.MarshalJSON()
 	assert.NoError(t, err)
 
+	// date format may be slightly different on different platforms
 	expectedJSON := `
     {
         "name": "Region: NYC", 
         "artifact_name": "App 123", 
-        "created":"1970-01-01T01:00:01.000000001+01:00", 
+        "created":"` + dep.Created.Format(time.RFC3339Nano) + `", 
         "id":"14ddec54-30be-49bf-aa6b-97ce271d71f5"
     }`
 
