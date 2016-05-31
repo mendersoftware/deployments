@@ -34,8 +34,8 @@ type RESTViewDefaults struct {
 }
 
 func (p *RESTViewDefaults) RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string) {
-	w.WriteHeader(http.StatusCreated)
 	w.Header().Add(HttpHeaderLocation, fmt.Sprintf("%s/%s", r.URL.String(), id))
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (p *RESTViewDefaults) RenderSuccessGet(w rest.ResponseWriter, object interface{}) {
