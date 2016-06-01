@@ -13,3 +13,51 @@
 //    limitations under the License.
 
 package images
+
+import "testing"
+import "time"
+
+func TestValidateEmptyImage(t *testing.T) {
+	image := NewSoftwareImageConstructor()
+
+	if err := image.Validate(); err == nil {
+		t.FailNow()
+	}
+}
+
+func TestValidateCorrectImage(t *testing.T) {
+	image := NewSoftwareImageConstructor()
+	required := "required"
+
+	image.YoctoId = &required
+	image.Name = &required
+	image.DeviceType = &required
+
+	if err := image.Validate(); err != nil {
+		t.FailNow()
+	}
+}
+
+func TestValidateEmptyImageFromConstructor(t *testing.T) {
+	image := NewSoftwareImageConstructor()
+
+	constructorImage := NewSoftwareImageFromConstructor(image)
+	if err := constructorImage.Validate(); err != nil {
+		t.FailNow()
+	}
+}
+
+func TestModifyImageSetTime(t *testing.T) {
+	image := NewSoftwareImageConstructor()
+
+	constructorImage := NewSoftwareImageFromConstructor(image)
+	constructorImage.Validate()
+
+	modifiedTime := time.Now().Add(time.Hour)
+	constructorImage.SetModified(modifiedTime)
+
+	if !modifiedTime.Equal(*constructorImage.Modified) {
+		t.FailNow()
+	}
+
+}
