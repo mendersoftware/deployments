@@ -31,7 +31,7 @@ func TestValidateCorrectImage(t *testing.T) {
 
 	image.YoctoId = &required
 	image.Name = &required
-	image.Model = &required
+	image.DeviceType = &required
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()
