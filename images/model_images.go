@@ -199,7 +199,7 @@ func (i *ImagesModel) EditImage(imageID string, constructor *SoftwareImageConstr
 
 	foundImage, err := i.imagesStorage.FindByID(imageID)
 	if err != nil {
-		errors.Wrap(err, "Searching for image with specified ID")
+		return false, errors.Wrap(err, "Searching for image with specified ID")
 	}
 
 	if foundImage == nil {
