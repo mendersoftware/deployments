@@ -80,7 +80,7 @@ func createValidImage() *SoftwareImageConstructor {
 
 	image.YoctoId = &required
 	image.Name = &required
-	image.Model = &required
+	image.DeviceType = &required
 
 	return image
 }
