@@ -78,6 +78,7 @@ func (s *SoftwareImagesController) GetImage(w rest.ResponseWriter, r *rest.Reque
 
 	if image == nil {
 		s.views.RenderErrorNotFound(w)
+		return
 	}
 
 	s.views.RenderSuccessGet(w, image)
