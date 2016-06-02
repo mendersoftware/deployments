@@ -65,7 +65,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 	// Controllers
 	imagesController := images.NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
-	deploymentsController := deployments.NewDeploymentsController(deploymentModel, deployments.DeploymentsViews{})
+	deploymentsController := deployments.NewDeploymentsController(deploymentModel)
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)

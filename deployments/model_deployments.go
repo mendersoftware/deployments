@@ -188,7 +188,7 @@ func (d *DeploymentsModel) ImageUsedInDeployment(imageID string) (bool, error) {
 
 // GetDeploymentForDevice returns deployment for the device: currenclty still in progress or next to install.
 // nil in case of nothing deploy for device.
-func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (interface{}, error) {
+func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*DeploymentInstructions, error) {
 
 	deployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(deviceID, d.ActiveDeploymentStatuses()...)
 

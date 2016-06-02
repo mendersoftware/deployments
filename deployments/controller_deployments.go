@@ -15,11 +15,11 @@
 package deployments
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
+	"github.com/pkg/errors"
 )
 
 // Errors
@@ -30,7 +30,7 @@ var (
 type DeploymentsModeler interface {
 	CreateDeployment(constructor *DeploymentConstructor) (string, error)
 	GetDeployment(deploymentID string) (*Deployment, error)
-	GetDeploymentForDevice(deviceID string) (interface{}, error)
+	GetDeploymentForDevice(deviceID string) (*DeploymentInstructions, error)
 }
 
 type DeploymentsController struct {
@@ -38,9 +38,9 @@ type DeploymentsController struct {
 	model DeploymentsModeler
 }
 
-func NewDeploymentsController(model DeploymentsModeler, views DeploymentsViews) *DeploymentsController {
+func NewDeploymentsController(model DeploymentsModeler) *DeploymentsController {
 	return &DeploymentsController{
-		views: views,
+		views: DeploymentsViews{},
 		model: model,
 	}
 }
@@ -50,7 +50,7 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 	var constructor *DeploymentConstructor
 
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
-		d.views.RenderError(w, err, http.StatusBadRequest)
+		d.views.RenderError(w, errors.Wrap(err, "Parsing request body"), http.StatusBadRequest)
 		return
 	}
 
@@ -85,6 +85,7 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 
 	if deployment == nil {
 		d.views.RenderErrorNotFound(w)
+		return
 	}
 
 	d.views.RenderSuccessGet(w, deployment)
@@ -107,6 +108,7 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 
 	if deployment == nil {
 		d.views.RenderNoUpdateForDevice(w)
+		return
 	}
 
 	d.views.RenderSuccessGet(w, deployment)
