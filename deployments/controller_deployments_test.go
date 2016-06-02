@@ -23,38 +23,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
-
-type MockedDeploymentModeler struct {
-	mock.Mock
-}
-
-func (m *MockedDeploymentModeler) CreateDeployment(constructor *DeploymentConstructor) (string, error) {
-	args := m.Called(constructor)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockedDeploymentModeler) GetDeployment(deploymentID string) (*Deployment, error) {
-	args := m.Called(deploymentID)
-
-	if ret := args.Get(0); ret == nil {
-		return nil, args.Error(1)
-	}
-
-	return args.Get(0).(*Deployment), args.Error(1)
-
-}
-
-func (m *MockedDeploymentModeler) GetDeploymentForDevice(deviceID string) (*DeploymentInstructions, error) {
-	args := m.Called(deviceID)
-
-	if ret := args.Get(0); ret == nil {
-		return nil, args.Error(1)
-	}
-
-	return args.Get(0).(*DeploymentInstructions), args.Error(1)
-}
 
 func ErrorToErrStruct(err error) interface{} {
 	return struct{ Error string }{err.Error()}
@@ -129,7 +98,7 @@ func TestGetDeploymentForDevice(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		deploymentModel := new(MockedDeploymentModeler)
+		deploymentModel := new(MockDeploymentsModeler)
 		deploymentModel.On("GetDeploymentForDevice", testCase.InputID).
 			Return(testCase.InputModelDeploymentInstructions, testCase.InputModelError)
 
@@ -194,7 +163,7 @@ func TestGetDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		deploymentModel := new(MockedDeploymentModeler)
+		deploymentModel := new(MockDeploymentsModeler)
 		deploymentModel.On("GetDeployment", testCase.InputID).
 			Return(testCase.InputModelDeployment, testCase.InputModelError)
 
@@ -266,7 +235,7 @@ func TestPostDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		deploymentModel := new(MockedDeploymentModeler)
+		deploymentModel := new(MockDeploymentsModeler)
 
 		deploymentModel.On("CreateDeployment", testCase.InputBodyObject).
 			Return(testCase.InputModelID, testCase.InputModelError)
