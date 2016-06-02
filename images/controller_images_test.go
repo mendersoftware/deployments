@@ -27,10 +27,16 @@ import (
 )
 
 type fakeImageModeler struct {
-	getImage        *SoftwareImage
-	getImageError   error
-	imagesList      []*SoftwareImage
-	listImagesError error
+	getImage          *SoftwareImage
+	getImageError     error
+	imagesList        []*SoftwareImage
+	listImagesError   error
+	uploadLink        *Link
+	uploadLinkError   error
+	downloadLink      *Link
+	downloadLinkError error
+	editImage         bool
+	editError         error
 }
 
 func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*SoftwareImage, error) {
@@ -38,11 +44,11 @@ func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*SoftwareI
 }
 
 func (fim *fakeImageModeler) UploadLink(imageID string, expire time.Duration) (*Link, error) {
-	return nil, nil
+	return fim.uploadLink, fim.uploadLinkError
 }
 
 func (fim *fakeImageModeler) DownloadLink(imageID string, expire time.Duration) (*Link, error) {
-	return nil, nil
+	return fim.downloadLink, fim.downloadLinkError
 }
 
 func (fim *fakeImageModeler) GetImage(id string) (*SoftwareImage, error) {
@@ -58,7 +64,7 @@ func (fim *fakeImageModeler) CreateImage(constructorData *SoftwareImageConstruct
 }
 
 func (fim *fakeImageModeler) EditImage(id string, constructorData *SoftwareImageConstructor) (bool, error) {
-	return true, nil
+	return fim.editImage, fim.editError
 }
 
 func setUpRestTest(route string, handler func(w rest.ResponseWriter, r *rest.Request)) *rest.Api {
@@ -137,10 +143,122 @@ func TestControllerUploadLink(t *testing.T) {
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/wrong_id/upload", nil))
 	recorded.CodeIs(http.StatusBadRequest)
 
-	// correct id
+	// correct id; no upload link
 	id := uuid.NewV4().String()
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/upload", nil))
 	recorded.CodeIs(http.StatusNotFound)
 
+	// correct id; error generating link
+	imagesModel.uploadLinkError = errors.New("error")
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/upload", nil))
+	recorded.CodeIs(http.StatusInternalServerError)
+
+	// upload link OK
+	imagesModel.uploadLinkError = nil
+	link := NewLink("uri", time.Now())
+	imagesModel.uploadLink = link
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/upload", nil))
+	recorded.CodeIs(http.StatusOK)
+	recorded.ContentTypeIsJson()
+
+}
+
+func TestControllerDownloadLink(t *testing.T) {
+	imagesModel := new(fakeImageModeler)
+	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+
+	api := setUpRestTest("/api/0.0.1/images/:id/download", controller.DownloadLink)
+
+	// wrong id
+	recorded := test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/wrong_id/download", nil))
+	recorded.CodeIs(http.StatusBadRequest)
+
+	// correct id; no upload link
+	id := uuid.NewV4().String()
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/download", nil))
+	recorded.CodeIs(http.StatusNotFound)
+
+	// correct id; error generating link
+	imagesModel.downloadLinkError = errors.New("error")
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/download", nil))
+	recorded.CodeIs(http.StatusInternalServerError)
+
+	// download link OK
+	imagesModel.downloadLinkError = nil
+	link := NewLink("uri", time.Now())
+	imagesModel.downloadLink = link
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/download", nil))
+	recorded.CodeIs(http.StatusOK)
+	recorded.ContentTypeIsJson()
+}
+
+func TestControllerDeleteImage(t *testing.T) {
+	imagesModel := new(fakeImageModeler)
+	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+
+	api := setUpRestTest("/api/0.0.1/images/:id", controller.DeleteImage)
+
+	// wrong id
+	recorded := test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/wrong_id", nil))
+	recorded.CodeIs(http.StatusBadRequest)
+
+	// correct id; delete OK
+	id := uuid.NewV4().String()
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, nil))
+	recorded.CodeIs(http.StatusNoContent)
+}
+
+func TestControllerEditImage(t *testing.T) {
+	imagesModel := new(fakeImageModeler)
+	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+
+	api := setUpRestTest("/api/0.0.1/images/:id", controller.EditImage)
+
+	// wrong id
+	recorded := test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/wrong_id", nil))
+	recorded.CodeIs(http.StatusBadRequest)
+
+	// correct id; no payload
+	id := uuid.NewV4().String()
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, nil))
+	recorded.CodeIs(http.StatusBadRequest)
+
+	// correct id; invalid payload
+	//image := NewSoftwareImageConstructor()
+	//constructorImage := NewSoftwareImageFromConstructor(image)
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, map[string]string{"image": "bad_image"}))
+	recorded.CodeIs(http.StatusBadRequest)
+
+	// correct id; correct payload; edit error
+	imagesModel.editError = errors.New("error")
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id,
+			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
+	recorded.CodeIs(http.StatusInternalServerError)
+
+	// correct id; correct payload; edit no image
+	imagesModel.editError = nil
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id,
+			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
+	recorded.CodeIs(http.StatusNotFound)
+
+	// correct id; correct payload; have image
+	imagesModel.editImage = true
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id,
+			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
+	recorded.CodeIs(http.StatusNoContent)
 }
