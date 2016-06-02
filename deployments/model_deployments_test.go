@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetDeployment(t *testing.T) {
+func TestDeploymentModelGetDeployment(t *testing.T) {
 
 	testCases := []struct {
 		InputDeploymentID       string
