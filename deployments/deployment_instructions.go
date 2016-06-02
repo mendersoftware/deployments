@@ -12,34 +12,26 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package main
+package deployments
 
-import (
-	"net/http"
+import "github.com/mendersoftware/artifacts/images"
 
-	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/artifacts/config"
-)
+type ImageInstallInstructions struct {
+	*images.Link
+	*images.SoftwareImage
+}
 
-func RunServer(c config.ConfigReader) error {
-	router, err := NewRouter(c)
-	if err != nil {
-		return err
+type DeploymentInstructions struct {
+	ID    *string                  `json:"id"`
+	Image ImageInstallInstructions `json:"image"`
+}
+
+func NewDeploymentInstructions(id string, link *images.Link, image *images.SoftwareImage) *DeploymentInstructions {
+	return &DeploymentInstructions{
+		ID: &id,
+		Image: ImageInstallInstructions{
+			Link:          link,
+			SoftwareImage: image,
+		},
 	}
-
-	api := rest.NewApi()
-	SetupMiddleware(c, api)
-	api.SetApp(router)
-
-	listen := c.GetString(SettingListen)
-
-	if c.IsSet(SettingHttps) {
-
-		cert := c.GetString(SettingHttpsCertificate)
-		key := c.GetString(SettingHttpsKey)
-
-		return http.ListenAndServeTLS(listen, cert, key, api.MakeHandler())
-	}
-
-	return http.ListenAndServe(listen, api.MakeHandler())
 }

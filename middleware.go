@@ -11,22 +11,34 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package main
 
 import (
 	// Make it clear that this is distinct from the mender logging.
 	golog "log"
 
+	"net/http"
 	"os"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/artifacts/config"
-	"github.com/mendersoftware/artifacts/handlers"
 )
 
 const (
-	EnvProd = "prod"
-	EnvDev  = "dev"
+	HttpHeaderContentType                 string = "Content-type"
+	HttpHeaderOrigin                      string = "Origin"
+	HttpHeaderAuthorization               string = "Authorization"
+	HttpHeaderAcceptEncoding              string = "Accept-Encoding"
+	HttpHeaderAccessControlRequestHeaders string = "Access-Control-Request-Headers"
+	HttpHeaderAccessControlRequestMethod  string = "Access-Control-Request-Method"
+	HttpHeaderLastModified                string = "Last-Modified"
+	HttpHeaderExpires                     string = "Expires"
+	HttpHeaderLocation                    string = "Location"
+	HttpHeaderAllow                       string = "Allow"
+
+	EnvProd string = "prod"
+	EnvDev  string = "dev"
 )
 
 var DefaultDevStack = []rest.Middleware{
@@ -93,27 +105,27 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 
 		// Allowed headers
 		AllowedMethods: []string{
-			handlers.HttpMethodGet,
-			handlers.HttpMethodPost,
-			handlers.HttpMethodPut,
-			handlers.HttpMethodDelete,
-			handlers.HttpMethodOptions,
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodDelete,
+			http.MethodOptions,
 		},
 
 		// Allowed heardes
 		AllowedHeaders: []string{
-			handlers.HttpHeaderAllow,
-			handlers.HttpHeaderContentType,
-			handlers.HttpHeaderOrigin,
-			handlers.HttpHeaderAuthorization,
-			handlers.HttpHeaderAcceptEncoding,
-			handlers.HttpHeaderAccessControlRequestHeaders,
-			handlers.HttpHeaderAccessControlRequestMethod,
+			HttpHeaderAllow,
+			HttpHeaderContentType,
+			HttpHeaderOrigin,
+			HttpHeaderAuthorization,
+			HttpHeaderAcceptEncoding,
+			HttpHeaderAccessControlRequestHeaders,
+			HttpHeaderAccessControlRequestMethod,
 		},
 
 		// Headers that can be exposed to JS
 		AccessControlExposeHeaders: []string{
-			handlers.HttpHeaderLocation,
+			HttpHeaderLocation,
 		},
 	})
 }

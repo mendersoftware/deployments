@@ -12,34 +12,20 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package main
+package images
 
 import (
-	"net/http"
-
-	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/artifacts/config"
+	"time"
 )
 
-func RunServer(c config.ConfigReader) error {
-	router, err := NewRouter(c)
-	if err != nil {
-		return err
+type Link struct {
+	Uri    string    `json:"uri"`
+	Expire time.Time `json:"expire,omitempty"`
+}
+
+func NewLink(uri string, expire time.Time) *Link {
+	return &Link{
+		Uri:    uri,
+		Expire: expire,
 	}
-
-	api := rest.NewApi()
-	SetupMiddleware(c, api)
-	api.SetApp(router)
-
-	listen := c.GetString(SettingListen)
-
-	if c.IsSet(SettingHttps) {
-
-		cert := c.GetString(SettingHttpsCertificate)
-		key := c.GetString(SettingHttpsKey)
-
-		return http.ListenAndServeTLS(listen, cert, key, api.MakeHandler())
-	}
-
-	return http.ListenAndServe(listen, api.MakeHandler())
 }

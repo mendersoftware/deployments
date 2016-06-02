@@ -11,13 +11,15 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package main
 
 import (
 	"flag"
 	"fmt"
-	"github.com/mendersoftware/log"
 	"os"
+
+	"github.com/mendersoftware/log"
 
 	"github.com/mendersoftware/artifacts/config"
 	"github.com/spf13/viper"
@@ -74,4 +76,5 @@ func SetDefaultConfigs(config *viper.Viper) {
 	config.SetDefault(SettingListen, SettingListenDefault)
 	config.SetDefault(SettingAwsS3Region, SettingAwsS3RegionDefault)
 	config.SetDefault(SettingAweS3Bucket, SettingAwsS3BucketDefault)
+	config.SetDefault(SettingMongo, SettingMongoDefault)
 }
