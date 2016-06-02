@@ -17,6 +17,7 @@ package log
 import "io"
 import "github.com/Sirupsen/logrus"
 import logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
+import "os"
 import "runtime"
 import "github.com/mendersoftware/scopestack"
 import "strings"
@@ -141,6 +142,7 @@ func (self *Logger) PopModule() {
 func New() *Logger {
 	log := Logger{Logger: *logrus.New()}
 
+	log.Out = os.Stdout
 	log.moduleStack = scopestack.NewScopeStack(1)
 
 	return &log
@@ -187,8 +189,8 @@ func (self *Logger) applyModule(level logrus.Level) *logrus.Entry {
 
 	// Filter based on modules selected.
 	if len(self.moduleFilter) > 0 {
-		var found bool = false;
-		for i := range(self.moduleFilter) {
+		var found bool = false
+		for i := range self.moduleFilter {
 			if self.moduleFilter[i] == module {
 				found = true
 				break
@@ -213,7 +215,7 @@ func (self *Logger) AddSyslogHook() error {
 	hook.data = &loggingHookData{}
 	hook.data.syslogLogger = logrus.New()
 	hook.data.syslogLogger.Formatter = &logrus.TextFormatter{
-		DisableColors: true,
+		DisableColors:    true,
 		DisableTimestamp: true,
 	}
 
@@ -229,7 +231,6 @@ func (self *Logger) AddSyslogHook() error {
 
 	return nil
 }
-
 
 // -----------------------------------------------------------------------------
 
