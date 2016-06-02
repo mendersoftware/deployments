@@ -18,6 +18,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/mendersoftware/artifacts/images"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -167,6 +168,89 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 			assert.NoError(t, err)
 		}
 		assert.Equal(t, testCase.OutputBool, found)
+	}
+
+}
+
+func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
+
+	testCases := []struct {
+		InputID string
+
+		InputOlderstDeviceDeployment      *DeviceDeployment
+		InputOlderstDeviceDeploymentError error
+
+		InputGetRequestLink  *images.Link
+		InputGetRequestError error
+
+		OutputError                  error
+		OutputDeploymentInstructions *DeploymentInstructions
+	}{
+		{
+			InputID: "ID:123",
+			InputOlderstDeviceDeploymentError: errors.New("storage issue"),
+
+			OutputError: errors.New("Searching for oldest active deployment for the device: storage issue"),
+		},
+		{
+			InputID: "ID:123",
+			// Setting nils just to make it more expressive which case is tested here
+			OutputError:                  nil,
+			OutputDeploymentInstructions: nil,
+		},
+		{
+			InputID: "ID:123",
+			InputOlderstDeviceDeployment: &DeviceDeployment{
+				Image: &images.SoftwareImage{
+					Id: StringToPointer("ID:456"),
+				},
+			},
+			InputGetRequestError: errors.New("file storage error"),
+
+			OutputError: errors.New("Generating download link for the device: file storage error"),
+		},
+		{
+			InputID: "ID:123",
+			InputOlderstDeviceDeployment: &DeviceDeployment{
+				Image: &images.SoftwareImage{
+					Id: StringToPointer("ID:456"),
+				},
+				Id: StringToPointer("ID:678"),
+			},
+			InputGetRequestLink: &images.Link{},
+
+			OutputDeploymentInstructions: NewDeploymentInstructions(
+				"ID:678",
+				&images.Link{},
+				&images.SoftwareImage{
+					Id: StringToPointer("ID:456"),
+				},
+			),
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		deviceDeploymentStorage := new(MockDeviceDeploymentStorager)
+		deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
+			Return(testCase.InputOlderstDeviceDeployment,
+				testCase.InputOlderstDeviceDeploymentError)
+
+		imageLinker := new(MockGetImageLinker)
+		// Notice: force GetRequest to expect image id returned by FindOldestDeploymentForDeviceIDWithStatuses
+		//         Just as implementation does, if this changes test will break by panic ;)
+		imageLinker.On("GetRequest", "ID:456", DefaultUpdateDownloadLinkExpire).
+			Return(testCase.InputGetRequestLink, testCase.InputGetRequestError)
+
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, imageLinker)
+
+		out, err := model.GetDeploymentForDevice(testCase.InputID)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, testCase.OutputDeploymentInstructions, out)
 	}
 
 }
