@@ -13,3 +13,55 @@
 //    limitations under the License.
 
 package deployments
+
+import (
+	"errors"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestGetDeployment(t *testing.T) {
+
+	testCases := []struct {
+		InputDeploymentID       string
+		InoutFindByIDDeployment *Deployment
+		InoutFindByIDError      error
+
+		OutputError      error
+		OutputDeployment *Deployment
+	}{
+		{
+			InputDeploymentID: "123",
+		},
+		{
+			InputDeploymentID:  "123",
+			InoutFindByIDError: errors.New("storage error"),
+
+			OutputError: errors.New("Searching for deployment by ID: storage error"),
+		},
+		{
+			InputDeploymentID:       "123",
+			InoutFindByIDDeployment: new(Deployment),
+
+			OutputDeployment: new(Deployment),
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		deploymentStorage := new(MockDeploymentsStorager)
+		deploymentStorage.On("FindByID", testCase.InputDeploymentID).
+			Return(testCase.InoutFindByIDDeployment, testCase.InoutFindByIDError)
+
+		model := NewDeploymentModel(deploymentStorage, nil, nil, nil)
+
+		deployment, err := model.GetDeployment(testCase.InputDeploymentID)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, testCase.OutputDeployment, deployment)
+	}
+}

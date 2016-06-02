@@ -55,7 +55,7 @@ func CheckRecordedResponse(t *testing.T, recorded *test.Recorded, params JSONRes
 	}
 }
 
-func TestGetDeploymentForDevice(t *testing.T) {
+func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 	testCases := []struct {
 		JSONResponseParams
@@ -117,7 +117,7 @@ func TestGetDeploymentForDevice(t *testing.T) {
 	}
 }
 
-func TestGetDeployment(t *testing.T) {
+func TestControllerGetDeployment(t *testing.T) {
 
 	testCases := []struct {
 		JSONResponseParams
@@ -182,7 +182,7 @@ func TestGetDeployment(t *testing.T) {
 	}
 }
 
-func TestPostDeployment(t *testing.T) {
+func TestControllerPostDeployment(t *testing.T) {
 
 	testCases := []struct {
 		JSONResponseParams

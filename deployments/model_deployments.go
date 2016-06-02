@@ -33,7 +33,7 @@ var (
 )
 
 type FindImageByNameAndDeviceTyper interface {
-	FindImageByNameAndDeviceType(name, model string) (*images.SoftwareImage, error)
+	FindImageByNameAndDeviceType(name, deviceType string) (*images.SoftwareImage, error)
 }
 
 type GetImageLinker interface {
