@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestDeploymentModelGetDeployment(t *testing.T) {
@@ -64,4 +65,56 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 		}
 		assert.Equal(t, testCase.OutputDeployment, deployment)
 	}
+}
+
+func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
+
+	testCases := []struct {
+		InputID string
+
+		InputExistAssignedImageWithIDAndStatusesFound bool
+		InputExistAssignedImageWithIDAndStatusesError error
+
+		OutputError error
+		OutputBool  bool
+	}{
+		{
+			InputID: "ID:1234",
+			InputExistAssignedImageWithIDAndStatusesError: errors.New("Storage error"),
+
+			OutputError: errors.New("Checking if image is used by active deplyoment: Storage error"),
+		},
+		{
+			InputID: "ID:1234",
+			InputExistAssignedImageWithIDAndStatusesError: errors.New("Storage error"),
+			InputExistAssignedImageWithIDAndStatusesFound: true,
+
+			OutputError: errors.New("Checking if image is used by active deplyoment: Storage error"),
+		},
+		{
+			InputID: "ID:1234",
+			InputExistAssignedImageWithIDAndStatusesFound: true,
+
+			OutputBool: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		deviceDeploymentStorage := new(MockDeviceDeploymentStorager)
+		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
+			Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
+				testCase.InputExistAssignedImageWithIDAndStatusesError)
+
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
+
+		found, err := model.ImageUsedInActiveDeployment(testCase.InputID)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, testCase.OutputBool, found)
+	}
+
 }
