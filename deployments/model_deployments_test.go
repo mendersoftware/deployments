@@ -118,3 +118,55 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 	}
 
 }
+
+func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
+
+	testCases := []struct {
+		InputID string
+
+		InputImageUsedInDeploymentFound bool
+		InputImageUsedInDeploymentError error
+
+		OutputError error
+		OutputBool  bool
+	}{
+		{
+			InputID: "ID:1234",
+			InputImageUsedInDeploymentError: errors.New("Storage error"),
+
+			OutputError: errors.New("Checking if image is used in deployment: Storage error"),
+		},
+		{
+			InputID: "ID:1234",
+			InputImageUsedInDeploymentError: errors.New("Storage error"),
+			InputImageUsedInDeploymentFound: true,
+
+			OutputError: errors.New("Checking if image is used in deployment: Storage error"),
+		},
+		{
+			InputID: "ID:1234",
+			InputImageUsedInDeploymentFound: true,
+
+			OutputBool: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		deviceDeploymentStorage := new(MockDeviceDeploymentStorager)
+		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
+			Return(testCase.InputImageUsedInDeploymentFound,
+				testCase.InputImageUsedInDeploymentError)
+
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
+
+		found, err := model.ImageUsedInDeployment(testCase.InputID)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, testCase.OutputBool, found)
+	}
+
+}
