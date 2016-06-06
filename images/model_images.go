@@ -156,7 +156,7 @@ func (i *ImagesModel) ListImages(filters map[string]string) ([]*SoftwareImage, e
 }
 
 // Sync file upload time with last modified time of image metadata.
-// Need to check when images was uploaded and if it was overwritten
+// Need to check when image was uploaded and if it was overwritten
 // Ugly but required by frontend design, in future can be split.
 // Expensive! Will go away with switching to one-step file upload.
 func (i *ImagesModel) syncLastModifiedTimeWithFileUpload(image *SoftwareImage) error {
