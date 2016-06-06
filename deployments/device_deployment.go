@@ -11,6 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package deployments
 
 import (
@@ -85,3 +86,4 @@ func (d *DeviceDeployment) Validate() error {
 	_, err := govalidator.ValidateStruct(d)
 	return err
 }
+

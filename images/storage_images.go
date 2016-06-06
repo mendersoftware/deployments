@@ -135,8 +135,8 @@ func (i *SoftwareImagesStorage) Update(image *SoftwareImage) (bool, error) {
 	return true, nil
 }
 
-// FindImageByNameAndDeviceType find image with speficied application name and targed device type
-func (i *SoftwareImagesStorage) FindImageByNameAndDeviceType(name, deviceType string) (*SoftwareImage, error) {
+// ImageByNameAndDeviceType find image with speficied application name and targed device type
+func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string) (*SoftwareImage, error) {
 
 	if govalidator.IsNull(name) {
 		return nil, ErrStorageInvalidName

@@ -32,8 +32,8 @@ var (
 	ErrModelInvalidDeviceID = errors.New("Invalid device ID")
 )
 
-type FindImageByNameAndDeviceTyper interface {
-	FindImageByNameAndDeviceType(name, deviceType string) (*images.SoftwareImage, error)
+type Generator interface {
+	Generate(deviceID string, deployment *Deployment) (*DeviceDeployment, error)
 }
 
 type GetImageLinker interface {
@@ -53,23 +53,23 @@ type DeviceDeploymentStorager interface {
 }
 
 type DeploymentsModel struct {
-	imageFinder              FindImageByNameAndDeviceTyper
-	deploymentsStorage       DeploymentsStorager
-	deviceDeploymentsStorage DeviceDeploymentStorager
-	imageLinker              GetImageLinker
+	deploymentsStorage        DeploymentsStorager
+	deviceDeploymentsStorage  DeviceDeploymentStorager
+	imageLinker               GetImageLinker
+	deviceDeploymentGenerator Generator
 }
 
 func NewDeploymentModel(
 	deploymentsStorage DeploymentsStorager,
-	imageFinder FindImageByNameAndDeviceTyper,
+	deviceDeploymentGenerator Generator,
 	deviceDeploymentsStorage DeviceDeploymentStorager,
 	imageLinker GetImageLinker,
 ) *DeploymentsModel {
 	return &DeploymentsModel{
-		imageFinder:              imageFinder,
-		deploymentsStorage:       deploymentsStorage,
-		deviceDeploymentsStorage: deviceDeploymentsStorage,
-		imageLinker:              imageLinker,
+		deploymentsStorage:        deploymentsStorage,
+		deviceDeploymentsStorage:  deviceDeploymentsStorage,
+		imageLinker:               imageLinker,
+		deviceDeploymentGenerator: deviceDeploymentGenerator,
 	}
 }
 
@@ -93,9 +93,9 @@ func (d *DeploymentsModel) CreateDeployment(constructor *DeploymentConstructor) 
 	deviceDeployments := make([]*DeviceDeployment, 0, len(constructor.Devices))
 	for _, id := range constructor.Devices {
 
-		deviceDeployment, err := d.prepareDeviceDeployment(deployment, id)
+		deviceDeployment, err := d.deviceDeploymentGenerator.Generate(id, deployment)
 		if err != nil {
-			return "", err
+			return "", errors.Wrap(err, "Prepring deplyoment for device")
 		}
 
 		deviceDeployments = append(deviceDeployments, deviceDeployment)
@@ -114,41 +114,6 @@ func (d *DeploymentsModel) CreateDeployment(constructor *DeploymentConstructor) 
 	}
 
 	return *deployment.Id, nil
-}
-
-func (d *DeploymentsModel) prepareDeviceDeployment(deployment *Deployment, deviceID string) (*DeviceDeployment, error) {
-
-	deviceType, err := d.checkDeviceType(deviceID)
-	if err != nil {
-		return nil, errors.Wrap(err, "Checking target device type")
-	}
-
-	image, err := d.assignImage(*deployment.ArtifactName, deviceType)
-	if err != nil {
-		return nil, errors.Wrap(err, "Assigning image targeted for device type")
-	}
-
-	deviceDeployment := NewDeviceDeployment(deviceID, *deployment.Id)
-	deviceDeployment.DeviceType = &deviceType
-	deviceDeployment.Image = image
-	deviceDeployment.Created = deployment.Created
-
-	// If not having appropriate image, set noimage status
-	if deviceDeployment.Image == nil {
-		status := DeviceDeploymentStatusNoImage
-		deviceDeployment.Status = &status
-	}
-
-	return deviceDeployment, nil
-}
-
-// TODO: This should be provided as a part of inventory service driver (dependency)
-func (d *DeploymentsModel) checkDeviceType(deviceID string) (string, error) {
-	return "TestDevice", nil
-}
-
-func (d *DeploymentsModel) assignImage(name, deviceType string) (*images.SoftwareImage, error) {
-	return d.imageFinder.FindImageByNameAndDeviceType(name, deviceType)
 }
 
 // GetDeployment fetches deplyoment by ID

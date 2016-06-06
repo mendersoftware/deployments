@@ -254,3 +254,112 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 	}
 
 }
+
+func TestDeploymentModelCreateDeployment(t *testing.T) {
+
+	testCases := []struct {
+		InputConstructor *DeploymentConstructor
+
+		InputGenerateDeviceDeployment *DeviceDeployment
+		InputGenerateError            error
+
+		InputDeploymentStorageInsertError           error
+		InputDeviceDeploymentStorageInsertManyError error
+		InputDeploymentStorageDeleteError           error
+
+		OutputError error
+		OutputBody  bool
+	}{
+		{
+			OutputError: ErrModelMissingInput,
+		},
+		{
+			InputConstructor: NewDeploymentConstructor(),
+			OutputError:      errors.New("Validating deployment: Name: non zero value required;ArtifactName: non zero value required;Devices: non zero value required;"),
+		},
+		{
+			InputConstructor: &DeploymentConstructor{
+				Name:         StringToPointer("NYC Production"),
+				ArtifactName: StringToPointer("App 123"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			InputGenerateError: errors.New("generation error"),
+
+			OutputError: errors.New("Prepring deplyoment for device: generation error"),
+		},
+		{
+			InputConstructor: &DeploymentConstructor{
+				Name:         StringToPointer("NYC Production"),
+				ArtifactName: StringToPointer("App 123"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			InputGenerateDeviceDeployment:     &DeviceDeployment{},
+			InputDeploymentStorageInsertError: errors.New("insert error"),
+
+			OutputError: errors.New("Storing deplyoment data: insert error"),
+		},
+		{
+			InputConstructor: &DeploymentConstructor{
+				Name:         StringToPointer("NYC Production"),
+				ArtifactName: StringToPointer("App 123"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			InputGenerateDeviceDeployment:               &DeviceDeployment{},
+			InputDeviceDeploymentStorageInsertManyError: errors.New("insert error"),
+			InputDeploymentStorageDeleteError:           errors.New("delete error"),
+
+			OutputError: errors.New("Storing assigned deployments to devices: delete error: insert error"),
+		},
+		{
+			InputConstructor: &DeploymentConstructor{
+				Name:         StringToPointer("NYC Production"),
+				ArtifactName: StringToPointer("App 123"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			InputGenerateDeviceDeployment:               &DeviceDeployment{},
+			InputDeviceDeploymentStorageInsertManyError: errors.New("insert error"),
+
+			OutputError: errors.New("Storing assigned deployments to devices: insert error"),
+		},
+		{
+			InputConstructor: &DeploymentConstructor{
+				Name:         StringToPointer("NYC Production"),
+				ArtifactName: StringToPointer("App 123"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			InputGenerateDeviceDeployment: &DeviceDeployment{},
+
+			OutputBody: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		generator := new(MockGenerator)
+		generator.On("Generate", mock.AnythingOfType("string"), mock.AnythingOfType("*deployments.Deployment")).
+			Return(testCase.InputGenerateDeviceDeployment, testCase.InputGenerateError)
+
+		deploymentStorage := new(MockDeploymentsStorager)
+		deploymentStorage.On("Insert", mock.AnythingOfType("*deployments.Deployment")).
+			Return(testCase.InputDeploymentStorageInsertError)
+		deploymentStorage.On("Delete", mock.AnythingOfType("string")).
+			Return(testCase.InputDeploymentStorageDeleteError)
+
+		deviceDeploymentStorage := new(MockDeviceDeploymentStorager)
+		deviceDeploymentStorage.On("InsertMany", mock.AnythingOfType("[]*deployments.DeviceDeployment")).
+			Return(testCase.InputDeviceDeploymentStorageInsertManyError)
+
+		model := NewDeploymentModel(deploymentStorage, generator, deviceDeploymentStorage, nil)
+
+		out, err := model.CreateDeployment(testCase.InputConstructor)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+		if testCase.OutputBody {
+			assert.NotNil(t, out)
+		}
+	}
+
+}
