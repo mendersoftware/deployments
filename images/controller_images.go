@@ -104,25 +104,13 @@ func (s *SoftwareImagesController) UploadLink(w rest.ResponseWriter, r *rest.Req
 		return
 	}
 
-	expire := DefaultDownloadLinkExpire
-	expireStr := r.URL.Query().Get("expire")
-
-	// Validate input
-	if !govalidator.IsNull(expireStr) {
-		if !s.validExpire(expireStr) {
-			s.views.RenderError(w, ErrInvalidExpireParam, http.StatusBadRequest)
-			return
-		}
-
-		var err error
-		expire, err = strconv.Atoi(expireStr)
-		if err != nil {
-			s.views.RenderError(w, err, http.StatusInternalServerError)
-			return
-		}
+	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
+	if err != nil {
+		s.views.RenderError(w, err, http.StatusInternalServerError)
+		return
 	}
 
-	link, err := s.model.UploadLink(id, time.Duration(expire)*time.Minute)
+	link, err := s.model.UploadLink(id, expire)
 	if err != nil {
 		s.views.RenderError(w, err, http.StatusInternalServerError)
 		return
@@ -145,25 +133,13 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 		return
 	}
 
-	expire := DefaultUploadLinkExpire
-	expireStr := r.URL.Query().Get("expire")
-
-	// Validate input
-	if !govalidator.IsNull(expireStr) {
-		if !s.validExpire(expireStr) {
-			s.views.RenderError(w, ErrInvalidExpireParam, http.StatusBadRequest)
-			return
-		}
-
-		var err error
-		expire, err = strconv.Atoi(expireStr)
-		if err != nil {
-			s.views.RenderError(w, err, http.StatusInternalServerError)
-			return
-		}
+	expire, err := s.getLinkExpireParam(r, DefaultUploadLinkExpire)
+	if err != nil {
+		s.views.RenderError(w, err, http.StatusInternalServerError)
+		return
 	}
 
-	link, err := s.model.DownloadLink(id, time.Duration(expire)*time.Minute)
+	link, err := s.model.DownloadLink(id, expire)
 	if err != nil {
 		s.views.RenderError(w, err, http.StatusInternalServerError)
 		return
@@ -177,22 +153,39 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 	s.views.RenderSuccessGet(w, link)
 }
 
+func (s *SoftwareImagesController) getLinkExpireParam(r *rest.Request, defaultValue uint64) (time.Duration, error) {
+
+	expire := defaultValue
+	expireStr := r.URL.Query().Get("expire")
+
+	// Validate input
+	if !govalidator.IsNull(expireStr) {
+		if !s.validExpire(expireStr) {
+			return 0, ErrInvalidExpireParam
+		}
+
+		var err error
+		expire, err = strconv.ParseUint(expireStr, 10, 64)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return time.Duration(int64(expire)) * time.Minute, nil
+}
+
 func (s *SoftwareImagesController) validExpire(expire string) bool {
 
 	if govalidator.IsNull(expire) {
 		return false
 	}
 
-	if !govalidator.IsInt(expire) {
-		return false
-	}
-
-	number, err := strconv.ParseFloat(expire, 64)
+	number, err := strconv.ParseUint(expire, 10, 64)
 	if err != nil {
 		return false
 	}
 
-	if !govalidator.InRange(number, 0, MaxLinkExpire) {
+	if number > MaxLinkExpire {
 		return false
 	}
 
