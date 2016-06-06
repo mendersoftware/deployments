@@ -162,12 +162,11 @@ func (i *ImagesModel) ListImages(filters map[string]string) ([]*SoftwareImage, e
 func (i *ImagesModel) syncLastModifiedTimeWithFileUpload(image *SoftwareImage) error {
 
 	uploaded, err := i.fileStorage.LastModified(*image.Id)
-
-	if err != nil && errors.Cause(err).Error() == ErrFileStorageFileNotFound.Error() {
-		return nil
-	}
-
 	if err != nil {
+		if errors.Cause(err).Error() == ErrFileStorageFileNotFound.Error() {
+			return nil
+		}
+
 		return errors.Wrap(err, "Cheking last modified time for image file")
 	}
 
