@@ -107,6 +107,11 @@ func TestControllerGetImage(t *testing.T) {
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusOK)
 	recorded.ContentTypeIsJson()
+
+	var receivedImage SoftwareImage
+	if err := recorded.DecodeJsonPayload(&receivedImage); err != nil {
+		t.FailNow()
+	}
 }
 
 func TestControllerListImages(t *testing.T) {
@@ -164,6 +169,16 @@ func TestControllerUploadLink(t *testing.T) {
 	recorded.CodeIs(http.StatusOK)
 	recorded.ContentTypeIsJson()
 
+	var receivedLink Link
+	// check if returned body has Link structure
+	if err := recorded.DecodeJsonPayload(&receivedLink); err != nil {
+		t.FailNow()
+	}
+	// check if 'uri' is set correctly
+	if receivedLink.Uri != "uri" {
+		t.FailNow()
+	}
+
 }
 
 func TestControllerDownloadLink(t *testing.T) {
@@ -191,12 +206,23 @@ func TestControllerDownloadLink(t *testing.T) {
 
 	// download link OK
 	imagesModel.downloadLinkError = nil
-	link := NewLink("uri", time.Now())
+	time := time.Now()
+	link := NewLink("uri", time)
 	imagesModel.downloadLink = link
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/download", nil))
 	recorded.CodeIs(http.StatusOK)
 	recorded.ContentTypeIsJson()
+
+	var receivedLink Link
+	// check if returned body has Link structure
+	if err := recorded.DecodeJsonPayload(&receivedLink); err != nil {
+		t.FailNow()
+	}
+	// check if 'uri' is set correctly
+	if receivedLink.Uri != "uri" {
+		t.FailNow()
+	}
 }
 
 func TestControllerDeleteImage(t *testing.T) {
@@ -215,6 +241,7 @@ func TestControllerDeleteImage(t *testing.T) {
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusNoContent)
+	recorded.BodyIs("")
 }
 
 func TestControllerEditImage(t *testing.T) {
@@ -261,4 +288,5 @@ func TestControllerEditImage(t *testing.T) {
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id,
 			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
 	recorded.CodeIs(http.StatusNoContent)
+	recorded.BodyIs("")
 }
