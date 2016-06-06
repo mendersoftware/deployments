@@ -67,8 +67,10 @@ func (fim *fakeImageModeler) EditImage(id string, constructorData *SoftwareImage
 	return fim.editImage, fim.editError
 }
 
-func setUpRestTest(route string, handler func(w rest.ResponseWriter, r *rest.Request)) *rest.Api {
-	router, _ := rest.MakeRouter(rest.Get(route, handler))
+type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.Route
+
+func setUpRestTest(route string, routeType routerTypeHandler, handler func(w rest.ResponseWriter, r *rest.Request)) *rest.Api {
+	router, _ := rest.MakeRouter(routeType(route, handler))
 	api := rest.NewApi()
 	api.SetApp(router)
 
@@ -79,7 +81,7 @@ func TestControllerGetImage(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
 	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
 
-	api := setUpRestTest("/api/0.0.1/images/:id", controller.GetImage)
+	api := setUpRestTest("/api/0.0.1/images/:id", rest.Get, controller.GetImage)
 
 	//no uuid provided
 	recorded := test.RunRequest(t, api.MakeHandler(),
@@ -118,7 +120,7 @@ func TestControllerListImages(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
 	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
 
-	api := setUpRestTest("/api/0.0.1/images", controller.ListImages)
+	api := setUpRestTest("/api/0.0.1/images", rest.Get, controller.ListImages)
 
 	//getting list error
 	imagesModel.listImagesError = errors.New("error")
@@ -141,7 +143,7 @@ func TestControllerUploadLink(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
 	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
 
-	api := setUpRestTest("/api/0.0.1/images/:id/upload", controller.UploadLink)
+	api := setUpRestTest("/api/0.0.1/images/:id/upload", rest.Get, controller.UploadLink)
 
 	// wrong id
 	recorded := test.RunRequest(t, api.MakeHandler(),
@@ -185,7 +187,7 @@ func TestControllerDownloadLink(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
 	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
 
-	api := setUpRestTest("/api/0.0.1/images/:id/download", controller.DownloadLink)
+	api := setUpRestTest("/api/0.0.1/images/:id/download", rest.Get, controller.DownloadLink)
 
 	// wrong id
 	recorded := test.RunRequest(t, api.MakeHandler(),
@@ -229,17 +231,17 @@ func TestControllerDeleteImage(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
 	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
 
-	api := setUpRestTest("/api/0.0.1/images/:id", controller.DeleteImage)
+	api := setUpRestTest("/api/0.0.1/images/:id", rest.Delete, controller.DeleteImage)
 
 	// wrong id
 	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/wrong_id", nil))
+		test.MakeSimpleRequest("DELETE", "http://localhost/api/0.0.1/images/wrong_id", nil))
 	recorded.CodeIs(http.StatusBadRequest)
 
 	// correct id; delete OK
 	id := uuid.NewV4().String()
 	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, nil))
+		test.MakeSimpleRequest("DELETE", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusNoContent)
 	recorded.BodyIs("")
 }
@@ -248,44 +250,44 @@ func TestControllerEditImage(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
 	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
 
-	api := setUpRestTest("/api/0.0.1/images/:id", controller.EditImage)
+	api := setUpRestTest("/api/0.0.1/images/:id", rest.Put, controller.EditImage)
 
 	// wrong id
 	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/wrong_id", nil))
+		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/wrong_id", nil))
 	recorded.CodeIs(http.StatusBadRequest)
 
 	// correct id; no payload
 	id := uuid.NewV4().String()
 	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, nil))
+		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusBadRequest)
 
 	// correct id; invalid payload
 	//image := NewSoftwareImageConstructor()
 	//constructorImage := NewSoftwareImageFromConstructor(image)
 	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, map[string]string{"image": "bad_image"}))
+		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id, map[string]string{"image": "bad_image"}))
 	recorded.CodeIs(http.StatusBadRequest)
 
 	// correct id; correct payload; edit error
 	imagesModel.editError = errors.New("error")
 	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id,
+		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
 			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	// correct id; correct payload; edit no image
 	imagesModel.editError = nil
 	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id,
+		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
 			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
 	recorded.CodeIs(http.StatusNotFound)
 
 	// correct id; correct payload; have image
 	imagesModel.editImage = true
 	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id,
+		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
 			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
 	recorded.CodeIs(http.StatusNoContent)
 	recorded.BodyIs("")
