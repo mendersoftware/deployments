@@ -218,14 +218,8 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 		return
 	}
 
-	var constructor *SoftwareImageConstructor
-
-	if err := r.DecodeJsonPayload(&constructor); err != nil {
-		s.views.RenderError(w, err, http.StatusBadRequest)
-		return
-	}
-
-	if err := constructor.Validate(); err != nil {
+	constructor, err := s.getSoftwareImageConstructorFromBody(r)
+	if err != nil {
 		s.views.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
@@ -246,14 +240,8 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 
 func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Request) {
 
-	var constructor *SoftwareImageConstructor
-
-	if err := r.DecodeJsonPayload(&constructor); err != nil {
-		s.views.RenderError(w, err, http.StatusBadRequest)
-		return
-	}
-
-	if err := constructor.Validate(); err != nil {
+	constructor, err := s.getSoftwareImageConstructorFromBody(r)
+	if err != nil {
 		s.views.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
@@ -265,4 +253,19 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	}
 
 	s.views.RenderSuccessPost(w, r, id)
+}
+
+func (s SoftwareImagesController) getSoftwareImageConstructorFromBody(r *rest.Request) (*SoftwareImageConstructor, error) {
+
+	var constructor *SoftwareImageConstructor
+
+	if err := r.DecodeJsonPayload(&constructor); err != nil {
+		return nil, err
+	}
+
+	if err := constructor.Validate(); err != nil {
+		return nil, err
+	}
+
+	return constructor, nil
 }

@@ -47,15 +47,9 @@ func NewDeploymentsController(model DeploymentsModeler) *DeploymentsController {
 
 func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Request) {
 
-	var constructor *DeploymentConstructor
-
-	if err := r.DecodeJsonPayload(&constructor); err != nil {
-		d.views.RenderError(w, errors.Wrap(err, "Parsing request body"), http.StatusBadRequest)
-		return
-	}
-
-	if err := constructor.Validate(); err != nil {
-		d.views.RenderError(w, err, http.StatusBadRequest)
+	constructor, err := d.getDeploymentConstructorFromBody(r)
+	if err != nil {
+		d.views.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest)
 		return
 	}
 
@@ -66,6 +60,20 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 	}
 
 	d.views.RenderSuccessPost(w, r, id)
+}
+
+func (d *DeploymentsController) getDeploymentConstructorFromBody(r *rest.Request) (*DeploymentConstructor, error) {
+
+	var constructor *DeploymentConstructor
+	if err := r.DecodeJsonPayload(&constructor); err != nil {
+		return nil, err
+	}
+
+	if err := constructor.Validate(); err != nil {
+		return nil, err
+	}
+
+	return constructor, nil
 }
 
 func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Request) {

@@ -196,14 +196,14 @@ func TestControllerPostDeployment(t *testing.T) {
 			InputBodyObject: nil,
 			JSONResponseParams: JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: ErrorToErrStruct(errors.New("Parsing request body: JSON payload is empty")),
+				OutputBodyObject: ErrorToErrStruct(errors.New("Validating request body: JSON payload is empty")),
 			},
 		},
 		{
 			InputBodyObject: NewDeploymentConstructor(),
 			JSONResponseParams: JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: ErrorToErrStruct(errors.New(`Name: non zero value required;ArtifactName: non zero value required;Devices: non zero value required;`)),
+				OutputBodyObject: ErrorToErrStruct(errors.New(`Validating request body: Name: non zero value required;ArtifactName: non zero value required;Devices: non zero value required;`)),
 			},
 		},
 		{
