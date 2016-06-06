@@ -59,11 +59,7 @@ func (d *DeploymentsStorage) Insert(deployment *Deployment) error {
 	session := d.session.Copy()
 	defer session.Close()
 
-	if err := session.DB(DatabaseName).C(CollectionDeployments).Insert(deployment); err != nil {
-		return err
-	}
-
-	return nil
+	return session.DB(DatabaseName).C(CollectionDeployments).Insert(deployment)
 }
 
 // Delete removed entry by ID
@@ -77,13 +73,10 @@ func (d *DeploymentsStorage) Delete(id string) error {
 	session := d.session.Copy()
 	defer session.Close()
 
-	err := session.DB(DatabaseName).C(CollectionDeployments).RemoveId(id)
-
-	if err != nil && err.Error() == mgo.ErrNotFound.Error() {
-		return nil
-	}
-
-	if err != nil {
+	if err := session.DB(DatabaseName).C(CollectionDeployments).RemoveId(id); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil
+		}
 		return err
 	}
 
@@ -100,12 +93,11 @@ func (d *DeploymentsStorage) FindByID(id string) (*Deployment, error) {
 	defer session.Close()
 
 	var deployment *Deployment
-	err := session.DB(DatabaseName).C(CollectionDeployments).FindId(id).One(&deployment)
-	if err != nil && err.Error() == mgo.ErrNotFound.Error() {
-		return nil, nil
-	}
-
-	if err != nil {
+	if err := session.DB(DatabaseName).C(CollectionDeployments).
+		FindId(id).One(&deployment); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, nil
+		}
 		return nil, err
 	}
 

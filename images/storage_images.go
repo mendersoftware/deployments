@@ -79,11 +79,7 @@ func (i *SoftwareImagesStorage) IndexStorage() error {
 		Background: false,
 	}
 
-	if err := session.DB(DatabaseName).C(CollectionImages).EnsureIndex(uniqueNameVersionIndex); err != nil {
-		return err
-	}
-
-	return nil
+	return session.DB(DatabaseName).C(CollectionImages).EnsureIndex(uniqueNameVersionIndex)
 }
 
 // Exists checks if object with ID exists
@@ -97,13 +93,10 @@ func (i *SoftwareImagesStorage) Exists(id string) (bool, error) {
 	defer session.Close()
 
 	var image *SoftwareImage
-	err := session.DB(DatabaseName).C(CollectionImages).FindId(id).One(&image)
-
-	if err != nil && err.Error() == mgo.ErrNotFound.Error() {
-		return false, nil
-	}
-
-	if err != nil {
+	if err := session.DB(DatabaseName).C(CollectionImages).FindId(id).One(&image); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return false, nil
+		}
 		return false, err
 	}
 
@@ -122,13 +115,10 @@ func (i *SoftwareImagesStorage) Update(image *SoftwareImage) (bool, error) {
 	defer session.Close()
 
 	image.SetModified(time.Now())
-	err := session.DB(DatabaseName).C(CollectionImages).UpdateId(*image.Id, image)
-
-	if err != nil && err.Error() == mgo.ErrNotFound.Error() {
-		return false, nil
-	}
-
-	if err != nil {
+	if err := session.DB(DatabaseName).C(CollectionImages).UpdateId(*image.Id, image); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return false, nil
+		}
 		return false, err
 	}
 
@@ -157,14 +147,10 @@ func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string
 
 	// Both we lookup uniqe object, should be one or none.
 	var image SoftwareImage
-	err := session.DB(DatabaseName).C(CollectionImages).Find(query).One(&image)
-
-	// No images found
-	if err != nil && err.Error() == mgo.ErrNotFound.Error() {
-		return nil, nil
-	}
-
-	if err != nil {
+	if err := session.DB(DatabaseName).C(CollectionImages).Find(query).One(&image); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -185,11 +171,7 @@ func (i *SoftwareImagesStorage) Insert(image *SoftwareImage) error {
 	session := i.session.Copy()
 	defer session.Close()
 
-	if err := session.DB(DatabaseName).C(CollectionImages).Insert(image); err != nil {
-		return err
-	}
-
-	return nil
+	return session.DB(DatabaseName).C(CollectionImages).Insert(image)
 }
 
 // FindByID search storage for image with ID, returns nil if not found
@@ -203,12 +185,10 @@ func (i *SoftwareImagesStorage) FindByID(id string) (*SoftwareImage, error) {
 	defer session.Close()
 
 	var image *SoftwareImage
-	err := session.DB(DatabaseName).C(CollectionImages).FindId(id).One(&image)
-	if err != nil && err.Error() == mgo.ErrNotFound.Error() {
-		return nil, nil
-	}
-
-	if err != nil {
+	if err := session.DB(DatabaseName).C(CollectionImages).FindId(id).One(&image); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -226,12 +206,10 @@ func (i *SoftwareImagesStorage) Delete(id string) error {
 	session := i.session.Copy()
 	defer session.Close()
 
-	err := session.DB(DatabaseName).C(CollectionImages).RemoveId(id)
-	if err != nil && err.Error() == mgo.ErrNotFound.Error() {
-		return nil
-	}
-
-	if err != nil {
+	if err := session.DB(DatabaseName).C(CollectionImages).RemoveId(id); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil
+		}
 		return err
 	}
 
@@ -245,14 +223,10 @@ func (i *SoftwareImagesStorage) FindAll() ([]*SoftwareImage, error) {
 	defer session.Close()
 
 	var images []*SoftwareImage
-	err := session.DB(DatabaseName).C(CollectionImages).Find(nil).All(&images)
-
-	// No images found.
-	if err != nil && err.Error() == mgo.ErrNotFound.Error() {
-		return images, nil
-	}
-
-	if err != nil {
+	if err := session.DB(DatabaseName).C(CollectionImages).Find(nil).All(&images); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return images, nil
+		}
 		return nil, err
 	}
 

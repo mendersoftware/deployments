@@ -94,12 +94,10 @@ func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(imageID s
 
 	// if found at least one then image in active deployment
 	var tmp interface{}
-	err := session.DB(DatabaseName).C(CollectionDevices).Find(query).One(&tmp)
-	if err != nil && err.Error() == mgo.ErrNotFound.Error() {
-		return false, nil
-	}
-
-	if err != nil {
+	if err := session.DB(DatabaseName).C(CollectionDevices).Find(query).One(&tmp); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return false, nil
+		}
 		return false, err
 	}
 
@@ -129,7 +127,6 @@ func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return nil, nil
 		}
-
 		return nil, err
 	}
 
