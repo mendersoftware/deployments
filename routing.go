@@ -62,7 +62,10 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	// Domian Models
 	deploymentModel := deployments.NewDeploymentModel(
 		deploymentsStorage,
-		deployments.NewImageBasedDeviceDeploymentGenerator(imagesStorage),
+		deployments.NewImageBasedDeviceDeployment(
+			imagesStorage,
+			// can easily add configuration from main config file
+			deployments.NewInventoryWithHardcodedType("TestDevice")),
 		deviceDeploymentsStorage,
 		fileStorage,
 	)

@@ -23,20 +23,32 @@ type ImageByNameAndDeviceTyper interface {
 	ImageByNameAndDeviceType(name, deviceType string) (*images.SoftwareImage, error)
 }
 
-type ImageBasedDeviceDeploymentGenerator struct {
-	images ImageByNameAndDeviceTyper
+type GetDeviceTyper interface {
+	GetDeviceType(deviceID string) (string, error)
 }
 
-func NewImageBasedDeviceDeploymentGenerator(images ImageByNameAndDeviceTyper) *ImageBasedDeviceDeploymentGenerator {
-	return &ImageBasedDeviceDeploymentGenerator{
-		images: images,
+type ImageBasedDeviceDeployment struct {
+	images  ImageByNameAndDeviceTyper
+	devices GetDeviceTyper
+}
+
+func NewImageBasedDeviceDeployment(images ImageByNameAndDeviceTyper, devices GetDeviceTyper) *ImageBasedDeviceDeployment {
+	return &ImageBasedDeviceDeployment{
+		images:  images,
+		devices: devices,
 	}
 }
 
-//TODO: deviceType is hardcoded, should be checked with inventory system
-func (d *ImageBasedDeviceDeploymentGenerator) Generate(deviceID string, deployment *Deployment) (*DeviceDeployment, error) {
+func (d *ImageBasedDeviceDeployment) Generate(deviceID string, deployment *Deployment) (*DeviceDeployment, error) {
 
-	deviceType := "TestDevice"
+	if err := deployment.Validate(); err != nil {
+		return nil, errors.Wrap(err, "Validating deployment")
+	}
+
+	deviceType, err := d.devices.GetDeviceType(deviceID)
+	if err != nil {
+		return nil, errors.Wrap(err, "Checking device type")
+	}
 
 	image, err := d.images.ImageByNameAndDeviceType(*deployment.ArtifactName, deviceType)
 	if err != nil {
@@ -55,4 +67,18 @@ func (d *ImageBasedDeviceDeploymentGenerator) Generate(deviceID string, deployme
 	}
 
 	return deviceDeployment, nil
+}
+
+type InventoryWithHardcodedType struct {
+	deviceType string
+}
+
+func NewInventoryWithHardcodedType(deviceType string) *InventoryWithHardcodedType {
+	return &InventoryWithHardcodedType{
+		deviceType: deviceType,
+	}
+}
+
+func (i *InventoryWithHardcodedType) GetDeviceType(deviceID string) (string, error) {
+	return i.deviceType, nil
 }
