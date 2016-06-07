@@ -12,11 +12,13 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package images
+package model
 
 import (
 	"time"
 
+	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/s3"
 	"github.com/pkg/errors"
 )
 
@@ -28,19 +30,19 @@ var (
 
 type SoftwareImagesStorager interface {
 	Exists(id string) (bool, error)
-	Update(image *SoftwareImage) (bool, error)
-	Insert(image *SoftwareImage) error
-	FindByID(id string) (*SoftwareImage, error)
+	Update(image *images.SoftwareImage) (bool, error)
+	Insert(image *images.SoftwareImage) error
+	FindByID(id string) (*images.SoftwareImage, error)
 	Delete(id string) error
-	FindAll() ([]*SoftwareImage, error)
+	FindAll() ([]*images.SoftwareImage, error)
 }
 
 type FileStorager interface {
 	Delete(objectId string) error
 	Exists(objectId string) (bool, error)
 	LastModified(objectId string) (time.Time, error)
-	PutRequest(objectId string, duration time.Duration) (*Link, error)
-	GetRequest(objectId string, duration time.Duration) (*Link, error)
+	PutRequest(objectId string, duration time.Duration) (*images.Link, error)
+	GetRequest(objectId string, duration time.Duration) (*images.Link, error)
 }
 
 type ImageInUseChecker interface {
@@ -66,7 +68,7 @@ func NewImagesModel(
 	}
 }
 
-func (i *ImagesModel) CreateImage(constructor *SoftwareImageConstructor) (string, error) {
+func (i *ImagesModel) CreateImage(constructor *images.SoftwareImageConstructor) (string, error) {
 
 	if constructor == nil {
 		return "", ErrModelMissingInputMetadata
@@ -76,7 +78,7 @@ func (i *ImagesModel) CreateImage(constructor *SoftwareImageConstructor) (string
 		return "", errors.Wrap(err, "Validating image metadata")
 	}
 
-	image := NewSoftwareImageFromConstructor(constructor)
+	image := images.NewSoftwareImageFromConstructor(constructor)
 
 	if err := i.imagesStorage.Insert(image); err != nil {
 		return "", errors.Wrap(err, "Storing image metadata")
@@ -88,7 +90,7 @@ func (i *ImagesModel) CreateImage(constructor *SoftwareImageConstructor) (string
 // GetImage allows to fetch image obeject with specified id
 // On each lookup it syncs last file upload time with metadata in case file was uploaded or reuploaded
 // Nil if not found
-func (i *ImagesModel) GetImage(id string) (*SoftwareImage, error) {
+func (i *ImagesModel) GetImage(id string) (*images.SoftwareImage, error) {
 
 	image, err := i.imagesStorage.FindByID(id)
 	if err != nil {
@@ -139,7 +141,7 @@ func (i *ImagesModel) DeleteImage(imageID string) error {
 
 // ListImages according to specified filers.
 // On each lookup it syncs last file upload time with metadata in case file was uploaded or reuploaded
-func (i *ImagesModel) ListImages(filters map[string]string) ([]*SoftwareImage, error) {
+func (i *ImagesModel) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
 
 	images, err := i.imagesStorage.FindAll()
 	if err != nil {
@@ -163,11 +165,11 @@ func (i *ImagesModel) ListImages(filters map[string]string) ([]*SoftwareImage, e
 // Need to check when image was uploaded and if it was overwritten
 // Ugly but required by frontend design, in future can be split.
 // Expensive! Will go away with switching to one-step file upload.
-func (i *ImagesModel) syncLastModifiedTimeWithFileUpload(image *SoftwareImage) error {
+func (i *ImagesModel) syncLastModifiedTimeWithFileUpload(image *images.SoftwareImage) error {
 
 	uploaded, err := i.fileStorage.LastModified(*image.Id)
 	if err != nil {
-		if errors.Cause(err).Error() == ErrFileStorageFileNotFound.Error() {
+		if errors.Cause(err).Error() == s3.ErrFileStorageFileNotFound.Error() {
 			return nil
 		}
 
@@ -185,7 +187,7 @@ func (i *ImagesModel) syncLastModifiedTimeWithFileUpload(image *SoftwareImage) e
 }
 
 // EditObject allows editing only if image have not been used yet in any deployment.
-func (i *ImagesModel) EditImage(imageID string, constructor *SoftwareImageConstructor) (bool, error) {
+func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImageConstructor) (bool, error) {
 
 	if err := constructor.Validate(); err != nil {
 		return false, errors.Wrap(err, "Validating image metadata")
@@ -222,7 +224,7 @@ func (i *ImagesModel) EditImage(imageID string, constructor *SoftwareImageConstr
 
 // UploadLink generated presigned PUT link to upload image file.
 // Image meta has to be created first.
-func (i *ImagesModel) UploadLink(imageID string, expire time.Duration) (*Link, error) {
+func (i *ImagesModel) UploadLink(imageID string, expire time.Duration) (*images.Link, error) {
 
 	found, err := i.imagesStorage.Exists(imageID)
 	if err != nil {
@@ -243,7 +245,7 @@ func (i *ImagesModel) UploadLink(imageID string, expire time.Duration) (*Link, e
 
 // DownloadLink presigned GET link to download image file.
 // Returns error if image have not been uploaded.
-func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*Link, error) {
+func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*images.Link, error) {
 
 	found, err := i.imagesStorage.Exists(imageID)
 	if err != nil {

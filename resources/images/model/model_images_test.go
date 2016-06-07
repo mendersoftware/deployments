@@ -12,13 +12,16 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package images
+package model
 
 import (
 	"errors"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/s3"
 )
 
 func TestCreateImageEmptyConstructor(t *testing.T) {
@@ -31,7 +34,7 @@ func TestCreateImageEmptyConstructor(t *testing.T) {
 func TestCreateImageMissingFields(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
 
-	image := NewSoftwareImageConstructor()
+	image := images.NewSoftwareImageConstructor()
 	if _, err := iModel.CreateImage(image); err == nil {
 		t.FailNow()
 	}
@@ -40,9 +43,9 @@ func TestCreateImageMissingFields(t *testing.T) {
 type FakeImageStorage struct {
 	insertError      error
 	findByIdError    error
-	findByIdImage    *SoftwareImage
+	findByIdImage    *images.SoftwareImage
 	deleteError      error
-	findAllImages    []*SoftwareImage
+	findAllImages    []*images.SoftwareImage
 	findAllError     error
 	imageExists      bool
 	imageEsistsError error
@@ -54,15 +57,15 @@ func (fis *FakeImageStorage) Exists(id string) (bool, error) {
 	return fis.imageExists, fis.imageEsistsError
 }
 
-func (fis *FakeImageStorage) Update(image *SoftwareImage) (bool, error) {
+func (fis *FakeImageStorage) Update(image *images.SoftwareImage) (bool, error) {
 	return fis.update, fis.updateError
 }
 
-func (fis *FakeImageStorage) Insert(image *SoftwareImage) error {
+func (fis *FakeImageStorage) Insert(image *images.SoftwareImage) error {
 	return fis.insertError
 }
 
-func (fis *FakeImageStorage) FindByID(id string) (*SoftwareImage, error) {
+func (fis *FakeImageStorage) FindByID(id string) (*images.SoftwareImage, error) {
 	return fis.findByIdImage, fis.findByIdError
 }
 
@@ -70,12 +73,12 @@ func (fis *FakeImageStorage) Delete(id string) error {
 	return fis.deleteError
 }
 
-func (fis *FakeImageStorage) FindAll() ([]*SoftwareImage, error) {
+func (fis *FakeImageStorage) FindAll() ([]*images.SoftwareImage, error) {
 	return fis.findAllImages, fis.findAllError
 }
 
-func createValidImage() *SoftwareImageConstructor {
-	image := NewSoftwareImageConstructor()
+func createValidImage() *images.SoftwareImageConstructor {
+	image := images.NewSoftwareImageConstructor()
 	required := "required"
 
 	image.YoctoId = &required
@@ -136,9 +139,9 @@ type FakeFileStorage struct {
 	deleteError       error
 	imageExists       bool
 	imageEsistsError  error
-	putReq            *Link
+	putReq            *images.Link
 	putError          error
-	getReq            *Link
+	getReq            *images.Link
 	getError          error
 }
 
@@ -154,11 +157,11 @@ func (ffs *FakeFileStorage) LastModified(objectId string) (time.Time, error) {
 	return ffs.lastModifiedTime, ffs.lastModifiedError
 }
 
-func (ffs *FakeFileStorage) PutRequest(objectId string, duration time.Duration) (*Link, error) {
+func (ffs *FakeFileStorage) PutRequest(objectId string, duration time.Duration) (*images.Link, error) {
 	return ffs.putReq, ffs.putError
 }
 
-func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration) (*Link, error) {
+func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration) (*images.Link, error) {
 	return ffs.getReq, ffs.getError
 }
 
@@ -168,12 +171,12 @@ func TestSyncLastModifiedTimeWithFileUpload(t *testing.T) {
 
 	fakeFS := new(FakeFileStorage)
 	fakeFS.lastModifiedTime = time.Now()
-	fakeFS.lastModifiedError = ErrFileStorageFileNotFound
+	fakeFS.lastModifiedError = s3.ErrFileStorageFileNotFound
 
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
 	image := createValidImage()
-	constructorImage := NewSoftwareImageFromConstructor(image)
+	constructorImage := images.NewSoftwareImageFromConstructor(image)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -199,7 +202,7 @@ func TestSyncLastModifiedTimeWithFileUpload(t *testing.T) {
 
 func TestGetImageOK(t *testing.T) {
 	image := createValidImage()
-	constructorImage := NewSoftwareImageFromConstructor(image)
+	constructorImage := images.NewSoftwareImageFromConstructor(image)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -286,11 +289,11 @@ func TestListImages(t *testing.T) {
 
 	//have some valid image that will pass syncLastModifiedTimeWithFileUpload check
 	image := createValidImage()
-	constructorImage := NewSoftwareImageFromConstructor(image)
+	constructorImage := images.NewSoftwareImageFromConstructor(image)
 	now := time.Now()
 	constructorImage.Modified = &now
 
-	listedImages := []*SoftwareImage{constructorImage}
+	listedImages := []*images.SoftwareImage{constructorImage}
 	fakeIS.findAllImages = listedImages
 	if _, err := iModel.ListImages(nil); err != nil {
 		t.FailNow()
@@ -338,7 +341,7 @@ func TestEditImage(t *testing.T) {
 	}
 
 	// image does not exists
-	constructorImage := NewSoftwareImageFromConstructor(image)
+	constructorImage := images.NewSoftwareImageFromConstructor(image)
 	fakeIS.findByIdImage = constructorImage
 	fakeIS.updateError = errors.New("error")
 	if _, err := iModel.EditImage("", image); err == nil {
@@ -380,7 +383,7 @@ func TestUploadLink(t *testing.T) {
 
 	// upload link generation success
 	fakeFS.putError = nil
-	link := NewLink("uri", time.Now())
+	link := images.NewLink("uri", time.Now())
 	fakeFS.putReq = link
 
 	receivedLink, err := iModel.UploadLink("image", time.Hour)
@@ -419,7 +422,7 @@ func TestDownloadLink(t *testing.T) {
 
 	// upload link generation success
 	fakeFS.getError = nil
-	link := NewLink("uri", time.Now())
+	link := images.NewLink("uri", time.Now())
 	fakeFS.getReq = link
 
 	receivedLink, err := iModel.DownloadLink("image", time.Hour)

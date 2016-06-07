@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package images
+package s3
 
 import (
 	"fmt"
@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/pkg/errors"
 )
 
@@ -124,7 +125,7 @@ func (s *SimpleStorageService) Exists(objectID string) (bool, error) {
 }
 
 // PutRequest duration is limited to 7 days (AWS limitation)
-func (s *SimpleStorageService) PutRequest(objectID string, duration time.Duration) (*Link, error) {
+func (s *SimpleStorageService) PutRequest(objectID string, duration time.Duration) (*images.Link, error) {
 
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
@@ -144,11 +145,11 @@ func (s *SimpleStorageService) PutRequest(objectID string, duration time.Duratio
 		return nil, errors.Wrap(err, "Signing PUT request")
 	}
 
-	return NewLink(uri, req.Time.Add(req.ExpireTime)), nil
+	return images.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
-func (s *SimpleStorageService) GetRequest(objectID string, duration time.Duration) (*Link, error) {
+func (s *SimpleStorageService) GetRequest(objectID string, duration time.Duration) (*images.Link, error) {
 
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
@@ -167,7 +168,7 @@ func (s *SimpleStorageService) GetRequest(objectID string, duration time.Duratio
 		return nil, errors.Wrap(err, "Signing GET request")
 	}
 
-	return NewLink(uri, req.Time.Add(req.ExpireTime)), nil
+	return images.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
 }
 
 func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) error {

@@ -20,17 +20,19 @@ import (
 	"github.com/mendersoftware/deployments/mvc"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/images"
+	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
+	"github.com/mendersoftware/deployments/resources/images/s3"
 	"gopkg.in/mgo.v2"
 )
 
-func SetupS3(c config.ConfigReader) images.FileStorager {
+func SetupS3(c config.ConfigReader) imagesModel.FileStorager {
 
 	bucket := c.GetString(SettingAweS3Bucket)
 	region := c.GetString(SettingAwsS3Region)
 
 	if c.IsSet(SettingsAwsAuth) {
-		return images.NewSimpleStorageServiceStatic(
+		return s3.NewSimpleStorageServiceStatic(
 			bucket,
 			c.GetString(SettingAwsAuthKeyId),
 			c.GetString(SettingAwsAuthSecret),
@@ -39,7 +41,7 @@ func SetupS3(c config.ConfigReader) images.FileStorager {
 		)
 	}
 
-	return images.NewSimpleStorageServiceDefaults(bucket, region)
+	return s3.NewSimpleStorageServiceDefaults(bucket, region)
 }
 
 // NewRouter defines all REST API routes.
@@ -71,7 +73,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 		fileStorage,
 	)
 
-	imagesModel := images.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
+	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
 
 	// Controllers
 	imagesController := images.NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
