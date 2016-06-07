@@ -16,10 +16,10 @@ package main
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/artifacts/config"
-	"github.com/mendersoftware/artifacts/deployments"
-	"github.com/mendersoftware/artifacts/images"
-	"github.com/mendersoftware/artifacts/mvc"
+	"github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/deployments/mvc"
+	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/images"
 	"gopkg.in/mgo.v2"
 )
 

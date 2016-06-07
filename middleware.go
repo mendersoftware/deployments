@@ -22,7 +22,7 @@ import (
 	"os"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/artifacts/config"
+	"github.com/mendersoftware/deployments/config"
 )
 
 const (

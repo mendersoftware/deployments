@@ -21,7 +21,7 @@ import (
 
 	"github.com/mendersoftware/log"
 
-	"github.com/mendersoftware/artifacts/config"
+	"github.com/mendersoftware/deployments/config"
 	"github.com/spf13/viper"
 )
 

@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/artifacts/images"
+	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/satori/go.uuid"
 )
 
@@ -86,4 +86,3 @@ func (d *DeviceDeployment) Validate() error {
 	_, err := govalidator.ValidateStruct(d)
 	return err
 }
-
