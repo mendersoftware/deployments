@@ -22,7 +22,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
-	"github.com/mendersoftware/artifacts/mvc"
+	"github.com/mendersoftware/deployments/mvc"
 	"github.com/satori/go.uuid"
 )
 

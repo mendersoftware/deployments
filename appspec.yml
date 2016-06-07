@@ -19,13 +19,13 @@ os: linux
 #   "files" section altogether. A blank or incomplete "files" section
 #   may cause associated deployments to fail.
 files:
-  - source: /artifacts
+  - source: /deployments
     destination: /usr/sbin/
 
   - source: /config.yaml
-    destination: /etc/artifacts/
+    destination: /etc/deployments/
 
-  - source: /scripts/rhel/init.d/artifacts
+  - source: /scripts/rhel/init.d/deployments
     destination: /etc/init.d/
 
 # For deployments to Amazon Linux, Ubuntu Server, or RHEL instances,
@@ -40,7 +40,7 @@ files:
 #   section may cause associated deployments to fail.
 
 permissions:
-  - object: /etc/init.d/artifacts
+  - object: /etc/init.d/deployments
     owner: root
     group: root
     mode: 755

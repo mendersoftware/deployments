@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mendersoftware/artifacts/config"
+	"github.com/mendersoftware/deployments/config"
 )
 
 const (

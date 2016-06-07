@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendersoftware/artifacts/images"
+	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
