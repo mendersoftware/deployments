@@ -5,7 +5,7 @@
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Artifatcs service for mender.io
+# Short-Description: Deployments service for mender.io
 ### END INIT INFO
 
 # Author: Maciej Mrowiec <maciej.mrowiec@mender.io>
@@ -13,12 +13,12 @@
 # Do NOT "set -e"
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="Artifatcs service for mender.io"
-NAME=artifacts
+DESC="Deployments service for mender.io"
+NAME=deployments
 DAEMON=/usr/sbin/$NAME
-DAEMON_ARGS="-config=/etc/artifacts/config.yaml"
+DAEMON_ARGS="-config=/etc/deployments/config.yaml"
 SCRIPTNAME=/etc/init.d/$NAME
-LOGFILE=/var/log/artifatcs.log
+LOGFILE=/var/log/deployments.log
 
 
 # Exit if the package is not installed
