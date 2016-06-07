@@ -71,9 +71,6 @@ before_install:
     - go get -u github.com/mattn/goveralls
     - go get -u golang.org/x/tools/cmd/cover
 
-    # Install godep for dependency management
-    - go get -u github.com/tools/godep
-
     # Merge all subpackage code coverage reports into a single report
     - go get -u github.com/modocache/gover
 
@@ -100,18 +97,18 @@ before_script:
     - ./check_signed_off.sh
 
     # Perform static code analysys
-    - go tool vet -unsafeptr=false -unreachable=false `go list ./... | grep -v Godeps | sed -e "s,^,$GOPATH/src/,;s,.*:,,"`
+    - go vet `go list ./... | grep -v vendor`
 
     # Fail builds when the cyclomatic complexity reaches 15 or more
-    - gocyclo -over 15 `find . -iname '*.go' | grep -v 'Godeps' | grep -v '_test.go'`
+    - gocyclo -over 15 `find . -iname '*.go' | grep -v 'vendor' | grep -v '_test.go'`
 
 script:
     # go list supply import paths for all sub directories.
-    # Exclude Godeps directory, we don't want to run tests and coverage for all dependencies every time,
+    # Exclude vendor directory, we don't want to run tests and coverage for all dependencies every time,
     # also including their coverage may introduce to much noice. Concentrate on the coverage of local packages.
     # Execute go test on every local subpackage (resolved as dependencies) and generate covreage report for each.
     # Test packages pararell (xargs -P)
-    - go list ./... | grep -v Godeps | xargs -n1 -I {} -P 4 go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
+    - go list ./... | grep -v vendor | xargs -n1 -I {} -P 4 go test -v -covermode=count -coverprofile=../../../{}/profile.coverprofile {}
 
     # Insert build information into compiled binary using ldflags
     - CGO_ENABLED=0 go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
