@@ -12,12 +12,13 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package images
+package mongo
 
 import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -92,7 +93,7 @@ func (i *SoftwareImagesStorage) Exists(id string) (bool, error) {
 	session := i.session.Copy()
 	defer session.Close()
 
-	var image *SoftwareImage
+	var image *images.SoftwareImage
 	if err := session.DB(DatabaseName).C(CollectionImages).FindId(id).One(&image); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return false, nil
@@ -105,7 +106,7 @@ func (i *SoftwareImagesStorage) Exists(id string) (bool, error) {
 
 // Update proviced SoftwareImage
 // Return false if not found
-func (i *SoftwareImagesStorage) Update(image *SoftwareImage) (bool, error) {
+func (i *SoftwareImagesStorage) Update(image *images.SoftwareImage) (bool, error) {
 
 	if err := image.Validate(); err != nil {
 		return false, err
@@ -126,7 +127,7 @@ func (i *SoftwareImagesStorage) Update(image *SoftwareImage) (bool, error) {
 }
 
 // ImageByNameAndDeviceType find image with speficied application name and targed device type
-func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string) (*SoftwareImage, error) {
+func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string) (*images.SoftwareImage, error) {
 
 	if govalidator.IsNull(name) {
 		return nil, ErrStorageInvalidName
@@ -146,7 +147,7 @@ func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string
 	defer session.Close()
 
 	// Both we lookup uniqe object, should be one or none.
-	var image SoftwareImage
+	var image images.SoftwareImage
 	if err := session.DB(DatabaseName).C(CollectionImages).Find(query).One(&image); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return nil, nil
@@ -158,7 +159,7 @@ func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string
 }
 
 // Insert persists object
-func (i *SoftwareImagesStorage) Insert(image *SoftwareImage) error {
+func (i *SoftwareImagesStorage) Insert(image *images.SoftwareImage) error {
 
 	if image == nil {
 		return ErrStorageInvalidImage
@@ -175,7 +176,7 @@ func (i *SoftwareImagesStorage) Insert(image *SoftwareImage) error {
 }
 
 // FindByID search storage for image with ID, returns nil if not found
-func (i *SoftwareImagesStorage) FindByID(id string) (*SoftwareImage, error) {
+func (i *SoftwareImagesStorage) FindByID(id string) (*images.SoftwareImage, error) {
 
 	if govalidator.IsNull(id) {
 		return nil, ErrStorageInvalidID
@@ -184,7 +185,7 @@ func (i *SoftwareImagesStorage) FindByID(id string) (*SoftwareImage, error) {
 	session := i.session.Copy()
 	defer session.Close()
 
-	var image *SoftwareImage
+	var image *images.SoftwareImage
 	if err := session.DB(DatabaseName).C(CollectionImages).FindId(id).One(&image); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return nil, nil
@@ -217,12 +218,12 @@ func (i *SoftwareImagesStorage) Delete(id string) error {
 }
 
 // FindAll lists all images
-func (i *SoftwareImagesStorage) FindAll() ([]*SoftwareImage, error) {
+func (i *SoftwareImagesStorage) FindAll() ([]*images.SoftwareImage, error) {
 
 	session := i.session.Copy()
 	defer session.Close()
 
-	var images []*SoftwareImage
+	var images []*images.SoftwareImage
 	if err := session.DB(DatabaseName).C(CollectionImages).Find(nil).All(&images); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return images, nil

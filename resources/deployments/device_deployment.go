@@ -19,6 +19,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/satori/go.uuid"
 )
 
@@ -35,7 +36,7 @@ const (
 
 const (
 	StorageKeyDeviceDeploymentAssignedImage   = "image"
-	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + images.StorageKeySoftwareImageId
+	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + mongo.StorageKeySoftwareImageId
 	StorageKeyDeviceDeploymentDeviceId        = "deviceid"
 	StorageKeyDeviceDeploymentStatus          = "status"
 	StorageKeyDeviceDeploymentDeploymentID    = "deploymentid"

@@ -20,6 +20,7 @@ import (
 	"github.com/mendersoftware/deployments/mvc"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/images"
+	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"gopkg.in/mgo.v2"
 )
 
@@ -54,7 +55,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	fileStorage := SetupS3(c)
 	deploymentsStorage := deployments.NewDeploymentsStorage(dbSession)
 	deviceDeploymentsStorage := deployments.NewDeviceDeploymentsStorage(dbSession)
-	imagesStorage := images.NewSoftwareImagesStorage(dbSession)
+	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
 	if err := imagesStorage.IndexStorage(); err != nil {
 		return nil, err
 	}
