@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/resources/images/s3"
 )
 
 func TestCreateImageEmptyConstructor(t *testing.T) {
@@ -171,7 +170,7 @@ func TestSyncLastModifiedTimeWithFileUpload(t *testing.T) {
 
 	fakeFS := new(FakeFileStorage)
 	fakeFS.lastModifiedTime = time.Now()
-	fakeFS.lastModifiedError = s3.ErrFileStorageFileNotFound
+	fakeFS.lastModifiedError = ErrFileStorageFileNotFound
 
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 

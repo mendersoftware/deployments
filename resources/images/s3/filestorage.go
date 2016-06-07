@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/model"
 	"github.com/pkg/errors"
 )
 
@@ -31,13 +32,9 @@ const (
 	ExpireMinLimit = 1 * time.Minute
 )
 
-// Errors
-var (
-	ErrFileStorageFileNotFound = errors.New("File not found")
-)
-
 // SimpleStorageService - AWS S3 client.
 // Data layer for file storage.
+// Implements model.FileStorage interface
 type SimpleStorageService struct {
 	client *s3.S3
 	bucket string
@@ -199,13 +196,13 @@ func (s *SimpleStorageService) LastModified(objectID string) (time.Time, error) 
 	}
 
 	if len(resp.Contents) == 0 {
-		return time.Time{}, ErrFileStorageFileNotFound
+		return time.Time{}, model.ErrFileStorageFileNotFound
 	}
 
 	// Note: Response should contain max 1 object (MaxKetys=1)
 	// Double check if it's exact match as object search matches prefix.
 	if *resp.Contents[0].Key != objectID {
-		return time.Time{}, ErrFileStorageFileNotFound
+		return time.Time{}, model.ErrFileStorageFileNotFound
 	}
 
 	return *resp.Contents[0].LastModified, nil

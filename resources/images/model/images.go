@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/resources/images/s3"
 	"github.com/pkg/errors"
 )
 
@@ -28,38 +27,16 @@ var (
 	ErrModelImageUsedInAnyDeployment = errors.New("Image have been already used in deployment")
 )
 
-type SoftwareImagesStorager interface {
-	Exists(id string) (bool, error)
-	Update(image *images.SoftwareImage) (bool, error)
-	Insert(image *images.SoftwareImage) error
-	FindByID(id string) (*images.SoftwareImage, error)
-	Delete(id string) error
-	FindAll() ([]*images.SoftwareImage, error)
-}
-
-type FileStorager interface {
-	Delete(objectId string) error
-	Exists(objectId string) (bool, error)
-	LastModified(objectId string) (time.Time, error)
-	PutRequest(objectId string, duration time.Duration) (*images.Link, error)
-	GetRequest(objectId string, duration time.Duration) (*images.Link, error)
-}
-
-type ImageInUseChecker interface {
-	ImageUsedInActiveDeployment(imageId string) (bool, error)
-	ImageUsedInDeployment(imageId string) (bool, error)
-}
-
 type ImagesModel struct {
-	fileStorage   FileStorager
-	deployments   ImageInUseChecker
-	imagesStorage SoftwareImagesStorager
+	fileStorage   FileStorage
+	deployments   ImageUsedIn
+	imagesStorage SoftwareImagesStorage
 }
 
 func NewImagesModel(
-	fileStorage FileStorager,
-	checker ImageInUseChecker,
-	imagesStorage SoftwareImagesStorager,
+	fileStorage FileStorage,
+	checker ImageUsedIn,
+	imagesStorage SoftwareImagesStorage,
 ) *ImagesModel {
 	return &ImagesModel{
 		fileStorage:   fileStorage,
@@ -169,7 +146,7 @@ func (i *ImagesModel) syncLastModifiedTimeWithFileUpload(image *images.SoftwareI
 
 	uploaded, err := i.fileStorage.LastModified(*image.Id)
 	if err != nil {
-		if errors.Cause(err).Error() == s3.ErrFileStorageFileNotFound.Error() {
+		if errors.Cause(err).Error() == ErrFileStorageFileNotFound.Error() {
 			return nil
 		}
 

@@ -19,7 +19,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/pkg/errors"
+	"github.com/mendersoftware/deployments/resources/images/model"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -44,15 +44,8 @@ const (
 	CollectionImages = "images"
 )
 
-// Errors
-var (
-	ErrStorageInvalidID         = errors.New("Invalid id")
-	ErrStorageInvalidName       = errors.New("Invalid name")
-	ErrStorageInvalidDeviceType = errors.New("Invalid device type")
-	ErrStorageInvalidImage      = errors.New("Invalid image")
-)
-
 // SoftwareImagesStorage is a data layer for SoftwareImages based on MongoDB
+// Implements model.SoftwareImagesStorage
 type SoftwareImagesStorage struct {
 	session *mgo.Session
 }
@@ -87,7 +80,7 @@ func (i *SoftwareImagesStorage) IndexStorage() error {
 func (i *SoftwareImagesStorage) Exists(id string) (bool, error) {
 
 	if govalidator.IsNull(id) {
-		return false, ErrStorageInvalidID
+		return false, model.ErrSoftwareImagesStorageInvalidID
 	}
 
 	session := i.session.Copy()
@@ -130,11 +123,12 @@ func (i *SoftwareImagesStorage) Update(image *images.SoftwareImage) (bool, error
 func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string) (*images.SoftwareImage, error) {
 
 	if govalidator.IsNull(name) {
-		return nil, ErrStorageInvalidName
+		return nil, model.ErrSoftwareImagesStorageInvalidName
+
 	}
 
 	if govalidator.IsNull(deviceType) {
-		return nil, ErrStorageInvalidDeviceType
+		return nil, model.ErrSoftwareImagesStorageInvalidDeviceType
 	}
 
 	// equal to device type & software version (application name + version)
@@ -162,7 +156,7 @@ func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string
 func (i *SoftwareImagesStorage) Insert(image *images.SoftwareImage) error {
 
 	if image == nil {
-		return ErrStorageInvalidImage
+		return model.ErrSoftwareImagesStorageInvalidImage
 	}
 
 	if err := image.Validate(); err != nil {
@@ -179,7 +173,7 @@ func (i *SoftwareImagesStorage) Insert(image *images.SoftwareImage) error {
 func (i *SoftwareImagesStorage) FindByID(id string) (*images.SoftwareImage, error) {
 
 	if govalidator.IsNull(id) {
-		return nil, ErrStorageInvalidID
+		return nil, model.ErrSoftwareImagesStorageInvalidID
 	}
 
 	session := i.session.Copy()
@@ -201,7 +195,7 @@ func (i *SoftwareImagesStorage) FindByID(id string) (*images.SoftwareImage, erro
 func (i *SoftwareImagesStorage) Delete(id string) error {
 
 	if govalidator.IsNull(id) {
-		return ErrStorageInvalidID
+		return model.ErrSoftwareImagesStorageInvalidID
 	}
 
 	session := i.session.Copy()

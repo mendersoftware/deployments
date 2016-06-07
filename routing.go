@@ -26,7 +26,7 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-func SetupS3(c config.ConfigReader) imagesModel.FileStorager {
+func SetupS3(c config.ConfigReader) imagesModel.FileStorage {
 
 	bucket := c.GetString(SettingAweS3Bucket)
 	region := c.GetString(SettingAwsS3Region)
