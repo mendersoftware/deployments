@@ -19,7 +19,7 @@ import (
 	"github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/mvc"
 	"github.com/mendersoftware/deployments/resources/deployments"
-	"github.com/mendersoftware/deployments/resources/images"
+	imagesController "github.com/mendersoftware/deployments/resources/images/controller"
 	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/mendersoftware/deployments/resources/images/s3"
@@ -76,7 +76,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
 
 	// Controllers
-	imagesController := images.NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+	imagesController := imagesController.NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
 	deploymentsController := deployments.NewDeploymentsController(deploymentModel)
 
 	// Routing
@@ -88,7 +88,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	return rest.MakeRouter(mvc.AutogenOptionsRoutes(mvc.NewOptionsHandler, routes...)...)
 }
 
-func NewImagesResourceRoutes(controller *images.SoftwareImagesController) []*rest.Route {
+func NewImagesResourceRoutes(controller *imagesController.SoftwareImagesController) []*rest.Route {
 
 	if controller == nil {
 		return []*rest.Route{}

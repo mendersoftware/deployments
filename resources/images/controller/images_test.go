@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package images
+package controller
 
 import (
 	"errors"
@@ -23,35 +23,36 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
 	"github.com/mendersoftware/deployments/mvc"
+	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/satori/go.uuid"
 )
 
 type fakeImageModeler struct {
-	getImage          *SoftwareImage
+	getImage          *images.SoftwareImage
 	getImageError     error
-	imagesList        []*SoftwareImage
+	imagesList        []*images.SoftwareImage
 	listImagesError   error
-	uploadLink        *Link
+	uploadLink        *images.Link
 	uploadLinkError   error
-	downloadLink      *Link
+	downloadLink      *images.Link
 	downloadLinkError error
 	editImage         bool
 	editError         error
 }
 
-func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*SoftwareImage, error) {
+func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
 	return fim.imagesList, fim.listImagesError
 }
 
-func (fim *fakeImageModeler) UploadLink(imageID string, expire time.Duration) (*Link, error) {
+func (fim *fakeImageModeler) UploadLink(imageID string, expire time.Duration) (*images.Link, error) {
 	return fim.uploadLink, fim.uploadLinkError
 }
 
-func (fim *fakeImageModeler) DownloadLink(imageID string, expire time.Duration) (*Link, error) {
+func (fim *fakeImageModeler) DownloadLink(imageID string, expire time.Duration) (*images.Link, error) {
 	return fim.downloadLink, fim.downloadLinkError
 }
 
-func (fim *fakeImageModeler) GetImage(id string) (*SoftwareImage, error) {
+func (fim *fakeImageModeler) GetImage(id string) (*images.SoftwareImage, error) {
 	return fim.getImage, fim.getImageError
 }
 
@@ -59,11 +60,11 @@ func (fim *fakeImageModeler) DeleteImage(imageID string) error {
 	return nil
 }
 
-func (fim *fakeImageModeler) CreateImage(constructorData *SoftwareImageConstructor) (string, error) {
+func (fim *fakeImageModeler) CreateImage(constructorData *images.SoftwareImageConstructor) (string, error) {
 	return "", nil
 }
 
-func (fim *fakeImageModeler) EditImage(id string, constructorData *SoftwareImageConstructor) (bool, error) {
+func (fim *fakeImageModeler) EditImage(id string, constructorData *images.SoftwareImageConstructor) (bool, error) {
 	return fim.editImage, fim.editError
 }
 
@@ -101,8 +102,8 @@ func TestControllerGetImage(t *testing.T) {
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	// have image, get OK
-	image := NewSoftwareImageConstructor()
-	constructorImage := NewSoftwareImageFromConstructor(image)
+	image := images.NewSoftwareImageConstructor()
+	constructorImage := images.NewSoftwareImageFromConstructor(image)
 	imagesModel.getImageError = nil
 	imagesModel.getImage = constructorImage
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -110,7 +111,7 @@ func TestControllerGetImage(t *testing.T) {
 	recorded.CodeIs(http.StatusOK)
 	recorded.ContentTypeIsJson()
 
-	var receivedImage SoftwareImage
+	var receivedImage images.SoftwareImage
 	if err := recorded.DecodeJsonPayload(&receivedImage); err != nil {
 		t.FailNow()
 	}
@@ -130,8 +131,8 @@ func TestControllerListImages(t *testing.T) {
 
 	//getting list OK
 	imagesModel.listImagesError = nil
-	image := NewSoftwareImageConstructor()
-	constructorImage := NewSoftwareImageFromConstructor(image)
+	image := images.NewSoftwareImageConstructor()
+	constructorImage := images.NewSoftwareImageFromConstructor(image)
 	imagesModel.imagesList = append(imagesModel.imagesList, constructorImage)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images", nil))
@@ -164,14 +165,14 @@ func TestControllerUploadLink(t *testing.T) {
 
 	// upload link OK
 	imagesModel.uploadLinkError = nil
-	link := NewLink("uri", time.Now())
+	link := images.NewLink("uri", time.Now())
 	imagesModel.uploadLink = link
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/upload", nil))
 	recorded.CodeIs(http.StatusOK)
 	recorded.ContentTypeIsJson()
 
-	var receivedLink Link
+	var receivedLink images.Link
 	// check if returned body has Link structure
 	if err := recorded.DecodeJsonPayload(&receivedLink); err != nil {
 		t.FailNow()
@@ -209,14 +210,14 @@ func TestControllerDownloadLink(t *testing.T) {
 	// download link OK
 	imagesModel.downloadLinkError = nil
 	time := time.Now()
-	link := NewLink("uri", time)
+	link := images.NewLink("uri", time)
 	imagesModel.downloadLink = link
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/download", nil))
 	recorded.CodeIs(http.StatusOK)
 	recorded.ContentTypeIsJson()
 
-	var receivedLink Link
+	var receivedLink images.Link
 	// check if returned body has Link structure
 	if err := recorded.DecodeJsonPayload(&receivedLink); err != nil {
 		t.FailNow()

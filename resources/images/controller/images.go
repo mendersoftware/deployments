@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package images
+package controller
 
 import (
 	"net/http"
@@ -22,6 +22,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/mvc"
+	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/pkg/errors"
 )
 
@@ -39,22 +40,12 @@ var (
 	ErrInvalidExpireParam = errors.New("Invalid expire parameter")
 )
 
-type ImagesModeler interface {
-	ListImages(filters map[string]string) ([]*SoftwareImage, error)
-	UploadLink(imageID string, expire time.Duration) (*Link, error)
-	DownloadLink(imageID string, expire time.Duration) (*Link, error)
-	GetImage(id string) (*SoftwareImage, error)
-	DeleteImage(imageID string) error
-	CreateImage(constructorData *SoftwareImageConstructor) (string, error)
-	EditImage(id string, constructorData *SoftwareImageConstructor) (bool, error)
-}
-
 type SoftwareImagesController struct {
 	views mvc.RESTViewDefaults
-	model ImagesModeler
+	model ImagesModel
 }
 
-func NewSoftwareImagesController(model ImagesModeler, views mvc.RESTViewDefaults) *SoftwareImagesController {
+func NewSoftwareImagesController(model ImagesModel, views mvc.RESTViewDefaults) *SoftwareImagesController {
 	return &SoftwareImagesController{
 		model: model,
 		views: views,
@@ -255,9 +246,9 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	s.views.RenderSuccessPost(w, r, id)
 }
 
-func (s SoftwareImagesController) getSoftwareImageConstructorFromBody(r *rest.Request) (*SoftwareImageConstructor, error) {
+func (s SoftwareImagesController) getSoftwareImageConstructorFromBody(r *rest.Request) (*images.SoftwareImageConstructor, error) {
 
-	var constructor *SoftwareImageConstructor
+	var constructor *images.SoftwareImageConstructor
 
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err
