@@ -92,7 +92,53 @@ De^ice                User             Deployment ser^ice         Collection: de
 
 ### Updating status of deplyoment
 
+Notice: to be implemented
 
+```
+       De^ice                     Deployment Ser^ice            File ser^er
+
+         +                                 +                         +
+         | I'm de^ice X                    |                         |
+         | Do I ha^e any update?           |                         |
+         +--------------------------------->                         |
+         |                                 |                         |
+         | Update to image Y               |                         |
+         | Your deployment ID: Z           |                         |
+         <---------------------------------+                         |
+         |                                 |                         |
+         | I'm de^ice X                    |                         |
+         | Set status of Z deployment      |                         |
+         | to 'downloading'                |                         |
+         +--------------------------------->                         |
+         |                                 |                         |
+         | Download image Y                |                         |
+         +----------------------------------------------------------->
+         |                                 |                         |
+         | I'm de^ice X                    |                         |
+         | Set status of Z deployment      |                         |
+         | to 'ready to install'           |                         |
+         |                                 |                         |
+         +--------------------------------->                         |
+         |                                 |                         |
+         | I'm de^ice X                    |                         |
+         | Set status of Z deployment      |                         |
+         | to 'installing'                 |                         |
+         +--------------------------------->                         |
+         |                                 |                         |
++--------+--------+                        |                         |
+|  Install image  |                        |                         |
++--------+--------+                        |                         |
+         |                                 |                         |
+         | I'm de^ice X                    |                         |
+         | Set status of Z deployment      |                         |
+         | to 'success'                    |                         |
+         |                                 |                         |
+         +--------------------------------->                         |
+         |                                 |                         |
+         |                                 |                         |
+         |                                 |                         |
+         +                                 +                         +
+```
 
 ## Dependencies
 
