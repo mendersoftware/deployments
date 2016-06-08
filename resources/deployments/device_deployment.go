@@ -19,7 +19,6 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/satori/go.uuid"
 )
 
@@ -32,14 +31,6 @@ const (
 	DeviceDeploymentStatusSuccess     = "success"
 	DeviceDeploymentStatusFailure     = "failure"
 	DeviceDeploymentStatusNoImage     = "noimage"
-)
-
-const (
-	StorageKeyDeviceDeploymentAssignedImage   = "image"
-	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + mongo.StorageKeySoftwareImageId
-	StorageKeyDeviceDeploymentDeviceId        = "deviceid"
-	StorageKeyDeviceDeploymentStatus          = "status"
-	StorageKeyDeviceDeploymentDeploymentID    = "deploymentid"
 )
 
 type DeviceDeployment struct {

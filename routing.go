@@ -19,6 +19,7 @@ import (
 	"github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/mvc"
 	"github.com/mendersoftware/deployments/resources/deployments"
+	deploymentsMongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	imagesController "github.com/mendersoftware/deployments/resources/images/controller"
 	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
@@ -55,8 +56,8 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 	// Storage Layer
 	fileStorage := SetupS3(c)
-	deploymentsStorage := deployments.NewDeploymentsStorage(dbSession)
-	deviceDeploymentsStorage := deployments.NewDeviceDeploymentsStorage(dbSession)
+	deploymentsStorage := deploymentsMongo.NewDeploymentsStorage(dbSession)
+	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
 	if err := imagesStorage.IndexStorage(); err != nil {
 		return nil, err
