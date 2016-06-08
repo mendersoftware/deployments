@@ -23,7 +23,7 @@ _testmain.go
 *.test
 *.prof
 
-deployments
+/deployments
 
 profile.cov
 gover.coverprofile
@@ -33,4 +33,4 @@ debug
 
 .vscode/launch.json
 
-artifacts
+/artifacts
