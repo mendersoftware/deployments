@@ -17,7 +17,7 @@ package deployments
 import (
 	"time"
 
-	"github.com/mendersoftware/artifacts/images"
+	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/pkg/errors"
 )
 

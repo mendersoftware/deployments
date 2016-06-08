@@ -1,8 +1,8 @@
 FROM iron/base
 
-COPY ./artifacts /usr/bin/
+COPY ./deployments /usr/bin/
 
-RUN mkdir /etc/artifacts
-COPY ./config.yaml /etc/artifacts/
+RUN mkdir /etc/deployments
+COPY ./config.yaml /etc/deployments/
 
-ENTRYPOINT ["/usr/bin/artifacts", "-config", "/etc/artifacts/config.yaml"]
+ENTRYPOINT ["/usr/bin/deployments", "-config", "/etc/deployments/config.yaml"]

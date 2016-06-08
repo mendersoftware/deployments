@@ -14,24 +14,17 @@
 
 package deployments
 
-import "github.com/mendersoftware/artifacts/images"
+import (
+	"net/http"
 
-type ImageInstallInstructions struct {
-	*images.Link
-	*images.SoftwareImage
+	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mendersoftware/deployments/mvc"
+)
+
+type DeploymentsViews struct {
+	mvc.RESTViewDefaults
 }
 
-type DeploymentInstructions struct {
-	ID    *string                  `json:"id"`
-	Image ImageInstallInstructions `json:"image"`
-}
-
-func NewDeploymentInstructions(id string, link *images.Link, image *images.SoftwareImage) *DeploymentInstructions {
-	return &DeploymentInstructions{
-		ID: &id,
-		Image: ImageInstallInstructions{
-			Link:          link,
-			SoftwareImage: image,
-		},
-	}
+func (d *DeploymentsViews) RenderNoUpdateForDevice(w rest.ResponseWriter) {
+	w.WriteHeader(http.StatusNoContent)
 }

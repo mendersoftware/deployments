@@ -2,4 +2,4 @@
 
 set -e
 
-/etc/init.d/artifacts restart
+/etc/init.d/deployments restart

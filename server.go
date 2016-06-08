@@ -18,7 +18,7 @@ import (
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/artifacts/config"
+	"github.com/mendersoftware/deployments/config"
 )
 
 func RunServer(c config.ConfigReader) error {

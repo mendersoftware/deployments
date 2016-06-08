@@ -1,6 +1,6 @@
-# Artifacts
-[![Build Status](https://travis-ci.com/mendersoftware/artifacts.svg?token=rx8YqsZ2ZyaopcMPmDmo&branch=master)](https://travis-ci.com/mendersoftware/artifacts)
-[![Coverage Status](https://coveralls.io/repos/mendersoftware/artifacts/badge.svg?branch=master&service=github&t=xZ0vYT)](https://coveralls.io/github/mendersoftware/artifacts?branch=master)
+# Deployments
+[![Build Status](https://travis-ci.com/mendersoftware/deployments.svg?token=rx8YqsZ2ZyaopcMPmDmo&branch=master)](https://travis-ci.com/mendersoftware/deployments)
+[![Coverage Status](https://coveralls.io/repos/github/mendersoftware/deployments/badge.svg?branch=master&t=n7mVVE)](https://coveralls.io/github/mendersoftware/deployments?branch=master)
 
 Service responsible for software deployment and image management.
 
@@ -37,8 +37,8 @@ Golang toolchain is required to build the application. [Installation instruction
 Build instructions:
 
 ```
-$ go get -u github.com/mendersoftware/artifatcs
-$ cd $GOPATH/src/github.com/mendersoftware/artifatcs
+$ go get -u github.com/mendersoftware/deployments
+$ cd $GOPATH/src/github.com/mendersoftware/deployments
 $ go build
 $ go test $(go list ./... | grep -v vendor)
 ```
@@ -48,7 +48,7 @@ Dependencies are managed using golang vendoring (GOVENDOREXPERIMENT)
 ## Configuration
 
 Service is configured by providing configuration file. Supports JSON, TOML, YAML and HCL formatting.
-Default configuration file is provided to be downloaded from [config.yaml](https://github.com/mendersoftware/artifacts/blob/master/config.yaml).
+Default configuration file is provided to be downloaded from [config.yaml](https://github.com/mendersoftware/deployments/blob/master/config.yaml).
 
 Application requirements:
 * Access to AWS S3 bucket, keys can be configured in several ways, documented in the configuration file.
@@ -56,7 +56,7 @@ Application requirements:
 
 ## API documentation
 
-Application exposes REST API over HTTP protocol. Detailed documentation is specified in the following [document](https://github.com/mendersoftware/artifacts/blob/master/docs/api_spec.md).
+Application exposes REST API over HTTP protocol. Detailed documentation is specified in the following [document](https://github.com/mendersoftware/deployments/blob/master/docs/api_spec.md).
 Format: [API Blueprint](https://apiblueprint.org)
 
 
