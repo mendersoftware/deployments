@@ -1,9 +1,97 @@
 # Deplyments service for Mender.io server
 
 ## Usecases
+
+Flow and descriptions of majour usecases.
+
 ### Uploading YOCTO image
 ### Deploying image to devices
-### Device checking for deployment 
+
+User deploy image to specified group of devices. Deployment for each device is precomputed. 
+Image is auto-assigned to device deploment based on artifact name and device type (fetched from inventory)
+
+```
+User             Deployment ser^ice         Collection: deployments    Collection: de^ice_deployments    Collection: images    In^entory Ser^ice
+
+ +                        +                            +                               +                          +                    +
+ |                        |                            |                               |                          |                    |
+ | Deploy ^ersion 'X'     |                            |                               |                          |                    |
+ | To de^ices 'Y','Z'     |                            |                               |                          |                    |
+ +------------------------>                            |                               |                          |                    |
+ |                        |                            |                               |                          |                    |
+ |                   +----------------------------------------------------------------------------------------------------------------------+
+ |                   |    | Check model of de^ice: Y   |                               |                          |                    |    |
+ |                F  |    +------------------------------------------------------------------------------------------------------------>    |
+ |                o  |    |                            |                               |                          |                    |    |
+ |                R  |    | Model: BBB (mocked)        |                               |                          |                    |    |
+ |                :  |    <------------------------------------------------------------------------------------------------------------+    |
+ |                Y  |    |                            |                               |                          |                    |    |
+ |                &  |    | Find image:                |                               |                          |                    |    |
+ |                Z  |    | Version: 'X' Model: 'BBB'  |                               |                          |                    |    |
+ |                   |    +--------------------------------------------------------------------------------------->                    |    |
+ |                   |    |                            |                               |                          |                    |    |
+ |                   |    | Image Metadata             |                               |                          |                    |    |
+ |                   |    <---------------------------------------------------------------------------------------+                    |    |
+ |                   |    |                            |                               |                          |                    |    |
+ |                   +----------------------------------------------------------------------------------------------------------------------+
+ |                        |                            |                               |                          |                    |
+ |                        | Insert deployments         |                               |                          |                    |
+ |                        | Id, high le^el info        |                               |                          |                    |
+ |                        +----------------------------+                               |                          |                    |
+ |                        |                            |                               |                          |                    |
+ |                   +-----------------------------------------------------------------------+                    |                    |
+ |                 F |    | Insert device_deployment   |                               |     |                    |                    |
+ |                 O |    | with:                      |                               |     |                    |                    |
+ |                 R |    | * deployment id            |                               |     |                    |                    |
+ |                 : |    | * target de^ice id         |                               |     |                    |                    |
+ |                 Y |    | * image  metadata          |                               |     |                    |                    |
+ |                 & |    | * status: pending          |                               |     |                    |                    |
+ |                 Z |    +------------------------------------------------------------>     |                    |                    |
+ |                   |    |                            |                               |     |                    |                    |
+ |                   +-----------------------------------------------------------------------+                    |                    |
+ |                        |                            |                               |                          |                    |
+ | Success: (HTTP Created)|                            |                               |                          |                    |
+ | LINK:/deployments/{id} |                            |                               |                          |                    |
+ <------------------------+                            |                               |                          |                    |
+```
+
+### Device checking for deployment
+
+Device is peropdically sending GET request to check if there are any deplyoments.
+
+```
+De^ice                User             Deployment ser^ice         Collection: de^ice_deployments
+
+  +                    +                        +                            +
+  |                    |                        |                            |
+  | I'm de^ice Y       |                        |                            |
+  | Updates for me?    |                        |                            |
+  +--------------------------------------------->                            |
+  |                    |                        |                            |
+  |                    |                        | Get me oldest not finished |
+  |                    |                        | deployment for de^ice Y    |
+  |                    |                        +---------------------------->
+  |                    |                        |                            |
+  |                    |                        | De^ice_update:             |
+  |                    |                        | * deployment id            |
+  |                    |                        | * target de^ice            |
+  |                    |                        | * assigned image metadata  |
+  |                    |                        | * status                   |
+  |                    |                        <----------------------------+
+  |                    |                        |                            |
+  |                    |                        | Presign download link      |
+  |                    |                        | for image.                 |
+  |                    |                        |                            |
+  |                    |                        | Package results            |
+  |                    |                        |                            |
+  | Install image G    |                        |                            |
+  <---------------------------------------------+                            |
+  |                    |                        |                            |
+  +                    +                        +                            +
+```
+
+### Updating status of deplyoment
+
 
 
 ## Dependencies
