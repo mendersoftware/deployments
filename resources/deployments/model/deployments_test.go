@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/deployments/model/mocks"
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
@@ -54,7 +55,7 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		deploymentStorage := new(MockDeploymentsStorage)
+		deploymentStorage := new(mocks.DeploymentsStorage)
 		deploymentStorage.On("FindByID", testCase.InputDeploymentID).
 			Return(testCase.InoutFindByIDDeployment, testCase.InoutFindByIDError)
 
@@ -104,10 +105,10 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		deviceDeploymentStorage := new(MockDeviceDeploymentStorage)
+		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
-				testCase.InputExistAssignedImageWithIDAndStatusesError)
+			testCase.InputExistAssignedImageWithIDAndStatusesError)
 
 		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
 
@@ -156,10 +157,10 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		deviceDeploymentStorage := new(MockDeviceDeploymentStorage)
+		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputImageUsedInDeploymentFound,
-				testCase.InputImageUsedInDeploymentError)
+			testCase.InputImageUsedInDeploymentError)
 
 		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
 
@@ -233,12 +234,12 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		deviceDeploymentStorage := new(MockDeviceDeploymentStorage)
+		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputOlderstDeviceDeployment,
-				testCase.InputOlderstDeviceDeploymentError)
+			testCase.InputOlderstDeviceDeploymentError)
 
-		imageLinker := new(MockGetRequester)
+		imageLinker := new(mocks.GetRequester)
 		// Notice: force GetRequest to expect image id returned by FindOldestDeploymentForDeviceIDWithStatuses
 		//         Just as implementation does, if this changes test will break by panic ;)
 		imageLinker.On("GetRequest", "ID:456", DefaultUpdateDownloadLinkExpire).
@@ -337,17 +338,17 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		generator := new(MockGenerator)
+		generator := new(mocks.Generator)
 		generator.On("Generate", mock.AnythingOfType("string"), mock.AnythingOfType("*deployments.Deployment")).
 			Return(testCase.InputGenerateDeviceDeployment, testCase.InputGenerateError)
 
-		deploymentStorage := new(MockDeploymentsStorage)
+		deploymentStorage := new(mocks.DeploymentsStorage)
 		deploymentStorage.On("Insert", mock.AnythingOfType("*deployments.Deployment")).
 			Return(testCase.InputDeploymentStorageInsertError)
 		deploymentStorage.On("Delete", mock.AnythingOfType("string")).
 			Return(testCase.InputDeploymentStorageDeleteError)
 
-		deviceDeploymentStorage := new(MockDeviceDeploymentStorage)
+		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("InsertMany", mock.AnythingOfType("[]*deployments.DeviceDeployment")).
 			Return(testCase.InputDeviceDeploymentStorageInsertManyError)
 
