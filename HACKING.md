@@ -5,6 +5,40 @@
 Flow and descriptions of majour usecases.
 
 ### Uploading YOCTO image
+
+Uploading image is a 3 step process.
+* Create metadata
+* Request upload link
+* Upload file
+
+```
+                    Deployments
+User                  Service
+
+ +                       +
+ |  POST                 |
+ |  Create metadata      |
+ |  with attibutes       |
+ +----------------------->
+ |                       |
+ | HTTP: 201             |
+ | Location: images/id_1 |
+ <-----------------------+
+ |                       |
+ | GET                   |
+ | images/id_1/upload    |
+ +----------------------->
+ |                       |
+ | 'https://aws.....'    |
+ <-----------------------+
+ |                       |
+ | PUT                   |
+ | app.img               |
+ | 'https://aws...'      |
+ +----------------------->
+ |                       |
+```
+
 ### Deploying image to devices
 
 User deploy image to specified group of devices. Deployment for each device is precomputed. 
@@ -92,7 +126,7 @@ De^ice                User             Deployment ser^ice         Collection: de
 
 ### Updating status of deplyoment
 
-Notice: to be implemented
+Notice: to be implemented.
 
 ```
        De^ice                     Deployment Ser^ice            File ser^er
