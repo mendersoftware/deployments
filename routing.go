@@ -19,6 +19,7 @@ import (
 	"github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/mvc"
 	"github.com/mendersoftware/deployments/resources/deployments"
+	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	deploymentsMongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	imagesController "github.com/mendersoftware/deployments/resources/images/controller"
 	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
@@ -64,7 +65,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	}
 
 	// Domian Models
-	deploymentModel := deployments.NewDeploymentModel(
+	deploymentModel := deploymentsModel.NewDeploymentModel(
 		deploymentsStorage,
 		deployments.NewImageBasedDeviceDeployment(
 			imagesStorage,

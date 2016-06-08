@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
 )
 

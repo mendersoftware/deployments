@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
+	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

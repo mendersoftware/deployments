@@ -18,16 +18,9 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
 )
-
-func StringToPointer(str string) *string {
-	return &str
-}
-
-func TimeToPointer(time time.Time) *time.Time {
-	return &time
-}
 
 func TestDeploymentConstructorValidate(t *testing.T) {
 
