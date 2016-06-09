@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package mvc
+package view_test
 
 import (
 	"net/http"
@@ -20,13 +20,14 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	. "github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRenderPost(t *testing.T) {
 
 	router, err := rest.MakeRouter(rest.Post("/test", func(w rest.ResponseWriter, r *rest.Request) {
-		new(RESTViewDefaults).RenderSuccessPost(w, r, "test_id")
+		new(RESTView).RenderSuccessPost(w, r, "test_id")
 	}))
 
 	if err != nil {
@@ -47,7 +48,7 @@ func TestRenderPost(t *testing.T) {
 func TestRenderSuccessGet(t *testing.T) {
 
 	router, err := rest.MakeRouter(rest.Get("/test", func(w rest.ResponseWriter, r *rest.Request) {
-		new(RESTViewDefaults).RenderSuccessGet(w, "test")
+		new(RESTView).RenderSuccessGet(w, "test")
 	}))
 
 	if err != nil {
@@ -68,7 +69,7 @@ func TestRenderSuccessGet(t *testing.T) {
 func TestRenderSuccessDelete(t *testing.T) {
 
 	router, err := rest.MakeRouter(rest.Delete("/test", func(w rest.ResponseWriter, r *rest.Request) {
-		new(RESTViewDefaults).RenderSuccessDelete(w)
+		new(RESTView).RenderSuccessDelete(w)
 	}))
 
 	if err != nil {
@@ -87,7 +88,7 @@ func TestRenderSuccessDelete(t *testing.T) {
 func TestRenderSuccessPut(t *testing.T) {
 
 	router, err := rest.MakeRouter(rest.Put("/test", func(w rest.ResponseWriter, r *rest.Request) {
-		new(RESTViewDefaults).RenderSuccessPut(w)
+		new(RESTView).RenderSuccessPut(w)
 	}))
 
 	if err != nil {
@@ -106,7 +107,7 @@ func TestRenderSuccessPut(t *testing.T) {
 func TestRenderErrorNotFound(t *testing.T) {
 
 	router, err := rest.MakeRouter(rest.Get("/test", func(w rest.ResponseWriter, r *rest.Request) {
-		new(RESTViewDefaults).RenderErrorNotFound(w)
+		new(RESTView).RenderErrorNotFound(w)
 	}))
 
 	if err != nil {

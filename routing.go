@@ -17,7 +17,6 @@ package main
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/deployments/config"
-	"github.com/mendersoftware/deployments/mvc"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/resources/deployments/generator"
 	"github.com/mendersoftware/deployments/resources/deployments/inventory"
@@ -27,6 +26,7 @@ import (
 	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/mendersoftware/deployments/resources/images/s3"
+	imagesView "github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/mendersoftware/deployments/utils/restutil"
 	"gopkg.in/mgo.v2"
 )
@@ -81,7 +81,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
 
 	// Controllers
-	imagesController := imagesController.NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+	imagesController := imagesController.NewSoftwareImagesController(imagesModel, imagesView.RESTView{})
 	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel)
 
 	// Routing

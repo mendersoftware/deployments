@@ -18,11 +18,11 @@ import (
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/deployments/mvc"
+	"github.com/mendersoftware/deployments/resources/images/view"
 )
 
 type DeploymentsViews struct {
-	mvc.RESTViewDefaults
+	view.RESTView
 }
 
 func (d *DeploymentsViews) RenderNoUpdateForDevice(w rest.ResponseWriter) {

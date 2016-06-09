@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package mvc
+package view
 
 import (
 	"errors"
@@ -30,30 +30,30 @@ var (
 	ErrNotFound = errors.New("Resource not found")
 )
 
-type RESTViewDefaults struct {
+type RESTView struct {
 }
 
-func (p *RESTViewDefaults) RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string) {
+func (p *RESTView) RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string) {
 	w.Header().Add(HttpHeaderLocation, fmt.Sprintf("%s/%s", r.URL.String(), id))
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (p *RESTViewDefaults) RenderSuccessGet(w rest.ResponseWriter, object interface{}) {
+func (p *RESTView) RenderSuccessGet(w rest.ResponseWriter, object interface{}) {
 	w.WriteJson(object)
 }
 
-func (p *RESTViewDefaults) RenderError(w rest.ResponseWriter, err error, status int) {
+func (p *RESTView) RenderError(w rest.ResponseWriter, err error, status int) {
 	rest.Error(w, err.Error(), status)
 }
 
-func (p *RESTViewDefaults) RenderErrorNotFound(w rest.ResponseWriter) {
+func (p *RESTView) RenderErrorNotFound(w rest.ResponseWriter) {
 	p.RenderError(w, ErrNotFound, http.StatusNotFound)
 }
 
-func (p *RESTViewDefaults) RenderSuccessDelete(w rest.ResponseWriter) {
+func (p *RESTView) RenderSuccessDelete(w rest.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (p *RESTViewDefaults) RenderSuccessPut(w rest.ResponseWriter) {
+func (p *RESTView) RenderSuccessPut(w rest.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
 }

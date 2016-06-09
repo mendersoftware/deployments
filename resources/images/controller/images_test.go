@@ -22,8 +22,8 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
-	"github.com/mendersoftware/deployments/mvc"
 	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/satori/go.uuid"
 )
 
@@ -80,7 +80,7 @@ func setUpRestTest(route string, routeType routerTypeHandler, handler func(w res
 
 func TestControllerGetImage(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
-	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+	controller := NewSoftwareImagesController(imagesModel, view.RESTView{})
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Get, controller.GetImage)
 
@@ -119,7 +119,7 @@ func TestControllerGetImage(t *testing.T) {
 
 func TestControllerListImages(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
-	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+	controller := NewSoftwareImagesController(imagesModel, view.RESTView{})
 
 	api := setUpRestTest("/api/0.0.1/images", rest.Get, controller.ListImages)
 
@@ -142,7 +142,7 @@ func TestControllerListImages(t *testing.T) {
 
 func TestControllerUploadLink(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
-	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+	controller := NewSoftwareImagesController(imagesModel, view.RESTView{})
 
 	api := setUpRestTest("/api/0.0.1/images/:id/upload", rest.Get, controller.UploadLink)
 
@@ -186,7 +186,7 @@ func TestControllerUploadLink(t *testing.T) {
 
 func TestControllerDownloadLink(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
-	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+	controller := NewSoftwareImagesController(imagesModel, view.RESTView{})
 
 	api := setUpRestTest("/api/0.0.1/images/:id/download", rest.Get, controller.DownloadLink)
 
@@ -230,7 +230,7 @@ func TestControllerDownloadLink(t *testing.T) {
 
 func TestControllerDeleteImage(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
-	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+	controller := NewSoftwareImagesController(imagesModel, view.RESTView{})
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Delete, controller.DeleteImage)
 
@@ -249,7 +249,7 @@ func TestControllerDeleteImage(t *testing.T) {
 
 func TestControllerEditImage(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
-	controller := NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
+	controller := NewSoftwareImagesController(imagesModel, view.RESTView{})
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Put, controller.EditImage)
 

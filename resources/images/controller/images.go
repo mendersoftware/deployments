@@ -21,8 +21,8 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/deployments/mvc"
 	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/pkg/errors"
 )
 
@@ -41,11 +41,11 @@ var (
 )
 
 type SoftwareImagesController struct {
-	views mvc.RESTViewDefaults
+	views view.RESTView
 	model ImagesModel
 }
 
-func NewSoftwareImagesController(model ImagesModel, views mvc.RESTViewDefaults) *SoftwareImagesController {
+func NewSoftwareImagesController(model ImagesModel, views view.RESTView) *SoftwareImagesController {
 	return &SoftwareImagesController{
 		model: model,
 		views: views,
