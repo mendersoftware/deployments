@@ -19,6 +19,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/deployments/resources/deployments/view"
 	"github.com/pkg/errors"
 )
 
@@ -34,13 +35,13 @@ type DeploymentsModeler interface {
 }
 
 type DeploymentsController struct {
-	views DeploymentsViews
+	views view.DeploymentsViews
 	model DeploymentsModeler
 }
 
 func NewDeploymentsController(model DeploymentsModeler) *DeploymentsController {
 	return &DeploymentsController{
-		views: DeploymentsViews{},
+		views: view.DeploymentsViews{},
 		model: model,
 	}
 }

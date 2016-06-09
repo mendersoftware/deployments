@@ -12,19 +12,36 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package deployments
+package view_test
 
 import (
 	"net/http"
+	"testing"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/deployments/mvc"
+	"github.com/ant0ine/go-json-rest/rest/test"
+	. "github.com/mendersoftware/deployments/resources/deployments/view"
+	"github.com/stretchr/testify/assert"
 )
 
-type DeploymentsViews struct {
-	mvc.RESTViewDefaults
-}
+func TestRenderNoUpdateForDevice(t *testing.T) {
 
-func (d *DeploymentsViews) RenderNoUpdateForDevice(w rest.ResponseWriter) {
-	w.WriteHeader(http.StatusNoContent)
+	t.Parallel()
+
+	router, err := rest.MakeRouter(rest.Get("/test", func(w rest.ResponseWriter, r *rest.Request) {
+		view := &DeploymentsViews{}
+		view.RenderNoUpdateForDevice(w)
+	}))
+
+	if err != nil {
+		assert.NoError(t, err)
+	}
+
+	api := rest.NewApi()
+	api.SetApp(router)
+
+	recorded := test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/test", nil))
+
+	recorded.CodeIs(http.StatusNoContent)
 }
