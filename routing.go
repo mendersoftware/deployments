@@ -27,6 +27,7 @@ import (
 	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/mendersoftware/deployments/resources/images/s3"
+	"github.com/mendersoftware/deployments/utils/restutil"
 	"gopkg.in/mgo.v2"
 )
 
@@ -89,7 +90,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 	routes := append(imageRoutes, deploymentsRoutes...)
 
-	return rest.MakeRouter(mvc.AutogenOptionsRoutes(mvc.NewOptionsHandler, routes...)...)
+	return rest.MakeRouter(restutil.AutogenOptionsRoutes(restutil.NewOptionsHandler, routes...)...)
 }
 
 func NewImagesResourceRoutes(controller *imagesController.SoftwareImagesController) []*rest.Route {

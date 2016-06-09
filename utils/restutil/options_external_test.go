@@ -11,7 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package mvc
+package restutil_test
 
 import (
 	"net/http"
@@ -21,9 +21,13 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	. "github.com/mendersoftware/deployments/utils/restutil"
 )
 
 func TestOptionsHandle(t *testing.T) {
+
+	t.Parallel()
+
 	router, err := rest.MakeRouter(rest.Options("/r", NewOptionsHandler(http.MethodGet, http.MethodGet)))
 	if err != nil {
 		t.FailNow()
@@ -85,6 +89,9 @@ func (slice RouteList) Swap(i, j int) {
 }
 
 func TestAutogenOptionsRoutes(t *testing.T) {
+
+	t.Parallel()
+
 	testList := []struct {
 		out []*rest.Route
 		in  []*rest.Route
