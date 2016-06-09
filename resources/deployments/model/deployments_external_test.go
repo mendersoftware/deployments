@@ -12,13 +12,14 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package model
+package model_test
 
 import (
 	"errors"
 	"testing"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
+	. "github.com/mendersoftware/deployments/resources/deployments/model"
 	"github.com/mendersoftware/deployments/resources/deployments/model/mocks"
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
@@ -27,6 +28,8 @@ import (
 )
 
 func TestDeploymentModelGetDeployment(t *testing.T) {
+
+	t.Parallel()
 
 	testCases := []struct {
 		InputDeploymentID       string
@@ -72,6 +75,8 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 }
 
 func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
+
+	t.Parallel()
 
 	testCases := []struct {
 		InputID string
@@ -125,6 +130,8 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 
 func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 
+	t.Parallel()
+
 	testCases := []struct {
 		InputID string
 
@@ -176,6 +183,8 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 }
 
 func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
+
+	t.Parallel()
 
 	testCases := []struct {
 		InputID string
@@ -259,6 +268,8 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 }
 
 func TestDeploymentModelCreateDeployment(t *testing.T) {
+
+	t.Parallel()
 
 	testCases := []struct {
 		InputConstructor *deployments.DeploymentConstructor
