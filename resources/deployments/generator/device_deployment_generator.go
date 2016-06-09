@@ -12,9 +12,10 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package deployments
+package generator
 
 import (
+	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/pkg/errors"
 )
@@ -39,7 +40,7 @@ func NewImageBasedDeviceDeployment(images ImageByNameAndDeviceTyper, devices Get
 	}
 }
 
-func (d *ImageBasedDeviceDeployment) Generate(deviceID string, deployment *Deployment) (*DeviceDeployment, error) {
+func (d *ImageBasedDeviceDeployment) Generate(deviceID string, deployment *deployments.Deployment) (*deployments.DeviceDeployment, error) {
 
 	if err := deployment.Validate(); err != nil {
 		return nil, errors.Wrap(err, "Validating deployment")
@@ -55,30 +56,16 @@ func (d *ImageBasedDeviceDeployment) Generate(deviceID string, deployment *Deplo
 		return nil, errors.Wrap(err, "Assigning image targeted for device type")
 	}
 
-	deviceDeployment := NewDeviceDeployment(deviceID, *deployment.Id)
+	deviceDeployment := deployments.NewDeviceDeployment(deviceID, *deployment.Id)
 	deviceDeployment.DeviceType = &deviceType
 	deviceDeployment.Image = image
 	deviceDeployment.Created = deployment.Created
 
 	// If not having appropriate image, set noimage status
 	if deviceDeployment.Image == nil {
-		status := DeviceDeploymentStatusNoImage
+		status := deployments.DeviceDeploymentStatusNoImage
 		deviceDeployment.Status = &status
 	}
 
 	return deviceDeployment, nil
-}
-
-type InventoryWithHardcodedType struct {
-	deviceType string
-}
-
-func NewInventoryWithHardcodedType(deviceType string) *InventoryWithHardcodedType {
-	return &InventoryWithHardcodedType{
-		deviceType: deviceType,
-	}
-}
-
-func (i *InventoryWithHardcodedType) GetDeviceType(deviceID string) (string, error) {
-	return i.deviceType, nil
 }

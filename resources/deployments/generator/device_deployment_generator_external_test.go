@@ -12,13 +12,16 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package deployments
+package generator_test
 
 import (
 	"errors"
 	"testing"
 	"time"
 
+	"github.com/mendersoftware/deployments/resources/deployments"
+	. "github.com/mendersoftware/deployments/resources/deployments/generator"
+	"github.com/mendersoftware/deployments/resources/deployments/generator/mocks"
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
@@ -27,9 +30,11 @@ import (
 
 func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 
+	t.Parallel()
+
 	testCases := []struct {
 		InputID         string
-		InputDeployment *Deployment
+		InputDeployment *deployments.Deployment
 
 		InputGetDeviceType      string
 		InputGetDeviceTypeError error
@@ -37,7 +42,7 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 		InputImageByNameAndDeviceType      *images.SoftwareImage
 		InputImageByNameAndDeviceTypeError error
 
-		OutputDeviceDeplyment *DeviceDeployment
+		OutputDeviceDeplyment *deployments.DeviceDeployment
 		OutputError           error
 	}{
 		{
@@ -45,7 +50,7 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 		},
 		{
 			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
-			InputDeployment: NewDeploymentFromConstructor(&DeploymentConstructor{
+			InputDeployment: deployments.NewDeploymentFromConstructor(&deployments.DeploymentConstructor{
 				Name:         StringToPointer("Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"275547d3-68da-4558-86fa-b1c2a2bd3d46"},
@@ -56,7 +61,7 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 		},
 		{
 			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
-			InputDeployment: NewDeploymentFromConstructor(&DeploymentConstructor{
+			InputDeployment: deployments.NewDeploymentFromConstructor(&deployments.DeploymentConstructor{
 				Name:         StringToPointer("Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"275547d3-68da-4558-86fa-b1c2a2bd3d46"},
@@ -69,16 +74,16 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 		// Case: Matching image not found
 		{
 			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
-			InputDeployment: NewDeploymentFromConstructor(&DeploymentConstructor{
+			InputDeployment: deployments.NewDeploymentFromConstructor(&deployments.DeploymentConstructor{
 				Name:         StringToPointer("Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"275547d3-68da-4558-86fa-b1c2a2bd3d46"},
 			}),
 			InputGetDeviceType: "BBB",
 
-			OutputDeviceDeplyment: &DeviceDeployment{
+			OutputDeviceDeplyment: &deployments.DeviceDeployment{
 				Created:    TimeToPointer(time.Now()),
-				Status:     StringToPointer(DeviceDeploymentStatusNoImage),
+				Status:     StringToPointer(deployments.DeviceDeploymentStatusNoImage),
 				DeviceId:   StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
 				DeviceType: StringToPointer("BBB"),
 			},
@@ -86,7 +91,7 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 		// Case: Matchign image found
 		{
 			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
-			InputDeployment: NewDeploymentFromConstructor(&DeploymentConstructor{
+			InputDeployment: deployments.NewDeploymentFromConstructor(&deployments.DeploymentConstructor{
 				Name:         StringToPointer("Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"275547d3-68da-4558-86fa-b1c2a2bd3d46"},
@@ -94,9 +99,9 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 			InputGetDeviceType:            "BBB",
 			InputImageByNameAndDeviceType: &images.SoftwareImage{},
 
-			OutputDeviceDeplyment: &DeviceDeployment{
+			OutputDeviceDeplyment: &deployments.DeviceDeployment{
 				Created:    TimeToPointer(time.Now()),
-				Status:     StringToPointer(DeviceDeploymentStatusPending),
+				Status:     StringToPointer(deployments.DeviceDeploymentStatusPending),
 				DeviceId:   StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
 				DeviceType: StringToPointer("BBB"),
 				Image:      &images.SoftwareImage{},
@@ -106,11 +111,11 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		images := new(MockImageByNameAndDeviceTyper)
+		images := new(mocks.ImageByNameAndDeviceTyper)
 		images.On("ImageByNameAndDeviceType", mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 			Return(testCase.InputImageByNameAndDeviceType, testCase.InputImageByNameAndDeviceTypeError)
 
-		inventory := new(MockGetDeviceTyper)
+		inventory := new(mocks.GetDeviceTyper)
 		inventory.On("GetDeviceType", mock.AnythingOfType("string")).
 			Return(testCase.InputGetDeviceType, testCase.InputGetDeviceTypeError)
 

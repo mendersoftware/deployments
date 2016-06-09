@@ -19,6 +19,8 @@ import (
 	"github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/mvc"
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/deployments/generator"
+	"github.com/mendersoftware/deployments/resources/deployments/inventory"
 	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	deploymentsMongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	imagesController "github.com/mendersoftware/deployments/resources/images/controller"
@@ -67,10 +69,10 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	// Domian Models
 	deploymentModel := deploymentsModel.NewDeploymentModel(
 		deploymentsStorage,
-		deployments.NewImageBasedDeviceDeployment(
+		generator.NewImageBasedDeviceDeployment(
 			imagesStorage,
 			// can easily add configuration from main config file
-			deployments.NewInventoryWithHardcodedType("TestDevice")),
+			inventory.NewInventoryWithHardcodedType("TestDevice")),
 		deviceDeploymentsStorage,
 		fileStorage,
 	)
