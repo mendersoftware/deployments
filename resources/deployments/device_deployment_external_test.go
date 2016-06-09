@@ -12,17 +12,20 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package deployments
+package deployments_test
 
 import (
 	"testing"
 	"time"
 
+	. "github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewDeviceDeployment(t *testing.T) {
+
+	t.Parallel()
 
 	dd := NewDeviceDeployment("device_123", "deployment_123")
 
@@ -34,6 +37,8 @@ func TestNewDeviceDeployment(t *testing.T) {
 }
 
 func TestDeviceDeploymentValidate(t *testing.T) {
+
+	t.Parallel()
 
 	testCases := []struct {
 		InputID           *string

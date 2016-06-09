@@ -12,17 +12,20 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package deployments
+package deployments_test
 
 import (
 	"testing"
 	"time"
 
+	. "github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDeploymentConstructorValidate(t *testing.T) {
+
+	t.Parallel()
 
 	testCases := []struct {
 		InputName         *string
@@ -96,6 +99,8 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 
 func TestNewDeploymentFromConstructor(t *testing.T) {
 
+	t.Parallel()
+
 	assert.NotNil(t, NewDeploymentFromConstructor(nil))
 
 	con := NewDeploymentConstructor()
@@ -105,6 +110,8 @@ func TestNewDeploymentFromConstructor(t *testing.T) {
 }
 
 func TestDeploymentValidate(t *testing.T) {
+
+	t.Parallel()
 
 	testCases := []struct {
 		InputName         *string
@@ -149,6 +156,8 @@ func TestDeploymentValidate(t *testing.T) {
 }
 
 func TestDeploymentMarshalJSON(t *testing.T) {
+
+	t.Parallel()
 
 	dep := NewDeployment()
 	dep.Name = StringToPointer("Region: NYC")
