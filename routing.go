@@ -18,7 +18,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/mvc"
-	"github.com/mendersoftware/deployments/resources/deployments"
+	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/resources/deployments/generator"
 	"github.com/mendersoftware/deployments/resources/deployments/inventory"
 	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
@@ -81,7 +81,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 	// Controllers
 	imagesController := imagesController.NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
-	deploymentsController := deployments.NewDeploymentsController(deploymentModel)
+	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel)
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)
@@ -111,7 +111,7 @@ func NewImagesResourceRoutes(controller *imagesController.SoftwareImagesControll
 	}
 }
 
-func NewDeploymentsResourceRoutes(controller *deployments.DeploymentsController) []*rest.Route {
+func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsController) []*rest.Route {
 
 	if controller == nil {
 		return []*rest.Route{}
