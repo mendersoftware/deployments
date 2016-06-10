@@ -40,7 +40,7 @@ const (
 	SettingAwsAuthToken  = SettingsAwsAuth + ".token"
 
 	SettingMongo        = "mongo-url"
-	SettingMongoDefault = "mongo-deployments:27018"
+	SettingMongoDefault = "mongo-deployments"
 )
 
 // ValidateAwsAuth validates configuration of SettingsAwsAuth section if provided.
