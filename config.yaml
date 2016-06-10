@@ -54,8 +54,8 @@ listen: :8080
             #    Defines the per-server socket pool limit. Defaults to 4096.
             #    See Session.SetPoolLimit for details.
             #
-            # Defaults to: "localhost"
-mongo-url: localhost
+            # Defaults to: "mongo-deployments:27018"
+mongo-url: mongo-deployments:27018
 
 aws:
                 # AWS region
