@@ -15,7 +15,6 @@
 package controller_test
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"testing"
@@ -28,48 +27,20 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments/view"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
+
+	h "github.com/mendersoftware/deployments/utils/testing"
 )
 
 // Notice: 	Controller tests are not pure unit tests,
 // 			they are more of integration test beween controller and view
 //			testing actuall HTTP endpoint input/reponse
 
-func ErrorToErrStruct(err error) interface{} {
-	return struct{ Error string }{err.Error()}
-}
-
-type JSONResponseParams struct {
-	OutputStatus     int
-	OutputBodyObject interface{}
-	OutputHeaders    map[string]string
-}
-
-func CheckRecordedResponse(t *testing.T, recorded *test.Recorded, params JSONResponseParams) {
-
-	recorded.CodeIs(params.OutputStatus)
-	recorded.ContentTypeIsJson()
-
-	if params.OutputBodyObject != nil {
-		assert.NotEmpty(t, recorded.Recorder.Body.String())
-
-		expectedJSON, err := json.Marshal(params.OutputBodyObject)
-		assert.NoError(t, err)
-		assert.JSONEq(t, string(expectedJSON), recorded.Recorder.Body.String())
-	} else {
-		assert.Empty(t, recorded.Recorder.Body.String())
-	}
-
-	for name, value := range params.OutputHeaders {
-		assert.Equal(t, value, recorded.Recorder.HeaderMap.Get(name))
-	}
-}
-
 func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 	t.Parallel()
 
 	testCases := []struct {
-		JSONResponseParams
+		h.JSONResponseParams
 
 		InputID string
 
@@ -78,29 +49,29 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 	}{
 		{
 			InputID: "broken_id",
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: ErrorToErrStruct(ErrIDNotUUIDv4),
+				OutputBodyObject: h.ErrorToErrStruct(ErrIDNotUUIDv4),
 			},
 		},
 		{
 			InputID:         "f826484e-1157-4109-af21-304e6d711560",
 			InputModelError: errors.New("model error"),
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
 			},
 		},
 		{
 			InputID: "f826484e-1157-4109-af21-304e6d711560",
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusNoContent,
 			},
 		},
 		{
 			InputID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeploymentInstructions: deployments.NewDeploymentInstructions("", nil, nil),
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusOK,
 				OutputBodyObject: deployments.NewDeploymentInstructions("", nil, nil),
 			},
@@ -124,7 +95,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		recorded := test.RunRequest(t, api.MakeHandler(),
 			test.MakeSimpleRequest("GET", "http://localhost/r/"+testCase.InputID, nil))
 
-		CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
 }
 
@@ -133,7 +104,7 @@ func TestControllerGetDeployment(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		JSONResponseParams
+		h.JSONResponseParams
 
 		InputID string
 
@@ -142,24 +113,24 @@ func TestControllerGetDeployment(t *testing.T) {
 	}{
 		{
 			InputID: "broken_id",
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: ErrorToErrStruct(ErrIDNotUUIDv4),
+				OutputBodyObject: h.ErrorToErrStruct(ErrIDNotUUIDv4),
 			},
 		},
 		{
 			InputID:         "f826484e-1157-4109-af21-304e6d711560",
 			InputModelError: errors.New("model error"),
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
 			},
 		},
 		{
 			InputID: "f826484e-1157-4109-af21-304e6d711560",
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusNotFound,
-				OutputBodyObject: ErrorToErrStruct(errors.New("Resource not found")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Resource not found")),
 			},
 		},
 		{
@@ -167,7 +138,7 @@ func TestControllerGetDeployment(t *testing.T) {
 
 			InputModelDeployment: &deployments.Deployment{Id: StringToPointer("id 123")},
 
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusOK,
 				OutputBodyObject: &deployments.Deployment{Id: StringToPointer("id 123")},
 			},
@@ -191,7 +162,7 @@ func TestControllerGetDeployment(t *testing.T) {
 		recorded := test.RunRequest(t, api.MakeHandler(),
 			test.MakeSimpleRequest("GET", "http://localhost/r/"+testCase.InputID, nil))
 
-		CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
 }
 
@@ -200,7 +171,7 @@ func TestControllerPostDeployment(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		JSONResponseParams
+		h.JSONResponseParams
 
 		InputBodyObject interface{}
 
@@ -209,16 +180,16 @@ func TestControllerPostDeployment(t *testing.T) {
 	}{
 		{
 			InputBodyObject: nil,
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: ErrorToErrStruct(errors.New("Validating request body: JSON payload is empty")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating request body: JSON payload is empty")),
 			},
 		},
 		{
 			InputBodyObject: deployments.NewDeploymentConstructor(),
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: ErrorToErrStruct(errors.New(`Validating request body: Name: non zero value required;ArtifactName: non zero value required;Devices: non zero value required;`)),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Validating request body: Name: non zero value required;ArtifactName: non zero value required;Devices: non zero value required;`)),
 			},
 		},
 		{
@@ -228,9 +199,9 @@ func TestControllerPostDeployment(t *testing.T) {
 				Devices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
 			},
 			InputModelError: errors.New("model error"),
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
 			},
 		},
 		{
@@ -240,7 +211,7 @@ func TestControllerPostDeployment(t *testing.T) {
 				Devices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
 			},
 			InputModelID: "1234",
-			JSONResponseParams: JSONResponseParams{
+			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusCreated,
 				OutputBodyObject: nil,
 				OutputHeaders:    map[string]string{"Location": "http://localhost/r/1234"},
@@ -266,6 +237,6 @@ func TestControllerPostDeployment(t *testing.T) {
 		recorded := test.RunRequest(t, api.MakeHandler(),
 			test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject))
 
-		CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
 }
