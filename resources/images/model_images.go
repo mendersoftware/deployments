@@ -146,6 +146,10 @@ func (i *ImagesModel) ListImages(filters map[string]string) ([]*SoftwareImage, e
 		return nil, errors.Wrap(err, "Searching for image metadata")
 	}
 
+	if images == nil {
+		return make([]*SoftwareImage, 0), nil
+	}
+
 	for _, image := range images {
 		if err := i.syncLastModifiedTimeWithFileUpload(image); err != nil {
 			return nil, errors.Wrap(err, "Synchronizing image upload time")
