@@ -30,6 +30,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Notice: 	Controller tests are not pure unit tests,
+// 			they are more of integration test beween controller and view
+//			testing actuall HTTP endpoint input/reponse
+
 func ErrorToErrStruct(err error) interface{} {
 	return struct{ Error string }{err.Error()}
 }

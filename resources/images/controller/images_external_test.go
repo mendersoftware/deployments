@@ -28,6 +28,10 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+// Notice: 	Controller tests are not pure unit tests,
+// 			they are more of integration test beween controller and view
+//			testing actuall HTTP endpoint input/reponse
+
 type fakeImageModeler struct {
 	getImage          *images.SoftwareImage
 	getImageError     error
