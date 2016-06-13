@@ -24,8 +24,12 @@ import (
 	"github.com/ant0ine/go-json-rest/rest/test"
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/resources/images/controller"
+	"github.com/mendersoftware/deployments/resources/images/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/images/view"
+	"github.com/mendersoftware/deployments/utils/pointers"
+	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 // Notice: 	Controller tests are not pure unit tests,
@@ -310,4 +314,78 @@ func TestControllerEditImage(t *testing.T) {
 			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
 	recorded.CodeIs(http.StatusNoContent)
 	recorded.BodyIs("")
+}
+
+func TestSoftwareImagesControllerNewImage(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputBodyObject interface{}
+
+		InputModelID    string
+		InputModelError error
+	}{
+		{
+			InputBodyObject: nil,
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating request body: JSON payload is empty")),
+			},
+		},
+		{
+			InputBodyObject: images.NewSoftwareImageConstructor(),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Validating request body: YoctoId: non zero value required;Name: non zero value required;DeviceType: non zero value required;`)),
+			},
+		},
+		{
+			InputBodyObject: &images.SoftwareImageConstructor{
+				YoctoId:    pointers.StringToPointer("core-image-123"),
+				Name:       pointers.StringToPointer("App 123"),
+				DeviceType: pointers.StringToPointer("BBB"),
+			},
+			InputModelError: errors.New("model error"),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+			},
+		},
+		{
+			InputBodyObject: &images.SoftwareImageConstructor{
+				YoctoId:    pointers.StringToPointer("core-image-123"),
+				Name:       pointers.StringToPointer("App 123"),
+				DeviceType: pointers.StringToPointer("BBB"),
+			},
+			InputModelID: "1234",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusCreated,
+				OutputBodyObject: nil,
+				OutputHeaders:    map[string]string{"Location": "http://localhost/r/1234"},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		model := new(mocks.ImagesModel)
+
+		model.On("CreateImage", testCase.InputBodyObject).
+			Return(testCase.InputModelID, testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Post("/r",
+				NewSoftwareImagesController(model, new(view.RESTView)).NewImage))
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		recorded := test.RunRequest(t, api.MakeHandler(),
+			test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject))
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+	}
 }
