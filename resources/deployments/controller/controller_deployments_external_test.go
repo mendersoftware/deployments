@@ -25,6 +25,7 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/resources/deployments/controller/mocks"
+	"github.com/mendersoftware/deployments/resources/deployments/view"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
 )
@@ -110,7 +111,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 		router, err := rest.MakeRouter(
 			rest.Get("/r/:id",
-				NewDeploymentsController(deploymentModel).GetDeploymentForDevice))
+				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeploymentForDevice))
 		assert.NoError(t, err)
 
 		api := rest.NewApi()
@@ -177,7 +178,7 @@ func TestControllerGetDeployment(t *testing.T) {
 
 		router, err := rest.MakeRouter(
 			rest.Get("/r/:id",
-				NewDeploymentsController(deploymentModel).GetDeployment))
+				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeployment))
 		assert.NoError(t, err)
 
 		api := rest.NewApi()
@@ -252,7 +253,7 @@ func TestControllerPostDeployment(t *testing.T) {
 
 		router, err := rest.MakeRouter(
 			rest.Post("/r",
-				NewDeploymentsController(deploymentModel).PostDeployment))
+				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).PostDeployment))
 		assert.NoError(t, err)
 
 		api := rest.NewApi()

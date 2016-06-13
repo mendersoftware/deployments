@@ -22,6 +22,7 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments/inventory"
 	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	deploymentsMongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
+	deploymentsView "github.com/mendersoftware/deployments/resources/deployments/view"
 	imagesController "github.com/mendersoftware/deployments/resources/images/controller"
 	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
@@ -81,8 +82,8 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
 
 	// Controllers
-	imagesController := imagesController.NewSoftwareImagesController(imagesModel, imagesView.RESTView{})
-	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel)
+	imagesController := imagesController.NewSoftwareImagesController(imagesModel, new(imagesView.RESTView))
+	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel, new(deploymentsView.DeploymentsView))
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)

@@ -22,7 +22,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/pkg/errors"
 )
 
@@ -41,14 +40,14 @@ var (
 )
 
 type SoftwareImagesController struct {
-	views view.RESTView
+	view  RESTView
 	model ImagesModel
 }
 
-func NewSoftwareImagesController(model ImagesModel, views view.RESTView) *SoftwareImagesController {
+func NewSoftwareImagesController(model ImagesModel, view RESTView) *SoftwareImagesController {
 	return &SoftwareImagesController{
 		model: model,
-		views: views,
+		view:  view,
 	}
 }
 
@@ -57,33 +56,33 @@ func (s *SoftwareImagesController) GetImage(w rest.ResponseWriter, r *rest.Reque
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.views.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
 		return
 	}
 
 	image, err := s.model.GetImage(id)
 	if err != nil {
-		s.views.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	if image == nil {
-		s.views.RenderErrorNotFound(w)
+		s.view.RenderErrorNotFound(w)
 		return
 	}
 
-	s.views.RenderSuccessGet(w, image)
+	s.view.RenderSuccessGet(w, image)
 }
 
 func (s *SoftwareImagesController) ListImages(w rest.ResponseWriter, r *rest.Request) {
 
 	list, err := s.model.ListImages(r.PathParams)
 	if err != nil {
-		s.views.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
-	s.views.RenderSuccessGet(w, list)
+	s.view.RenderSuccessGet(w, list)
 }
 
 func (s *SoftwareImagesController) UploadLink(w rest.ResponseWriter, r *rest.Request) {
@@ -91,28 +90,28 @@ func (s *SoftwareImagesController) UploadLink(w rest.ResponseWriter, r *rest.Req
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.views.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
 		return
 	}
 
 	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
 	if err != nil {
-		s.views.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	link, err := s.model.UploadLink(id, expire)
 	if err != nil {
-		s.views.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	if link == nil {
-		s.views.RenderErrorNotFound(w)
+		s.view.RenderErrorNotFound(w)
 		return
 	}
 
-	s.views.RenderSuccessGet(w, link)
+	s.view.RenderSuccessGet(w, link)
 }
 
 func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.Request) {
@@ -120,28 +119,28 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.views.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
 		return
 	}
 
 	expire, err := s.getLinkExpireParam(r, DefaultUploadLinkExpire)
 	if err != nil {
-		s.views.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	link, err := s.model.DownloadLink(id, expire)
 	if err != nil {
-		s.views.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	if link == nil {
-		s.views.RenderErrorNotFound(w)
+		s.view.RenderErrorNotFound(w)
 		return
 	}
 
-	s.views.RenderSuccessGet(w, link)
+	s.view.RenderSuccessGet(w, link)
 }
 
 func (s *SoftwareImagesController) getLinkExpireParam(r *rest.Request, defaultValue uint64) (time.Duration, error) {
@@ -188,16 +187,16 @@ func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Re
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.views.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
 		return
 	}
 
 	if err := s.model.DeleteImage(id); err != nil {
-		s.views.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
-	s.views.RenderSuccessDelete(w)
+	s.view.RenderSuccessDelete(w)
 }
 
 func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Request) {
@@ -205,45 +204,45 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.views.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
 		return
 	}
 
 	constructor, err := s.getSoftwareImageConstructorFromBody(r)
 	if err != nil {
-		s.views.RenderError(w, err, http.StatusBadRequest)
+		s.view.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
 
 	found, err := s.model.EditImage(id, constructor)
 	if err != nil {
-		s.views.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	if !found {
-		s.views.RenderErrorNotFound(w)
+		s.view.RenderErrorNotFound(w)
 		return
 	}
 
-	s.views.RenderSuccessPut(w)
+	s.view.RenderSuccessPut(w)
 }
 
 func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Request) {
 
 	constructor, err := s.getSoftwareImageConstructorFromBody(r)
 	if err != nil {
-		s.views.RenderError(w, err, http.StatusBadRequest)
+		s.view.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
 
 	id, err := s.model.CreateImage(constructor)
 	if err != nil {
-		s.views.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
-	s.views.RenderSuccessPost(w, r, id)
+	s.view.RenderSuccessPost(w, r, id)
 }
 
 func (s SoftwareImagesController) getSoftwareImageConstructorFromBody(r *rest.Request) (*images.SoftwareImageConstructor, error) {

@@ -12,19 +12,14 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package view
+package controller
 
-import (
-	"net/http"
+import "github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/deployments/resources/images/view"
-)
-
-type DeploymentsViews struct {
-	view.RESTView
-}
-
-func (d *DeploymentsViews) RenderNoUpdateForDevice(w rest.ResponseWriter) {
-	w.WriteHeader(http.StatusNoContent)
+type RESTView interface {
+	RenderNoUpdateForDevice(w rest.ResponseWriter)
+	RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string)
+	RenderSuccessGet(w rest.ResponseWriter, object interface{})
+	RenderError(w rest.ResponseWriter, err error, status int)
+	RenderErrorNotFound(w rest.ResponseWriter)
 }

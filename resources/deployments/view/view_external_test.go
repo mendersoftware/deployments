@@ -29,7 +29,7 @@ func TestRenderNoUpdateForDevice(t *testing.T) {
 	t.Parallel()
 
 	router, err := rest.MakeRouter(rest.Get("/test", func(w rest.ResponseWriter, r *rest.Request) {
-		view := &DeploymentsViews{}
+		view := &DeploymentsView{}
 		view.RenderNoUpdateForDevice(w)
 	}))
 

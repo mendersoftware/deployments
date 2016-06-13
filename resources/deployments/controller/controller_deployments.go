@@ -20,7 +20,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
-	"github.com/mendersoftware/deployments/resources/deployments/view"
 	"github.com/pkg/errors"
 )
 
@@ -30,13 +29,13 @@ var (
 )
 
 type DeploymentsController struct {
-	views view.DeploymentsViews
+	view  RESTView
 	model DeploymentsModel
 }
 
-func NewDeploymentsController(model DeploymentsModel) *DeploymentsController {
+func NewDeploymentsController(model DeploymentsModel, view RESTView) *DeploymentsController {
 	return &DeploymentsController{
-		views: view.DeploymentsViews{},
+		view:  view,
 		model: model,
 	}
 }
@@ -45,17 +44,17 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 
 	constructor, err := d.getDeploymentConstructorFromBody(r)
 	if err != nil {
-		d.views.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest)
+		d.view.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest)
 		return
 	}
 
 	id, err := d.model.CreateDeployment(constructor)
 	if err != nil {
-		d.views.RenderError(w, err, http.StatusInternalServerError)
+		d.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
-	d.views.RenderSuccessPost(w, r, id)
+	d.view.RenderSuccessPost(w, r, id)
 }
 
 func (d *DeploymentsController) getDeploymentConstructorFromBody(r *rest.Request) (*deployments.DeploymentConstructor, error) {
@@ -77,22 +76,22 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		d.views.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		d.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
 		return
 	}
 
 	deployment, err := d.model.GetDeployment(id)
 	if err != nil {
-		d.views.RenderError(w, err, http.StatusInternalServerError)
+		d.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	if deployment == nil {
-		d.views.RenderErrorNotFound(w)
+		d.view.RenderErrorNotFound(w)
 		return
 	}
 
-	d.views.RenderSuccessGet(w, deployment)
+	d.view.RenderSuccessGet(w, deployment)
 }
 
 func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
@@ -100,20 +99,20 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		d.views.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		d.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
 		return
 	}
 
 	deployment, err := d.model.GetDeploymentForDevice(id)
 	if err != nil {
-		d.views.RenderError(w, err, http.StatusInternalServerError)
+		d.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	if deployment == nil {
-		d.views.RenderNoUpdateForDevice(w)
+		d.view.RenderNoUpdateForDevice(w)
 		return
 	}
 
-	d.views.RenderSuccessGet(w, deployment)
+	d.view.RenderSuccessGet(w, deployment)
 }

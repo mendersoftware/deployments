@@ -22,10 +22,12 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
+// Headers
 const (
 	HttpHeaderLocation = "Location"
 )
 
+// Errors
 var (
 	ErrNotFound = errors.New("Resource not found")
 )
