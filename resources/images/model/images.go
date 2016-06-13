@@ -120,22 +120,22 @@ func (i *ImagesModel) DeleteImage(imageID string) error {
 // On each lookup it syncs last file upload time with metadata in case file was uploaded or reuploaded
 func (i *ImagesModel) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
 
-	images, err := i.imagesStorage.FindAll()
+	imageList, err := i.imagesStorage.FindAll()
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image metadata")
 	}
 
-	if images == nil {
-		return make([]*SoftwareImage, 0), nil
+	if imageList == nil {
+		return make([]*images.SoftwareImage, 0), nil
 	}
 
-	for _, image := range images {
+	for _, image := range imageList {
 		if err := i.syncLastModifiedTimeWithFileUpload(image); err != nil {
 			return nil, errors.Wrap(err, "Synchronizing image upload time")
 		}
 	}
 
-	return images, nil
+	return imageList, nil
 }
 
 // Sync file upload time with last modified time of image metadata.
