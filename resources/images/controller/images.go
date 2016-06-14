@@ -96,7 +96,7 @@ func (s *SoftwareImagesController) UploadLink(w rest.ResponseWriter, r *rest.Req
 
 	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -125,7 +125,7 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 
 	expire, err := s.getLinkExpireParam(r, DefaultUploadLinkExpire)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
 
