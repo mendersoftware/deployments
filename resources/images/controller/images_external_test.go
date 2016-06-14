@@ -152,50 +152,6 @@ func TestControllerListImages(t *testing.T) {
 	recorded.ContentTypeIsJson()
 }
 
-func TestControllerUploadLink(t *testing.T) {
-	imagesModel := new(fakeImageModeler)
-	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
-
-	api := setUpRestTest("/api/0.0.1/images/:id/upload", rest.Get, controller.UploadLink)
-
-	// wrong id
-	recorded := test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/wrong_id/upload", nil))
-	recorded.CodeIs(http.StatusBadRequest)
-
-	// correct id; no upload link
-	id := uuid.NewV4().String()
-	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/upload", nil))
-	recorded.CodeIs(http.StatusNotFound)
-
-	// correct id; error generating link
-	imagesModel.uploadLinkError = errors.New("error")
-	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/upload", nil))
-	recorded.CodeIs(http.StatusInternalServerError)
-
-	// upload link OK
-	imagesModel.uploadLinkError = nil
-	link := images.NewLink("uri", time.Now())
-	imagesModel.uploadLink = link
-	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id+"/upload", nil))
-	recorded.CodeIs(http.StatusOK)
-	recorded.ContentTypeIsJson()
-
-	var receivedLink images.Link
-	// check if returned body has Link structure
-	if err := recorded.DecodeJsonPayload(&receivedLink); err != nil {
-		t.FailNow()
-	}
-	// check if 'uri' is set correctly
-	if receivedLink.Uri != "uri" {
-		t.FailNow()
-	}
-
-}
-
 func TestControllerDeleteImage(t *testing.T) {
 	imagesModel := new(fakeImageModeler)
 	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
@@ -436,6 +392,113 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 		router, err := rest.MakeRouter(
 			rest.Post("/:id",
 				NewSoftwareImagesController(model, new(view.RESTView)).DownloadLink))
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		var expire string
+		if testCase.InputParamExpire != nil {
+			expire = "?expire=" + *testCase.InputParamExpire
+		}
+
+		recorded := test.RunRequest(t, api.MakeHandler(),
+			test.MakeSimpleRequest("POST",
+				fmt.Sprintf("http://localhost/%s%s", testCase.InputID, expire),
+				nil))
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+	}
+}
+
+func TestSoftwareImagesControllerUploadLink(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputID          string
+		InputParamExpire *string
+
+		InputModelLink  *images.Link
+		InputModelError error
+	}{
+		{
+			InputID: "89r89r4y",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(ErrIDNotUUIDv4),
+			},
+		},
+		{
+			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputParamExpire: pointers.StringToPointer("ala ma kota"),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(ErrInvalidExpireParam),
+			},
+		},
+		{
+			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputParamExpire: pointers.StringToPointer("1.1"),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(ErrInvalidExpireParam),
+			},
+		},
+		{
+			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputParamExpire: pointers.StringToPointer("9999999"),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(ErrInvalidExpireParam),
+			},
+		},
+		{
+			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputParamExpire: pointers.StringToPointer("123"),
+			InputModelError:  errors.New("file service down"),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`file service down`)),
+			},
+		},
+		{
+			InputID:         "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputModelError: errors.New("file service down"),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`file service down`)),
+			},
+		},
+		// no file found
+		{
+			InputID: "83241c4b-6281-40dd-b6fa-932633e21bab",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNotFound,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Resource not found`)),
+			},
+		},
+		{
+			InputID:        "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputModelLink: images.NewLink("http://come.and.get.me", time.Time{}),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusOK,
+				OutputBodyObject: images.NewLink("http://come.and.get.me", time.Time{}),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		model := new(mocks.ImagesModel)
+
+		model.On("UploadLink", testCase.InputID, mock.AnythingOfType("time.Duration")).
+			Return(testCase.InputModelLink, testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Post("/:id",
+				NewSoftwareImagesController(model, new(view.RESTView)).UploadLink))
 		assert.NoError(t, err)
 
 		api := rest.NewApi()
