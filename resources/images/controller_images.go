@@ -35,6 +35,7 @@ const (
 )
 
 var (
+	ErrImageMetaNotFound  = errors.New("Image metadata is not found")
 	ErrIDNotUUIDv4        = errors.New("ID is not UUIDv4")
 	ErrInvalidExpireParam = errors.New("Invalid expire parameter")
 )
@@ -201,7 +202,13 @@ func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Re
 		return
 	}
 
-	if err := s.model.DeleteImage(id); err != nil {
+	err := s.model.DeleteImage(id)
+	if err == ErrImageMetaNotFound {
+		s.views.RenderErrorNotFound(w)
+		return
+	}
+
+	if err != nil {
 		s.views.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
