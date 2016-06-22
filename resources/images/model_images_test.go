@@ -230,9 +230,14 @@ func (fus *FakeUseChecker) ImageUsedInDeployment(imageId string) (bool, error) {
 }
 
 func TestDeleteImage(t *testing.T) {
-	fakeChecker := new(FakeUseChecker)
+	image := createValidImage()
+	constructorImage := NewSoftwareImageFromConstructor(image)
+
 	fakeFS := new(FakeFileStorage)
+	fakeChecker := new(FakeUseChecker)
 	fakeIS := new(FakeImageStorage)
+
+	fakeIS.findByIdImage = constructorImage
 
 	fakeChecker.usedInActiveDeploymentsErr = errors.New("error")
 
@@ -265,6 +270,12 @@ func TestDeleteImage(t *testing.T) {
 		t.FailNow()
 	}
 
+	fakeIS.deleteError = errors.New("error")
+	fakeIS.findByIdImage = nil
+
+	if err := iModel.DeleteImage(""); err == nil {
+		t.FailNow()
+	}
 }
 
 func TestListImages(t *testing.T) {
