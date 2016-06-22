@@ -16,6 +16,7 @@ package images
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -44,10 +45,15 @@ type SimpleStorageService struct {
 
 // NewSimpleStorageServiceStatic create new S3 client model.
 // AWS authentication keys are automatically reloaded from env variables.
-func NewSimpleStorageServiceStatic(bucket, key, secret, region, token string) *SimpleStorageService {
+func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string) *SimpleStorageService {
 
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
+
+	if len(uri) > 0 {
+		sslDisabled := !strings.HasPrefix(uri, "https://")
+		config = config.WithDisableSSL(sslDisabled).WithEndpoint(uri)
+	}
 
 	sess := session.New(config)
 
