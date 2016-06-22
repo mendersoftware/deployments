@@ -15,9 +15,15 @@
 package controller
 
 import (
+	"errors"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
+)
+
+// Errors expected from interface
+var (
+	ErrImageMetaNotFound = errors.New("Image metadata is not found")
 )
 
 type ImagesModel interface {

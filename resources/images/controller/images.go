@@ -192,6 +192,10 @@ func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Re
 	}
 
 	if err := s.model.DeleteImage(id); err != nil {
+		if err == ErrImageMetaNotFound {
+			s.view.RenderErrorNotFound(w)
+			return
+		}
 		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}

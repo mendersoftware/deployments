@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/controller"
 	"github.com/pkg/errors"
 )
 
@@ -91,6 +92,15 @@ func (i *ImagesModel) GetImage(id string) (*images.SoftwareImage, error) {
 // In case of already finished updates only image file is not needed, metadata is attached directly to device deployment
 // therefore we still have some information about image that have been used (but not the file)
 func (i *ImagesModel) DeleteImage(imageID string) error {
+	found, err := i.GetImage(imageID)
+
+	if err != nil {
+		return errors.Wrap(err, "Getting image metadata")
+	}
+
+	if found == nil {
+		return controller.ErrImageMetaNotFound
+	}
 
 	inUse, err := i.deployments.ImageUsedInActiveDeployment(imageID)
 	if err != nil {

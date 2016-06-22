@@ -43,6 +43,7 @@ type fakeImageModeler struct {
 	downloadLinkError error
 	editImage         bool
 	editError         error
+	deleteError       error
 }
 
 func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
@@ -62,7 +63,7 @@ func (fim *fakeImageModeler) GetImage(id string) (*images.SoftwareImage, error) 
 }
 
 func (fim *fakeImageModeler) DeleteImage(imageID string) error {
-	return nil
+	return fim.deleteError
 }
 
 func (fim *fakeImageModeler) CreateImage(constructorData *images.SoftwareImageConstructor) (string, error) {
@@ -239,13 +240,25 @@ func TestControllerDeleteImage(t *testing.T) {
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Delete, controller.DeleteImage)
 
+	image := images.NewSoftwareImageConstructor()
+	constructorImage := images.NewSoftwareImageFromConstructor(image)
+
 	// wrong id
 	recorded := test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("DELETE", "http://localhost/api/0.0.1/images/wrong_id", nil))
 	recorded.CodeIs(http.StatusBadRequest)
 
-	// correct id; delete OK
+	// valid id; doesn't exist
 	id := uuid.NewV4().String()
+	imagesModel.deleteError = ErrImageMetaNotFound
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("DELETE", "http://localhost/api/0.0.1/images/"+id, nil))
+	recorded.CodeIs(http.StatusNotFound)
+
+	// valid id; image exists
+	imagesModel.deleteError = nil
+	imagesModel.getImage = constructorImage
+
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("DELETE", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusNoContent)
