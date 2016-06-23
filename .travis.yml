@@ -3,6 +3,7 @@ language: go
 # Forces travis to use VM insted container, required to be able to build containers.
 sudo: required
 
+
 # related to mongodb as per:
 # https://github.com/travis-ci/travis-ci/issues/5948
 group: edge
@@ -14,6 +15,11 @@ services:
 # Golang version matrix
 go:
     - 1.6
+
+addons:
+    #Add alias to localhost, required for fakes3
+    hosts:
+        - mender-artifact-storage.localhost
 
 env:
     global:
@@ -82,6 +88,10 @@ before_install:
     # Install cyclomatic dependency analysis tool
     - go get -u github.com/fzipp/gocyclo
 
+    # Install fakes3
+    - gem install fakes3
+
+
 before_script:
     # Print build info that binary is compiled with.
     - echo $TRAVIS_COMMIT
@@ -107,6 +117,8 @@ before_script:
     # Fail builds when the cyclomatic complexity reaches 15 or more
     - gocyclo -over 15 `find . -iname '*.go' | grep -v 'vendor' | grep -v '_test.go'`
 
+
+
 script:
     # go list supply import paths for all sub directories.
     # Exclude vendor directory, we don't want to run tests and coverage for all dependencies every time,
@@ -117,6 +129,15 @@ script:
 
     # Insert build information into compiled binary using ldflags
     - CGO_ENABLED=0 go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
+
+    # Start test environment
+    - bash ./tests/testenv.sh
+
+    # Only install acceptance testing dependencies after License checking is complete
+    - npm install validator chance jasmine-node frisby
+
+    # Run acceptance tests
+    - jasmine-node ./tests/images/
 
     # Build docker image from docker file
     - sudo docker build -t $DOCKER_REPOSITORY .
