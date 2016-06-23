@@ -61,4 +61,6 @@ Apache style access log is provided on stderr.
 
 ## Testing
 
-Interfaces are mocked for testing purposes using: [mockery](https://github.com/vektra/mockery) generator.
+* Interfaces are mocked for testing purposes using: [mockery](https://github.com/vektra/mockery) generator.
+* Database unit tests require MongoDB installed locally in the system (mongod bianry on the path).
+* Database tests can be skipped using `go test -short`
