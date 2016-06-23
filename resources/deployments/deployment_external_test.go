@@ -77,7 +77,7 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 		},
 	}
 
-	for id, test := range testCases {
+	for _, test := range testCases {
 
 		dep := NewDeploymentConstructor()
 		dep.Name = test.InputName
@@ -85,8 +85,6 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 		dep.Devices = test.InputDevices
 
 		err := dep.Validate()
-
-		t.Log(id, err)
 
 		if !test.IsValid {
 			assert.Error(t, err)
@@ -133,7 +131,7 @@ func TestDeploymentValidate(t *testing.T) {
 		},
 	}
 
-	for id, test := range testCases {
+	for _, test := range testCases {
 
 		pub := NewDeploymentConstructor()
 		pub.Name = test.InputName
@@ -143,8 +141,6 @@ func TestDeploymentValidate(t *testing.T) {
 		dep := NewDeploymentFromConstructor(pub)
 
 		err := dep.Validate()
-
-		t.Log(id, err)
 
 		if !test.IsValid {
 			assert.Error(t, err)
