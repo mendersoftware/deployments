@@ -44,6 +44,7 @@ func SetupS3(c config.ConfigReader) imagesModel.FileStorage {
 			c.GetString(SettingAwsAuthSecret),
 			region,
 			c.GetString(SettingAwsAuthToken),
+			c.GetString(SettingAwsURI),
 		)
 	}
 
