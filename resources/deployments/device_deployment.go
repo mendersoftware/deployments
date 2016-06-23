@@ -33,14 +33,6 @@ const (
 	DeviceDeploymentStatusNoImage     = "noimage"
 )
 
-const (
-	StorageKeyDeviceDeploymentAssignedImage   = "image"
-	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + images.StorageKeySoftwareImageId
-	StorageKeyDeviceDeploymentDeviceId        = "deviceid"
-	StorageKeyDeviceDeploymentStatus          = "status"
-	StorageKeyDeviceDeploymentDeploymentID    = "deploymentid"
-)
-
 type DeviceDeployment struct {
 	// Internal field of initial creation of deployment
 	Created *time.Time `json:"created" valid:"required"`
