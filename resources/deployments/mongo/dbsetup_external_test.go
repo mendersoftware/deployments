@@ -36,10 +36,10 @@ func TestMain(m *testing.M) {
 		db = &dbtest.DBServer{}
 		db.SetPath(DefaultDBDir)
 		// Tier down databaser server
-		// Note: 	if test panics, it will require manual database tier down
-		//			testing package executes tests in goroutines therefore
-		//			we can't catch panics issued in tests.
-		// db.Stop()
+		// Note:
+		// if test panics, it will require manual database tier down
+		// testing package executes tests in goroutines therefore
+		// we can't catch panics issued in tests.
 		defer db.Stop()
 		return m.Run()
 	}()
