@@ -34,3 +34,7 @@ debug
 .vscode/launch.json
 
 /artifacts
+
+.vscode/.browse.VC.db
+
+.vscode/.browse.VC.db-wal
