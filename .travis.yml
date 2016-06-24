@@ -133,11 +133,6 @@ after_success:
     - mkdir build
     - cp $BUILD_ARTIFATS $CONFIG_FILE build/
 
-    # CodeDeploy bundle required packaged archive
-    - mkdir codedeploy
-    - cp -r build/* appspec.yml scripts codedeploy/
-    - cd codedeploy && tar -zcvf ../build/codedeploy.tgz . && cd ..
-
 before_deploy:
     # Master is always lastest
     - if [ ! -z "$TRAVIS_TAG" ]; then export IMAGE_TAG=$TRAVIS_TAG; else export IMAGE_TAG=$TRAVIS_BRANCH; fi
@@ -210,20 +205,3 @@ deploy:
         acl: $AWS_S3_ACL
         on:
             repo: $DEPLOY_REPO
-
-
-    # Automatically deploy all master dev builds to dedicated EC2 instance
-    -
-        provider: codedeploy
-        access_key_id: $AWS_ACCESS_KEY_ID
-        secret_access_key: $AWS_SECRET_ACCESS_KEY
-        bucket: $AWS_BUCKET
-        key: $DEPLOY_REPO/dev/master/$TRAVIS_BUILD_NUMBER/linux_amd64/codedeploy.tgz
-        application: Mender
-        deployment_group: mender-artifacts-dev
-        bundle_type: tgz
-        skip_cleanup: true
-        region: $AWS_REGION
-        on:
-            repo: $DEPLOY_REPO
-            branch: master
