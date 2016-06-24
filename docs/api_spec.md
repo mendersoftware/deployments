@@ -903,6 +903,9 @@ List all YOCTO images.
 ## Create image [POST /api/0.0.1/images]
 Create YOCTO image. Afterwards upload link can be generated to upload image file.
 
+Notice:
+Every image must link to a unique name and device_type.
+
 + Request (application/json)
     + Schema
 

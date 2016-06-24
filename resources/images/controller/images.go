@@ -96,7 +96,7 @@ func (s *SoftwareImagesController) UploadLink(w rest.ResponseWriter, r *rest.Req
 
 	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -125,7 +125,7 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 
 	expire, err := s.getLinkExpireParam(r, DefaultUploadLinkExpire)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -214,7 +214,7 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 
 	constructor, err := s.getSoftwareImageConstructorFromBody(r)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusBadRequest)
+		s.view.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest)
 		return
 	}
 
@@ -236,7 +236,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 
 	constructor, err := s.getSoftwareImageConstructorFromBody(r)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusBadRequest)
+		s.view.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest)
 		return
 	}
 

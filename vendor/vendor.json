@@ -293,6 +293,12 @@
 			"revisionTime": "2016-02-23T13:38:14Z"
 		},
 		{
+			"checksumSHA1": "58HoOoQzqGWh5E+SJfQw7/sPaZs=",
+			"path": "gopkg.in/mgo.v2/dbtest",
+			"revision": "b6e2fa371e64216a45e61072a96d4e3859f169da",
+			"revisionTime": "2016-02-23T13:38:14Z"
+		},
+		{
 			"checksumSHA1": "CkCDTsyN2Lbj1cL8+oaYKoPpI9w=",
 			"path": "gopkg.in/mgo.v2/internal/sasl",
 			"revision": "b6e2fa371e64216a45e61072a96d4e3859f169da",
@@ -311,5 +317,5 @@
 			"revisionTime": "2015-12-01T16:27:45Z"
 		}
 	],
-	"rootPath": "github.com/mendersoftware/artifacts"
+	"rootPath": "github.com/mendersoftware/deployments"
 }

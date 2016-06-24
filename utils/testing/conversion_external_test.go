@@ -12,4 +12,17 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package mongo
+package testing_test
+
+import (
+	"errors"
+	"testing"
+
+	. "github.com/mendersoftware/deployments/utils/testing"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestErrorToErrStruct(t *testing.T) {
+	errStr := "ala ma kota"
+	assert.Equal(t, struct{ Error string }{errStr}, ErrorToErrStruct(errors.New(errStr)))
+}

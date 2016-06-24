@@ -105,7 +105,7 @@ func TestDeviceDeploymentValidate(t *testing.T) {
 		},
 	}
 
-	for id, test := range testCases {
+	for _, test := range testCases {
 
 		dd := NewDeviceDeployment("", "")
 		dd.Created = test.InputCreated
@@ -114,8 +114,6 @@ func TestDeviceDeploymentValidate(t *testing.T) {
 		dd.DeploymentId = test.InputDeploymentID
 
 		err := dd.Validate()
-
-		t.Log(id, err)
 
 		if !test.IsValid {
 			assert.Error(t, err)
