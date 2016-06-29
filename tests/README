@@ -1,0 +1,9 @@
+Acceptance test are found here
+
+The tests are using frisbyjs: http://frisbyjs.com and require nodejs installed.
+
+Install test dependencies with: npm install jasmine-node frisby validator
+
+The idea is to have a seperate folder for every endpoint, and have seperate tests in seperate files.
+
+I have written the tests so that any dependancies are created first, follwed by the test.
