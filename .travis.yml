@@ -75,12 +75,17 @@ env:
         - AWS_S3_ACL=${AWS_S3_ACL_OVERRIDE:-$AWS_S3_ACL_DEFAULT}
         - DEPLOY_REPO=${DEPLOY_REPO_OVERRIDE:-$DEPLOY_REPO_DEFAULT}
         - BUILD_ARTIFATS=${BUILD_ARTIFATS_OVERRIDE:-$BUILD_ARTIFATS_DEFAULT}
+addons:
+    apt:
+        packages:
+        - nodejs
 
 before_install:
     # Install code coverage / coveralls tooling
     - go get -u github.com/axw/gocov/gocov
     - go get -u github.com/mattn/goveralls
     - go get -u golang.org/x/tools/cmd/cover
+    - go get -u github.com/fzipp/gocyclo
 
     # Merge all subpackage code coverage reports into a single report
     - go get -u github.com/modocache/gover
@@ -119,6 +124,12 @@ before_script:
 
 
 
+    # Install jasmine-node
+    - npm install -g jasmine-node --registry http://registry.npmjs.org/
+
+    # Install frisby
+    - npm install frisby --save-dev --registry http://registry.npmjs.org/
+
 script:
     # go list supply import paths for all sub directories.
     # Exclude vendor directory, we don't want to run tests and coverage for all dependencies every time,
@@ -141,6 +152,12 @@ script:
 
     # Build docker image from docker file
     - sudo docker build -t $DOCKER_REPOSITORY .
+
+    # Run acceptance tests
+    - jasmine-node tests_spec.js --verbose --junitreport
+
+    # Fail builds when the cyclomatic complexity reaches 15 or more
+    - gocyclo -over 1 `find . -iname '*.go' | grep -v 'Godeps' | grep -v '_test.go'`
 
 after_success:
     # Merge all coverage reports located in subdirectories and put them under: gover.coverprofile
