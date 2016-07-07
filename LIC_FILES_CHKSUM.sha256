@@ -1,0 +1,45 @@
+#
+# Apache-2.0
+bbb303820971c294a9a8e5eba5affcf1379036e877ea61c11cbf9400b2949483  COPYING
+3591f687e2d6f49c83b1ec69577e8110afbde80be5ec81791bd86d2838ccd3de  LICENSE
+3591f687e2d6f49c83b1ec69577e8110afbde80be5ec81791bd86d2838ccd3de  vendor/github.com/mendersoftware/log/LICENSE
+bbb303820971c294a9a8e5eba5affcf1379036e877ea61c11cbf9400b2949483  vendor/github.com/mendersoftware/log/COPYING
+bbb303820971c294a9a8e5eba5affcf1379036e877ea61c11cbf9400b2949483  vendor/github.com/mendersoftware/mendertesting/LICENSE
+3591f687e2d6f49c83b1ec69577e8110afbde80be5ec81791bd86d2838ccd3de  vendor/github.com/mendersoftware/scopestack/LICENSE
+bbb303820971c294a9a8e5eba5affcf1379036e877ea61c11cbf9400b2949483  vendor/github.com/mendersoftware/scopestack/COPYING
+03cfaf331a260694d06227a589cdd2b5fcfab474697b72e250736696c313655a  vendor/github.com/jmespath/go-jmespath/LICENSE
+73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68  vendor/github.com/go-ini/ini/LICENSE
+cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  vendor/github.com/aws/aws-sdk-go/LICENSE.txt
+#
+# BSD-2-Clause
+1e0222fa00c5a5356489185f78758e8ce8352c44e992486136b605f8ef7ee657  vendor/github.com/magiconair/properties/LICENSE
+192def682f6846c6a57e20cf044e224fa467948358163a18dd37bfe14578e6ab  vendor/github.com/pkg/errors/LICENSE
+fe60e0cc90e88f12c814adb7dc88df6791c6ec6798d8c856b7d5ad1b805b4f10  vendor/gopkg.in/mgo.v2/LICENSE
+86258a47c5340187ef120b9c20e5427a84d3040ecab3243315692862e07dedae  vendor/gopkg.in/mgo.v2/bson/LICENSE
+#
+# BSD-3-Clause
+b8514c577c1c4b46cee454d5a882b15fa411e72c5bd7f801f241591789fce61a  vendor/github.com/spf13/pflag/LICENSE
+c8001d18c3dda64c7e72146f1b23d73619fcf426aed6778f447599f5ac8e600a  vendor/gopkg.in/fsnotify.v1/LICENSE
+2eb550be6801c1ea434feba53bf6d12e7c71c90253e0a9de4a4f46cf88b56477  vendor/github.com/pmezard/go-difflib/LICENSE
+#
+# MIT
+51a0c9ec7f8b7634181b8d4c03e5b5d204ac21d6e72f46c313973424664b2e6b  vendor/github.com/Sirupsen/logrus/LICENSE
+feb6d17a0e7a64e5ab0f7e2b0e0ee3e69c1a6396626fd554dc0cddaa06851b44  vendor/github.com/spf13/viper/LICENSE
+feb6d17a0e7a64e5ab0f7e2b0e0ee3e69c1a6396626fd554dc0cddaa06851b44  vendor/github.com/spf13/cast/LICENSE
+feb6d17a0e7a64e5ab0f7e2b0e0ee3e69c1a6396626fd554dc0cddaa06851b44  vendor/github.com/spf13/jwalterweatherman/LICENSE
+4e26b8fcc034e2221b016f5a33e6eb741912577c5d0d406e924df1f27d05de79  vendor/github.com/kr/pretty/License
+283c28b781bc7487bd7bcaf453cbd811f5ee8d7ce625cfcf8dcacae6ba1f4bb5  vendor/github.com/kr/text/License
+bb5c9034e7abd77a830bce376889bd7cab3ffb7e62a9440714784802bc7a6bbe  vendor/github.com/ant0ine/go-json-rest/LICENSE
+22adc4abdece712a737573672f082fd61ac2b21df878efb87ffcff4354a07f26  vendor/github.com/mitchellh/mapstructure/LICENSE
+d5ecab1f944eb45c5c89dbd749819af7b8a74a018065695baf535c962ded39f0  vendor/github.com/satori/go.uuid/LICENSE
+402f39eed8a1851385d0703999aa9f23d067c2ea3e15c63c074e389cbf8f8f8f  vendor/github.com/stretchr/testify/LICENSE
+3525392c6db3b804af76980b2c560ee9ec1abdadd907d76a26091df7c78f3a25  vendor/github.com/davecgh/go-spew/LICENSE
+012d0f6caf604aedba723982c0d8a28f664ecd957de5131bc22c87a0d36b7115  vendor/github.com/asaskevich/govalidator/LICENSE
+#
+# Basically MIT (but with a "colorful" language!)
+7637386b5f81e8a719ca336233149005e5fa28b5e6054ea7b67de49355b0ad40  vendor/github.com/BurntSushi/toml/COPYING
+#
+# LGPL3 with static linking exception.
+b442bc6658b18bf92cb6cb34dd12e758773de618bbad62294ba65f2758e2dc34  vendor/gopkg.in/yaml.v2/LICENSE
+# Addendum to the above.
+a94710b55e03b5285f77d048c5ba61bb9d6ee04a06c0eb90e68821e11b0c707a  vendor/gopkg.in/yaml.v2/LICENSE.libyaml

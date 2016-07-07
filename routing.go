@@ -17,28 +17,38 @@ package main
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/deployments/config"
-	"github.com/mendersoftware/deployments/mvc"
-	"github.com/mendersoftware/deployments/resources/deployments"
-	"github.com/mendersoftware/deployments/resources/images"
+	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
+	"github.com/mendersoftware/deployments/resources/deployments/generator"
+	"github.com/mendersoftware/deployments/resources/deployments/inventory"
+	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
+	deploymentsMongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
+	deploymentsView "github.com/mendersoftware/deployments/resources/deployments/view"
+	imagesController "github.com/mendersoftware/deployments/resources/images/controller"
+	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
+	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
+	"github.com/mendersoftware/deployments/resources/images/s3"
+	imagesView "github.com/mendersoftware/deployments/resources/images/view"
+	"github.com/mendersoftware/deployments/utils/restutil"
 	"gopkg.in/mgo.v2"
 )
 
-func SetupS3(c config.ConfigReader) images.FileStorager {
+func SetupS3(c config.ConfigReader) imagesModel.FileStorage {
 
 	bucket := c.GetString(SettingAweS3Bucket)
 	region := c.GetString(SettingAwsS3Region)
 
 	if c.IsSet(SettingsAwsAuth) {
-		return images.NewSimpleStorageServiceStatic(
+		return s3.NewSimpleStorageServiceStatic(
 			bucket,
 			c.GetString(SettingAwsAuthKeyId),
 			c.GetString(SettingAwsAuthSecret),
 			region,
 			c.GetString(SettingAwsAuthToken),
+			c.GetString(SettingAwsURI),
 		)
 	}
 
-	return images.NewSimpleStorageServiceDefaults(bucket, region)
+	return s3.NewSimpleStorageServiceDefaults(bucket, region)
 }
 
 // NewRouter defines all REST API routes.
@@ -52,29 +62,29 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 	// Storage Layer
 	fileStorage := SetupS3(c)
-	deploymentsStorage := deployments.NewDeploymentsStorage(dbSession)
-	deviceDeploymentsStorage := deployments.NewDeviceDeploymentsStorage(dbSession)
-	imagesStorage := images.NewSoftwareImagesStorage(dbSession)
+	deploymentsStorage := deploymentsMongo.NewDeploymentsStorage(dbSession)
+	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
+	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
 	if err := imagesStorage.IndexStorage(); err != nil {
 		return nil, err
 	}
 
 	// Domian Models
-	deploymentModel := deployments.NewDeploymentModel(
+	deploymentModel := deploymentsModel.NewDeploymentModel(
 		deploymentsStorage,
-		deployments.NewImageBasedDeviceDeployment(
+		generator.NewImageBasedDeviceDeployment(
 			imagesStorage,
 			// can easily add configuration from main config file
-			deployments.NewInventoryWithHardcodedType("TestDevice")),
+			inventory.NewInventoryWithHardcodedType("TestDevice")),
 		deviceDeploymentsStorage,
 		fileStorage,
 	)
 
-	imagesModel := images.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
+	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
 
 	// Controllers
-	imagesController := images.NewSoftwareImagesController(imagesModel, mvc.RESTViewDefaults{})
-	deploymentsController := deployments.NewDeploymentsController(deploymentModel)
+	imagesController := imagesController.NewSoftwareImagesController(imagesModel, new(imagesView.RESTView))
+	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel, new(deploymentsView.DeploymentsView))
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)
@@ -82,10 +92,10 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 	routes := append(imageRoutes, deploymentsRoutes...)
 
-	return rest.MakeRouter(mvc.AutogenOptionsRoutes(mvc.NewOptionsHandler, routes...)...)
+	return rest.MakeRouter(restutil.AutogenOptionsRoutes(restutil.NewOptionsHandler, routes...)...)
 }
 
-func NewImagesResourceRoutes(controller *images.SoftwareImagesController) []*rest.Route {
+func NewImagesResourceRoutes(controller *imagesController.SoftwareImagesController) []*rest.Route {
 
 	if controller == nil {
 		return []*rest.Route{}
@@ -104,7 +114,7 @@ func NewImagesResourceRoutes(controller *images.SoftwareImagesController) []*res
 	}
 }
 
-func NewDeploymentsResourceRoutes(controller *deployments.DeploymentsController) []*rest.Route {
+func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsController) []*rest.Route {
 
 	if controller == nil {
 		return []*rest.Route{}

@@ -33,6 +33,7 @@ const (
 	SettingAwsS3RegionDefault = "eu-west-1"
 	SettingAweS3Bucket        = SettingsAws + ".bucket"
 	SettingAwsS3BucketDefault = "mender-artifact-storage"
+	SettingAwsURI             = SettingsAws + ".uri"
 
 	SettingsAwsAuth      = SettingsAws + ".auth"
 	SettingAwsAuthKeyId  = SettingsAwsAuth + ".key"
