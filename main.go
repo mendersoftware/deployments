@@ -51,6 +51,10 @@ func main() {
 func HandleConfigFile(filePath string) (config.ConfigReader, error) {
 
 	c := viper.New()
+
+	//Allow AWS URI endpoint to be set by environment variable
+	c.BindEnv(SettingAwsURI, "AWS_URI")
+
 	c.SetConfigFile(filePath)
 
 	// Set default values for config
