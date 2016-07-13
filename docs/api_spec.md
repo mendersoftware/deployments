@@ -19,11 +19,26 @@ Allows `location` header exposure.
 
 # Group Device
 
-## List updates for device [GET /api/0.0.1/devices/{id}/update]
+## Authorization
+
+Incoming requests must set `Authorization` header and include device token
+obtained from the API. The header shall look like this:
+
+```
+Authorization: Bearer <token>
+# example
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ
+
+```
+
+## List updates for device [GET /api/0.0.1/devices/update]
 List next update to be installed on the device.
 
-+ Parameters
-    + id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string, required) -  Device ID
++ Request
+
+    + Headers
+
+        Authorization: Bearer <token>
 
 + Response 200 (application/json)
     Next update for the device.
