@@ -23,4 +23,5 @@ type DeviceDeploymentStorage interface {
 	InsertMany(deployment ...*deployments.DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(id string, statuses ...string) (bool, error)
 	FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
+	UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) error
 }
