@@ -31,7 +31,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3O
 
 ```
 
-## List updates for device [GET /api/0.0.1/devices/update]
+## List updates for device [GET /api/0.0.1/device/update]
 List next update to be installed on the device.
 
 + Request
