@@ -20,6 +20,8 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/utils/identity"
+	"github.com/mendersoftware/log"
 	"github.com/pkg/errors"
 )
 
@@ -96,14 +98,14 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 
 func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
 
-	id := r.PathParam("id")
-
-	if !govalidator.IsUUIDv4(id) {
-		d.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
 
-	deployment, err := d.model.GetDeploymentForDevice(id)
+	log.Infof("deployment for device %v err %v", idata, err)
+	deployment, err := d.model.GetDeploymentForDevice(idata.Subject)
 	if err != nil {
 		d.view.RenderError(w, err, http.StatusInternalServerError)
 		return

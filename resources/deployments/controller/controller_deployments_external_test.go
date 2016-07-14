@@ -15,7 +15,9 @@
 package controller_test
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -35,6 +37,11 @@ import (
 // 			they are more of integration test beween controller and view
 //			testing actuall HTTP endpoint input/reponse
 
+func makeDeviceAuthHeader(claim string) string {
+	return fmt.Sprintf("Bearer foo.%s.bar",
+		base64.StdEncoding.EncodeToString([]byte(claim)))
+}
+
 func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 	t.Parallel()
@@ -46,54 +53,73 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 		InputModelDeploymentInstructions *deployments.DeploymentInstructions
 		InputModelError                  error
+
+		Headers map[string]string
 	}{
 		{
-			InputID: "broken_id",
+			InputID: "malformed-token",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(ErrIDNotUUIDv4),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("failed to decode claims: invalid character ':' after top-level value")),
+			},
+			Headers: map[string]string{
+				// fabricate bad token - malformed JSON
+				"Authorization": makeDeviceAuthHeader(`"sub": "device"}`),
 			},
 		},
 		{
-			InputID:         "f826484e-1157-4109-af21-304e6d711560",
+			InputID:         "device-id-1",
 			InputModelError: errors.New("model error"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
 				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
 			},
-		},
-		{
-			InputID: "f826484e-1157-4109-af21-304e6d711560",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus: http.StatusNoContent,
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-1"}`),
 			},
 		},
 		{
-			InputID: "f826484e-1157-4109-af21-304e6d711560",
+			InputID: "device-id-2",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusNoContent,
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
+			},
+		},
+		{
+			InputID: "device-id-3",
 			InputModelDeploymentInstructions: deployments.NewDeploymentInstructions("", nil, nil),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusOK,
 				OutputBodyObject: deployments.NewDeploymentInstructions("", nil, nil),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
 
+		t.Logf("testing input ID: %v", testCase.InputID)
 		deploymentModel := new(mocks.DeploymentsModel)
 		deploymentModel.On("GetDeploymentForDevice", testCase.InputID).
 			Return(testCase.InputModelDeploymentInstructions, testCase.InputModelError)
 
 		router, err := rest.MakeRouter(
-			rest.Get("/r/:id",
+			rest.Get("/r/update",
 				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeploymentForDevice))
 		assert.NoError(t, err)
 
 		api := rest.NewApi()
 		api.SetApp(router)
 
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("GET", "http://localhost/r/"+testCase.InputID, nil))
+		req := test.MakeSimpleRequest("GET", "http://localhost/r/update", nil)
+		for k, v := range testCase.Headers {
+			req.Header.Set(k, v)
+		}
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
