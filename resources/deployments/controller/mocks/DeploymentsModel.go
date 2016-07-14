@@ -90,3 +90,10 @@ func (_m *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployment
 
 	return r0, r1
 }
+
+func (_m *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
+	deviceID string, status string) error {
+
+	ret := _m.Called(deploymentID, deviceID, status)
+	return ret.Error(0)
+}
