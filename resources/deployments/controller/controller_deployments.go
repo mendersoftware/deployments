@@ -21,7 +21,6 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/utils/identity"
-	"github.com/mendersoftware/log"
 	"github.com/pkg/errors"
 )
 
@@ -104,7 +103,6 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 		return
 	}
 
-	log.Infof("deployment for device %v err %v", idata, err)
 	deployment, err := d.model.GetDeploymentForDevice(idata.Subject)
 	if err != nil {
 		d.view.RenderError(w, err, http.StatusInternalServerError)
