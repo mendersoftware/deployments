@@ -113,7 +113,7 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
-			testCase.InputExistAssignedImageWithIDAndStatusesError)
+				testCase.InputExistAssignedImageWithIDAndStatusesError)
 
 		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
 
@@ -167,7 +167,7 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputImageUsedInDeploymentFound,
-			testCase.InputImageUsedInDeploymentError)
+				testCase.InputImageUsedInDeploymentError)
 
 		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
 
@@ -246,7 +246,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputOlderstDeviceDeployment,
-			testCase.InputOlderstDeviceDeploymentError)
+				testCase.InputOlderstDeviceDeploymentError)
 
 		imageLinker := new(mocks.GetRequester)
 		// Notice: force GetRequest to expect image id returned by FindOldestDeploymentForDeviceIDWithStatuses
@@ -373,6 +373,61 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		}
 		if testCase.OutputBody {
 			assert.NotNil(t, out)
+		}
+	}
+
+}
+
+func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
+
+	t.Parallel()
+
+	testCases := []struct {
+		InputDeploymentID string
+		InputDeviceID     string
+		InputStatus       string
+
+		InputModelError error
+
+		OutputError error
+	}{
+		{
+			InputDeploymentID: "ID:123",
+			InputDeviceID:     "123",
+			InputStatus:       "installing",
+			InputModelError:   errors.New("storage issue"),
+
+			OutputError: errors.New("storage issue"),
+		},
+		{
+			InputDeploymentID: "ID:234",
+			InputDeviceID:     "234",
+			InputStatus:       "none",
+			InputModelError:   nil,
+
+			OutputError: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing %s %s %s %v", testCase.InputDeploymentID, testCase.InputDeviceID,
+			testCase.InputStatus, testCase.InputModelError)
+
+		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
+		deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
+			testCase.InputDeviceID, testCase.InputDeploymentID,
+			testCase.InputStatus).
+			Return(testCase.InputModelError)
+
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
+
+		err := model.UpdateDeviceDeploymentStatus(testCase.InputDeploymentID,
+			testCase.InputDeviceID, testCase.InputStatus)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
 		}
 	}
 

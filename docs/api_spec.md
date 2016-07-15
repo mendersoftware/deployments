@@ -176,6 +176,121 @@ List next update to be installed on the device.
                 "error": "Detailed error message"
             }
 
+
+## Report deployment status [PUT /api/0.1.0/device/deployments/{deployment_id}/status]
+
+Allows to update the status of deployment on a particular device. Final status
+of the deployment is required to be set to indicate end of the installation
+process: success or failure. Reporting of intermediate steps such as installing,
+downloading, rebooting is optionall.
+
++ Parameters
+
+    + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deplyoment ID
+
++ Request (application/json)
+
+    + Headers
+
+        Authorization: Bearer <token>
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "installing",
+                            "downloading",
+                            "rebooting",
+                            "success",
+                            "failure"
+                        ]
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            }
+
+    + Body
+
+            {
+                "status": "success"
+            }
+
++ Response 204
+    Deployment status updated. No body
+
++ Response 400 (application/json)
+    Invalid request.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
++ Response 404 (application/json)
+    Resource not found.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
++ Response 500 (application/json)
+    Internal server error. Please retry in a while.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
 # Group Deployment
 
 ## Lookup deployments [GET /api/0.0.1/deployments{?name}]

@@ -21,7 +21,6 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/utils/identity"
-	"github.com/mendersoftware/log"
 	"github.com/pkg/errors"
 )
 
@@ -104,7 +103,6 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 		return
 	}
 
-	log.Infof("deployment for device %v err %v", idata, err)
 	deployment, err := d.model.GetDeploymentForDevice(idata.Subject)
 	if err != nil {
 		d.view.RenderError(w, err, http.StatusInternalServerError)
@@ -117,4 +115,32 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 	}
 
 	d.view.RenderSuccessGet(w, deployment)
+}
+
+func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWriter, r *rest.Request) {
+
+	did := r.PathParam("id")
+
+	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	// receive request body
+	var report statusReport
+
+	err = r.DecodeJsonPayload(&report)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	status := report.Status
+	if err := d.model.UpdateDeviceDeploymentStatus(did, idata.Subject, status); err != nil {
+		d.view.RenderError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	d.view.RenderEmptySuccessResponse(w)
 }

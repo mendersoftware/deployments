@@ -20,6 +20,7 @@ type RESTView interface {
 	RenderNoUpdateForDevice(w rest.ResponseWriter)
 	RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string)
 	RenderSuccessGet(w rest.ResponseWriter, object interface{})
+	RenderEmptySuccessResponse(w rest.ResponseWriter)
 	RenderError(w rest.ResponseWriter, err error, status int)
 	RenderErrorNotFound(w rest.ResponseWriter)
 }

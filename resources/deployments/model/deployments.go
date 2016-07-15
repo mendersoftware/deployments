@@ -17,8 +17,8 @@ package model
 import (
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/pkg/errors"
 )
 
 // Defaults
@@ -161,4 +161,12 @@ func (d *DeploymentsModel) ActiveDeploymentStatuses() []string {
 		deployments.DeviceDeploymentStatusInstalling,
 		deployments.DeviceDeploymentStatusRebooting,
 	}
+}
+
+// UpdateDeviceDeploymentStatus will update the deployment status for device of
+// ID `deviceID`. Returns nil if update was successful.
+func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
+	deviceID string, status string) error {
+
+	return d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID, status)
 }

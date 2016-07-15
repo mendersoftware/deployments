@@ -21,4 +21,5 @@ type DeploymentsModel interface {
 	CreateDeployment(constructor *deployments.DeploymentConstructor) (string, error)
 	GetDeployment(deploymentID string) (*deployments.Deployment, error)
 	GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error)
+	UpdateDeviceDeploymentStatus(deploymentID string, deviceID string, status string) error
 }

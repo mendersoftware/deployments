@@ -143,3 +143,39 @@ func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 
 	return deployment, nil
 }
+
+func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) error {
+
+	// Verify ID formatting
+	if govalidator.IsNull(deviceID) ||
+		govalidator.IsNull(deploymentID) ||
+		govalidator.IsNull(status) {
+		return ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	// Device should know only about deployments that are not finished
+	query := bson.M{
+		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+	}
+
+	// update status field only
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeviceDeploymentStatus: status,
+		},
+	}
+	chi, err := session.DB(DatabaseName).C(CollectionDevices).Upsert(query, update)
+	if err != nil {
+		return err
+	}
+
+	if chi.Updated == 0 {
+		return mgo.ErrNotFound
+	}
+
+	return nil
+}
