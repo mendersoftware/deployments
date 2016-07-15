@@ -15,18 +15,20 @@
 package controller
 
 import (
-	"net/http"
-
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/deployments/model"
 	"github.com/mendersoftware/deployments/utils/identity"
 	"github.com/pkg/errors"
+	"net/http"
 )
 
 // Errors
 var (
-	ErrIDNotUUIDv4 = errors.New("ID is not UUIDv4")
+	ErrIDNotUUIDv4  = errors.New("ID is not UUIDv4")
+	ErrDeploymentID = errors.New("Invalid deployment ID")
+	ErrInternal     = errors.New("Internal error")
 )
 
 type DeploymentsController struct {
@@ -166,4 +168,28 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 	}
 
 	d.view.RenderEmptySuccessResponse(w)
+}
+
+func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWriter, r *rest.Request) {
+	did := r.PathParam("id")
+
+	if !govalidator.IsUUIDv4(did) {
+		d.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		return
+	}
+
+	statuses, err := d.model.GetDeviceStatusesForDeployment(did)
+	if err != nil {
+		switch err {
+		case model.ErrModelDeploymentNotFound:
+			d.view.RenderError(w, err, http.StatusNotFound)
+			return
+		default:
+			d.view.RenderError(w, ErrInternal, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	d.view.RenderSuccessGet(w, statuses)
+	return
 }
