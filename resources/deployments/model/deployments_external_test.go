@@ -501,3 +501,97 @@ func TestGetDeploymentStats(t *testing.T) {
 		}
 	}
 }
+
+func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		inDeploymentId string
+
+		devsStorageStatuses []deployments.DeviceDeployment
+		devsStorageErr      error
+
+		depsStorageDeployment *deployments.Deployment
+		depsStorageErr        error
+
+		modelErr error
+	}{
+		"existing deployment with statuses": {
+			inDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+
+			devsStorageStatuses: []deployments.DeviceDeployment{
+				*deployments.NewDeviceDeployment("dev0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+				*deployments.NewDeviceDeployment("dev0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+				*deployments.NewDeviceDeployment("dev0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+			},
+			devsStorageErr: nil,
+
+			depsStorageDeployment: &deployments.Deployment{},
+			depsStorageErr:        nil,
+
+			modelErr: nil,
+		},
+		"deployment doesn't exist": {
+			devsStorageStatuses: []deployments.DeviceDeployment{
+				*deployments.NewDeviceDeployment("dev0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+				*deployments.NewDeviceDeployment("dev0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+				*deployments.NewDeviceDeployment("dev0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+			},
+			devsStorageErr: nil,
+
+			depsStorageDeployment: nil,
+			depsStorageErr:        nil,
+
+			modelErr: ErrModelDeploymentNotFound,
+		},
+		"DeviceDeployments storage layer error": {
+			inDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+
+			devsStorageStatuses: nil,
+			devsStorageErr:      errors.New("some verbose, low-level db error"),
+
+			depsStorageDeployment: &deployments.Deployment{},
+			depsStorageErr:        nil,
+
+			modelErr: errors.New("Internal error"),
+		},
+		"Deployments storage layer error": {
+			inDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+
+			devsStorageStatuses: nil,
+			devsStorageErr:      nil,
+
+			depsStorageDeployment: nil,
+			depsStorageErr:        errors.New("some verbose, low-level db error"),
+
+			modelErr: errors.New("Internal error"),
+		},
+	}
+
+	for id, tc := range testCases {
+		t.Logf("test case: %s", id)
+
+		devsDb := new(mocks.DeviceDeploymentStorage)
+
+		devsDb.On("GetDeviceStatusesForDeployment", tc.inDeploymentId).
+			Return(tc.devsStorageStatuses, tc.devsStorageErr)
+
+		depsDb := new(mocks.DeploymentsStorage)
+
+		depsDb.On("FindByID", tc.inDeploymentId).
+			Return(tc.depsStorageDeployment, tc.depsStorageErr)
+
+		model := NewDeploymentModel(depsDb, nil, devsDb, nil)
+		statuses, err := model.GetDeviceStatusesForDeployment(tc.inDeploymentId)
+
+		if tc.modelErr != nil {
+			assert.EqualError(t, err, tc.modelErr.Error())
+		} else {
+			assert.NoError(t, err)
+
+			for i, expected := range tc.devsStorageStatuses {
+				assert.Equal(t, expected, statuses[i])
+			}
+		}
+	}
+}

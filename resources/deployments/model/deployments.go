@@ -28,8 +28,10 @@ const (
 
 // Errors
 var (
-	ErrModelMissingInput    = errors.New("Missing input deplyoment data")
-	ErrModelInvalidDeviceID = errors.New("Invalid device ID")
+	ErrModelMissingInput       = errors.New("Missing input deplyoment data")
+	ErrModelInvalidDeviceID    = errors.New("Invalid device ID")
+	ErrModelDeploymentNotFound = errors.New("Deployment not found")
+	ErrModelInternal           = errors.New("Internal error")
 )
 
 type DeploymentsModel struct {
@@ -173,4 +175,23 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 
 func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.Stats, error) {
 	return d.deviceDeploymentsStorage.AggregateDeviceDeploymentByStatus(deploymentID)
+}
+
+//GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
+func (d *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error) {
+	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
+	if err != nil {
+		return nil, ErrModelInternal
+	}
+
+	if deployment == nil {
+		return nil, ErrModelDeploymentNotFound
+	}
+
+	statuses, err := d.deviceDeploymentsStorage.GetDeviceStatusesForDeployment(deploymentID)
+	if err != nil {
+		return nil, ErrModelInternal
+	}
+
+	return statuses, nil
 }

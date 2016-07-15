@@ -23,4 +23,5 @@ type DeploymentsModel interface {
 	GetDeploymentStats(deploymentID string) (deployments.Stats, error)
 	GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error)
 	UpdateDeviceDeploymentStatus(deploymentID string, deviceID string, status string) error
+	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
 }
