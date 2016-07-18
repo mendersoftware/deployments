@@ -872,6 +872,138 @@ TODO: To be implemented
                 "error": "Detailed error message"
             }
 
+### Send deployment log [PUT /api/0.1.0/device/deployments/{deployment_id}/log]
+Set deployment log. Messages are split by line in the payload.
+
++ Parameters
+    + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deplyoment ID
+
++ Request (application/json)
+
+    + Headers
+
+        Authorization: Bearer <token>
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "timestamp": {
+                                    "type": "string"
+                                },
+                                "level": {
+                                    "type": "string",
+                                },
+                                "message": {
+                                    "type": "string"
+                                }
+                             },
+                            "required": [
+                                "timestamp",
+                                "level",
+                                "message"
+                             ]
+                        }
+                    }
+                },
+                "required": [
+                    "messages"
+                ]
+            }
+
+    + Body
+
+            {
+                "messages": [
+                    {
+                        "timestamp": "2016-02-11T13:03:17.063493443Z",
+                        "level": "error",
+                        "message": "ASL Sender Statistics"
+                    },
+                    {
+                        "timestamp": "2016-02-11T13:03:18.063493443Z",
+                        "level": "notice",
+                        "message": "404 not found"
+                    }
+                ]
+            }
+
++ Response 204
+    Deployment log uploaded. No body
+
++ Response 400 (application/json)
+    Invalid request.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
++ Response 404 (application/json)
+    Resource not found.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
++ Response 500 (application/json)
+    Internal server error. Please retry in a while.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
 ### Deployment log [GET /api/0.0.1/deployments/{deployment_id}/devices/{device_id}/log]
 Device statuses for the deployment.
 TODO: To be implemented
