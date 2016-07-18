@@ -179,3 +179,48 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string,
 
 	return nil
 }
+
+func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(id string) (deployments.RawStats, error) {
+
+	if govalidator.IsNull(id) {
+		return nil, ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	match := bson.M{
+		"$match": bson.M{
+			StorageKeyDeviceDeploymentDeploymentID: id,
+		},
+	}
+	group := bson.M{
+		"$group": bson.M{
+			"_id": "$" + StorageKeyDeviceDeploymentStatus,
+			"count": bson.M{
+				"$sum": 1,
+			},
+		},
+	}
+	pipe := []bson.M{
+		match,
+		group,
+	}
+	var results []struct {
+		Name  string `bson:"_id"`
+		Count int
+	}
+	err := session.DB(DatabaseName).C(CollectionDevices).Pipe(&pipe).All(&results)
+	if err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	raw := make(deployments.RawStats)
+	for _, res := range results {
+		raw[res.Name] = res.Count
+	}
+	return raw, nil
+}
