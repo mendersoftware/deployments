@@ -16,7 +16,7 @@ package controller
 
 import "github.com/mendersoftware/deployments/resources/deployments"
 
-// Domeain model for deployment
+// Domain model for deployment
 type DeploymentsModel interface {
 	CreateDeployment(constructor *deployments.DeploymentConstructor) (string, error)
 	GetDeployment(deploymentID string) (*deployments.Deployment, error)
