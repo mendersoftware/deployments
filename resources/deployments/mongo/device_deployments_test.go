@@ -95,7 +95,7 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 
 	if testing.Short() {
-		t.Skip("skipping TestDeviceDeploymentStorageInsert in short mode.")
+		t.Skip("skipping TestUpdateDeviceDeploymentStatus in short mode.")
 	}
 
 	testCases := []struct {
