@@ -432,3 +432,72 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 	}
 
 }
+
+func TestGetDeploymentStats(t *testing.T) {
+
+	t.Parallel()
+
+	testCases := []struct {
+		InputDeploymentID         string
+		InputModelDeploymentStats deployments.RawStats
+		InputModelError           error
+
+		OutputStats *deployments.Stats
+		OutputError error
+	}{
+		{
+			InputDeploymentID:         "ID:123",
+			InputModelDeploymentStats: nil,
+
+			OutputStats: nil,
+		},
+		{
+			InputDeploymentID: "ID:234",
+			InputModelError:   errors.New("storage issue"),
+
+			OutputError: errors.New("storage issue"),
+		},
+		{
+			InputDeploymentID: "ID:345",
+			InputModelDeploymentStats: deployments.RawStats{
+				deployments.DeviceDeploymentStatusPending: 2,
+				deployments.DeviceDeploymentStatusSuccess: 4,
+				deployments.DeviceDeploymentStatusFailure: 1,
+
+				//  these are counted as in progress deployments
+				deployments.DeviceDeploymentStatusInstalling:  3,
+				deployments.DeviceDeploymentStatusRebooting:   3,
+				deployments.DeviceDeploymentStatusDownloading: 3,
+			},
+
+			OutputStats: &deployments.Stats{
+				Successful: 4,
+				Failure:    1,
+				Pending:    2,
+				InProgress: 9,
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing %s %v %v", testCase.InputDeploymentID,
+			testCase.InputModelDeploymentStats, testCase.InputModelError)
+
+		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
+		deviceDeploymentStorage.On("AggregateDeviceDeploymentByStatus",
+			testCase.InputDeploymentID).
+			Return(testCase.InputModelDeploymentStats, testCase.InputModelError)
+
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
+
+		stats, err := model.GetDeploymentStats(testCase.InputDeploymentID)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+
+			assert.Equal(t, testCase.OutputStats, stats)
+		}
+	}
+}
