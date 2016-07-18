@@ -78,3 +78,26 @@ func (d *DeviceDeployment) Validate() error {
 	_, err := govalidator.ValidateStruct(d)
 	return err
 }
+
+// Deployment statistics wrapper, each field carries a count of deployments
+// aggregated by state.
+type Stats struct {
+	Successful int `json:"successful"`
+	Pending    int `json:"pending"`
+	InProgress int `json:"inprogress"`
+	Failure    int `json:"failure"`
+	NoImage    int `json:"noimage"`
+}
+
+// simplified deployment statistics, with deployment status as key and aggregate
+// count as value
+type RawStats map[string]int
+
+func IsDeviceStatusInProgress(status string) bool {
+	if status == DeviceDeploymentStatusDownloading ||
+		status == DeviceDeploymentStatusInstalling ||
+		status == DeviceDeploymentStatusRebooting {
+		return true
+	}
+	return false
+}
