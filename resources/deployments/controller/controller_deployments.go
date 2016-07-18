@@ -95,6 +95,29 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 	d.view.RenderSuccessGet(w, deployment)
 }
 
+func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *rest.Request) {
+
+	id := r.PathParam("id")
+
+	if !govalidator.IsUUIDv4(id) {
+		d.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		return
+	}
+
+	stats, err := d.model.GetDeploymentStats(id)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	if stats == nil {
+		d.view.RenderErrorNotFound(w)
+		return
+	}
+
+	d.view.RenderSuccessGet(w, stats)
+}
+
 func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
 
 	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
