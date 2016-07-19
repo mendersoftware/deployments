@@ -79,25 +79,27 @@ func (d *DeviceDeployment) Validate() error {
 	return err
 }
 
-// Deployment statistics wrapper, each field carries a count of deployments
+// Deployment statistics wrapper, each value carries a count of deployments
 // aggregated by state.
-type Stats struct {
-	Successful int `json:"successful"`
-	Pending    int `json:"pending"`
-	InProgress int `json:"inprogress"`
-	Failure    int `json:"failure"`
-	NoImage    int `json:"noimage"`
-}
+type Stats map[string]int
 
-// simplified deployment statistics, with deployment status as key and aggregate
-// count as value
-type RawStats map[string]int
-
-func IsDeviceStatusInProgress(status string) bool {
-	if status == DeviceDeploymentStatusDownloading ||
-		status == DeviceDeploymentStatusInstalling ||
-		status == DeviceDeploymentStatusRebooting {
-		return true
+func NewDeviceDeploymentStats() Stats {
+	statuses := []string{
+		DeviceDeploymentStatusNoImage,
+		DeviceDeploymentStatusFailure,
+		DeviceDeploymentStatusSuccess,
+		DeviceDeploymentStatusPending,
+		DeviceDeploymentStatusRebooting,
+		DeviceDeploymentStatusInstalling,
+		DeviceDeploymentStatusDownloading,
 	}
-	return false
+
+	s := make(Stats)
+
+	// populate statuses with 0s
+	for _, v := range statuses {
+		s[v] = 0
+	}
+
+	return s
 }
