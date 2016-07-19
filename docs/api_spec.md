@@ -672,8 +672,8 @@ TODO: To be implemented & statuses may change
                 "$schema": "http://json-schema.org/draft-04/schema#",
                 "type": "object",
                 "properties": {
-                    "successful": {
-                        "id": "successful",
+                    "success": {
+                        "id": "success",
                         "type": "integer",
                         "description": "Number of successful deployments"
                     },
@@ -682,10 +682,20 @@ TODO: To be implemented & statuses may change
                         "type": "integer",
                         "description": "Number of pending deployments"
                     },
-                    "inprogress": {
-                        "id": "inprogress",
+                    "downloading": {
+                        "id": "downloading",
                         "type": "integer",
-                        "description": "Number of deployments in progress"
+                        "description": "Number of deployments being downloaded"
+                    },
+                    "rebooting": {
+                        "id": "rebooting",
+                        "type": "integer",
+                        "description": "Number of deployments devices are rebooting into "
+                    },
+                    "installing": {
+                        "id": "downloading",
+                        "type": "integer",
+                        "description": "Number of deployments being installed"
                     },
                     "failure": {
                         "id": "failure",
@@ -697,24 +707,29 @@ TODO: To be implemented & statuses may change
                         "type": "integer",
                         "description": "Do not have apropriate image for the device model."
                     }
+
                 },
                 "required": [
-                    "successful",
+                    "success",
                     "pending",
-                    "inprogress",
                     "failure",
                     "noimage"
+                    "downloading",
+                    "installing",
+                    "rebooting"
                 ]
             }
 
     + Body
 
             {
-                "successful": 3,
+                "success": 3,
                 "pending": 1,
-                "inprogress": 23,
                 "failure": 0,
-                "noimage": 1
+                "downloading": 1,
+                "installing": 2,
+                "rebooting": 3
+                "noimage:" 0
             }
 
 + Response 404 (application/json)
