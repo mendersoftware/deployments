@@ -388,7 +388,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 		h.JSONResponseParams
 
 		InputModelDeploymentID string
-		InputModelStats        *deployments.Stats
+		InputModelStats        deployments.Stats
 		InputModelError        error
 	}{
 		{
@@ -410,20 +410,26 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 		},
 		{
 			InputModelDeploymentID: "23bbc7ba-3278-4b1c-a345-4080afe59e96",
-			InputModelStats: &deployments.Stats{
-				Successful: 12,
-				Pending:    2,
-				InProgress: 3,
-				Failure:    2,
+			InputModelStats: deployments.Stats{
+				deployments.DeviceDeploymentStatusSuccess:     12,
+				deployments.DeviceDeploymentStatusFailure:     2,
+				deployments.DeviceDeploymentStatusDownloading: 1,
+				deployments.DeviceDeploymentStatusRebooting:   3,
+				deployments.DeviceDeploymentStatusInstalling:  1,
+				deployments.DeviceDeploymentStatusPending:     2,
+				deployments.DeviceDeploymentStatusNoImage:     0,
 			},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
-				OutputBodyObject: &deployments.Stats{
-					Successful: 12,
-					Pending:    2,
-					InProgress: 3,
-					Failure:    2,
+				OutputBodyObject: deployments.Stats{
+					deployments.DeviceDeploymentStatusSuccess:     12,
+					deployments.DeviceDeploymentStatusFailure:     2,
+					deployments.DeviceDeploymentStatusDownloading: 1,
+					deployments.DeviceDeploymentStatusRebooting:   3,
+					deployments.DeviceDeploymentStatusInstalling:  1,
+					deployments.DeviceDeploymentStatusPending:     2,
+					deployments.DeviceDeploymentStatusNoImage:     0,
 				},
 			},
 		},

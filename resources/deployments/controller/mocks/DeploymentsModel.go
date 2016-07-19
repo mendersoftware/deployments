@@ -98,7 +98,7 @@ func (_m *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 	return ret.Error(0)
 }
 
-func (_m *DeploymentsModel) GetDeploymentStats(deploymentID string) (*deployments.Stats, error) {
+func (_m *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.Stats, error) {
 	ret := _m.Called(deploymentID)
-	return ret.Get(0).(*deployments.Stats), ret.Error(1)
+	return ret.Get(0).(deployments.Stats), ret.Error(1)
 }

@@ -20,7 +20,7 @@ import "github.com/mendersoftware/deployments/resources/deployments"
 type DeploymentsModel interface {
 	CreateDeployment(constructor *deployments.DeploymentConstructor) (string, error)
 	GetDeployment(deploymentID string) (*deployments.Deployment, error)
-	GetDeploymentStats(deploymentID string) (*deployments.Stats, error)
+	GetDeploymentStats(deploymentID string) (deployments.Stats, error)
 	GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error)
 	UpdateDeviceDeploymentStatus(deploymentID string, deviceID string, status string) error
 }
