@@ -206,7 +206,7 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 		InputDeploymentID     string
 		InputDeviceDeployment []*deployments.DeviceDeployment
 		OutputError           error
-		OutputStats           deployments.RawStats
+		OutputStats           deployments.Stats
 	}{
 		{
 			InputDeploymentID:     "ee13ea8b-a6d3-4d4c-99a6-bcfcaebc7ec3",
@@ -234,12 +234,14 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 					deployments.DeviceDeploymentStatusPending),
 			},
 			OutputError: nil,
-			OutputStats: deployments.RawStats{
+			OutputStats: deployments.Stats{
 				deployments.DeviceDeploymentStatusPending:     1,
 				deployments.DeviceDeploymentStatusSuccess:     1,
 				deployments.DeviceDeploymentStatusFailure:     2,
 				deployments.DeviceDeploymentStatusRebooting:   1,
 				deployments.DeviceDeploymentStatusDownloading: 1,
+				deployments.DeviceDeploymentStatusInstalling:  0,
+				deployments.DeviceDeploymentStatusNoImage:     0,
 			},
 		},
 	}

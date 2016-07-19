@@ -180,7 +180,7 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string,
 	return nil
 }
 
-func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(id string) (deployments.RawStats, error) {
+func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error) {
 
 	if govalidator.IsNull(id) {
 		return nil, ErrStorageInvalidID
@@ -218,7 +218,7 @@ func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(id string) 
 		return nil, err
 	}
 
-	raw := make(deployments.RawStats)
+	raw := deployments.NewDeviceDeploymentStats()
 	for _, res := range results {
 		raw[res.Name] = res.Count
 	}
