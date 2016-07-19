@@ -171,32 +171,6 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 	return d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID, status)
 }
 
-func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (*deployments.Stats, error) {
-	raw, err := d.deviceDeploymentsStorage.AggregateDeviceDeploymentByStatus(deploymentID)
-	if err != nil {
-		return nil, err
-	}
-
-	if raw == nil {
-		return nil, nil
-	}
-
-	stats := deployments.Stats{}
-
-	for k, v := range raw {
-		if deployments.IsDeviceStatusInProgress(k) {
-			stats.InProgress += v
-		} else {
-			switch k {
-			case deployments.DeviceDeploymentStatusSuccess:
-				stats.Successful = v
-			case deployments.DeviceDeploymentStatusFailure:
-				stats.Failure = v
-			case deployments.DeviceDeploymentStatusPending:
-				stats.Pending = v
-			}
-		}
-	}
-
-	return &stats, nil
+func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.Stats, error) {
+	return d.deviceDeploymentsStorage.AggregateDeviceDeploymentByStatus(deploymentID)
 }

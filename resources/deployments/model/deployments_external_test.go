@@ -439,10 +439,10 @@ func TestGetDeploymentStats(t *testing.T) {
 
 	testCases := []struct {
 		InputDeploymentID         string
-		InputModelDeploymentStats deployments.RawStats
+		InputModelDeploymentStats deployments.Stats
 		InputModelError           error
 
-		OutputStats *deployments.Stats
+		OutputStats deployments.Stats
 		OutputError error
 	}{
 		{
@@ -459,22 +459,22 @@ func TestGetDeploymentStats(t *testing.T) {
 		},
 		{
 			InputDeploymentID: "ID:345",
-			InputModelDeploymentStats: deployments.RawStats{
-				deployments.DeviceDeploymentStatusPending: 2,
-				deployments.DeviceDeploymentStatusSuccess: 4,
-				deployments.DeviceDeploymentStatusFailure: 1,
-
-				//  these are counted as in progress deployments
+			InputModelDeploymentStats: deployments.Stats{
+				deployments.DeviceDeploymentStatusPending:     2,
+				deployments.DeviceDeploymentStatusSuccess:     4,
+				deployments.DeviceDeploymentStatusFailure:     1,
 				deployments.DeviceDeploymentStatusInstalling:  3,
 				deployments.DeviceDeploymentStatusRebooting:   3,
 				deployments.DeviceDeploymentStatusDownloading: 3,
 			},
 
-			OutputStats: &deployments.Stats{
-				Successful: 4,
-				Failure:    1,
-				Pending:    2,
-				InProgress: 9,
+			OutputStats: deployments.Stats{
+				deployments.DeviceDeploymentStatusDownloading: 3,
+				deployments.DeviceDeploymentStatusRebooting:   3,
+				deployments.DeviceDeploymentStatusInstalling:  3,
+				deployments.DeviceDeploymentStatusSuccess:     4,
+				deployments.DeviceDeploymentStatusFailure:     1,
+				deployments.DeviceDeploymentStatusPending:     2,
 			},
 		},
 	}
