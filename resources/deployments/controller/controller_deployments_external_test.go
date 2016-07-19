@@ -379,3 +379,83 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
 }
+
+func TestControllerGetDeploymentStats(t *testing.T) {
+
+	t.Parallel()
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputModelDeploymentID string
+		InputModelStats        deployments.Stats
+		InputModelError        error
+	}{
+		{
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNotFound,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Resource not found")),
+			},
+		},
+		{
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelError:        errors.New("storage issue"),
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("storage issue")),
+			},
+		},
+		{
+			InputModelDeploymentID: "23bbc7ba-3278-4b1c-a345-4080afe59e96",
+			InputModelStats: deployments.Stats{
+				deployments.DeviceDeploymentStatusSuccess:     12,
+				deployments.DeviceDeploymentStatusFailure:     2,
+				deployments.DeviceDeploymentStatusDownloading: 1,
+				deployments.DeviceDeploymentStatusRebooting:   3,
+				deployments.DeviceDeploymentStatusInstalling:  1,
+				deployments.DeviceDeploymentStatusPending:     2,
+				deployments.DeviceDeploymentStatusNoImage:     0,
+			},
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusOK,
+				OutputBodyObject: deployments.Stats{
+					deployments.DeviceDeploymentStatusSuccess:     12,
+					deployments.DeviceDeploymentStatusFailure:     2,
+					deployments.DeviceDeploymentStatusDownloading: 1,
+					deployments.DeviceDeploymentStatusRebooting:   3,
+					deployments.DeviceDeploymentStatusInstalling:  1,
+					deployments.DeviceDeploymentStatusPending:     2,
+					deployments.DeviceDeploymentStatusNoImage:     0,
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing %s %v", testCase.InputModelDeploymentID, testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("GetDeploymentStats", testCase.InputModelDeploymentID).
+			Return(testCase.InputModelStats, testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Post("/r/:id",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).GetDeploymentStats))
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
+			nil)
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+	}
+}

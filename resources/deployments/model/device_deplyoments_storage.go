@@ -24,4 +24,5 @@ type DeviceDeploymentStorage interface {
 	ExistAssignedImageWithIDAndStatuses(id string, statuses ...string) (bool, error)
 	FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
 	UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) error
+	AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error)
 }

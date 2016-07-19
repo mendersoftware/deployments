@@ -170,3 +170,7 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 
 	return d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID, status)
 }
+
+func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.Stats, error) {
+	return d.deviceDeploymentsStorage.AggregateDeviceDeploymentByStatus(deploymentID)
+}

@@ -87,3 +87,9 @@ func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(deviceID string,
 
 	return ret.Error(0)
 }
+
+func (_m *DeviceDeploymentStorage) AggregateDeviceDeploymentByStatus(deploymentID string) (deployments.Stats, error) {
+	ret := _m.Called(deploymentID)
+
+	return ret.Get(0).(deployments.Stats), ret.Error(1)
+}
