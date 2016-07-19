@@ -776,7 +776,6 @@ TODO: To be implemented & statuses may change
 
 ### List devices [GET /api/0.0.1/deployments/{deployment_id}/devices]
 Device statuses for the deployment.
-TODO: To be implemented
 
 + Parameters
     + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
@@ -846,6 +845,27 @@ TODO: To be implemented
             ]
 
 + Response 404 (application/json)
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
++ Response 400 (application/json)
+    Argument error - see response for details.
     + Schema
 
             {
