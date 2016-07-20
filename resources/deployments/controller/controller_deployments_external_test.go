@@ -26,7 +26,6 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/resources/deployments/controller/mocks"
-	"github.com/mendersoftware/deployments/resources/deployments/model"
 	"github.com/mendersoftware/deployments/resources/deployments/view"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
@@ -505,7 +504,7 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 			},
 			deploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			modelStatuses: nil,
-			modelErr:      model.ErrModelDeploymentNotFound,
+			modelErr:      ErrModelDeploymentNotFound,
 		},
 		"unknown model error": {
 			JSONResponseParams: h.JSONResponseParams{

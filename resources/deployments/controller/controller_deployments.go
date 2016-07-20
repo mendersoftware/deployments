@@ -18,7 +18,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
-	"github.com/mendersoftware/deployments/resources/deployments/model"
 	"github.com/mendersoftware/deployments/utils/identity"
 	"github.com/pkg/errors"
 	"net/http"
@@ -181,7 +180,7 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 	statuses, err := d.model.GetDeviceStatusesForDeployment(did)
 	if err != nil {
 		switch err {
-		case model.ErrModelDeploymentNotFound:
+		case ErrModelDeploymentNotFound:
 			d.view.RenderError(w, err, http.StatusNotFound)
 			return
 		default:

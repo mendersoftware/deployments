@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/deployments/controller"
 	. "github.com/mendersoftware/deployments/resources/deployments/model"
 	"github.com/mendersoftware/deployments/resources/deployments/model/mocks"
 	"github.com/mendersoftware/deployments/resources/images"
@@ -285,7 +286,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		OutputBody  bool
 	}{
 		{
-			OutputError: ErrModelMissingInput,
+			OutputError: controller.ErrModelMissingInput,
 		},
 		{
 			InputConstructor: deployments.NewDeploymentConstructor(),
@@ -542,7 +543,7 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 			depsStorageDeployment: nil,
 			depsStorageErr:        nil,
 
-			modelErr: ErrModelDeploymentNotFound,
+			modelErr: controller.ErrModelDeploymentNotFound,
 		},
 		"DeviceDeployments storage layer error": {
 			inDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
