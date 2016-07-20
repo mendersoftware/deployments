@@ -36,6 +36,7 @@ const (
 	HttpHeaderExpires                     string = "Expires"
 	HttpHeaderLocation                    string = "Location"
 	HttpHeaderAllow                       string = "Allow"
+	HttpHeaderAccept                      string = "Accept"
 
 	EnvProd string = "prod"
 	EnvDev  string = "dev"
@@ -114,6 +115,7 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 
 		// Allowed heardes
 		AllowedHeaders: []string{
+			HttpHeaderAccept,
 			HttpHeaderAllow,
 			HttpHeaderContentType,
 			HttpHeaderOrigin,
