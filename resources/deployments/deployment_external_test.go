@@ -66,8 +66,14 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 		{
 			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
 			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDevices:      []string{"lala"},
+			InputDevices:      []string{""},
 			IsValid:           false,
+		},
+		{
+			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputDevices:      []string{"lala"},
+			IsValid:           true,
 		},
 		{
 			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),

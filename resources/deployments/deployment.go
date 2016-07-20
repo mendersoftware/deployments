@@ -52,7 +52,7 @@ func (c *DeploymentConstructor) Validate() error {
 	}
 
 	for _, id := range c.Devices {
-		if !govalidator.IsUUIDv4(id) {
+		if govalidator.IsNull(id) {
 			return ErrInvalidDeviceID
 		}
 	}
