@@ -270,3 +270,32 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 
 	d.view.RenderSuccessGet(w, res)
 }
+
+func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {
+
+	did := r.PathParam("id")
+
+	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	// receive request body
+	var deploymentLog deployments.DeploymentLog
+
+	err = r.DecodeJsonPayload(&deploymentLog)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	//TODO: check if deployment with id == did for device with id == idata.Subject exists
+
+	if err := d.model.SaveDeviceDeploymentLog(idata.Subject, did, &deploymentLog); err != nil {
+		d.view.RenderError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	d.view.RenderEmptySuccessResponse(w)
+}
