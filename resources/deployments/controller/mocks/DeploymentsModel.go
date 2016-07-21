@@ -108,3 +108,10 @@ func (_m *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) 
 	ret := _m.Called(deploymentID)
 	return ret.Get(0).([]deployments.DeviceDeployment), ret.Error(1)
 }
+
+func (_m *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
+	deploymentID string, log *deployments.DeploymentLog) error {
+
+	ret := _m.Called(deviceID, deploymentID, log)
+	return ret.Error(0)
+}
