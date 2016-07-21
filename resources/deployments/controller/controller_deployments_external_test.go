@@ -539,3 +539,118 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 		h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
 	}
 }
+
+func TestControllerPutDeploymentLog(t *testing.T) {
+
+	t.Parallel()
+
+	type log struct {
+		Messages string `json:"messages"`
+	}
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputBodyObject interface{}
+
+		InputModelDeploymentID string
+		InputModelDeviceID     string
+		InputModelError        error
+
+		Headers map[string]string
+	}{
+		{
+			// empty log body
+			InputBodyObject: nil,
+
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-1",
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("JSON payload is empty")),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-1"}`),
+			},
+		},
+		{
+			// all correct
+			InputBodyObject: &deployments.DeploymentLog{
+				Messages: []deployments.LogMessage{},
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-2",
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNoContent,
+				OutputBodyObject: nil,
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
+			},
+		},
+		{
+			// no authorization
+			InputBodyObject: &deployments.DeploymentLog{
+				Messages: []deployments.LogMessage{},
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-3",
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("malformed authorization data")),
+			},
+		},
+		{
+			// model error
+			InputBodyObject: &deployments.DeploymentLog{
+				Messages: []deployments.LogMessage{},
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-4",
+			InputModelError:        errors.New("model error"),
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing %s %s %v %v",
+			testCase.InputModelDeploymentID, testCase.InputModelDeviceID,
+			testCase.InputBodyObject, testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("SaveDeviceDeploymentLog",
+			testCase.InputModelDeviceID,
+			testCase.InputModelDeploymentID,
+			testCase.InputBodyObject).
+			Return(testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Put("/r/:id",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).PutDeploymentLogForDevice))
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		req := test.MakeSimpleRequest("PUT", "http://localhost/r/"+testCase.InputModelDeploymentID,
+			testCase.InputBodyObject)
+		for k, v := range testCase.Headers {
+			req.Header.Set(k, v)
+		}
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+	}
+}
