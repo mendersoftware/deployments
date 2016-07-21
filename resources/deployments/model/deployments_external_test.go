@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/deployments/controller"
 	. "github.com/mendersoftware/deployments/resources/deployments/model"
 	"github.com/mendersoftware/deployments/resources/deployments/model/mocks"
 	"github.com/mendersoftware/deployments/resources/images"
@@ -285,7 +286,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		OutputBody  bool
 	}{
 		{
-			OutputError: ErrModelMissingInput,
+			OutputError: controller.ErrModelMissingInput,
 		},
 		{
 			InputConstructor: deployments.NewDeploymentConstructor(),
@@ -498,6 +499,100 @@ func TestGetDeploymentStats(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, testCase.OutputStats, stats)
+		}
+	}
+}
+
+func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		inDeploymentId string
+
+		devsStorageStatuses []deployments.DeviceDeployment
+		devsStorageErr      error
+
+		depsStorageDeployment *deployments.Deployment
+		depsStorageErr        error
+
+		modelErr error
+	}{
+		"existing deployment with statuses": {
+			inDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+
+			devsStorageStatuses: []deployments.DeviceDeployment{
+				*deployments.NewDeviceDeployment("dev0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+				*deployments.NewDeviceDeployment("dev0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+				*deployments.NewDeviceDeployment("dev0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+			},
+			devsStorageErr: nil,
+
+			depsStorageDeployment: &deployments.Deployment{},
+			depsStorageErr:        nil,
+
+			modelErr: nil,
+		},
+		"deployment doesn't exist": {
+			devsStorageStatuses: []deployments.DeviceDeployment{
+				*deployments.NewDeviceDeployment("dev0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+				*deployments.NewDeviceDeployment("dev0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+				*deployments.NewDeviceDeployment("dev0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+			},
+			devsStorageErr: nil,
+
+			depsStorageDeployment: nil,
+			depsStorageErr:        nil,
+
+			modelErr: controller.ErrModelDeploymentNotFound,
+		},
+		"DeviceDeployments storage layer error": {
+			inDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+
+			devsStorageStatuses: nil,
+			devsStorageErr:      errors.New("some verbose, low-level db error"),
+
+			depsStorageDeployment: &deployments.Deployment{},
+			depsStorageErr:        nil,
+
+			modelErr: errors.New("Internal error"),
+		},
+		"Deployments storage layer error": {
+			inDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+
+			devsStorageStatuses: nil,
+			devsStorageErr:      nil,
+
+			depsStorageDeployment: nil,
+			depsStorageErr:        errors.New("some verbose, low-level db error"),
+
+			modelErr: errors.New("Internal error"),
+		},
+	}
+
+	for id, tc := range testCases {
+		t.Logf("test case: %s", id)
+
+		devsDb := new(mocks.DeviceDeploymentStorage)
+
+		devsDb.On("GetDeviceStatusesForDeployment", tc.inDeploymentId).
+			Return(tc.devsStorageStatuses, tc.devsStorageErr)
+
+		depsDb := new(mocks.DeploymentsStorage)
+
+		depsDb.On("FindByID", tc.inDeploymentId).
+			Return(tc.depsStorageDeployment, tc.depsStorageErr)
+
+		model := NewDeploymentModel(depsDb, nil, devsDb, nil)
+		statuses, err := model.GetDeviceStatusesForDeployment(tc.inDeploymentId)
+
+		if tc.modelErr != nil {
+			assert.EqualError(t, err, tc.modelErr.Error())
+		} else {
+			assert.NoError(t, err)
+
+			for i, expected := range tc.devsStorageStatuses {
+				assert.Equal(t, expected, statuses[i])
+			}
 		}
 	}
 }

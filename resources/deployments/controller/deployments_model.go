@@ -14,7 +14,18 @@
 
 package controller
 
-import "github.com/mendersoftware/deployments/resources/deployments"
+import (
+	"errors"
+	"github.com/mendersoftware/deployments/resources/deployments"
+)
+
+// Errors
+var (
+	ErrModelMissingInput       = errors.New("Missing input deplyoment data")
+	ErrModelInvalidDeviceID    = errors.New("Invalid device ID")
+	ErrModelDeploymentNotFound = errors.New("Deployment not found")
+	ErrModelInternal           = errors.New("Internal error")
+)
 
 // Domain model for deployment
 type DeploymentsModel interface {
@@ -23,4 +34,5 @@ type DeploymentsModel interface {
 	GetDeploymentStats(deploymentID string) (deployments.Stats, error)
 	GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error)
 	UpdateDeviceDeploymentStatus(deploymentID string, deviceID string, status string) error
+	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
 }

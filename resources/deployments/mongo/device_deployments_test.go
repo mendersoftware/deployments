@@ -277,3 +277,62 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 		session.Close()
 	}
 }
+
+func TestGetDeviceStatusesForDeployment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping GetDeviceStatusesForDeployment in short mode.")
+	}
+
+	input := []*deployments.DeviceDeployment{
+		deployments.NewDeviceDeployment("device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+		deployments.NewDeviceDeployment("device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+		deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+		deployments.NewDeviceDeployment("device0004", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+		deployments.NewDeviceDeployment("device0005", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+	}
+
+	// setup db - once for all cases
+	db.Wipe()
+
+	session := db.Session()
+	store := NewDeviceDeploymentsStorage(session)
+
+	err := store.InsertMany(input...)
+	assert.NoError(t, err)
+
+	testCases :=
+		map[string]struct {
+			caseId string
+
+			inputDeploymentId string
+			outputStatuses    []*deployments.DeviceDeployment
+		}{
+			"existing deployments 1": {
+				inputDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				outputStatuses:    input[:3],
+			},
+			"existing deployments 2": {
+				inputDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+				outputStatuses:    input[3:],
+			},
+			"nonexistent deployment": {
+				inputDeploymentId: "aaaaaaaa-9ec2-4312-a7fa-cff24cc7397b",
+				outputStatuses:    []*deployments.DeviceDeployment{},
+			},
+		}
+
+	for id, tc := range testCases {
+		t.Logf("test case: %s", id)
+
+		statuses, err := store.GetDeviceStatusesForDeployment(tc.inputDeploymentId)
+		assert.NoError(t, err)
+
+		assert.Equal(t, len(tc.outputStatuses), len(statuses))
+		for i, out := range tc.outputStatuses {
+			assert.Equal(t, out.DeviceId, statuses[i].DeviceId)
+			assert.Equal(t, out.DeploymentId, statuses[i].DeploymentId)
+		}
+	}
+
+	session.Close()
+}

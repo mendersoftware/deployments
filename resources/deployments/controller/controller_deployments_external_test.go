@@ -447,6 +447,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 			rest.Post("/r/:id",
 				NewDeploymentsController(deploymentModel,
 					new(view.DeploymentsView)).GetDeploymentStats))
+
 		assert.NoError(t, err)
 
 		api := rest.NewApi()
@@ -457,5 +458,84 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+	}
+}
+
+func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
+	t.Parallel()
+
+	// common device status list for all tests
+
+	statuses := []deployments.DeviceDeployment{
+		*deployments.NewDeviceDeployment("device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+		*deployments.NewDeviceDeployment("device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+		*deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+	}
+
+	testCases := map[string]struct {
+		h.JSONResponseParams
+
+		deploymentID  string
+		modelStatuses []deployments.DeviceDeployment
+		modelErr      error
+	}{
+		"existing deployment and statuses": {
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusOK,
+				OutputBodyObject: statuses,
+			},
+			deploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			modelStatuses: statuses,
+			modelErr:      nil,
+		},
+		"deployment ID format error": {
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("ID is not UUIDv4")),
+			},
+			deploymentID:  "30b3e62c9ec24312a7facff24cc7397a",
+			modelStatuses: nil,
+			modelErr:      nil,
+		},
+		"model error: deployment doesn't exist": {
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNotFound,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment not found")),
+			},
+			deploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			modelStatuses: nil,
+			modelErr:      ErrModelDeploymentNotFound,
+		},
+		"unknown model error": {
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Internal error")),
+			},
+			deploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			modelStatuses: nil,
+			modelErr:      errors.New("some unknown error"),
+		},
+	}
+
+	for id, tc := range testCases {
+		t.Logf("test case: %s", id)
+
+		deploymentModel := new(mocks.DeploymentsModel)
+		deploymentModel.On("GetDeviceStatusesForDeployment", tc.deploymentID).
+			Return(tc.modelStatuses, tc.modelErr)
+
+		router, err := rest.MakeRouter(
+			rest.Get("/r/:id",
+				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeviceStatusesForDeployment))
+
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		recorded := test.RunRequest(t, api.MakeHandler(),
+			test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil))
+
+		h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
 	}
 }

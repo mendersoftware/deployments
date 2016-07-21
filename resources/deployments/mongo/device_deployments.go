@@ -224,3 +224,22 @@ func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(id string) 
 	}
 	return raw, nil
 }
+
+//GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
+func (d *DeviceDeploymentsStorage) GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error) {
+	session := d.session.Copy()
+	defer session.Close()
+
+	query := bson.M{
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+	}
+
+	var statuses []deployments.DeviceDeployment
+
+	err := session.DB(DatabaseName).C(CollectionDevices).Find(query).All(&statuses)
+	if err != nil {
+		return nil, err
+	}
+
+	return statuses, nil
+}

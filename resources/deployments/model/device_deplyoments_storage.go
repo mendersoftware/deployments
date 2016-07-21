@@ -25,4 +25,5 @@ type DeviceDeploymentStorage interface {
 	FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
 	UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) error
 	AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error)
+	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
 }
