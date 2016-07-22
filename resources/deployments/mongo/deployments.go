@@ -33,6 +33,20 @@ const (
 var (
 	ErrDeploymentStorageInvalidDeployment = errors.New("Invalid deployment")
 	ErrStorageInvalidID                   = errors.New("Invalid id")
+	ErrDeploymentStorageInvalidQuery      = errors.New("Invalid query")
+	ErrDeploymentStorageCannotExecQuery   = errors.New("Cannot execute query")
+)
+
+const (
+	StorageKeyDeploymentName         = "deploymentconstructor.name"
+	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
+)
+
+var (
+	StorageIndexes = []string{
+		"$text:" + StorageKeyDeploymentName,
+		"$text:" + StorageKeyDeploymentArtifactName,
+	}
 )
 
 // DeploymentsStorage is a data layer for deployments based on MongoDB
@@ -45,6 +59,35 @@ func NewDeploymentsStorage(session *mgo.Session) *DeploymentsStorage {
 	return &DeploymentsStorage{
 		session: session,
 	}
+}
+
+func (d *DeploymentsStorage) ensureIndexing(session *mgo.Session) error {
+	return session.DB(DatabaseName).C(CollectionDeployments).
+		EnsureIndexKey(StorageIndexes...)
+}
+
+// return true if required indexing was set up
+func (d *DeploymentsStorage) hasIndexing(session *mgo.Session) bool {
+	idxs, err := session.DB(DatabaseName).C(CollectionDeployments).Indexes()
+	if err != nil {
+		// check failed, assume indexing is not there
+		return false
+	}
+
+	has := map[string]bool{}
+	for _, idx := range idxs {
+		for _, i := range idx.Key {
+			has[i] = true
+		}
+	}
+
+	for _, idx := range StorageIndexes {
+		_, ok := has[idx]
+		if !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // Insert persists object
@@ -61,7 +104,14 @@ func (d *DeploymentsStorage) Insert(deployment *deployments.Deployment) error {
 	session := d.session.Copy()
 	defer session.Close()
 
-	return session.DB(DatabaseName).C(CollectionDeployments).Insert(deployment)
+	if err := d.ensureIndexing(session); err != nil {
+		return err
+	}
+
+	if err := session.DB(DatabaseName).C(CollectionDeployments).Insert(deployment); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Delete removed entry by ID
@@ -129,4 +179,36 @@ func (d *DeploymentsStorage) UpdateStats(id string, state_from, state_to string)
 	}
 
 	return err
+}
+
+func (d *DeploymentsStorage) Find(match deployments.Query) ([]*deployments.Deployment, error) {
+
+	if match == (deployments.Query{}) {
+		return nil, ErrDeploymentStorageInvalidQuery
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	query := bson.M{}
+
+	if match.SearchText != "" {
+		query["$text"] = bson.M{
+			"$search": match.SearchText,
+		}
+
+		// we must have indexing for text search
+		if !d.hasIndexing(session) {
+			return nil, ErrDeploymentStorageCannotExecQuery
+		}
+	}
+
+	var deployment []*deployments.Deployment
+	err := session.DB(DatabaseName).C(CollectionDeployments).
+		Find(&query).All(&deployment)
+	if err != nil {
+		return nil, err
+	}
+
+	return deployment, nil
 }

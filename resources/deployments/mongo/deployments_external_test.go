@@ -17,6 +17,7 @@ package mongo_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
@@ -368,6 +369,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 
 	for id, tc := range testCases {
 		t.Logf("testing case %s", id)
+
 		db.Wipe()
 
 		session := db.Session()
@@ -389,6 +391,134 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 			assert.Equal(t, tc.OutputStats, deployment.Stats)
 		}
 
+		// Need to close all sessions to be able to call wipe at next test case
+		session.Close()
+	}
+}
+
+func TestDeploymentStorageFindByName(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("skipping TestDeploymentStorageFindBy in short mode.")
+	}
+
+	someDeployments := []*deployments.Deployment{
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("NYC Production Inc."),
+				ArtifactName: StringToPointer("App 123"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("NYC Production Inc."),
+				ArtifactName: StringToPointer("App 123"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("foo"),
+				ArtifactName: StringToPointer("bar"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
+		},
+	}
+
+	testCases := []struct {
+		InputName                  string
+		InputDeplyomentsCollection []*deployments.Deployment
+
+		OutputError error
+		OutputID    []string
+	}{
+		{
+			OutputError: ErrDeploymentStorageInvalidQuery,
+		},
+		{
+			InputName:   "foobar-empty-db",
+			OutputError: ErrDeploymentStorageCannotExecQuery,
+		},
+		{
+			InputName: "foobar-no-match",
+			InputDeplyomentsCollection: []*deployments.Deployment{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				},
+			},
+		},
+		{
+			InputName:                  "NYC",
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				"d1804903-5caa-4a73-a3ae-0efcc3205405",
+			},
+		},
+		{
+			InputName:                  "NYC foo",
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				"d1804903-5caa-4a73-a3ae-0efcc3205405",
+				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
+			},
+		},
+		{
+			InputName:                  "bar",
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing '%s'", testCase.InputName)
+
+		// Make sure we start test with empty database
+		db.Wipe()
+
+		session := db.Session()
+		store := NewDeploymentsStorage(session)
+
+		for _, d := range testCase.InputDeplyomentsCollection {
+			if d.Created == nil {
+				now := time.Now()
+				d.Created = &now
+			}
+			assert.NoError(t, store.Insert(d))
+		}
+
+		deployments, err := store.Find(deployments.Query{
+			SearchText: testCase.InputName,
+		})
+
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+			assert.Len(t, deployments, len(testCase.OutputID))
+			for _, dep := range deployments {
+				assert.Contains(t, testCase.OutputID, *dep.Id,
+					"got unexpected deployment %s", *dep.Id)
+			}
+		}
+
+		// Need to close all sessions to be able to call wipe at next test case
 		session.Close()
 	}
 }
