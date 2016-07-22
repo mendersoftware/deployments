@@ -293,11 +293,12 @@ downloading, rebooting is optionall.
 
 # Group Deployment
 
-## Lookup deployments [GET /api/0.0.1/deployments{?name}]
+## Lookup deployments [GET /api/0.0.1/deployments{?search}]
 Lookup deployments in the system, including active and history.
 
 + Parameters
-    + name: `Jonas fix` (string, optional) - Deployment name (TODO: To be implemented)
+    + search: `Jonas fix` (string, optional) - Text to be matched in either
+      deployment name or artifact name
 
 + Response 200 (application/json)
     + Schema
