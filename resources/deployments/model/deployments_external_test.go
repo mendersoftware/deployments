@@ -63,7 +63,7 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 		deploymentStorage.On("FindByID", testCase.InputDeploymentID).
 			Return(testCase.InoutFindByIDDeployment, testCase.InoutFindByIDError)
 
-		model := NewDeploymentModel(deploymentStorage, nil, nil, nil)
+		model := NewDeploymentModel(deploymentStorage, nil, nil, nil, nil)
 
 		deployment, err := model.GetDeployment(testCase.InputDeploymentID)
 		if testCase.OutputError != nil {
@@ -116,7 +116,7 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 			Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
 				testCase.InputExistAssignedImageWithIDAndStatusesError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
 
 		found, err := model.ImageUsedInActiveDeployment(testCase.InputID)
 		if testCase.OutputError != nil {
@@ -170,7 +170,7 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 			Return(testCase.InputImageUsedInDeploymentFound,
 				testCase.InputImageUsedInDeploymentError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
 
 		found, err := model.ImageUsedInDeployment(testCase.InputID)
 		if testCase.OutputError != nil {
@@ -255,7 +255,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		imageLinker.On("GetRequest", "ID:456", DefaultUpdateDownloadLinkExpire).
 			Return(testCase.InputGetRequestLink, testCase.InputGetRequestError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, imageLinker)
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, imageLinker)
 
 		out, err := model.GetDeploymentForDevice(testCase.InputID)
 		if testCase.OutputError != nil {
@@ -364,7 +364,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		deviceDeploymentStorage.On("InsertMany", mock.AnythingOfType("[]*deployments.DeviceDeployment")).
 			Return(testCase.InputDeviceDeploymentStorageInsertManyError)
 
-		model := NewDeploymentModel(deploymentStorage, generator, deviceDeploymentStorage, nil)
+		model := NewDeploymentModel(deploymentStorage, generator, deviceDeploymentStorage, nil, nil)
 
 		out, err := model.CreateDeployment(testCase.InputConstructor)
 		if testCase.OutputError != nil {
@@ -421,7 +421,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			testCase.InputStatus).
 			Return(testCase.InputModelError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
 
 		err := model.UpdateDeviceDeploymentStatus(testCase.InputDeploymentID,
 			testCase.InputDeviceID, testCase.InputStatus)
@@ -481,7 +481,6 @@ func TestGetDeploymentStats(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-
 		t.Logf("testing %s %v %v", testCase.InputDeploymentID,
 			testCase.InputModelDeploymentStats, testCase.InputModelError)
 
@@ -490,7 +489,7 @@ func TestGetDeploymentStats(t *testing.T) {
 			testCase.InputDeploymentID).
 			Return(testCase.InputModelDeploymentStats, testCase.InputModelError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
 
 		stats, err := model.GetDeploymentStats(testCase.InputDeploymentID)
 		if testCase.OutputError != nil {
@@ -582,7 +581,7 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 		depsDb.On("FindByID", tc.inDeploymentId).
 			Return(tc.depsStorageDeployment, tc.depsStorageErr)
 
-		model := NewDeploymentModel(depsDb, nil, devsDb, nil)
+		model := NewDeploymentModel(depsDb, nil, devsDb, nil, nil)
 		statuses, err := model.GetDeviceStatusesForDeployment(tc.inDeploymentId)
 
 		if tc.modelErr != nil {
@@ -593,6 +592,64 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 			for i, expected := range tc.devsStorageStatuses {
 				assert.Equal(t, expected, statuses[i])
 			}
+		}
+	}
+}
+
+func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
+
+	t.Parallel()
+
+	testCases := []struct {
+		InputDeploymentID string
+		InputDeviceID     string
+		InputLog          *deployments.DeploymentLog
+
+		InputModelError error
+
+		OutputError error
+	}{
+		{
+			InputDeploymentID: "ID:123",
+			InputDeviceID:     "123",
+			InputLog: &deployments.DeploymentLog{
+				Messages: []deployments.LogMessage{},
+			},
+			InputModelError: errors.New("storage issue"),
+
+			OutputError: errors.New("storage issue"),
+		},
+		{
+			InputDeploymentID: "ID:234",
+			InputDeviceID:     "234",
+			InputLog: &deployments.DeploymentLog{
+				Messages: []deployments.LogMessage{},
+			},
+			InputModelError: nil,
+
+			OutputError: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing %s %s %s %v", testCase.InputDeploymentID, testCase.InputDeviceID,
+			testCase.InputLog, testCase.InputModelError)
+
+		deviceDeploymentLogStorage := new(mocks.DeviceDeploymentLogStorage)
+		deviceDeploymentLogStorage.On("SaveDeviceDeploymentLog",
+			testCase.InputDeviceID, testCase.InputDeploymentID,
+			testCase.InputLog).
+			Return(testCase.InputModelError)
+
+		model := NewDeploymentModel(nil, nil, nil, deviceDeploymentLogStorage, nil)
+
+		err := model.SaveDeviceDeploymentLog(testCase.InputDeviceID,
+			testCase.InputDeploymentID, testCase.InputLog)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
 		}
 	}
 }

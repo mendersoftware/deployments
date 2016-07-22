@@ -28,23 +28,26 @@ const (
 )
 
 type DeploymentsModel struct {
-	deploymentsStorage        DeploymentsStorage
-	deviceDeploymentsStorage  DeviceDeploymentStorage
-	imageLinker               GetRequester
-	deviceDeploymentGenerator Generator
+	deploymentsStorage          DeploymentsStorage
+	deviceDeploymentsStorage    DeviceDeploymentStorage
+	deviceDeploymentLogsStorage DeviceDeploymentLogsStorage
+	imageLinker                 GetRequester
+	deviceDeploymentGenerator   Generator
 }
 
 func NewDeploymentModel(
 	deploymentsStorage DeploymentsStorage,
 	deviceDeploymentGenerator Generator,
 	deviceDeploymentsStorage DeviceDeploymentStorage,
+	deviceDeploymentLogsStorage DeviceDeploymentLogsStorage,
 	imageLinker GetRequester,
 ) *DeploymentsModel {
 	return &DeploymentsModel{
-		deploymentsStorage:        deploymentsStorage,
-		deviceDeploymentsStorage:  deviceDeploymentsStorage,
-		imageLinker:               imageLinker,
-		deviceDeploymentGenerator: deviceDeploymentGenerator,
+		deploymentsStorage:          deploymentsStorage,
+		deviceDeploymentsStorage:    deviceDeploymentsStorage,
+		deviceDeploymentLogsStorage: deviceDeploymentLogsStorage,
+		imageLinker:                 imageLinker,
+		deviceDeploymentGenerator:   deviceDeploymentGenerator,
 	}
 }
 
@@ -187,4 +190,12 @@ func (d *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) (
 	}
 
 	return statuses, nil
+}
+
+// SaveDeviceDeploymentLog will save the deployment log for device of
+// ID `deviceID`. Returns nil if log was saved successfully.
+func (d *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
+	deploymentID string, log *deployments.DeploymentLog) error {
+
+	return d.deviceDeploymentLogsStorage.SaveDeviceDeploymentLog(deviceID, deploymentID, log)
 }
