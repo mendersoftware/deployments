@@ -199,6 +199,15 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
 					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Stats: map[string]int{
+						deployments.DeviceDeploymentStatusDownloading: 0,
+						deployments.DeviceDeploymentStatusInstalling:  0,
+						deployments.DeviceDeploymentStatusRebooting:   0,
+						deployments.DeviceDeploymentStatusPending:     10,
+						deployments.DeviceDeploymentStatusSuccess:     15,
+						deployments.DeviceDeploymentStatusFailure:     1,
+						deployments.DeviceDeploymentStatusNoImage:     0,
+					},
 				},
 				&deployments.Deployment{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
@@ -207,6 +216,15 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
 					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Stats: map[string]int{
+						deployments.DeviceDeploymentStatusDownloading: 0,
+						deployments.DeviceDeploymentStatusInstalling:  0,
+						deployments.DeviceDeploymentStatusRebooting:   0,
+						deployments.DeviceDeploymentStatusPending:     5,
+						deployments.DeviceDeploymentStatusSuccess:     10,
+						deployments.DeviceDeploymentStatusFailure:     3,
+						deployments.DeviceDeploymentStatusNoImage:     0,
+					},
 				},
 			},
 			OutputError: nil,
@@ -217,6 +235,15 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 					//Devices is not kept around!
 				},
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Stats: map[string]int{
+					deployments.DeviceDeploymentStatusDownloading: 0,
+					deployments.DeviceDeploymentStatusInstalling:  0,
+					deployments.DeviceDeploymentStatusRebooting:   0,
+					deployments.DeviceDeploymentStatusPending:     10,
+					deployments.DeviceDeploymentStatusSuccess:     15,
+					deployments.DeviceDeploymentStatusFailure:     1,
+					deployments.DeviceDeploymentStatusNoImage:     0,
+				},
 			},
 		},
 	}
