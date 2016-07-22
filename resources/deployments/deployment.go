@@ -72,6 +72,11 @@ type Deployment struct {
 
 	// Deployment id, required
 	Id *string `json:"id" bson:"_id" valid:"uuidv4,required"`
+
+	// Aggregated device status counters.
+	// Initialized with the "pending" counter set to total device count for deployment.
+	// Individual counter incremented/decremented according to device status updates.
+	Stats map[string]int `json:"stats"`
 }
 
 // NewDeployment creates new deployment object, sets create data by default.
@@ -83,6 +88,7 @@ func NewDeployment() *Deployment {
 		Created: &now,
 		Id:      &id,
 		DeploymentConstructor: NewDeploymentConstructor(),
+		Stats: NewDeviceDeploymentStats(),
 	}
 }
 
@@ -91,7 +97,9 @@ func NewDeploymentFromConstructor(constructor *DeploymentConstructor) *Deploymen
 
 	deployment := NewDeployment()
 	deployment.DeploymentConstructor = constructor
-
+	if constructor != nil && constructor.Devices != nil {
+		deployment.Stats[DeviceDeploymentStatusPending] = len(constructor.Devices)
+	}
 	return deployment
 }
 
