@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -537,5 +538,115 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 			test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil))
 
 		h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
+	}
+}
+
+func TestControllerLookupDeployment(t *testing.T) {
+
+	t.Parallel()
+
+	someDeployments := []*deployments.Deployment{
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("zen"),
+				ArtifactName: StringToPointer("baz"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("foo"),
+				ArtifactName: StringToPointer("bar"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
+		},
+	}
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputModelQuery       deployments.Query
+		InputModelError       error
+		InputModelDeployments []*deployments.Deployment
+	}{
+		{
+			InputModelQuery: deployments.Query{
+				" ",
+			},
+			InputModelError: errors.New("bad query"),
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("bad query")),
+			},
+		},
+		{
+			InputModelQuery: deployments.Query{
+				"foo-not-found",
+			},
+			InputModelDeployments: []*deployments.Deployment{},
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusOK,
+				OutputBodyObject: []*deployments.Deployment{},
+			},
+		},
+		{
+			InputModelQuery: deployments.Query{
+				"foo",
+			},
+			InputModelDeployments: someDeployments,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusOK,
+				OutputBodyObject: []LookupDeploymentResult{
+					LookupDeploymentResult{
+						Id:           "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+						Name:         "zen",
+						ArtifactName: "baz",
+					},
+					LookupDeploymentResult{
+						Id:           "e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
+						Name:         "foo",
+						ArtifactName: "bar",
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing %+v %s", testCase.InputModelQuery, testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("LookupDeployment", testCase.InputModelQuery).
+			Return(testCase.InputModelDeployments, testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Get("/r",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).LookupDeployment))
+
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		u := url.URL{
+			Scheme: "http",
+			Host:   "localhost",
+			Path:   "/r",
+		}
+		q := u.Query()
+		q.Set("search", testCase.InputModelQuery.SearchText)
+		u.RawQuery = q.Encode()
+		t.Logf("query: %s", u.String())
+		req := test.MakeSimpleRequest("GET", u.String(), nil)
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
 }
