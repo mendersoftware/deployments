@@ -193,3 +193,7 @@ func (d *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) (
 
 	return statuses, nil
 }
+
+func (d *DeploymentsModel) LookupDeployment(query deployments.Query) ([]*deployments.Deployment, error) {
+	return d.deploymentsStorage.Find(query)
+}
