@@ -55,6 +55,11 @@ func HandleConfigFile(filePath string) (config.ConfigReader, error) {
 	//Allow AWS URI endpoint to be set by environment variable
 	c.BindEnv(SettingAwsURI, "AWS_URI")
 
+	//Allow aws keyid, aws token, aws secret to be read by viper
+	c.BindEnv(SettingAwsAuthKeyId, "AWS_ACCESS_KEY_ID")
+	c.BindEnv(SettingAwsAuthSecret, "AWS_SECRET_ACCESS_KEY")
+	c.BindEnv(SettingAwsAuthToken, "AWS_SESSION_TOKEN")
+
 	c.SetConfigFile(filePath)
 
 	// Set default values for config

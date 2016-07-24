@@ -36,8 +36,7 @@ func SetupS3(c config.ConfigReader) imagesModel.FileStorage {
 
 	bucket := c.GetString(SettingAweS3Bucket)
 	region := c.GetString(SettingAwsS3Region)
-
-	if c.IsSet(SettingsAwsAuth) {
+	if c.IsSet(SettingsAwsAuth) || (c.IsSet(SettingAwsAuthKeyId) && c.IsSet(SettingAwsAuthSecret) && c.IsSet(SettingAwsURI)) {
 		return s3.NewSimpleStorageServiceStatic(
 			bucket,
 			c.GetString(SettingAwsAuthKeyId),
