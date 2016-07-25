@@ -104,24 +104,28 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		InputStatus           string
 		InputDeviceDeployment []*deployments.DeviceDeployment
 		OutputError           error
+		OutputOldStatus       string
 	}{
 		{
 			// null status
 			InputDeviceID:     "123",
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			OutputError:       ErrStorageInvalidID,
+			OutputOldStatus:   "",
 		},
 		{
 			// null deployment ID
-			InputDeviceID: "234",
-			InputStatus:   "",
-			OutputError:   ErrStorageInvalidID,
+			InputDeviceID:   "234",
+			InputStatus:     "",
+			OutputError:     ErrStorageInvalidID,
+			OutputOldStatus: "",
 		},
 		{
 			// null device ID
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputStatus:       "notnull",
 			OutputError:       ErrStorageInvalidID,
+			OutputOldStatus:   "",
 		},
 		{
 			// no deployment/device with this ID
@@ -129,6 +133,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputStatus:       "notnull",
 			OutputError:       errors.New("not found"),
+			OutputOldStatus:   "",
 		},
 		{
 			InputDeviceID:     "456",
@@ -137,7 +142,8 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
 				deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
 			},
-			OutputError: nil,
+			OutputError:     nil,
+			OutputOldStatus: "pending",
 		},
 	}
 
@@ -157,7 +163,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		err := store.InsertMany(testCase.InputDeviceDeployment...)
 		assert.NoError(t, err)
 
-		err = store.UpdateDeviceDeploymentStatus(testCase.InputDeviceID,
+		old, err := store.UpdateDeviceDeploymentStatus(testCase.InputDeviceID,
 			testCase.InputDeploymentID, testCase.InputStatus)
 
 		if testCase.OutputError != nil {
@@ -182,6 +188,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 				assert.Equal(t, deployments.DeviceDeploymentStatusPending, deployment.Status)
 			} else {
 				assert.Equal(t, testCase.InputStatus, *deployment.Status)
+				assert.Equal(t, testCase.OutputOldStatus, old)
 			}
 		}
 
