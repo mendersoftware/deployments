@@ -573,7 +573,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 	}{
 		{
 			InputModelQuery: deployments.Query{
-				" ",
+				SearchText: " ",
 			},
 			InputModelError: errors.New("bad query"),
 
@@ -584,7 +584,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 		},
 		{
 			InputModelQuery: deployments.Query{
-				"foo-not-found",
+				SearchText: "foo-not-found",
 			},
 			InputModelDeployments: []*deployments.Deployment{},
 
@@ -595,7 +595,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 		},
 		{
 			InputModelQuery: deployments.Query{
-				"foo",
+				SearchText: "foo",
 			},
 			InputModelDeployments: someDeployments,
 
