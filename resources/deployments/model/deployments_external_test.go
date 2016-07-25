@@ -388,7 +388,8 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		InputDeviceID     string
 		InputStatus       string
 
-		InputModelError error
+		InputDevsStorageError error
+		InputDepsStorageError error
 
 		OutputError error
 	}{
@@ -396,32 +397,42 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputDeploymentID: "ID:123",
 			InputDeviceID:     "123",
 			InputStatus:       "installing",
-			InputModelError:   errors.New("storage issue"),
 
-			OutputError: errors.New("storage issue"),
+			InputDevsStorageError: errors.New("device deployments storage issue"),
+			InputDepsStorageError: nil,
+
+			OutputError: errors.New("device deployments storage issue"),
 		},
 		{
 			InputDeploymentID: "ID:234",
 			InputDeviceID:     "234",
 			InputStatus:       "none",
-			InputModelError:   nil,
 
-			OutputError: nil,
+			InputDevsStorageError: nil,
+			InputDepsStorageError: errors.New("deployments storage issue"),
+
+			OutputError: errors.New("deployments storage issue"),
 		},
 	}
 
 	for _, testCase := range testCases {
 
 		t.Logf("testing %s %s %s %v", testCase.InputDeploymentID, testCase.InputDeviceID,
-			testCase.InputStatus, testCase.InputModelError)
+			testCase.InputStatus, testCase.InputDevsStorageError)
 
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
 			testCase.InputDeviceID, testCase.InputDeploymentID,
 			testCase.InputStatus).
-			Return(testCase.InputModelError)
+			Return("dontcare", testCase.InputDevsStorageError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil)
+		deploymentStorage := new(mocks.DeploymentsStorage)
+		deploymentStorage.On("UpdateStats",
+			testCase.InputDeploymentID, mock.AnythingOfType("string"),
+			mock.AnythingOfType("string")).
+			Return(testCase.InputDepsStorageError)
+
+		model := NewDeploymentModel(deploymentStorage, nil, deviceDeploymentStorage, nil)
 
 		err := model.UpdateDeviceDeploymentStatus(testCase.InputDeploymentID,
 			testCase.InputDeviceID, testCase.InputStatus)

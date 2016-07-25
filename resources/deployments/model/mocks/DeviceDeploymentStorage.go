@@ -82,10 +82,10 @@ func (_m *DeviceDeploymentStorage) InsertMany(deployment ...*deployments.DeviceD
 	return r0
 }
 
-func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) error {
+func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) (string, error) {
 	ret := _m.Called(deviceID, deploymentID, status)
 
-	return ret.Error(0)
+	return ret.Get(0).(string), ret.Error(1)
 }
 
 func (_m *DeviceDeploymentStorage) AggregateDeviceDeploymentByStatus(deploymentID string) (deployments.Stats, error) {
