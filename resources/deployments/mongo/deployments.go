@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // Database settings
@@ -103,4 +104,29 @@ func (d *DeploymentsStorage) FindByID(id string) (*deployments.Deployment, error
 	}
 
 	return deployment, nil
+}
+
+func (d *DeploymentsStorage) UpdateStats(id string, state_from, state_to string) error {
+	if govalidator.IsNull(id) {
+		return ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	// note dot notation on embedded document
+	update := bson.M{
+		"$inc": bson.M{
+			"stats." + state_from: -1,
+			"stats." + state_to:   1,
+		},
+	}
+
+	err := session.DB(DatabaseName).C(CollectionDeployments).UpdateId(id, update)
+
+	if err == mgo.ErrNotFound {
+		return ErrStorageInvalidID
+	}
+
+	return err
 }

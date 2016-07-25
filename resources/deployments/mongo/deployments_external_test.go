@@ -274,3 +274,121 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		session.Close()
 	}
 }
+
+func TestDeploymentStorageUpdateStats(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestDeploymentStorageInsert in short mode.")
+	}
+
+	testCases := map[string]struct {
+		InputID         string
+		InputDeployment *deployments.Deployment
+
+		InputStateFrom string
+		InputStateTo   string
+
+		OutputError error
+		OutputStats map[string]int
+	}{
+		"pending -> finished": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Stats: map[string]int{
+					deployments.DeviceDeploymentStatusDownloading: 1,
+					deployments.DeviceDeploymentStatusInstalling:  2,
+					deployments.DeviceDeploymentStatusRebooting:   3,
+					deployments.DeviceDeploymentStatusPending:     10,
+					deployments.DeviceDeploymentStatusSuccess:     15,
+					deployments.DeviceDeploymentStatusFailure:     4,
+					deployments.DeviceDeploymentStatusNoImage:     5,
+				},
+			},
+			InputStateFrom: deployments.DeviceDeploymentStatusPending,
+			InputStateTo:   deployments.DeviceDeploymentStatusSuccess,
+
+			OutputError: nil,
+			OutputStats: map[string]int{
+				deployments.DeviceDeploymentStatusDownloading: 1,
+				deployments.DeviceDeploymentStatusInstalling:  2,
+				deployments.DeviceDeploymentStatusRebooting:   3,
+				deployments.DeviceDeploymentStatusPending:     9,
+				deployments.DeviceDeploymentStatusSuccess:     16,
+				deployments.DeviceDeploymentStatusFailure:     4,
+				deployments.DeviceDeploymentStatusNoImage:     5,
+			},
+		},
+		"rebooting -> failed": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Stats: map[string]int{
+					deployments.DeviceDeploymentStatusDownloading: 1,
+					deployments.DeviceDeploymentStatusInstalling:  2,
+					deployments.DeviceDeploymentStatusRebooting:   3,
+					deployments.DeviceDeploymentStatusPending:     10,
+					deployments.DeviceDeploymentStatusSuccess:     15,
+					deployments.DeviceDeploymentStatusFailure:     4,
+					deployments.DeviceDeploymentStatusNoImage:     5,
+				},
+			},
+			InputStateFrom: deployments.DeviceDeploymentStatusRebooting,
+			InputStateTo:   deployments.DeviceDeploymentStatusFailure,
+
+			OutputError: nil,
+			OutputStats: map[string]int{
+				deployments.DeviceDeploymentStatusDownloading: 1,
+				deployments.DeviceDeploymentStatusInstalling:  2,
+				deployments.DeviceDeploymentStatusRebooting:   2,
+				deployments.DeviceDeploymentStatusPending:     10,
+				deployments.DeviceDeploymentStatusSuccess:     15,
+				deployments.DeviceDeploymentStatusFailure:     5,
+				deployments.DeviceDeploymentStatusNoImage:     5,
+			},
+		},
+		"invalid deployment id": {
+			InputID:         "",
+			InputDeployment: nil,
+			InputStateFrom:  deployments.DeviceDeploymentStatusRebooting,
+			InputStateTo:    deployments.DeviceDeploymentStatusFailure,
+
+			OutputError: ErrStorageInvalidID,
+			OutputStats: nil,
+		},
+		"wrong deployment id": {
+			InputID:         "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: nil,
+			InputStateFrom:  deployments.DeviceDeploymentStatusRebooting,
+			InputStateTo:    deployments.DeviceDeploymentStatusFailure,
+
+			OutputError: ErrStorageInvalidID,
+			OutputStats: nil,
+		},
+	}
+
+	for id, tc := range testCases {
+		t.Logf("testing case %s", id)
+		db.Wipe()
+
+		session := db.Session()
+		store := NewDeploymentsStorage(session)
+
+		dep := session.DB(DatabaseName).C(CollectionDeployments)
+		if tc.InputDeployment != nil {
+			assert.NoError(t, dep.Insert(tc.InputDeployment))
+		}
+
+		err := store.UpdateStats(tc.InputID, tc.InputStateFrom, tc.InputStateTo)
+
+		if tc.OutputError != nil {
+			assert.EqualError(t, err, tc.OutputError.Error())
+		} else {
+			var deployment *deployments.Deployment
+			err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.OutputStats, deployment.Stats)
+		}
+
+		session.Close()
+	}
+}
