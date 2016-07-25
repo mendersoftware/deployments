@@ -603,14 +603,22 @@ func TestControllerLookupDeployment(t *testing.T) {
 				OutputStatus: http.StatusOK,
 				OutputBodyObject: []LookupDeploymentResult{
 					LookupDeploymentResult{
-						Id:           "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-						Name:         "zen",
-						ArtifactName: "baz",
+						Deployment: deployments.Deployment{
+							DeploymentConstructor: &deployments.DeploymentConstructor{
+								Name:         StringToPointer("zen"),
+								ArtifactName: StringToPointer("baz"),
+							},
+							Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+						},
 					},
 					LookupDeploymentResult{
-						Id:           "e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
-						Name:         "foo",
-						ArtifactName: "bar",
+						Deployment: deployments.Deployment{
+							DeploymentConstructor: &deployments.DeploymentConstructor{
+								Name:         StringToPointer("foo"),
+								ArtifactName: StringToPointer("bar"),
+							},
+							Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
+						},
 					},
 				},
 			},

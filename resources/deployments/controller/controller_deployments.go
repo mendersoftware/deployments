@@ -21,7 +21,6 @@ import (
 	"github.com/mendersoftware/deployments/utils/identity"
 	"github.com/pkg/errors"
 	"net/http"
-	"time"
 )
 
 // Errors
@@ -195,20 +194,7 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 
 // Deployment as returned in deployment lookup query results
 type LookupDeploymentResult struct {
-	// deployment ID
-	Id string `json:"id"`
-
-	// Deployment creation time
-	Created *time.Time `json:"created"`
-
-	// Finished deplyment time
-	Finished *time.Time `json:"finished,omitempty"`
-	// Deployment name
-
-	Name string `json:"name"`
-
-	// Artifact name
-	ArtifactName string `json:"artifact_name,omitempty"`
+	deployments.Deployment
 
 	// Status
 	Status string `json:"status"`
@@ -230,9 +216,7 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 
 	res := make([]LookupDeploymentResult, len(deps))
 	for i, dep := range deps {
-		res[i].Id = *dep.Id
-		res[i].Name = *dep.Name
-		res[i].ArtifactName = *dep.ArtifactName
+		res[i].Deployment = *dep
 	}
 
 	d.view.RenderSuccessGet(w, res)
