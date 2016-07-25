@@ -167,16 +167,35 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 	dep.Devices = []string{"Device 123"}
 	dep.Id = StringToPointer("14ddec54-30be-49bf-aa6b-97ce271d71f5")
 
+	dep.Stats = map[string]int{
+		DeviceDeploymentStatusInstalling:  1,
+		DeviceDeploymentStatusRebooting:   2,
+		DeviceDeploymentStatusPending:     3,
+		DeviceDeploymentStatusSuccess:     4,
+		DeviceDeploymentStatusFailure:     5,
+		DeviceDeploymentStatusNoImage:     6,
+		DeviceDeploymentStatusDownloading: 7,
+	}
+
 	j, err := dep.MarshalJSON()
 	assert.NoError(t, err)
 
 	// date format may be slightly different on different platforms
 	expectedJSON := `
     {
-        "name": "Region: NYC", 
-        "artifact_name": "App 123", 
-        "created":"` + dep.Created.Format(time.RFC3339Nano) + `", 
-        "id":"14ddec54-30be-49bf-aa6b-97ce271d71f5"
+        "name": "Region: NYC",
+        "artifact_name": "App 123",
+        "created":"` + dep.Created.Format(time.RFC3339Nano) + `",
+        "id":"14ddec54-30be-49bf-aa6b-97ce271d71f5",
+		"stats" : {
+			"installing": 1,
+			"rebooting": 2,
+			"pending": 3,
+			"success": 4,
+			"failure": 5,
+			"noimage": 6,
+			"downloading": 7
+		}
     }`
 
 	assert.JSONEq(t, expectedJSON, string(j))

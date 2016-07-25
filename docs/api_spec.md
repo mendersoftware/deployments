@@ -327,6 +327,40 @@ Lookup deployments in the system, including active and history.
                         "finished": {
                             "id": "finished",
                             "type": "string"
+                        },
+                        "stats": {
+                            "id": "stats",
+                            "type": "object",
+                            "properties": {
+                                "pending": {
+                                   "id": "pending",
+                                   "type": "integer"
+                                },
+                                "installing": {
+                                   "id": "installing",
+                                   "type": "integer"
+                                },
+                                "downloading": {
+                                   "id": "downloading",
+                                   "type": "integer"
+                                },
+                                "rebooting": {
+                                   "id": "rebooting",
+                                   "type": "integer"
+                                },
+                                "success": {
+                                   "id": "success",
+                                   "type": "integer"
+                                },
+                                "failure": {
+                                   "id": "failure",
+                                   "type": "integer"
+                                },
+                                "noimage": {
+                                   "id": "noimage",
+                                   "type": "integer"
+                                }
+                            }
                         }
                     },
                     "required": [
@@ -545,6 +579,40 @@ Check status for specified deployment
                     "finished": {
                         "id": "finished",
                         "type": "string"
+                    },
+                    "stats": {
+                        "id": "stats",
+                        "type": "object",
+                        "properties": {
+                            "pending": {
+                               "id": "pending",
+                               "type": "integer"
+                            },
+                            "installing": {
+                               "id": "installing",
+                               "type": "integer"
+                            },
+                            "downloading": {
+                               "id": "downloading",
+                               "type": "integer"
+                            },
+                            "rebooting": {
+                               "id": "rebooting",
+                               "type": "integer"
+                            },
+                            "success": {
+                               "id": "success",
+                               "type": "integer"
+                            },
+                            "failure": {
+                               "id": "failure",
+                               "type": "integer"
+                            },
+                            "noimage": {
+                               "id": "noimage",
+                               "type": "integer"
+                            }
+                        }
                     }
                 },
                 "required": [
