@@ -21,6 +21,7 @@ import (
 	"github.com/mendersoftware/deployments/utils/identity"
 	"github.com/pkg/errors"
 	"net/http"
+	"net/url"
 )
 
 // Errors
@@ -198,14 +199,43 @@ type LookupDeploymentResult struct {
 
 	// Status
 	Status string `json:"status"`
+
+	// hide stats
+	Stats deployments.Stats `json:"-"`
+}
+
+func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
+	query := deployments.Query{}
+
+	search := vals.Get("search")
+	if search != "" {
+		query.SearchText = search
+	}
+
+	status := vals.Get("status")
+	switch status {
+	case "inprogress":
+		query.Status = deployments.StatusQueryInProgress
+	case "finished":
+		query.Status = deployments.StatusQueryFinished
+	case "pending":
+		query.Status = deployments.StatusQueryPending
+	case "":
+		query.Status = deployments.StatusQueryAny
+	default:
+		return query, errors.Errorf("unknown status %s", status)
+
+	}
+
+	return query, nil
 }
 
 func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.Request) {
-	query := deployments.Query{}
+	query, err := ParseLookupQuery(r.URL.Query())
 
-	search := r.URL.Query().Get("search")
-	if search != "" {
-		query.SearchText = search
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
 	}
 
 	deps, err := d.model.LookupDeployment(query)
@@ -217,6 +247,13 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 	res := make([]LookupDeploymentResult, len(deps))
 	for i, dep := range deps {
 		res[i].Deployment = *dep
+		if dep.IsInProgress() {
+			res[i].Status = "inprogress"
+		} else if dep.IsFinished() {
+			res[i].Status = "finished"
+		} else {
+			res[i].Status = "pending"
+		}
 	}
 
 	d.view.RenderSuccessGet(w, res)
