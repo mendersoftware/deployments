@@ -170,8 +170,19 @@ func (d *Deployment) IsPending() bool {
 	return true
 }
 
+type StatusQuery int
+
+const (
+	StatusQueryAny StatusQuery = iota
+	StatusQueryPending
+	StatusQueryInProgress
+	StatusQueryFinished
+)
+
 // Deployment lookup query
 type Query struct {
 	// match deployments by text by looking at deployment name and artifact name
 	SearchText string
+	// deployment status
+	Status StatusQuery
 }
