@@ -293,12 +293,18 @@ downloading, rebooting is optionall.
 
 # Group Deployment
 
-## Lookup deployments [GET /api/0.0.1/deployments{?search}]
+## Lookup deployments [GET /api/0.0.1/deployments{?search,status}]
 Lookup deployments in the system, including active and history.
 
 + Parameters
     + search: `Jonas fix` (string, optional) - Text to be matched in either
       deployment name or artifact name
+    + status: (enum, optional) - Deployment status
+      + Members
+        + `inprogress` - Deployments in progress
+        + `finished` - Finished deployments
+        + `pending` - Pending deployments
+
 
 + Response 200 (application/json)
     + Schema
@@ -329,46 +335,22 @@ Lookup deployments in the system, including active and history.
                             "id": "finished",
                             "type": "string"
                         },
-                        "stats": {
-                            "id": "stats",
-                            "type": "object",
-                            "properties": {
-                                "pending": {
-                                   "id": "pending",
-                                   "type": "integer"
-                                },
-                                "installing": {
-                                   "id": "installing",
-                                   "type": "integer"
-                                },
-                                "downloading": {
-                                   "id": "downloading",
-                                   "type": "integer"
-                                },
-                                "rebooting": {
-                                   "id": "rebooting",
-                                   "type": "integer"
-                                },
-                                "success": {
-                                   "id": "success",
-                                   "type": "integer"
-                                },
-                                "failure": {
-                                   "id": "failure",
-                                   "type": "integer"
-                                },
-                                "noimage": {
-                                   "id": "noimage",
-                                   "type": "integer"
-                                }
-                            }
+                        "status": {
+                            "id": "status",
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "inprogress",
+                                "finished"
+                            ]
                         }
                     },
                     "required": [
                         "created",
                         "name",
                         "artifact_name",
-                        "id"
+                        "id",
+                        "status"
                     ]
                 }
             }
