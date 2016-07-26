@@ -126,6 +126,50 @@ func (d *Deployment) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&slim)
 }
 
+func (d *Deployment) IsInProgress() bool {
+	active := []string{
+		DeviceDeploymentStatusRebooting,
+		DeviceDeploymentStatusInstalling,
+		DeviceDeploymentStatusDownloading,
+	}
+
+	var acount int
+	for _, s := range active {
+		acount += d.Stats[s]
+	}
+
+	if acount != 0 {
+		return true
+	}
+	return false
+}
+
+func (d *Deployment) IsFinished() bool {
+	// check if there are downloading/rebooting/installing devices
+	if d.IsInProgress() {
+		return false
+	}
+
+	// check if there are pending devices
+	if d.Stats[DeviceDeploymentStatusPending] != 0 {
+		return false
+	}
+
+	return true
+}
+
+func (d *Deployment) IsPending() bool {
+	if d.IsInProgress() {
+		return false
+	}
+
+	if d.IsFinished() {
+		return false
+	}
+
+	return true
+}
+
 // Deployment lookup query
 type Query struct {
 	// match deployments by text by looking at deployment name and artifact name

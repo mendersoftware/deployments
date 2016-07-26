@@ -200,3 +200,55 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 
 	assert.JSONEq(t, expectedJSON, string(j))
 }
+
+func TestDeploymentIs(t *testing.T) {
+	d := NewDeployment()
+
+	// should not be in progress, no downloading/installing/rebooting
+	assert.False(t, d.IsInProgress())
+	// no pending devices either
+	assert.False(t, d.IsPending())
+	// in fact it's finished
+	assert.True(t, d.IsFinished())
+
+	// check all active statuses
+	active := []string{
+		DeviceDeploymentStatusRebooting,
+		DeviceDeploymentStatusInstalling,
+		DeviceDeploymentStatusDownloading,
+	}
+	for _, as := range active {
+		t.Logf("checking in-progress deployment stat %s", as)
+		d.Stats = NewDeviceDeploymentStats()
+		d.Stats[as] = 1
+		assert.True(t, d.IsInProgress())
+		assert.False(t, d.IsFinished())
+		assert.False(t, d.IsPending())
+	}
+
+	finished := []string{
+		DeviceDeploymentStatusSuccess,
+		DeviceDeploymentStatusFailure,
+		DeviceDeploymentStatusNoImage,
+	}
+	for _, as := range finished {
+		t.Logf("checking finished deployment stat %s", as)
+		d.Stats = NewDeviceDeploymentStats()
+		d.Stats[as] = 1
+		assert.True(t, d.IsFinished())
+		assert.False(t, d.IsInProgress())
+		assert.False(t, d.IsPending())
+	}
+
+	pending := []string{
+		DeviceDeploymentStatusPending,
+	}
+	for _, as := range pending {
+		t.Logf("checking pending deployment stat %s", as)
+		d.Stats = NewDeviceDeploymentStats()
+		d.Stats[as] = 1
+		assert.False(t, d.IsFinished())
+		assert.False(t, d.IsInProgress())
+		assert.True(t, d.IsPending())
+	}
+}
