@@ -40,6 +40,7 @@ var (
 const (
 	StorageKeyDeploymentName         = "deploymentconstructor.name"
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
+	StorageKeyDeploymentStats        = "stats"
 )
 
 var (
@@ -181,28 +182,143 @@ func (d *DeploymentsStorage) UpdateStats(id string, state_from, state_to string)
 	return err
 }
 
-func (d *DeploymentsStorage) Find(match deployments.Query) ([]*deployments.Deployment, error) {
+func buildStatusKey(status string) string {
+	return StorageKeyDeploymentStats + "." + status
+}
 
-	if match == (deployments.Query{}) {
-		return nil, ErrDeploymentStorageInvalidQuery
+func buildStatusQuery(status deployments.StatusQuery) bson.M {
+
+	gt0 := bson.M{"$gt": 0}
+	eq0 := bson.M{"$eq": 0}
+
+	// empty query, catches StatusQueryAny
+	stq := bson.M{}
+
+	switch status {
+	case deployments.StatusQueryInProgress:
+		{
+			// downloading, installing or rebooting are non 0
+			stq = bson.M{
+				"$or": []bson.M{
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusDownloading): gt0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusInstalling): gt0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusRebooting): gt0,
+					},
+				},
+			}
+		}
+	case deployments.StatusQueryPending:
+		{
+			// all status counters, except for pending, are 0
+			stq = bson.M{
+				"$and": []bson.M{
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusDownloading): eq0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusInstalling): eq0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusRebooting): eq0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusSuccess): eq0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusFailure): eq0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusNoImage): eq0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusPending): gt0,
+					},
+				},
+			}
+		}
+	case deployments.StatusQueryFinished:
+		{
+			// finished, success, noimage counters are non 0, all other counters are 0
+			stq = bson.M{
+				"$and": []bson.M{
+					bson.M{
+						"$and": []bson.M{
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusDownloading): eq0,
+							},
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusInstalling): eq0,
+							},
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusRebooting): eq0,
+							},
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusPending): eq0,
+							},
+						},
+					},
+					bson.M{
+						"$or": []bson.M{
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusSuccess): gt0,
+							},
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusFailure): gt0,
+							},
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusNoImage): gt0,
+							},
+						},
+					},
+				},
+			}
+		}
 	}
+
+	return stq
+}
+
+func (d *DeploymentsStorage) Find(match deployments.Query) ([]*deployments.Deployment, error) {
 
 	session := d.session.Copy()
 	defer session.Close()
 
-	query := bson.M{}
+	andq := []bson.M{}
 
+	// build deployment by name part of the query
 	if match.SearchText != "" {
-		query["$text"] = bson.M{
-			"$search": match.SearchText,
-		}
-
 		// we must have indexing for text search
 		if !d.hasIndexing(session) {
 			return nil, ErrDeploymentStorageCannotExecQuery
 		}
+
+		tq := bson.M{
+			"$text": bson.M{
+				"$search": match.SearchText,
+			},
+		}
+
+		andq = append(andq, tq)
 	}
 
+	// build deployment by status part of the query
+	if match.Status != deployments.StatusQueryAny {
+		stq := buildStatusQuery(match.Status)
+		andq = append(andq, stq)
+	}
+
+	query := bson.M{}
+	if len(andq) != 0 {
+		// use search criteria if any
+		query = bson.M{
+			"$and": andq,
+		}
+	}
 	var deployment []*deployments.Deployment
 	err := session.DB(DatabaseName).C(CollectionDeployments).
 		Find(&query).All(&deployment)
