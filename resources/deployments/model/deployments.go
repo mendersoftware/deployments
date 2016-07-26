@@ -17,19 +17,14 @@ package model
 import (
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/deployments/controller"
+	"github.com/pkg/errors"
 )
 
 // Defaults
 const (
 	DefaultUpdateDownloadLinkExpire = 24 * time.Hour
-)
-
-// Errors
-var (
-	ErrModelMissingInput    = errors.New("Missing input deplyoment data")
-	ErrModelInvalidDeviceID = errors.New("Invalid device ID")
 )
 
 type DeploymentsModel struct {
@@ -60,7 +55,7 @@ func NewDeploymentModel(
 func (d *DeploymentsModel) CreateDeployment(constructor *deployments.DeploymentConstructor) (string, error) {
 
 	if constructor == nil {
-		return "", ErrModelMissingInput
+		return "", controller.ErrModelMissingInput
 	}
 
 	if err := constructor.Validate(); err != nil {
@@ -161,4 +156,35 @@ func (d *DeploymentsModel) ActiveDeploymentStatuses() []string {
 		deployments.DeviceDeploymentStatusInstalling,
 		deployments.DeviceDeploymentStatusRebooting,
 	}
+}
+
+// UpdateDeviceDeploymentStatus will update the deployment status for device of
+// ID `deviceID`. Returns nil if update was successful.
+func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
+	deviceID string, status string) error {
+
+	return d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID, status)
+}
+
+func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.Stats, error) {
+	return d.deviceDeploymentsStorage.AggregateDeviceDeploymentByStatus(deploymentID)
+}
+
+//GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
+func (d *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error) {
+	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
+	if err != nil {
+		return nil, controller.ErrModelInternal
+	}
+
+	if deployment == nil {
+		return nil, controller.ErrModelDeploymentNotFound
+	}
+
+	statuses, err := d.deviceDeploymentsStorage.GetDeviceStatusesForDeployment(deploymentID)
+	if err != nil {
+		return nil, controller.ErrModelInternal
+	}
+
+	return statuses, nil
 }

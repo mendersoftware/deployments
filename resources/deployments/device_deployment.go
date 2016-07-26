@@ -44,7 +44,7 @@ type DeviceDeployment struct {
 	Status *string `json:"status" valid:"required"`
 
 	// Device id
-	DeviceId *string `json:"id" valid:"uuidv4,required"`
+	DeviceId *string `json:"id" valid:"required"`
 
 	// Deplyoment id
 	DeploymentId *string `json:"-" valid:"uuidv4,required"`
@@ -77,4 +77,29 @@ func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
 func (d *DeviceDeployment) Validate() error {
 	_, err := govalidator.ValidateStruct(d)
 	return err
+}
+
+// Deployment statistics wrapper, each value carries a count of deployments
+// aggregated by state.
+type Stats map[string]int
+
+func NewDeviceDeploymentStats() Stats {
+	statuses := []string{
+		DeviceDeploymentStatusNoImage,
+		DeviceDeploymentStatusFailure,
+		DeviceDeploymentStatusSuccess,
+		DeviceDeploymentStatusPending,
+		DeviceDeploymentStatusRebooting,
+		DeviceDeploymentStatusInstalling,
+		DeviceDeploymentStatusDownloading,
+	}
+
+	s := make(Stats)
+
+	// populate statuses with 0s
+	for _, v := range statuses {
+		s[v] = 0
+	}
+
+	return s
 }

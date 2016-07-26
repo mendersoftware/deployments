@@ -125,8 +125,13 @@ func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsC
 		// Deployments
 		rest.Post("/api/0.0.1/deployments", controller.PostDeployment),
 		rest.Get("/api/0.0.1/deployments/:id", controller.GetDeployment),
+		rest.Get("/api/0.0.1/deployments/:id/statistics", controller.GetDeploymentStats),
 
 		// Devices
-		rest.Get("/api/0.0.1/devices/:id/update", controller.GetDeploymentForDevice),
+		rest.Get("/api/0.0.1/device/update", controller.GetDeploymentForDevice),
+		rest.Put("/api/0.0.1/device/deployments/:id/status",
+			controller.PutDeploymentStatusForDevice),
+		rest.Get("/api/0.0.1/deployments/:id/devices",
+			controller.GetDeviceStatusesForDeployment),
 	}
 }

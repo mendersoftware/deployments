@@ -143,3 +143,103 @@ func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 
 	return deployment, nil
 }
+
+func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) error {
+
+	// Verify ID formatting
+	if govalidator.IsNull(deviceID) ||
+		govalidator.IsNull(deploymentID) ||
+		govalidator.IsNull(status) {
+		return ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	// Device should know only about deployments that are not finished
+	query := bson.M{
+		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+	}
+
+	// update status field only
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeviceDeploymentStatus: status,
+		},
+	}
+	chi, err := session.DB(DatabaseName).C(CollectionDevices).Upsert(query, update)
+	if err != nil {
+		return err
+	}
+
+	if chi.Updated == 0 {
+		return mgo.ErrNotFound
+	}
+
+	return nil
+}
+
+func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error) {
+
+	if govalidator.IsNull(id) {
+		return nil, ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	match := bson.M{
+		"$match": bson.M{
+			StorageKeyDeviceDeploymentDeploymentID: id,
+		},
+	}
+	group := bson.M{
+		"$group": bson.M{
+			"_id": "$" + StorageKeyDeviceDeploymentStatus,
+			"count": bson.M{
+				"$sum": 1,
+			},
+		},
+	}
+	pipe := []bson.M{
+		match,
+		group,
+	}
+	var results []struct {
+		Name  string `bson:"_id"`
+		Count int
+	}
+	err := session.DB(DatabaseName).C(CollectionDevices).Pipe(&pipe).All(&results)
+	if err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	raw := deployments.NewDeviceDeploymentStats()
+	for _, res := range results {
+		raw[res.Name] = res.Count
+	}
+	return raw, nil
+}
+
+//GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
+func (d *DeviceDeploymentsStorage) GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error) {
+	session := d.session.Copy()
+	defer session.Close()
+
+	query := bson.M{
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+	}
+
+	var statuses []deployments.DeviceDeployment
+
+	err := session.DB(DatabaseName).C(CollectionDevices).Find(query).All(&statuses)
+	if err != nil {
+		return nil, err
+	}
+
+	return statuses, nil
+}

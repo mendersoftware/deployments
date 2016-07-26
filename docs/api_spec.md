@@ -19,11 +19,26 @@ Allows `location` header exposure.
 
 # Group Device
 
-## List updates for device [GET /api/0.0.1/devices/{id}/update]
+## Authorization
+
+Incoming requests must set `Authorization` header and include device token
+obtained from the API. The header shall look like this:
+
+```
+Authorization: Bearer <token>
+# example
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ
+
+```
+
+## List updates for device [GET /api/0.0.1/device/update]
 List next update to be installed on the device.
 
-+ Parameters
-    + id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string, required) -  Device ID
++ Request
+
+    + Headers
+
+        Authorization: Bearer <token>
 
 + Response 200 (application/json)
     Next update for the device.
@@ -161,6 +176,121 @@ List next update to be installed on the device.
                 "error": "Detailed error message"
             }
 
+
+## Report deployment status [PUT /api/0.1.0/device/deployments/{deployment_id}/status]
+
+Allows to update the status of deployment on a particular device. Final status
+of the deployment is required to be set to indicate end of the installation
+process: success or failure. Reporting of intermediate steps such as installing,
+downloading, rebooting is optionall.
+
++ Parameters
+
+    + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deplyoment ID
+
++ Request (application/json)
+
+    + Headers
+
+        Authorization: Bearer <token>
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "installing",
+                            "downloading",
+                            "rebooting",
+                            "success",
+                            "failure"
+                        ]
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            }
+
+    + Body
+
+            {
+                "status": "success"
+            }
+
++ Response 204
+    Deployment status updated. No body
+
++ Response 400 (application/json)
+    Invalid request.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
++ Response 404 (application/json)
+    Resource not found.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
++ Response 500 (application/json)
+    Internal server error. Please retry in a while.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
 # Group Deployment
 
 ## Lookup deployments [GET /api/0.0.1/deployments{?name}]
@@ -197,6 +327,40 @@ Lookup deployments in the system, including active and history.
                         "finished": {
                             "id": "finished",
                             "type": "string"
+                        },
+                        "stats": {
+                            "id": "stats",
+                            "type": "object",
+                            "properties": {
+                                "pending": {
+                                   "id": "pending",
+                                   "type": "integer"
+                                },
+                                "installing": {
+                                   "id": "installing",
+                                   "type": "integer"
+                                },
+                                "downloading": {
+                                   "id": "downloading",
+                                   "type": "integer"
+                                },
+                                "rebooting": {
+                                   "id": "rebooting",
+                                   "type": "integer"
+                                },
+                                "success": {
+                                   "id": "success",
+                                   "type": "integer"
+                                },
+                                "failure": {
+                                   "id": "failure",
+                                   "type": "integer"
+                                },
+                                "noimage": {
+                                   "id": "noimage",
+                                   "type": "integer"
+                                }
+                            }
                         }
                     },
                     "required": [
@@ -415,6 +579,40 @@ Check status for specified deployment
                     "finished": {
                         "id": "finished",
                         "type": "string"
+                    },
+                    "stats": {
+                        "id": "stats",
+                        "type": "object",
+                        "properties": {
+                            "pending": {
+                               "id": "pending",
+                               "type": "integer"
+                            },
+                            "installing": {
+                               "id": "installing",
+                               "type": "integer"
+                            },
+                            "downloading": {
+                               "id": "downloading",
+                               "type": "integer"
+                            },
+                            "rebooting": {
+                               "id": "rebooting",
+                               "type": "integer"
+                            },
+                            "success": {
+                               "id": "success",
+                               "type": "integer"
+                            },
+                            "failure": {
+                               "id": "failure",
+                               "type": "integer"
+                            },
+                            "noimage": {
+                               "id": "noimage",
+                               "type": "integer"
+                            }
+                        }
                     }
                 },
                 "required": [
@@ -542,8 +740,8 @@ TODO: To be implemented & statuses may change
                 "$schema": "http://json-schema.org/draft-04/schema#",
                 "type": "object",
                 "properties": {
-                    "successful": {
-                        "id": "successful",
+                    "success": {
+                        "id": "success",
                         "type": "integer",
                         "description": "Number of successful deployments"
                     },
@@ -552,10 +750,20 @@ TODO: To be implemented & statuses may change
                         "type": "integer",
                         "description": "Number of pending deployments"
                     },
-                    "inprogress": {
-                        "id": "inprogress",
+                    "downloading": {
+                        "id": "downloading",
                         "type": "integer",
-                        "description": "Number of deployments in progress"
+                        "description": "Number of deployments being downloaded"
+                    },
+                    "rebooting": {
+                        "id": "rebooting",
+                        "type": "integer",
+                        "description": "Number of deployments devices are rebooting into "
+                    },
+                    "installing": {
+                        "id": "downloading",
+                        "type": "integer",
+                        "description": "Number of deployments being installed"
                     },
                     "failure": {
                         "id": "failure",
@@ -567,24 +775,29 @@ TODO: To be implemented & statuses may change
                         "type": "integer",
                         "description": "Do not have apropriate image for the device model."
                     }
+
                 },
                 "required": [
-                    "successful",
+                    "success",
                     "pending",
-                    "inprogress",
                     "failure",
                     "noimage"
+                    "downloading",
+                    "installing",
+                    "rebooting"
                 ]
             }
 
     + Body
 
             {
-                "successful": 3,
+                "success": 3,
                 "pending": 1,
-                "inprogress": 23,
                 "failure": 0,
-                "noimage": 1
+                "downloading": 1,
+                "installing": 2,
+                "rebooting": 3
+                "noimage:" 0
             }
 
 + Response 404 (application/json)
@@ -631,7 +844,6 @@ TODO: To be implemented & statuses may change
 
 ### List devices [GET /api/0.0.1/deployments/{deployment_id}/devices]
 Device statuses for the deployment.
-TODO: To be implemented
 
 + Parameters
     + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
@@ -701,6 +913,159 @@ TODO: To be implemented
             ]
 
 + Response 404 (application/json)
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
++ Response 400 (application/json)
+    Argument error - see response for details.
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
++ Response 500 (application/json)
+    Internal server error. Please retry in a while.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
+### Send deployment log [PUT /api/0.1.0/device/deployments/{deployment_id}/log]
+Set deployment log. Messages are split by line in the payload.
+
++ Parameters
+    + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deplyoment ID
+
++ Request (application/json)
+
+    + Headers
+
+        Authorization: Bearer <token>
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "timestamp": {
+                                    "type": "string"
+                                },
+                                "level": {
+                                    "type": "string",
+                                },
+                                "message": {
+                                    "type": "string"
+                                }
+                             },
+                            "required": [
+                                "timestamp",
+                                "level",
+                                "message"
+                             ]
+                        }
+                    }
+                },
+                "required": [
+                    "messages"
+                ]
+            }
+
+    + Body
+
+            {
+                "messages": [
+                    {
+                        "timestamp": "2016-02-11T13:03:17.063493443Z",
+                        "level": "error",
+                        "message": "ASL Sender Statistics"
+                    },
+                    {
+                        "timestamp": "2016-02-11T13:03:18.063493443Z",
+                        "level": "notice",
+                        "message": "404 not found"
+                    }
+                ]
+            }
+
++ Response 204
+    Deployment log uploaded. No body
+
++ Response 400 (application/json)
+    Invalid request.
+
+    + Schema
+
+            {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "id": "error",
+                        "type": "string"
+                    }
+                }
+            }
+
+    + Body
+
+            {
+                "error": "Detailed error message"
+            }
+
++ Response 404 (application/json)
+    Resource not found.
+
     + Schema
 
             {

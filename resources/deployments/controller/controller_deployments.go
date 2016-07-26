@@ -15,17 +15,19 @@
 package controller
 
 import (
-	"net/http"
-
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/utils/identity"
 	"github.com/pkg/errors"
+	"net/http"
 )
 
 // Errors
 var (
-	ErrIDNotUUIDv4 = errors.New("ID is not UUIDv4")
+	ErrIDNotUUIDv4  = errors.New("ID is not UUIDv4")
+	ErrDeploymentID = errors.New("Invalid deployment ID")
+	ErrInternal     = errors.New("Internal error")
 )
 
 type DeploymentsController struct {
@@ -94,7 +96,7 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 	d.view.RenderSuccessGet(w, deployment)
 }
 
-func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *rest.Request) {
 
 	id := r.PathParam("id")
 
@@ -103,7 +105,29 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 		return
 	}
 
-	deployment, err := d.model.GetDeploymentForDevice(id)
+	stats, err := d.model.GetDeploymentStats(id)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	if stats == nil {
+		d.view.RenderErrorNotFound(w)
+		return
+	}
+
+	d.view.RenderSuccessGet(w, stats)
+}
+
+func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
+
+	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	deployment, err := d.model.GetDeploymentForDevice(idata.Subject)
 	if err != nil {
 		d.view.RenderError(w, err, http.StatusInternalServerError)
 		return
@@ -115,4 +139,56 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 	}
 
 	d.view.RenderSuccessGet(w, deployment)
+}
+
+func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWriter, r *rest.Request) {
+
+	did := r.PathParam("id")
+
+	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	// receive request body
+	var report statusReport
+
+	err = r.DecodeJsonPayload(&report)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	status := report.Status
+	if err := d.model.UpdateDeviceDeploymentStatus(did, idata.Subject, status); err != nil {
+		d.view.RenderError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	d.view.RenderEmptySuccessResponse(w)
+}
+
+func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWriter, r *rest.Request) {
+	did := r.PathParam("id")
+
+	if !govalidator.IsUUIDv4(did) {
+		d.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		return
+	}
+
+	statuses, err := d.model.GetDeviceStatusesForDeployment(did)
+	if err != nil {
+		switch err {
+		case ErrModelDeploymentNotFound:
+			d.view.RenderError(w, err, http.StatusNotFound)
+			return
+		default:
+			d.view.RenderError(w, ErrInternal, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	d.view.RenderSuccessGet(w, statuses)
+	return
 }

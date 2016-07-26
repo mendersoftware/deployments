@@ -26,5 +26,10 @@ type DeploymentsView struct {
 }
 
 func (d *DeploymentsView) RenderNoUpdateForDevice(w rest.ResponseWriter) {
+	d.RenderEmptySuccessResponse(w)
+}
+
+// Success response with no data aka. 204 No Content
+func (d *DeploymentsView) RenderEmptySuccessResponse(w rest.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
 }
