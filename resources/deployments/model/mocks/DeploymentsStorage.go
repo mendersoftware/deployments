@@ -74,3 +74,9 @@ func (_m *DeploymentsStorage) Insert(deployment *deployments.Deployment) error {
 
 	return r0
 }
+
+func (_m *DeploymentsStorage) UpdateStats(id string, state_from, state_to string) error {
+	ret := _m.Called(id, state_from, state_to)
+
+	return ret.Error(0)
+}

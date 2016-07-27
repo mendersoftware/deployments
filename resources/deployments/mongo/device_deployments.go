@@ -144,13 +144,13 @@ func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 	return deployment, nil
 }
 
-func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) error {
+func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) (string, error) {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) ||
 		govalidator.IsNull(deploymentID) ||
 		govalidator.IsNull(status) {
-		return ErrStorageInvalidID
+		return "", ErrStorageInvalidID
 	}
 
 	session := d.session.Copy()
@@ -168,16 +168,25 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string,
 			StorageKeyDeviceDeploymentStatus: status,
 		},
 	}
-	chi, err := session.DB(DatabaseName).C(CollectionDevices).Upsert(query, update)
+
+	var old deployments.DeviceDeployment
+
+	// update and return the old status in one go
+	change := mgo.Change{
+		Update: update,
+	}
+
+	chi, err := session.DB(DatabaseName).C(CollectionDevices).Find(query).Apply(change, &old)
+
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if chi.Updated == 0 {
-		return mgo.ErrNotFound
+		return "", mgo.ErrNotFound
 	}
 
-	return nil
+	return *old.Status, nil
 }
 
 func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error) {

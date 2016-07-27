@@ -21,4 +21,5 @@ type DeploymentsStorage interface {
 	Insert(deployment *deployments.Deployment) error
 	Delete(id string) error
 	FindByID(id string) (*deployments.Deployment, error)
+	UpdateStats(id string, state_from, state_to string) error
 }
