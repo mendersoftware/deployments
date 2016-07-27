@@ -87,7 +87,9 @@ aws:
                 # Environment variables:
                 # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
                 # If you're working with temporary security credentials,
-                # you can also keep the session token in AWS_SESSION_TOKEN
+                # you can also keep the session token in AWS_SESSION_TOKEN.
+                #
+                # If you're testing with a fake s3 environment, you can specify the uri endpoint with: AWS_URI
                 #
                 # Credentials File:
                 # Instead of keeping credentials in environment variables,
