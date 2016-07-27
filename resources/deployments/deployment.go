@@ -76,7 +76,7 @@ type Deployment struct {
 	// Aggregated device status counters.
 	// Initialized with the "pending" counter set to total device count for deployment.
 	// Individual counter incremented/decremented according to device status updates.
-	Stats map[string]int `json:"stats"`
+	Stats map[string]int `json:"-"`
 }
 
 // NewDeployment creates new deployment object, sets create data by default.
