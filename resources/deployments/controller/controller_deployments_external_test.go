@@ -166,13 +166,19 @@ func TestControllerGetDeployment(t *testing.T) {
 			InputModelDeployment: &deployments.Deployment{Id: StringToPointer("id 123")},
 
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusOK,
-				OutputBodyObject: &deployments.Deployment{Id: StringToPointer("id 123")},
+				OutputStatus: http.StatusOK,
+				OutputBodyObject: &ApiDeploymentWrapper{
+					Deployment: deployments.Deployment{
+						Id: StringToPointer("id 123"),
+					},
+					Status: "pending",
+				},
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
+		t.Logf("testing %v", testCase.InputID)
 
 		deploymentModel := new(mocks.DeploymentsModel)
 		deploymentModel.On("GetDeployment", testCase.InputID).
@@ -614,8 +620,8 @@ func TestControllerLookupDeployment(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
-				OutputBodyObject: []LookupDeploymentResult{
-					LookupDeploymentResult{
+				OutputBodyObject: []ApiDeploymentWrapper{
+					{
 						Deployment: deployments.Deployment{
 							DeploymentConstructor: &deployments.DeploymentConstructor{
 								Name:         StringToPointer("zen"),
@@ -624,7 +630,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 							Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 						},
 					},
-					LookupDeploymentResult{
+					{
 						Deployment: deployments.Deployment{
 							DeploymentConstructor: &deployments.DeploymentConstructor{
 								Name:         StringToPointer("foo"),

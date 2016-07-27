@@ -94,7 +94,9 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 		return
 	}
 
-	d.view.RenderSuccessGet(w, deployment)
+	ad := NewApiDeploymentWrapper(deployment)
+
+	d.view.RenderSuccessGet(w, ad)
 }
 
 func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *rest.Request) {
@@ -194,14 +196,30 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 }
 
 // Deployment as returned in deployment lookup query results
-type LookupDeploymentResult struct {
+type ApiDeploymentWrapper struct {
 	deployments.Deployment
 
 	// Status
 	Status string `json:"status"`
+}
 
-	// hide stats
-	Stats deployments.Stats `json:"-"`
+func NewApiDeploymentWrapper(dep *deployments.Deployment) *ApiDeploymentWrapper {
+	ad := &ApiDeploymentWrapper{
+		Deployment: *dep,
+	}
+	ad.UpdateStatus()
+	return ad
+}
+
+// fill Status field
+func (a *ApiDeploymentWrapper) UpdateStatus() {
+	if a.IsInProgress() {
+		a.Status = "inprogress"
+	} else if a.IsFinished() {
+		a.Status = "finished"
+	} else {
+		a.Status = "pending"
+	}
 }
 
 func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
@@ -244,16 +262,10 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 		return
 	}
 
-	res := make([]LookupDeploymentResult, len(deps))
+	res := make([]ApiDeploymentWrapper, len(deps))
 	for i, dep := range deps {
 		res[i].Deployment = *dep
-		if dep.IsInProgress() {
-			res[i].Status = "inprogress"
-		} else if dep.IsFinished() {
-			res[i].Status = "finished"
-		} else {
-			res[i].Status = "pending"
-		}
+		res[i].UpdateStatus()
 	}
 
 	d.view.RenderSuccessGet(w, res)
