@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -165,13 +166,19 @@ func TestControllerGetDeployment(t *testing.T) {
 			InputModelDeployment: &deployments.Deployment{Id: StringToPointer("id 123")},
 
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusOK,
-				OutputBodyObject: &deployments.Deployment{Id: StringToPointer("id 123")},
+				OutputStatus: http.StatusOK,
+				OutputBodyObject: &ApiDeploymentWrapper{
+					Deployment: deployments.Deployment{
+						Id: StringToPointer("id 123"),
+					},
+					Status: "pending",
+				},
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
+		t.Logf("testing %v", testCase.InputID)
 
 		deploymentModel := new(mocks.DeploymentsModel)
 		deploymentModel.On("GetDeployment", testCase.InputID).
@@ -537,5 +544,221 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 			test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil))
 
 		h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
+	}
+}
+
+func TestControllerLookupDeployment(t *testing.T) {
+
+	t.Parallel()
+
+	someDeployments := []*deployments.Deployment{
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("zen"),
+				ArtifactName: StringToPointer("baz"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("foo"),
+				ArtifactName: StringToPointer("bar"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
+		},
+	}
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		SearchStatus string
+
+		InputModelQuery       deployments.Query
+		InputModelError       error
+		InputModelDeployments []*deployments.Deployment
+	}{
+		{
+			InputModelQuery: deployments.Query{
+				SearchText: " ",
+			},
+			InputModelError: errors.New("bad query"),
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("bad query")),
+			},
+		},
+		{
+			SearchStatus:    "badstatus",
+			InputModelError: errors.New("bad query"),
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("unknown status badstatus")),
+			},
+		},
+		{
+			InputModelQuery: deployments.Query{
+				SearchText: "foo-not-found",
+			},
+			InputModelDeployments: []*deployments.Deployment{},
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusOK,
+				OutputBodyObject: []*deployments.Deployment{},
+			},
+		},
+		{
+			InputModelQuery: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryInProgress,
+			},
+			SearchStatus:          "inprogress",
+			InputModelDeployments: someDeployments,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusOK,
+				OutputBodyObject: []ApiDeploymentWrapper{
+					{
+						Deployment: deployments.Deployment{
+							DeploymentConstructor: &deployments.DeploymentConstructor{
+								Name:         StringToPointer("zen"),
+								ArtifactName: StringToPointer("baz"),
+							},
+							Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+						},
+					},
+					{
+						Deployment: deployments.Deployment{
+							DeploymentConstructor: &deployments.DeploymentConstructor{
+								Name:         StringToPointer("foo"),
+								ArtifactName: StringToPointer("bar"),
+							},
+							Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing %+v %s", testCase.InputModelQuery, testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("LookupDeployment", testCase.InputModelQuery).
+			Return(testCase.InputModelDeployments, testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Get("/r",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).LookupDeployment))
+
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		u := url.URL{
+			Scheme: "http",
+			Host:   "localhost",
+			Path:   "/r",
+		}
+		q := u.Query()
+		q.Set("search", testCase.InputModelQuery.SearchText)
+		if testCase.SearchStatus != "" {
+			q.Set("status", testCase.SearchStatus)
+		}
+		u.RawQuery = q.Encode()
+		t.Logf("query: %s", u.String())
+		req := test.MakeSimpleRequest("GET", u.String(), nil)
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+	}
+}
+
+func TestParseLookupQuery(t *testing.T) {
+	testCases := []struct {
+		vals  url.Values
+		query deployments.Query
+		err   error
+	}{
+		{
+			vals: url.Values{
+				"search": []string{"foo"},
+				"status": []string{"inprogress"},
+			},
+			query: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryInProgress,
+			},
+		},
+		{
+			vals: url.Values{
+				"search": []string{"foo"},
+				"status": []string{"bar"},
+			},
+			err: errors.New("unknown status bar"),
+		},
+		{
+			vals: url.Values{
+				"search": []string{"foo"},
+				"status": []string{"finished"},
+			},
+			query: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryFinished,
+			},
+		},
+		{
+			vals: url.Values{
+				"search": []string{"foo"},
+				"status": []string{"pending"},
+			},
+			query: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryPending,
+			},
+		},
+		{
+			vals: url.Values{
+				"search": []string{"foo"},
+			},
+			query: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryAny,
+			},
+		},
+		{
+			vals: url.Values{},
+			query: deployments.Query{
+				SearchText: "",
+				Status:     deployments.StatusQueryAny,
+			},
+		},
+		{
+			vals: url.Values{
+				"status": []string{"pending"},
+			},
+			query: deployments.Query{
+				SearchText: "",
+				Status:     deployments.StatusQueryPending,
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Logf("testing: %v", tc.vals)
+
+		q, err := ParseLookupQuery(tc.vals)
+		if tc.err != nil {
+			assert.Error(t, err)
+			assert.EqualError(t, tc.err, err.Error())
+		} else {
+			assert.Equal(t, tc.query, q)
+		}
 	}
 }

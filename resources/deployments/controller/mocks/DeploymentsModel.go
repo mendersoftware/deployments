@@ -108,3 +108,9 @@ func (_m *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) 
 	ret := _m.Called(deploymentID)
 	return ret.Get(0).([]deployments.DeviceDeployment), ret.Error(1)
 }
+
+func (_m *DeploymentsModel) LookupDeployment(query deployments.Query) ([]*deployments.Deployment, error) {
+
+	ret := _m.Called(query)
+	return ret.Get(0).([]*deployments.Deployment), ret.Error(1)
+}

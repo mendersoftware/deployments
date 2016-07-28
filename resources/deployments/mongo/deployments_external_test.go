@@ -17,6 +17,7 @@ package mongo_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
@@ -368,6 +369,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 
 	for id, tc := range testCases {
 		t.Logf("testing case %s", id)
+
 		db.Wipe()
 
 		session := db.Session()
@@ -389,6 +391,264 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 			assert.Equal(t, tc.OutputStats, deployment.Stats)
 		}
 
+		// Need to close all sessions to be able to call wipe at next test case
+		session.Close()
+	}
+}
+
+func newTestStats(stats deployments.Stats) deployments.Stats {
+	st := deployments.NewDeviceDeploymentStats()
+	for k, v := range stats {
+		st[k] = v
+	}
+	return st
+}
+
+func TestDeploymentStorageFindBy(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("skipping TestDeploymentStorageFindBy in short mode.")
+	}
+
+	someDeployments := []*deployments.Deployment{
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("NYC Production Inc."),
+				ArtifactName: StringToPointer("App 123"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusNoImage: 1,
+			}),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("NYC Production Inc."),
+				ArtifactName: StringToPointer("App 123"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusNoImage: 1,
+			}),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("foo"),
+				ArtifactName: StringToPointer("bar"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusFailure: 2,
+			}),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("foo"),
+				ArtifactName: StringToPointer("bar"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("3fe15222-0a41-401f-8f5e-582aba2a002c"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusNoImage: 1,
+			}),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("foo"),
+				ArtifactName: StringToPointer("bar"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("3fe15222-0a41-401f-8f5e-582aba2a002d"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusDownloading: 1,
+			}),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("zed"),
+				ArtifactName: StringToPointer("daz"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("3fe15222-1234-401f-8f5e-582aba2a002e"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusDownloading: 1,
+				deployments.DeviceDeploymentStatusPending:     1,
+			}),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("zed"),
+				ArtifactName: StringToPointer("daz"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("3fe15222-1234-401f-8f5e-582aba2a002f"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusPending: 1,
+			}),
+		},
+	}
+
+	testCases := []struct {
+		InputName                  string
+		InputStatus                deployments.StatusQuery
+		InputDeplyomentsCollection []*deployments.Deployment
+
+		OutputError error
+		OutputID    []string
+	}{
+		{
+			InputName:   "foobar-empty-db",
+			OutputError: ErrDeploymentStorageCannotExecQuery,
+		},
+		{
+			InputName: "foobar-no-match",
+			InputDeplyomentsCollection: []*deployments.Deployment{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				},
+			},
+		},
+		{
+			InputName:                  "NYC",
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				"d1804903-5caa-4a73-a3ae-0efcc3205405",
+			},
+		},
+		{
+			InputName:                  "NYC foo",
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				"d1804903-5caa-4a73-a3ae-0efcc3205405",
+				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
+				"3fe15222-0a41-401f-8f5e-582aba2a002c",
+				"3fe15222-0a41-401f-8f5e-582aba2a002d",
+			},
+		},
+		{
+			InputName:                  "bar",
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
+				"3fe15222-0a41-401f-8f5e-582aba2a002c",
+				"3fe15222-0a41-401f-8f5e-582aba2a002d",
+			},
+		},
+		{
+			InputName:                  "bar",
+			InputStatus:                deployments.StatusQueryInProgress,
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"3fe15222-0a41-401f-8f5e-582aba2a002d",
+			},
+		},
+		{
+			InputName:                  "bar",
+			InputStatus:                deployments.StatusQueryFinished,
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
+				"3fe15222-0a41-401f-8f5e-582aba2a002c",
+			},
+		},
+		{
+			InputStatus:                deployments.StatusQueryInProgress,
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"3fe15222-0a41-401f-8f5e-582aba2a002d",
+				"3fe15222-1234-401f-8f5e-582aba2a002e",
+			},
+		},
+		{
+			InputStatus:                deployments.StatusQueryPending,
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"3fe15222-1234-401f-8f5e-582aba2a002f",
+			},
+		},
+		{
+			InputStatus:                deployments.StatusQueryFinished,
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				"d1804903-5caa-4a73-a3ae-0efcc3205405",
+				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
+				"3fe15222-0a41-401f-8f5e-582aba2a002c",
+			},
+		},
+		{
+			// whatever name
+			InputName: "",
+			// any status
+			InputStatus:                deployments.StatusQueryAny,
+			InputDeplyomentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				"d1804903-5caa-4a73-a3ae-0efcc3205405",
+				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
+				"3fe15222-0a41-401f-8f5e-582aba2a002c",
+				"3fe15222-0a41-401f-8f5e-582aba2a002d",
+				"3fe15222-1234-401f-8f5e-582aba2a002e",
+				"3fe15222-1234-401f-8f5e-582aba2a002f",
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing search: '%s'", testCase.InputName)
+		t.Logf("        status: %v", testCase.InputStatus)
+
+		// Make sure we start test with empty database
+		db.Wipe()
+
+		session := db.Session()
+		store := NewDeploymentsStorage(session)
+
+		for _, d := range testCase.InputDeplyomentsCollection {
+			if d.Created == nil {
+				now := time.Now()
+				d.Created = &now
+			}
+			assert.NoError(t, store.Insert(d))
+		}
+
+		deployments, err := store.Find(deployments.Query{
+			SearchText: testCase.InputName,
+			Status:     testCase.InputStatus,
+		})
+
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+			assert.Len(t, deployments, len(testCase.OutputID))
+			for _, dep := range deployments {
+				assert.Contains(t, testCase.OutputID, *dep.Id,
+					"got unexpected deployment %s", *dep.Id)
+			}
+		}
+
+		// Need to close all sessions to be able to call wipe at next test case
 		session.Close()
 	}
 }
