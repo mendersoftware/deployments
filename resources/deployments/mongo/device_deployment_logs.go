@@ -15,9 +15,7 @@
 package mongo
 
 import (
-	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
-	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -33,11 +31,6 @@ const (
 	StorageKeyDeviceDeploymentLogMessages = "messages"
 )
 
-// Errors
-var (
-	ErrStorageInvalidLog = errors.New("Invalid deployment log")
-)
-
 // DeviceDeploymentLogsStorage is a data layer for deployment logs based on MongoDB
 type DeviceDeploymentLogsStorage struct {
 	session *mgo.Session
@@ -49,23 +42,17 @@ func NewDeviceDeploymentLogsStorage(session *mgo.Session) *DeviceDeploymentLogsS
 	}
 }
 
-func (d *DeviceDeploymentLogsStorage) SaveDeviceDeploymentLog(
-	deviceID string, deploymentID string, log *deployments.DeploymentLog) error {
-
-	if govalidator.IsNull(deviceID) ||
-		govalidator.IsNull(deploymentID) {
-		return ErrStorageInvalidID
-	}
-	if log == nil {
-		return ErrStorageInvalidLog
+func (d *DeviceDeploymentLogsStorage) SaveDeviceDeploymentLog(log deployments.DeploymentLog) error {
+	if err := log.Validate(); err != nil {
+		return err
 	}
 
 	session := d.session.Copy()
 	defer session.Close()
 
 	query := bson.M{
-		StorageKeyDeviceDeploymentDeviceId:     deviceID,
-		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+		StorageKeyDeviceDeploymentDeviceId:     log.DeviceID,
+		StorageKeyDeviceDeploymentDeploymentID: log.DeploymentID,
 	}
 
 	// update log messages

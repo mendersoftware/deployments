@@ -20,6 +20,7 @@ import (
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -39,65 +40,59 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 		t.Skip("skipping TestSaveDeviceDeploymentLog in short mode.")
 	}
 
+	messages := []deployments.LogMessage{
+		{
+			Level:     "notice",
+			Message:   "foo",
+			Timestamp: parseTime(t, "2006-01-02T15:04:05-07:00"),
+		},
+		{
+			Level:     "notice",
+			Message:   "bar",
+			Timestamp: parseTime(t, "2006-01-02T15:05:05-07:00"),
+		},
+	}
 	testCases := []struct {
-		InputDeviceDeploymentLog *deployments.DeploymentLog
-		InputDeviceID            string
-		InputDeploymentID        string
+		InputDeviceDeploymentLog deployments.DeploymentLog
 		OutputError              error
 	}{
 		{
-			// null log
-			InputDeviceID:     "123",
-			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			OutputError:       ErrStorageInvalidLog,
-		},
-		{
 			// null deployment ID
-			InputDeviceID: "234",
-			OutputError:   ErrStorageInvalidID,
+			InputDeviceDeploymentLog: deployments.DeploymentLog{
+				DeviceID: "456",
+				Messages: messages,
+			},
+			OutputError: errors.New("DeploymentID: non zero value required;"),
 		},
 		{
 			// null device ID
-			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			OutputError:       ErrStorageInvalidID,
+			InputDeviceDeploymentLog: deployments.DeploymentLog{
+				Messages:     messages,
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			},
+			OutputError: errors.New("DeviceID: non zero value required;"),
 		},
 		{
-			InputDeviceDeploymentLog: &deployments.DeploymentLog{
+			InputDeviceDeploymentLog: deployments.DeploymentLog{
 				DeviceID:     "456",
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 				Messages:     []deployments.LogMessage{},
 			},
-			InputDeviceID:     "456",
-			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			OutputError:       nil,
+			OutputError: errors.New("Messages: non zero value required;"),
 		},
 		{
-			InputDeviceDeploymentLog: &deployments.DeploymentLog{
+			InputDeviceDeploymentLog: deployments.DeploymentLog{
 				DeviceID:     "567",
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
-				Messages: []deployments.LogMessage{
-					{
-						Level:     "notice",
-						Message:   "foo",
-						Timestamp: parseTime(t, "2006-01-02T15:04:05-07:00"),
-					},
-					{
-						Level:     "notice",
-						Message:   "bar",
-						Timestamp: parseTime(t, "2006-01-02T15:05:05-07:00"),
-					},
-				},
+				Messages:     messages,
 			},
-			InputDeviceID:     "567",
-			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
-			OutputError:       nil,
+			OutputError: nil,
 		},
 	}
 
 	for _, testCase := range testCases {
 
-		t.Logf("testing case %s %s %v %v",
-			testCase.InputDeviceID, testCase.InputDeploymentID,
+		t.Logf("testing case %v %v",
 			testCase.InputDeviceDeploymentLog, testCase.OutputError)
 
 		// Make sure we start test with empty database
@@ -106,8 +101,7 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 		session := db.Session()
 		store := NewDeviceDeploymentLogsStorage(session)
 
-		err := store.SaveDeviceDeploymentLog(testCase.InputDeviceID,
-			testCase.InputDeploymentID, testCase.InputDeviceDeploymentLog)
+		err := store.SaveDeviceDeploymentLog(testCase.InputDeviceDeploymentLog)
 
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
@@ -117,8 +111,8 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 			// no errors, so we should be able to find the log in DB
 			var dlog deployments.DeploymentLog
 			err := session.DB(DatabaseName).C(CollectionDeviceDeploymentLogs).Find(bson.M{
-				StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceID,
-				StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
+				StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceDeploymentLog.DeviceID,
+				StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeviceDeploymentLog.DeploymentID,
 			}).One(&dlog)
 
 			assert.NoError(t, err)
