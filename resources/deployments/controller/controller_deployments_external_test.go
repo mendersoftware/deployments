@@ -788,8 +788,6 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		InputModelDeploymentID string
 		InputModelDeviceID     string
 		InputModelError        error
-		InputHasDeployment     bool
-		InputHasModelError     error
 
 		Headers map[string]string
 	}{
@@ -815,7 +813,6 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-2",
-			InputHasDeployment:     true,
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusNoContent,
@@ -845,7 +842,6 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-4",
-			InputHasDeployment:     true,
 			InputModelError:        errors.New("model error"),
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -862,33 +858,15 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
-			InputModelDeviceID:     "device-id-4",
-			InputHasDeployment:     false,
+			InputModelDeviceID:     "device-id-5",
+			InputModelError:        ErrModelDeploymentNotFound,
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusNotFound,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Resource not found")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment not found")),
 			},
 			Headers: map[string]string{
-				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
-			},
-		},
-		{
-			// has deployment for ID fails
-			InputBodyObject: &deployments.DeploymentLog{
-				Messages: messages,
-			},
-			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
-			InputModelDeviceID:     "device-id-4",
-			InputHasDeployment:     false,
-			InputHasModelError:     errors.New("not assigned to this deployment"),
-
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("not assigned to this deployment")),
-			},
-			Headers: map[string]string{
-				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-5"}`),
 			},
 		},
 	}
@@ -904,10 +882,6 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 			testCase.InputModelDeploymentID,
 			testCase.InputBodyObject).
 			Return(testCase.InputModelError)
-		deploymentModel.On("HasDeploymentForDevice",
-			testCase.InputModelDeploymentID,
-			testCase.InputModelDeviceID).
-			Return(testCase.InputHasDeployment, testCase.InputHasModelError)
 
 		router, err := rest.MakeRouter(
 			rest.Put("/r/:id",

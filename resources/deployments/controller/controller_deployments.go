@@ -291,17 +291,12 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 		return
 	}
 
-	if has, err := d.model.HasDeploymentForDevice(did, idata.Subject); !has {
-		if err != nil {
-			d.view.RenderError(w, err, http.StatusInternalServerError)
-		} else {
-			d.view.RenderErrorNotFound(w)
-		}
-		return
-	}
-
 	if err := d.model.SaveDeviceDeploymentLog(idata.Subject, did, &deploymentLog); err != nil {
-		d.view.RenderError(w, err, http.StatusInternalServerError)
+		if err == ErrModelDeploymentNotFound {
+			d.view.RenderError(w, err, http.StatusNotFound)
+		} else {
+			d.view.RenderError(w, err, http.StatusInternalServerError)
+		}
 		return
 	}
 
