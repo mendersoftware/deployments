@@ -18,21 +18,22 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 )
 
 type LogMessage struct {
-	Timestamp *time.Time `json:"timestamp"`
-	Level     string     `json:"level"`
-	Message   string     `json:"message"`
+	Timestamp *time.Time `json:"timestamp" valid:"required"`
+	Level     string     `json:"level" valid:"required"`
+	Message   string     `json:"message" valid:"required"`
 }
 
 type DeploymentLog struct {
 	// skip these 2 field when (un)marshalling to/from JSON
-	DeviceID     string `json:"-"`
-	DeploymentID string `json:"-"`
+	DeviceID     string `json:"-" valid:"required"`
+	DeploymentID string `json:"-" valid:"uuidv4,required"`
 
-	Messages []LogMessage `json:"messages"`
+	Messages []LogMessage `json:"messages" valid:"required"`
 }
 
 var (
@@ -49,22 +50,19 @@ func (l *LogMessage) UnmarshalJSON(raw []byte) error {
 		return err
 	}
 
-	if alm.Timestamp == nil {
-		return errors.Wrapf(ErrInvalidLogMessage, "no timestamp")
-	}
-
-	if alm.Level == "" {
-		return errors.Wrapf(ErrInvalidLogMessage, "empty level")
-	}
-
-	if alm.Message == "" {
-		return errors.Wrapf(ErrInvalidLogMessage, "empty message")
-	}
-
 	l.Timestamp = alm.Timestamp
 	l.Level = alm.Level
 	l.Message = alm.Message
+
+	if err := l.Validate(); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (l LogMessage) Validate() error {
+	_, err := govalidator.ValidateStruct(l)
+	return err
 }
 
 func (d *DeploymentLog) UnmarshalJSON(raw []byte) error {
@@ -82,4 +80,9 @@ func (d *DeploymentLog) UnmarshalJSON(raw []byte) error {
 
 	d.Messages = adl.Messages
 	return nil
+}
+
+func (d DeploymentLog) Validate() error {
+	_, err := govalidator.ValidateStruct(d)
+	return err
 }

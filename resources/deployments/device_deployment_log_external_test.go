@@ -24,6 +24,73 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestValidateDeploymentLog(t *testing.T) {
+	tref, err := time.Parse(time.RFC3339, "2006-01-02T15:04:05-07:00")
+	assert.NoError(t, err)
+
+	tcs := []struct {
+		input DeploymentLog
+		err   error
+	}{
+		{
+			input: DeploymentLog{
+				DeviceID:     "1234",
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				// messages should be picked up
+				Messages: []LogMessage{
+					{
+						Level:     "notice",
+						Message:   "foo",
+						Timestamp: &tref,
+					},
+				},
+			},
+		},
+		{
+			input: DeploymentLog{
+				// device ID and messages are to be skipped when parsing/marshalling JSON
+				DeviceID:     "1234",
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				// messages should be picked up
+				Messages: []LogMessage{
+					{
+						Level:     "",
+						Message:   "foo",
+						Timestamp: &tref,
+					},
+				},
+			},
+			err: errors.New("Level: non zero value required;;"),
+		},
+		{
+			input: DeploymentLog{
+				// device ID and messages are to be skipped when parsing/marshalling JSON
+				DeviceID:     "1234",
+				DeploymentID: "asdasdad1231",
+				// messages should be picked up
+				Messages: []LogMessage{
+					{
+						Level:     "notice",
+						Message:   "foo",
+						Timestamp: &tref,
+					},
+				},
+			},
+			err: errors.New("DeploymentID: asdasdad1231 does not validate as uuidv4;"),
+		},
+	}
+
+	for _, tc := range tcs {
+		err := tc.input.Validate()
+		if tc.err != nil {
+			assert.Error(t, err)
+			assert.EqualError(t, err, tc.err.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+	}
+}
+
 func TestUnmarshalDeploymentLog(t *testing.T) {
 
 	t.Parallel()
@@ -93,15 +160,15 @@ func TestUnmarshalLogMessage(t *testing.T) {
 	}{
 		{
 			input: `{ "message": "foo", "level": "notice"}`,
-			err:   errors.Wrapf(ErrInvalidLogMessage, "no timestamp"),
+			err:   errors.New("Timestamp: non zero value required;"),
 		},
 		{
 			input: `{ "level": "notice", "timestamp": "2006-01-02T15:04:05-07:00"}`,
-			err:   errors.Wrapf(ErrInvalidLogMessage, "empty message"),
+			err:   errors.New("Message: non zero value required;"),
 		},
 		{
 			input: `{ "message": "foo", "timestamp": "2006-01-02T15:04:05-07:00"}`,
-			err:   errors.Wrapf(ErrInvalidLogMessage, "empty level"),
+			err:   errors.New("Level: non zero value required;"),
 		},
 		{
 			input: `{ "message": "foo", "level": "notice", "timestamp": "2006-01-02T15:04:05-07:00"}`,
