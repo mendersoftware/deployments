@@ -208,3 +208,7 @@ func (d *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
 
 	return d.deviceDeploymentLogsStorage.SaveDeviceDeploymentLog(deviceID, deploymentID, log)
 }
+
+func (d *DeploymentsModel) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
+	return d.deviceDeploymentsStorage.HasDeploymentForDevice(deploymentID, deviceID)
+}
