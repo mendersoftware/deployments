@@ -25,6 +25,7 @@ var (
 	ErrModelInvalidDeviceID    = errors.New("Invalid device ID")
 	ErrModelDeploymentNotFound = errors.New("Deployment not found")
 	ErrModelInternal           = errors.New("Internal error")
+	ErrStorageInvalidLog       = errors.New("Invalid deployment log")
 )
 
 // Domain model for deployment
