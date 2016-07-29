@@ -15,17 +15,71 @@
 package deployments
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 type LogMessage struct {
-	Timestamp time.Time `json:"timestamp"`
-	Level     string    `json:"level"`
-	Message   string    `json:"message"`
+	Timestamp *time.Time `json:"timestamp"`
+	Level     string     `json:"level"`
+	Message   string     `json:"message"`
 }
 
 type DeploymentLog struct {
-	DeviceID     string       `json:"dev_id"`
-	DeploymentID string       `json:"deployment_id"`
-	Messages     []LogMessage `json:"messages"`
+	// skip these 2 field when (un)marshalling to/from JSON
+	DeviceID     string `json:"-"`
+	DeploymentID string `json:"-"`
+
+	Messages []LogMessage `json:"messages"`
+}
+
+var (
+	ErrInvalidDeploymentLog = errors.New("invalid deployment log")
+	ErrInvalidLogMessage    = errors.New("invalid log message")
+)
+
+func (l *LogMessage) UnmarshalJSON(raw []byte) error {
+	type AuxLogMessage LogMessage
+
+	var alm AuxLogMessage
+
+	if err := json.Unmarshal(raw, &alm); err != nil {
+		return err
+	}
+
+	if alm.Timestamp == nil {
+		return errors.Wrapf(ErrInvalidLogMessage, "no timestamp")
+	}
+
+	if alm.Level == "" {
+		return errors.Wrapf(ErrInvalidLogMessage, "empty level")
+	}
+
+	if alm.Message == "" {
+		return errors.Wrapf(ErrInvalidLogMessage, "empty message")
+	}
+
+	l.Timestamp = alm.Timestamp
+	l.Level = alm.Level
+	l.Message = alm.Message
+	return nil
+}
+
+func (d *DeploymentLog) UnmarshalJSON(raw []byte) error {
+	type AuxDeploymentLog DeploymentLog
+
+	var adl AuxDeploymentLog
+
+	if err := json.Unmarshal(raw, &adl); err != nil {
+		return err
+	}
+
+	if adl.Messages == nil || len(adl.Messages) == 0 {
+		return errors.Wrapf(ErrInvalidDeploymentLog, "no messages")
+	}
+
+	d.Messages = adl.Messages
+	return nil
 }
