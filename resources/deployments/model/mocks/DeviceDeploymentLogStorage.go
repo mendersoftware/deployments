@@ -24,9 +24,8 @@ type DeviceDeploymentLogStorage struct {
 	mock.Mock
 }
 
-func (_m *DeviceDeploymentLogStorage) SaveDeviceDeploymentLog(deviceID string,
-	deploymentID string, log *deployments.DeploymentLog) error {
-	ret := _m.Called(deviceID, deploymentID, log)
+func (_m *DeviceDeploymentLogStorage) SaveDeviceDeploymentLog(log deployments.DeploymentLog) error {
+	ret := _m.Called(log)
 
 	return ret.Error(0)
 }
