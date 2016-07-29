@@ -281,7 +281,8 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 		return
 	}
 
-	// receive request body
+	// reuse DeploymentLog, device and deployment IDs are ignored when
+	// (un-)marshalling DeploymentLog to/from JSON
 	var deploymentLog deployments.DeploymentLog
 
 	err = r.DecodeJsonPayload(&deploymentLog)
@@ -290,7 +291,14 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 		return
 	}
 
-	//TODO: check if deployment with id == did for device with id == idata.Subject exists
+	if has, err := d.model.HasDeploymentForDevice(did, idata.Subject); !has {
+		if err != nil {
+			d.view.RenderError(w, err, http.StatusInternalServerError)
+		} else {
+			d.view.RenderErrorNotFound(w)
+		}
+		return
+	}
 
 	if err := d.model.SaveDeviceDeploymentLog(idata.Subject, did, &deploymentLog); err != nil {
 		d.view.RenderError(w, err, http.StatusInternalServerError)
