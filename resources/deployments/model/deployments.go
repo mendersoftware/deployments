@@ -206,7 +206,29 @@ func (d *DeploymentsModel) LookupDeployment(query deployments.Query) ([]*deploym
 func (d *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
 	deploymentID string, log *deployments.DeploymentLog) error {
 
-	return d.deviceDeploymentLogsStorage.SaveDeviceDeploymentLog(deviceID, deploymentID, log)
+	if log == nil {
+		return controller.ErrStorageInvalidLog
+	}
+
+	// repack to temporary deployment log and validate
+	dlog := deployments.DeploymentLog{
+		DeviceID:     deviceID,
+		DeploymentID: deploymentID,
+		Messages:     log.Messages,
+	}
+	if err := dlog.Validate(); err != nil {
+		return errors.Wrapf(err, controller.ErrStorageInvalidLog.Error())
+	}
+
+	if has, err := d.HasDeploymentForDevice(deploymentID, deviceID); !has {
+		if err != nil {
+			return err
+		} else {
+			return controller.ErrModelDeploymentNotFound
+		}
+	}
+
+	return d.deviceDeploymentLogsStorage.SaveDeviceDeploymentLog(dlog)
 }
 
 func (d *DeploymentsModel) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {

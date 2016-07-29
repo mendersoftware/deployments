@@ -17,6 +17,7 @@ package model_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/deployments/controller"
@@ -611,22 +612,33 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 
 	t.Parallel()
 
+	tref := time.Now()
+	messages := []deployments.LogMessage{
+		{
+			Timestamp: &tref,
+			Message:   "foo",
+			Level:     "notice",
+		},
+	}
 	testCases := []struct {
 		InputDeploymentID string
 		InputDeviceID     string
 		InputLog          *deployments.DeploymentLog
 
-		InputModelError error
+		InputModelError    error
+		InputHasDeployment bool
+		InputHasModelError error
 
 		OutputError error
 	}{
 		{
-			InputDeploymentID: "ID:123",
+			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputDeviceID:     "123",
 			InputLog: &deployments.DeploymentLog{
-				Messages: []deployments.LogMessage{},
+				Messages: messages,
 			},
-			InputModelError: errors.New("storage issue"),
+			InputModelError:    errors.New("storage issue"),
+			InputHasDeployment: true,
 
 			OutputError: errors.New("storage issue"),
 		},
@@ -636,9 +648,29 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 			InputLog: &deployments.DeploymentLog{
 				Messages: []deployments.LogMessage{},
 			},
-			InputModelError: nil,
+			InputModelError:    nil,
+			InputHasDeployment: true,
 
-			OutputError: nil,
+			OutputError: errors.New("Invalid deployment log: DeploymentID: ID:234 does not validate as uuidv4;Messages: non zero value required;"),
+		},
+		{
+			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
+			InputDeviceID:     "345",
+			InputLog: &deployments.DeploymentLog{
+				Messages: messages,
+			},
+			InputModelError:    nil,
+			InputHasDeployment: false,
+
+			OutputError: errors.New("Deployment not found"),
+		},
+		{
+			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711562",
+			InputDeviceID:     "456",
+			InputLog: &deployments.DeploymentLog{
+				Messages: messages,
+			},
+			InputHasDeployment: true,
 		},
 	}
 
@@ -649,11 +681,21 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 
 		deviceDeploymentLogStorage := new(mocks.DeviceDeploymentLogStorage)
 		deviceDeploymentLogStorage.On("SaveDeviceDeploymentLog",
-			testCase.InputDeviceID, testCase.InputDeploymentID,
-			testCase.InputLog).
+			deployments.DeploymentLog{
+				DeviceID:     testCase.InputDeviceID,
+				DeploymentID: testCase.InputDeploymentID,
+				Messages:     testCase.InputLog.Messages,
+			}).
 			Return(testCase.InputModelError)
 
-		model := NewDeploymentModel(nil, nil, nil, deviceDeploymentLogStorage, nil)
+		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
+		deviceDeploymentStorage.On("HasDeploymentForDevice",
+			testCase.InputDeploymentID,
+			testCase.InputDeviceID).
+			Return(testCase.InputHasDeployment, testCase.InputHasModelError)
+
+		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage,
+			deviceDeploymentLogStorage, nil)
 
 		err := model.SaveDeviceDeploymentLog(testCase.InputDeviceID,
 			testCase.InputDeploymentID, testCase.InputLog)
