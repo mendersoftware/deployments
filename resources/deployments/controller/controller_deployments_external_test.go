@@ -787,6 +787,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 
 		InputModelDeploymentID string
 		InputModelDeviceID     string
+		InputModelMessages     []deployments.LogMessage
 		InputModelError        error
 
 		Headers map[string]string
@@ -797,6 +798,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-1",
+			InputModelMessages:     nil,
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
@@ -808,11 +810,12 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// all correct
-			InputBodyObject: &deployments.DeploymentLog{
+			InputBodyObject: &ApiDeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-2",
+			InputModelMessages:     messages,
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusNoContent,
@@ -824,11 +827,12 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// no authorization
-			InputBodyObject: &deployments.DeploymentLog{
+			InputBodyObject: &ApiDeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-3",
+			InputModelMessages:     messages,
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
@@ -837,12 +841,13 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// model error
-			InputBodyObject: &deployments.DeploymentLog{
+			InputBodyObject: &ApiDeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-4",
 			InputModelError:        errors.New("model error"),
+			InputModelMessages:     messages,
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
@@ -854,12 +859,13 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// deployment not assigned to device
-			InputBodyObject: &deployments.DeploymentLog{
+			InputBodyObject: &ApiDeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-5",
 			InputModelError:        ErrModelDeploymentNotFound,
+			InputModelMessages:     messages,
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusNotFound,
@@ -880,7 +886,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		deploymentModel.On("SaveDeviceDeploymentLog",
 			testCase.InputModelDeviceID,
 			testCase.InputModelDeploymentID,
-			testCase.InputBodyObject).
+			testCase.InputModelMessages).
 			Return(testCase.InputModelError)
 
 		router, err := rest.MakeRouter(

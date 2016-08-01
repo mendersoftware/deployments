@@ -271,6 +271,10 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 	d.view.RenderSuccessGet(w, res)
 }
 
+type ApiDeploymentLog struct {
+	Messages []deployments.LogMessage `json:"messages"`
+}
+
 func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {
 
 	did := r.PathParam("id")
@@ -283,15 +287,15 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 
 	// reuse DeploymentLog, device and deployment IDs are ignored when
 	// (un-)marshalling DeploymentLog to/from JSON
-	var deploymentLog deployments.DeploymentLog
+	var log ApiDeploymentLog
 
-	err = r.DecodeJsonPayload(&deploymentLog)
+	err = r.DecodeJsonPayload(&log)
 	if err != nil {
 		d.view.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
 
-	if err := d.model.SaveDeviceDeploymentLog(idata.Subject, did, &deploymentLog); err != nil {
+	if err := d.model.SaveDeviceDeploymentLog(idata.Subject, did, log.Messages); err != nil {
 		if err == ErrModelDeploymentNotFound {
 			d.view.RenderError(w, err, http.StatusNotFound)
 		} else {
