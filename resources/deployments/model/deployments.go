@@ -204,17 +204,13 @@ func (d *DeploymentsModel) LookupDeployment(query deployments.Query) ([]*deploym
 // SaveDeviceDeploymentLog will save the deployment log for device of
 // ID `deviceID`. Returns nil if log was saved successfully.
 func (d *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
-	deploymentID string, log *deployments.DeploymentLog) error {
-
-	if log == nil {
-		return controller.ErrStorageInvalidLog
-	}
+	deploymentID string, logs []deployments.LogMessage) error {
 
 	// repack to temporary deployment log and validate
 	dlog := deployments.DeploymentLog{
 		DeviceID:     deviceID,
 		DeploymentID: deploymentID,
-		Messages:     log.Messages,
+		Messages:     logs,
 	}
 	if err := dlog.Validate(); err != nil {
 		return errors.Wrapf(err, controller.ErrStorageInvalidLog.Error())

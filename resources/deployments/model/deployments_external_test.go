@@ -623,7 +623,7 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 	testCases := []struct {
 		InputDeploymentID string
 		InputDeviceID     string
-		InputLog          *deployments.DeploymentLog
+		InputLog          []deployments.LogMessage
 
 		InputModelError    error
 		InputHasDeployment bool
@@ -632,44 +632,36 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 		OutputError error
 	}{
 		{
-			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
-			InputDeviceID:     "123",
-			InputLog: &deployments.DeploymentLog{
-				Messages: messages,
-			},
+			InputDeploymentID:  "f826484e-1157-4109-af21-304e6d711560",
+			InputDeviceID:      "123",
+			InputLog:           messages,
 			InputModelError:    errors.New("storage issue"),
 			InputHasDeployment: true,
 
 			OutputError: errors.New("storage issue"),
 		},
 		{
-			InputDeploymentID: "ID:234",
-			InputDeviceID:     "234",
-			InputLog: &deployments.DeploymentLog{
-				Messages: []deployments.LogMessage{},
-			},
+			InputDeploymentID:  "ID:234",
+			InputDeviceID:      "234",
+			InputLog:           []deployments.LogMessage{},
 			InputModelError:    nil,
 			InputHasDeployment: true,
 
 			OutputError: errors.New("Invalid deployment log: DeploymentID: ID:234 does not validate as uuidv4;Messages: non zero value required;"),
 		},
 		{
-			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
-			InputDeviceID:     "345",
-			InputLog: &deployments.DeploymentLog{
-				Messages: messages,
-			},
+			InputDeploymentID:  "f826484e-1157-4109-af21-304e6d711561",
+			InputDeviceID:      "345",
+			InputLog:           messages,
 			InputModelError:    nil,
 			InputHasDeployment: false,
 
 			OutputError: errors.New("Deployment not found"),
 		},
 		{
-			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711562",
-			InputDeviceID:     "456",
-			InputLog: &deployments.DeploymentLog{
-				Messages: messages,
-			},
+			InputDeploymentID:  "f826484e-1157-4109-af21-304e6d711562",
+			InputDeviceID:      "456",
+			InputLog:           messages,
 			InputHasDeployment: true,
 		},
 	}
@@ -684,7 +676,7 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 			deployments.DeploymentLog{
 				DeviceID:     testCase.InputDeviceID,
 				DeploymentID: testCase.InputDeploymentID,
-				Messages:     testCase.InputLog.Messages,
+				Messages:     testCase.InputLog,
 			}).
 			Return(testCase.InputModelError)
 
