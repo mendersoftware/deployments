@@ -116,9 +116,9 @@ func (_m *DeploymentsModel) LookupDeployment(query deployments.Query) ([]*deploy
 }
 
 func (_m *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
-	deploymentID string, log *deployments.DeploymentLog) error {
+	deploymentID string, logs []deployments.LogMessage) error {
 
-	ret := _m.Called(deviceID, deploymentID, log)
+	ret := _m.Called(deviceID, deploymentID, logs)
 	return ret.Error(0)
 }
 

@@ -38,5 +38,5 @@ type DeploymentsModel interface {
 	UpdateDeviceDeploymentStatus(deploymentID string, deviceID string, status string) error
 	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
 	LookupDeployment(query deployments.Query) ([]*deployments.Deployment, error)
-	SaveDeviceDeploymentLog(deviceID string, deploymentID string, log *deployments.DeploymentLog) error
+	SaveDeviceDeploymentLog(deviceID string, deploymentID string, logs []deployments.LogMessage) error
 }
