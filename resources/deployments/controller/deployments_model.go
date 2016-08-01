@@ -25,6 +25,7 @@ var (
 	ErrModelInvalidDeviceID    = errors.New("Invalid device ID")
 	ErrModelDeploymentNotFound = errors.New("Deployment not found")
 	ErrModelInternal           = errors.New("Internal error")
+	ErrStorageInvalidLog       = errors.New("Invalid deployment log")
 )
 
 // Domain model for deployment
@@ -33,7 +34,9 @@ type DeploymentsModel interface {
 	GetDeployment(deploymentID string) (*deployments.Deployment, error)
 	GetDeploymentStats(deploymentID string) (deployments.Stats, error)
 	GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error)
+	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)
 	UpdateDeviceDeploymentStatus(deploymentID string, deviceID string, status string) error
 	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
 	LookupDeployment(query deployments.Query) ([]*deployments.Deployment, error)
+	SaveDeviceDeploymentLog(deviceID string, deploymentID string, logs []deployments.LogMessage) error
 }

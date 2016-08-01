@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
@@ -760,5 +761,150 @@ func TestParseLookupQuery(t *testing.T) {
 		} else {
 			assert.Equal(t, tc.query, q)
 		}
+	}
+}
+
+func TestControllerPutDeploymentLog(t *testing.T) {
+
+	t.Parallel()
+
+	type log struct {
+		Messages string `json:"messages"`
+	}
+
+	tref := time.Now()
+
+	messages := []deployments.LogMessage{
+		{
+			Timestamp: &tref,
+			Message:   "foo",
+			Level:     "notice",
+		},
+	}
+	testCases := []struct {
+		h.JSONResponseParams
+		InputBodyObject interface{}
+
+		InputModelDeploymentID string
+		InputModelDeviceID     string
+		InputModelMessages     []deployments.LogMessage
+		InputModelError        error
+
+		Headers map[string]string
+	}{
+		{
+			// empty log body
+			InputBodyObject: nil,
+
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-1",
+			InputModelMessages:     nil,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("JSON payload is empty")),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-1"}`),
+			},
+		},
+		{
+			// all correct
+			InputBodyObject: &ApiDeploymentLog{
+				Messages: messages,
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-2",
+			InputModelMessages:     messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNoContent,
+				OutputBodyObject: nil,
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
+			},
+		},
+		{
+			// no authorization
+			InputBodyObject: &ApiDeploymentLog{
+				Messages: messages,
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-3",
+			InputModelMessages:     messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("malformed authorization data")),
+			},
+		},
+		{
+			// model error
+			InputBodyObject: &ApiDeploymentLog{
+				Messages: messages,
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-4",
+			InputModelError:        errors.New("model error"),
+			InputModelMessages:     messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
+			},
+		},
+		{
+			// deployment not assigned to device
+			InputBodyObject: &ApiDeploymentLog{
+				Messages: messages,
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-5",
+			InputModelError:        ErrModelDeploymentNotFound,
+			InputModelMessages:     messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNotFound,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment not found")),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-5"}`),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Logf("testing %s %s %v %v",
+			testCase.InputModelDeploymentID, testCase.InputModelDeviceID,
+			testCase.InputBodyObject, testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("SaveDeviceDeploymentLog",
+			testCase.InputModelDeviceID,
+			testCase.InputModelDeploymentID,
+			testCase.InputModelMessages).
+			Return(testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Put("/r/:id",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).PutDeploymentLogForDevice))
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		req := test.MakeSimpleRequest("PUT", "http://localhost/r/"+testCase.InputModelDeploymentID,
+			testCase.InputBodyObject)
+		for k, v := range testCase.Headers {
+			req.Header.Set(k, v)
+		}
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
 }

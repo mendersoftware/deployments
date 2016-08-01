@@ -270,3 +270,39 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 
 	d.view.RenderSuccessGet(w, res)
 }
+
+type ApiDeploymentLog struct {
+	Messages []deployments.LogMessage `json:"messages"`
+}
+
+func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {
+
+	did := r.PathParam("id")
+
+	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	// reuse DeploymentLog, device and deployment IDs are ignored when
+	// (un-)marshalling DeploymentLog to/from JSON
+	var log ApiDeploymentLog
+
+	err = r.DecodeJsonPayload(&log)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	if err := d.model.SaveDeviceDeploymentLog(idata.Subject, did, log.Messages); err != nil {
+		if err == ErrModelDeploymentNotFound {
+			d.view.RenderError(w, err, http.StatusNotFound)
+		} else {
+			d.view.RenderError(w, err, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	d.view.RenderEmptySuccessResponse(w)
+}

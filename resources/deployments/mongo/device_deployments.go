@@ -252,3 +252,28 @@ func (d *DeviceDeploymentsStorage) GetDeviceStatusesForDeployment(deploymentID s
 
 	return statuses, nil
 }
+
+// Returns true if deployment of ID `deploymentID` is assigned to device with ID
+// `deviceID`, false otherwise. In case of errors returns false and an error
+// that occurred
+func (d *DeviceDeploymentsStorage) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
+	session := d.session.Copy()
+	defer session.Close()
+
+	query := bson.M{
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+	}
+
+	var dep deployments.DeviceDeployment
+	err := session.DB(DatabaseName).C(CollectionDevices).Find(query).One(&dep)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+
+	return true, nil
+}

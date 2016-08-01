@@ -99,3 +99,9 @@ func (_m *DeviceDeploymentStorage) GetDeviceStatusesForDeployment(deploymentID s
 
 	return ret.Get(0).([]deployments.DeviceDeployment), ret.Error(1)
 }
+
+func (_m *DeviceDeploymentStorage) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
+	ret := _m.Called(deploymentID, deviceID)
+
+	return ret.Bool(0), ret.Error(1)
+}

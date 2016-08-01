@@ -63,6 +63,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	fileStorage := SetupS3(c)
 	deploymentsStorage := deploymentsMongo.NewDeploymentsStorage(dbSession)
 	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
+	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
 	if err := imagesStorage.IndexStorage(); err != nil {
 		return nil, err
@@ -76,6 +77,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 			// can easily add configuration from main config file
 			inventory.NewInventoryWithHardcodedType("TestDevice")),
 		deviceDeploymentsStorage,
+		deviceDeploymentLogsStorage,
 		fileStorage,
 	)
 
@@ -133,5 +135,7 @@ func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsC
 			controller.PutDeploymentStatusForDevice),
 		rest.Get("/api/0.0.1/deployments/:id/devices",
 			controller.GetDeviceStatusesForDeployment),
+		rest.Put("/api/0.0.1/device/deployments/:id/log",
+			controller.PutDeploymentLogForDevice),
 	}
 }

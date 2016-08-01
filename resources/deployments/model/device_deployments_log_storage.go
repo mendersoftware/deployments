@@ -18,13 +18,7 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
-// Device deployment storage
-type DeviceDeploymentStorage interface {
-	InsertMany(deployment ...*deployments.DeviceDeployment) error
-	ExistAssignedImageWithIDAndStatuses(id string, statuses ...string) (bool, error)
-	FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
-	UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) (string, error)
-	AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error)
-	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
-	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)
+// Device deployment log storage
+type DeviceDeploymentLogsStorage interface {
+	SaveDeviceDeploymentLog(log deployments.DeploymentLog) error
 }
