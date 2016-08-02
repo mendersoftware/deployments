@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // Errors
@@ -305,4 +306,31 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 	}
 
 	d.view.RenderEmptySuccessResponse(w)
+}
+
+func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {
+
+	did := r.PathParam("id")
+	devid := r.PathParam("devid")
+
+	depl, err := d.model.GetDeviceDeploymentLog(devid, did)
+	if err != nil {
+		if err == ErrModelDeploymentNotFound {
+			d.view.RenderError(w, err, http.StatusNotFound)
+		} else {
+			d.view.RenderError(w, err, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	h, _ := w.(http.ResponseWriter)
+	h.Header().Set("Content-Type", "text/plain")
+	h.WriteHeader(http.StatusOK)
+	for _, m := range depl.Messages {
+		as := m.String()
+		h.Write([]byte(as))
+		if !strings.HasSuffix(as, "\n") {
+			h.Write([]byte("\n"))
+		}
+	}
 }

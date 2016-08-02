@@ -908,3 +908,134 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
 }
+
+func parseTime(t *testing.T, value string) *time.Time {
+	tm, err := time.Parse(time.RFC3339, value)
+	if assert.NoError(t, err) == false {
+		t.Fatalf("failed to parse time %s", value)
+	}
+
+	return &tm
+}
+
+func TestControllerGetDeploymentLog(t *testing.T) {
+
+	t.Parallel()
+
+	type log struct {
+		Messages string `json:"messages"`
+	}
+
+	tref := parseTime(t, "2006-01-02T15:04:05-07:00")
+
+	messages := []deployments.LogMessage{
+		{
+			Timestamp: tref,
+			Message:   "foo",
+			Level:     "notice",
+		},
+		{
+			Timestamp: tref,
+			Message:   "zed zed zed",
+			Level:     "debug",
+		},
+		{
+			Timestamp: tref,
+			Message:   "bar bar bar",
+			Level:     "info",
+		},
+	}
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputModelDeploymentLog *deployments.DeploymentLog
+		InputModelDeploymentID  string
+		InputModelDeviceID      string
+		InputModelMessages      []deployments.LogMessage
+		InputModelError         error
+
+		Body string
+	}{
+		{
+			// all correct
+			InputModelDeploymentLog: &deployments.DeploymentLog{
+				DeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+				DeviceID:     "device-id-1",
+				Messages:     messages,
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-1",
+			InputModelMessages:     messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNoContent,
+				OutputBodyObject: nil,
+			},
+			Body: `2006-01-02 22:04:05 +0000 UTC notice: foo
+2006-01-02 22:04:05 +0000 UTC debug: zed zed zed
+2006-01-02 22:04:05 +0000 UTC info: bar bar bar
+`,
+		},
+		{
+			// model error
+			InputModelDeploymentLog: nil,
+			InputModelDeploymentID:  "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:      "device-id-4",
+			InputModelError:         errors.New("model error"),
+			InputModelMessages:      messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+			},
+		},
+		{
+			// deployment not assigned to device
+			InputModelDeploymentLog: nil,
+			InputModelDeploymentID:  "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:      "device-id-5",
+			InputModelError:         ErrModelDeploymentNotFound,
+			InputModelMessages:      messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNotFound,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment not found")),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Logf("testing %s %s %v",
+			testCase.InputModelDeploymentID, testCase.InputModelDeviceID,
+			testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("GetDeviceDeploymentLog",
+			testCase.InputModelDeviceID,
+			testCase.InputModelDeploymentID).
+			Return(testCase.InputModelDeploymentLog, testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Get("/r/:id/:devid",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).GetDeploymentLogForDevice))
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+
+			testCase.InputModelDeploymentID+"/"+testCase.InputModelDeviceID,
+			nil)
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+		if testCase.InputModelError != nil {
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		} else {
+			assert.Equal(t, testCase.Body, recorded.Recorder.Body.String())
+			assert.Equal(t, http.StatusOK, recorded.Recorder.Code)
+			assert.Equal(t, "text/plain", recorded.Recorder.HeaderMap.Get("Content-Type"))
+			t.Logf("content:\n%s", recorded.Recorder.Body)
+		}
+	}
+}
