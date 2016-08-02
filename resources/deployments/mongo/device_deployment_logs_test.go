@@ -126,3 +126,115 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 		session.Close()
 	}
 }
+
+func TestGetDeviceDeploymentLog(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("skipping TestGetDeviceDeploymentLog in short mode.")
+	}
+
+	messages := []deployments.LogMessage{
+		{
+			Level:     "notice",
+			Message:   "foo",
+			Timestamp: parseTime(t, "2006-01-02T15:04:05-07:00"),
+		},
+		{
+			Level:     "notice",
+			Message:   "bar",
+			Timestamp: parseTime(t, "2006-01-02T15:05:05-07:00"),
+		},
+	}
+
+	logs := []deployments.DeploymentLog{
+		deployments.DeploymentLog{
+			DeviceID:     "123",
+			DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			Messages:     messages,
+		},
+		deployments.DeploymentLog{
+			Messages:     messages,
+			DeviceID:     "234",
+			DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		},
+		deployments.DeploymentLog{
+			Messages:     messages,
+			DeviceID:     "345",
+			DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",
+		},
+	}
+
+	testCases := []struct {
+		InputDeviceID      string
+		InputDeploymentID  string
+		InputDeploymentLog *deployments.DeploymentLog
+		OutputError        error
+	}{
+		{
+			InputDeviceID:      "123",
+			InputDeploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			InputDeploymentLog: &logs[0],
+		},
+		{
+			InputDeviceID:      "234",
+			InputDeploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+			InputDeploymentLog: &logs[1],
+		},
+		{
+			InputDeviceID:      "345",
+			InputDeploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",
+			InputDeploymentLog: &logs[2],
+		},
+		// not found
+		{
+			InputDeviceID:      "456",
+			InputDeploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",
+			InputDeploymentLog: nil,
+		},
+	}
+
+	// Make sure we start test with empty database
+	db.Wipe()
+
+	session := db.Session()
+
+	store := NewDeviceDeploymentLogsStorage(session)
+
+	for _, dl := range logs {
+		err := store.SaveDeviceDeploymentLog(dl)
+		assert.NoError(t, err)
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing case %v %v",
+			testCase.InputDeploymentLog, testCase.OutputError)
+
+		dlog, err := store.GetDeviceDeploymentLog(testCase.InputDeviceID, testCase.InputDeploymentID)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+
+			if testCase.InputDeploymentLog == nil {
+				assert.Nil(t, dlog)
+			} else {
+				assert.Equal(t, testCase.InputDeploymentID, dlog.DeploymentID)
+				assert.Equal(t, testCase.InputDeviceID, dlog.DeviceID)
+				// message timestamp is a pointer, so we cannot use assert.EqualValues()
+				// or reflect.DeepEqual() as both will choke on *time.Time pointing to
+				// different, but value-equal instances
+				assert.Len(t, dlog.Messages, len(testCase.InputDeploymentLog.Messages))
+				for i, m := range testCase.InputDeploymentLog.Messages {
+					assert.True(t, m.Timestamp.Equal(*dlog.Messages[i].Timestamp))
+					assert.Equal(t, m.Level, dlog.Messages[i].Level)
+					assert.Equal(t, m.Message, dlog.Messages[i].Message)
+				}
+			}
+		}
+	}
+	// Need to close all sessions to be able to call wipe at next test case
+	session.Close()
+
+	db.Wipe()
+}
