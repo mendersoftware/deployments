@@ -16,8 +16,10 @@ package view
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/images/view"
 )
 
@@ -32,4 +34,19 @@ func (d *DeploymentsView) RenderNoUpdateForDevice(w rest.ResponseWriter) {
 // Success response with no data aka. 204 No Content
 func (d *DeploymentsView) RenderEmptySuccessResponse(w rest.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (d *DeploymentsView) RenderDeploymentLog(w rest.ResponseWriter, dlog deployments.DeploymentLog) {
+	h, _ := w.(http.ResponseWriter)
+
+	h.Header().Set("Content-Type", "text/plain")
+	h.WriteHeader(http.StatusOK)
+
+	for _, m := range dlog.Messages {
+		as := m.String()
+		h.Write([]byte(as))
+		if !strings.HasSuffix(as, "\n") {
+			h.Write([]byte("\n"))
+		}
+	}
 }
