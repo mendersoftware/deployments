@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 // Errors
@@ -323,14 +322,5 @@ func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter,
 		return
 	}
 
-	h, _ := w.(http.ResponseWriter)
-	h.Header().Set("Content-Type", "text/plain")
-	h.WriteHeader(http.StatusOK)
-	for _, m := range depl.Messages {
-		as := m.String()
-		h.Write([]byte(as))
-		if !strings.HasSuffix(as, "\n") {
-			h.Write([]byte("\n"))
-		}
-	}
+	d.view.RenderDeploymentLog(w, *depl)
 }
