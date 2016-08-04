@@ -29,3 +29,9 @@ func (_m *DeviceDeploymentLogStorage) SaveDeviceDeploymentLog(log deployments.De
 
 	return ret.Error(0)
 }
+
+func (_m *DeviceDeploymentLogStorage) GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
+	ret := _m.Called(deviceID, deploymentID)
+
+	return ret.Get(0).(*deployments.DeploymentLog), ret.Error(1)
+}

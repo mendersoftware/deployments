@@ -68,3 +68,24 @@ func (d *DeviceDeploymentLogsStorage) SaveDeviceDeploymentLog(log deployments.De
 
 	return nil
 }
+
+func (d *DeviceDeploymentLogsStorage) GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
+	session := d.session.Copy()
+	defer session.Close()
+
+	query := bson.M{
+		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+	}
+
+	var depl deployments.DeploymentLog
+	if err := session.DB(DatabaseName).C(CollectionDeviceDeploymentLogs).
+		Find(query).One(&depl); err != nil {
+		if err == mgo.ErrNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &depl, nil
+}

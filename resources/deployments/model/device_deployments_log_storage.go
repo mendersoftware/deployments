@@ -21,4 +21,5 @@ import (
 // Device deployment log storage
 type DeviceDeploymentLogsStorage interface {
 	SaveDeviceDeploymentLog(log deployments.DeploymentLog) error
+	GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error)
 }

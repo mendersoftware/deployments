@@ -126,3 +126,9 @@ func (_m *DeploymentsModel) HasDeploymentForDevice(deploymentID string, deviceID
 	ret := _m.Called(deploymentID, deviceID)
 	return ret.Bool(0), ret.Error(1)
 }
+
+func (_m *DeploymentsModel) GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
+
+	ret := _m.Called(deviceID, deploymentID)
+	return ret.Get(0).(*deployments.DeploymentLog), ret.Error(1)
+}

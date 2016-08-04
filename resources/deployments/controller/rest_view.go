@@ -15,6 +15,7 @@
 package controller
 
 import "github.com/ant0ine/go-json-rest/rest"
+import "github.com/mendersoftware/deployments/resources/deployments"
 
 type RESTView interface {
 	RenderNoUpdateForDevice(w rest.ResponseWriter)
@@ -23,4 +24,5 @@ type RESTView interface {
 	RenderEmptySuccessResponse(w rest.ResponseWriter)
 	RenderError(w rest.ResponseWriter, err error, status int)
 	RenderErrorNotFound(w rest.ResponseWriter)
+	RenderDeploymentLog(w rest.ResponseWriter, dlog deployments.DeploymentLog)
 }

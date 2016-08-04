@@ -16,6 +16,7 @@ package deployments
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -63,6 +64,10 @@ func (l *LogMessage) UnmarshalJSON(raw []byte) error {
 func (l LogMessage) Validate() error {
 	_, err := govalidator.ValidateStruct(l)
 	return err
+}
+
+func (l LogMessage) String() string {
+	return fmt.Sprintf("%s %s: %s", l.Timestamp.UTC().String(), l.Level, l.Message)
 }
 
 func (d *DeploymentLog) UnmarshalJSON(raw []byte) error {
