@@ -148,7 +148,7 @@ func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployments
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}
 
-	return deployments.NewDeploymentInstructions(*deployment.Id, link, deployment.Image), nil
+	return deployments.NewDeploymentInstructions(*deployment.DeploymentId, link, deployment.Image), nil
 }
 
 // ActiveDeploymentStatuses lists statuses that represent deployment in active state (not finished).
