@@ -115,7 +115,7 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
-				testCase.InputExistAssignedImageWithIDAndStatusesError)
+			testCase.InputExistAssignedImageWithIDAndStatusesError)
 
 		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
 
@@ -169,7 +169,7 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputImageUsedInDeploymentFound,
-				testCase.InputImageUsedInDeploymentError)
+			testCase.InputImageUsedInDeploymentError)
 
 		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
 
@@ -229,7 +229,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				Image: &images.SoftwareImage{
 					Id: StringToPointer("ID:456"),
 				},
-				Id: StringToPointer("ID:678"),
+				DeploymentId: StringToPointer("ID:678"),
 			},
 			InputGetRequestLink: &images.Link{},
 
@@ -248,7 +248,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputOlderstDeviceDeployment,
-				testCase.InputOlderstDeviceDeploymentError)
+			testCase.InputOlderstDeviceDeploymentError)
 
 		imageLinker := new(mocks.GetRequester)
 		// Notice: force GetRequest to expect image id returned by FindOldestDeploymentForDeviceIDWithStatuses
