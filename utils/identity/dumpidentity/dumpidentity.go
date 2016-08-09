@@ -11,16 +11,28 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+package main
 
-package model
+import (
+	"fmt"
+	"log"
+	"os"
 
-import "github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/utils/identity"
+)
 
-// Storage for Deployment type
-type DeploymentsStorage interface {
-	Insert(deployment *deployments.Deployment) error
-	Delete(id string) error
-	FindByID(id string) (*deployments.Deployment, error)
-	UpdateStats(id string, state_from, state_to string) error
-	Find(query deployments.Query) ([]*deployments.Deployment, error)
+func main() {
+
+	if len(os.Args) < 2 {
+		log.Fatalf("usage: dumpidentity <token>")
+	}
+
+	token := os.Args[1]
+	idata, err := identity.ExtractIdentity(token)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+		return
+	}
+
+	fmt.Printf("%v", idata)
 }

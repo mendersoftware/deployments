@@ -21,6 +21,7 @@ import (
 	"github.com/mendersoftware/deployments/utils/identity"
 	"github.com/pkg/errors"
 	"net/http"
+	"net/url"
 )
 
 // Errors
@@ -93,7 +94,9 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 		return
 	}
 
-	d.view.RenderSuccessGet(w, deployment)
+	ad := NewApiDeploymentWrapper(deployment)
+
+	d.view.RenderSuccessGet(w, ad)
 }
 
 func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *rest.Request) {
@@ -190,5 +193,134 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 	}
 
 	d.view.RenderSuccessGet(w, statuses)
-	return
+}
+
+// Deployment as returned in deployment lookup query results
+type ApiDeploymentWrapper struct {
+	deployments.Deployment
+
+	// Status
+	Status string `json:"status"`
+}
+
+func NewApiDeploymentWrapper(dep *deployments.Deployment) *ApiDeploymentWrapper {
+	ad := &ApiDeploymentWrapper{
+		Deployment: *dep,
+	}
+	ad.UpdateStatus()
+	return ad
+}
+
+// fill Status field
+func (a *ApiDeploymentWrapper) UpdateStatus() {
+	if a.IsInProgress() {
+		a.Status = "inprogress"
+	} else if a.IsFinished() {
+		a.Status = "finished"
+	} else {
+		a.Status = "pending"
+	}
+}
+
+func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
+	query := deployments.Query{}
+
+	search := vals.Get("search")
+	if search != "" {
+		query.SearchText = search
+	}
+
+	status := vals.Get("status")
+	switch status {
+	case "inprogress":
+		query.Status = deployments.StatusQueryInProgress
+	case "finished":
+		query.Status = deployments.StatusQueryFinished
+	case "pending":
+		query.Status = deployments.StatusQueryPending
+	case "":
+		query.Status = deployments.StatusQueryAny
+	default:
+		return query, errors.Errorf("unknown status %s", status)
+
+	}
+
+	return query, nil
+}
+
+func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.Request) {
+	query, err := ParseLookupQuery(r.URL.Query())
+
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	deps, err := d.model.LookupDeployment(query)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	res := make([]ApiDeploymentWrapper, len(deps))
+	for i, dep := range deps {
+		res[i].Deployment = *dep
+		res[i].UpdateStatus()
+	}
+
+	d.view.RenderSuccessGet(w, res)
+}
+
+type ApiDeploymentLog struct {
+	Messages []deployments.LogMessage `json:"messages"`
+}
+
+func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {
+
+	did := r.PathParam("id")
+
+	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	// reuse DeploymentLog, device and deployment IDs are ignored when
+	// (un-)marshalling DeploymentLog to/from JSON
+	var log ApiDeploymentLog
+
+	err = r.DecodeJsonPayload(&log)
+	if err != nil {
+		d.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	if err := d.model.SaveDeviceDeploymentLog(idata.Subject, did, log.Messages); err != nil {
+		if err == ErrModelDeploymentNotFound {
+			d.view.RenderError(w, err, http.StatusNotFound)
+		} else {
+			d.view.RenderError(w, err, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	d.view.RenderEmptySuccessResponse(w)
+}
+
+func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {
+
+	did := r.PathParam("id")
+	devid := r.PathParam("devid")
+
+	depl, err := d.model.GetDeviceDeploymentLog(devid, did)
+	if err != nil {
+		if err == ErrModelDeploymentNotFound {
+			d.view.RenderError(w, err, http.StatusNotFound)
+		} else {
+			d.view.RenderError(w, err, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	d.view.RenderDeploymentLog(w, *depl)
 }

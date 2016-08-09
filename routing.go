@@ -36,8 +36,7 @@ func SetupS3(c config.ConfigReader) imagesModel.FileStorage {
 
 	bucket := c.GetString(SettingAweS3Bucket)
 	region := c.GetString(SettingAwsS3Region)
-
-	if c.IsSet(SettingsAwsAuth) {
+	if c.IsSet(SettingsAwsAuth) || (c.IsSet(SettingAwsAuthKeyId) && c.IsSet(SettingAwsAuthSecret) && c.IsSet(SettingAwsURI)) {
 		return s3.NewSimpleStorageServiceStatic(
 			bucket,
 			c.GetString(SettingAwsAuthKeyId),
@@ -64,6 +63,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	fileStorage := SetupS3(c)
 	deploymentsStorage := deploymentsMongo.NewDeploymentsStorage(dbSession)
 	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
+	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
 	if err := imagesStorage.IndexStorage(); err != nil {
 		return nil, err
@@ -77,6 +77,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 			// can easily add configuration from main config file
 			inventory.NewInventoryWithHardcodedType("TestDevice")),
 		deviceDeploymentsStorage,
+		deviceDeploymentLogsStorage,
 		fileStorage,
 	)
 
@@ -124,6 +125,7 @@ func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsC
 
 		// Deployments
 		rest.Post("/api/0.0.1/deployments", controller.PostDeployment),
+		rest.Get("/api/0.0.1/deployments", controller.LookupDeployment),
 		rest.Get("/api/0.0.1/deployments/:id", controller.GetDeployment),
 		rest.Get("/api/0.0.1/deployments/:id/statistics", controller.GetDeploymentStats),
 
@@ -133,5 +135,9 @@ func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsC
 			controller.PutDeploymentStatusForDevice),
 		rest.Get("/api/0.0.1/deployments/:id/devices",
 			controller.GetDeviceStatusesForDeployment),
+		rest.Put("/api/0.0.1/device/deployments/:id/log",
+			controller.PutDeploymentLogForDevice),
+		rest.Get("/api/0.0.1/device/deployments/:id/devices/:devid/log",
+			controller.GetDeploymentLogForDevice),
 	}
 }

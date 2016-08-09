@@ -28,23 +28,26 @@ const (
 )
 
 type DeploymentsModel struct {
-	deploymentsStorage        DeploymentsStorage
-	deviceDeploymentsStorage  DeviceDeploymentStorage
-	imageLinker               GetRequester
-	deviceDeploymentGenerator Generator
+	deploymentsStorage          DeploymentsStorage
+	deviceDeploymentsStorage    DeviceDeploymentStorage
+	deviceDeploymentLogsStorage DeviceDeploymentLogsStorage
+	imageLinker                 GetRequester
+	deviceDeploymentGenerator   Generator
 }
 
 func NewDeploymentModel(
 	deploymentsStorage DeploymentsStorage,
 	deviceDeploymentGenerator Generator,
 	deviceDeploymentsStorage DeviceDeploymentStorage,
+	deviceDeploymentLogsStorage DeviceDeploymentLogsStorage,
 	imageLinker GetRequester,
 ) *DeploymentsModel {
 	return &DeploymentsModel{
-		deploymentsStorage:        deploymentsStorage,
-		deviceDeploymentsStorage:  deviceDeploymentsStorage,
-		imageLinker:               imageLinker,
-		deviceDeploymentGenerator: deviceDeploymentGenerator,
+		deploymentsStorage:          deploymentsStorage,
+		deviceDeploymentsStorage:    deviceDeploymentsStorage,
+		deviceDeploymentLogsStorage: deviceDeploymentLogsStorage,
+		imageLinker:                 imageLinker,
+		deviceDeploymentGenerator:   deviceDeploymentGenerator,
 	}
 }
 
@@ -162,8 +165,13 @@ func (d *DeploymentsModel) ActiveDeploymentStatuses() []string {
 // ID `deviceID`. Returns nil if update was successful.
 func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 	deviceID string, status string) error {
+	old, err := d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID, status)
 
-	return d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID, status)
+	if err != nil {
+		return err
+	}
+
+	return d.deploymentsStorage.UpdateStats(deploymentID, old, status)
 }
 
 func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.Stats, error) {
@@ -187,4 +195,43 @@ func (d *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) (
 	}
 
 	return statuses, nil
+}
+
+func (d *DeploymentsModel) LookupDeployment(query deployments.Query) ([]*deployments.Deployment, error) {
+	return d.deploymentsStorage.Find(query)
+}
+
+// SaveDeviceDeploymentLog will save the deployment log for device of
+// ID `deviceID`. Returns nil if log was saved successfully.
+func (d *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
+	deploymentID string, logs []deployments.LogMessage) error {
+
+	// repack to temporary deployment log and validate
+	dlog := deployments.DeploymentLog{
+		DeviceID:     deviceID,
+		DeploymentID: deploymentID,
+		Messages:     logs,
+	}
+	if err := dlog.Validate(); err != nil {
+		return errors.Wrapf(err, controller.ErrStorageInvalidLog.Error())
+	}
+
+	if has, err := d.HasDeploymentForDevice(deploymentID, deviceID); !has {
+		if err != nil {
+			return err
+		} else {
+			return controller.ErrModelDeploymentNotFound
+		}
+	}
+
+	return d.deviceDeploymentLogsStorage.SaveDeviceDeploymentLog(dlog)
+}
+
+func (d *DeploymentsModel) GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
+
+	return d.deviceDeploymentLogsStorage.GetDeviceDeploymentLog(deviceID, deploymentID)
+}
+
+func (d *DeploymentsModel) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
+	return d.deviceDeploymentsStorage.HasDeploymentForDevice(deploymentID, deviceID)
 }

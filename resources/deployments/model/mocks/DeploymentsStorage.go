@@ -61,6 +61,12 @@ func (_m *DeploymentsStorage) FindByID(id string) (*deployments.Deployment, erro
 	return r0, r1
 }
 
+func (_m *DeploymentsStorage) Find(query deployments.Query) ([]*deployments.Deployment, error) {
+	ret := _m.Called(query)
+
+	return ret.Get(0).([]*deployments.Deployment), ret.Error(1)
+}
+
 // Insert provides a mock function with given fields: deployment
 func (_m *DeploymentsStorage) Insert(deployment *deployments.Deployment) error {
 	ret := _m.Called(deployment)
@@ -73,4 +79,10 @@ func (_m *DeploymentsStorage) Insert(deployment *deployments.Deployment) error {
 	}
 
 	return r0
+}
+
+func (_m *DeploymentsStorage) UpdateStats(id string, state_from, state_to string) error {
+	ret := _m.Called(id, state_from, state_to)
+
+	return ret.Error(0)
 }

@@ -14,13 +14,12 @@
 
 package model
 
-import "github.com/mendersoftware/deployments/resources/deployments"
+import (
+	"github.com/mendersoftware/deployments/resources/deployments"
+)
 
-// Storage for Deployment type
-type DeploymentsStorage interface {
-	Insert(deployment *deployments.Deployment) error
-	Delete(id string) error
-	FindByID(id string) (*deployments.Deployment, error)
-	UpdateStats(id string, state_from, state_to string) error
-	Find(query deployments.Query) ([]*deployments.Deployment, error)
+// Device deployment log storage
+type DeviceDeploymentLogsStorage interface {
+	SaveDeviceDeploymentLog(log deployments.DeploymentLog) error
+	GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error)
 }

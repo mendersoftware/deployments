@@ -82,10 +82,10 @@ func (_m *DeviceDeploymentStorage) InsertMany(deployment ...*deployments.DeviceD
 	return r0
 }
 
-func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) error {
+func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) (string, error) {
 	ret := _m.Called(deviceID, deploymentID, status)
 
-	return ret.Error(0)
+	return ret.Get(0).(string), ret.Error(1)
 }
 
 func (_m *DeviceDeploymentStorage) AggregateDeviceDeploymentByStatus(deploymentID string) (deployments.Stats, error) {
@@ -98,4 +98,10 @@ func (_m *DeviceDeploymentStorage) GetDeviceStatusesForDeployment(deploymentID s
 	ret := _m.Called(deploymentID)
 
 	return ret.Get(0).([]deployments.DeviceDeployment), ret.Error(1)
+}
+
+func (_m *DeviceDeploymentStorage) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
+	ret := _m.Called(deploymentID, deviceID)
+
+	return ret.Bool(0), ret.Error(1)
 }

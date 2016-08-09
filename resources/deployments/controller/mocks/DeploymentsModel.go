@@ -108,3 +108,27 @@ func (_m *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) 
 	ret := _m.Called(deploymentID)
 	return ret.Get(0).([]deployments.DeviceDeployment), ret.Error(1)
 }
+
+func (_m *DeploymentsModel) LookupDeployment(query deployments.Query) ([]*deployments.Deployment, error) {
+
+	ret := _m.Called(query)
+	return ret.Get(0).([]*deployments.Deployment), ret.Error(1)
+}
+
+func (_m *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
+	deploymentID string, logs []deployments.LogMessage) error {
+
+	ret := _m.Called(deviceID, deploymentID, logs)
+	return ret.Error(0)
+}
+
+func (_m *DeploymentsModel) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
+	ret := _m.Called(deploymentID, deviceID)
+	return ret.Bool(0), ret.Error(1)
+}
+
+func (_m *DeploymentsModel) GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
+
+	ret := _m.Called(deviceID, deploymentID)
+	return ret.Get(0).(*deployments.DeploymentLog), ret.Error(1)
+}

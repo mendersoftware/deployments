@@ -19,7 +19,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
@@ -165,13 +167,19 @@ func TestControllerGetDeployment(t *testing.T) {
 			InputModelDeployment: &deployments.Deployment{Id: StringToPointer("id 123")},
 
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusOK,
-				OutputBodyObject: &deployments.Deployment{Id: StringToPointer("id 123")},
+				OutputStatus: http.StatusOK,
+				OutputBodyObject: &ApiDeploymentWrapper{
+					Deployment: deployments.Deployment{
+						Id: StringToPointer("id 123"),
+					},
+					Status: "pending",
+				},
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
+		t.Logf("testing %v", testCase.InputID)
 
 		deploymentModel := new(mocks.DeploymentsModel)
 		deploymentModel.On("GetDeployment", testCase.InputID).
@@ -537,5 +545,497 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 			test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil))
 
 		h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
+	}
+}
+
+func TestControllerLookupDeployment(t *testing.T) {
+
+	t.Parallel()
+
+	someDeployments := []*deployments.Deployment{
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("zen"),
+				ArtifactName: StringToPointer("baz"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("foo"),
+				ArtifactName: StringToPointer("bar"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
+		},
+	}
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		SearchStatus string
+
+		InputModelQuery       deployments.Query
+		InputModelError       error
+		InputModelDeployments []*deployments.Deployment
+	}{
+		{
+			InputModelQuery: deployments.Query{
+				SearchText: " ",
+			},
+			InputModelError: errors.New("bad query"),
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("bad query")),
+			},
+		},
+		{
+			SearchStatus:    "badstatus",
+			InputModelError: errors.New("bad query"),
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("unknown status badstatus")),
+			},
+		},
+		{
+			InputModelQuery: deployments.Query{
+				SearchText: "foo-not-found",
+			},
+			InputModelDeployments: []*deployments.Deployment{},
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusOK,
+				OutputBodyObject: []*deployments.Deployment{},
+			},
+		},
+		{
+			InputModelQuery: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryInProgress,
+			},
+			SearchStatus:          "inprogress",
+			InputModelDeployments: someDeployments,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusOK,
+				OutputBodyObject: []ApiDeploymentWrapper{
+					{
+						Deployment: deployments.Deployment{
+							DeploymentConstructor: &deployments.DeploymentConstructor{
+								Name:         StringToPointer("zen"),
+								ArtifactName: StringToPointer("baz"),
+							},
+							Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+						},
+					},
+					{
+						Deployment: deployments.Deployment{
+							DeploymentConstructor: &deployments.DeploymentConstructor{
+								Name:         StringToPointer("foo"),
+								ArtifactName: StringToPointer("bar"),
+							},
+							Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing %+v %s", testCase.InputModelQuery, testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("LookupDeployment", testCase.InputModelQuery).
+			Return(testCase.InputModelDeployments, testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Get("/r",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).LookupDeployment))
+
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		u := url.URL{
+			Scheme: "http",
+			Host:   "localhost",
+			Path:   "/r",
+		}
+		q := u.Query()
+		q.Set("search", testCase.InputModelQuery.SearchText)
+		if testCase.SearchStatus != "" {
+			q.Set("status", testCase.SearchStatus)
+		}
+		u.RawQuery = q.Encode()
+		t.Logf("query: %s", u.String())
+		req := test.MakeSimpleRequest("GET", u.String(), nil)
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+	}
+}
+
+func TestParseLookupQuery(t *testing.T) {
+	testCases := []struct {
+		vals  url.Values
+		query deployments.Query
+		err   error
+	}{
+		{
+			vals: url.Values{
+				"search": []string{"foo"},
+				"status": []string{"inprogress"},
+			},
+			query: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryInProgress,
+			},
+		},
+		{
+			vals: url.Values{
+				"search": []string{"foo"},
+				"status": []string{"bar"},
+			},
+			err: errors.New("unknown status bar"),
+		},
+		{
+			vals: url.Values{
+				"search": []string{"foo"},
+				"status": []string{"finished"},
+			},
+			query: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryFinished,
+			},
+		},
+		{
+			vals: url.Values{
+				"search": []string{"foo"},
+				"status": []string{"pending"},
+			},
+			query: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryPending,
+			},
+		},
+		{
+			vals: url.Values{
+				"search": []string{"foo"},
+			},
+			query: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryAny,
+			},
+		},
+		{
+			vals: url.Values{},
+			query: deployments.Query{
+				SearchText: "",
+				Status:     deployments.StatusQueryAny,
+			},
+		},
+		{
+			vals: url.Values{
+				"status": []string{"pending"},
+			},
+			query: deployments.Query{
+				SearchText: "",
+				Status:     deployments.StatusQueryPending,
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Logf("testing: %v", tc.vals)
+
+		q, err := ParseLookupQuery(tc.vals)
+		if tc.err != nil {
+			assert.Error(t, err)
+			assert.EqualError(t, tc.err, err.Error())
+		} else {
+			assert.Equal(t, tc.query, q)
+		}
+	}
+}
+
+func TestControllerPutDeploymentLog(t *testing.T) {
+
+	t.Parallel()
+
+	type log struct {
+		Messages string `json:"messages"`
+	}
+
+	tref := time.Now()
+
+	messages := []deployments.LogMessage{
+		{
+			Timestamp: &tref,
+			Message:   "foo",
+			Level:     "notice",
+		},
+	}
+	testCases := []struct {
+		h.JSONResponseParams
+		InputBodyObject interface{}
+
+		InputModelDeploymentID string
+		InputModelDeviceID     string
+		InputModelMessages     []deployments.LogMessage
+		InputModelError        error
+
+		Headers map[string]string
+	}{
+		{
+			// empty log body
+			InputBodyObject: nil,
+
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-1",
+			InputModelMessages:     nil,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("JSON payload is empty")),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-1"}`),
+			},
+		},
+		{
+			// all correct
+			InputBodyObject: &ApiDeploymentLog{
+				Messages: messages,
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-2",
+			InputModelMessages:     messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNoContent,
+				OutputBodyObject: nil,
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
+			},
+		},
+		{
+			// no authorization
+			InputBodyObject: &ApiDeploymentLog{
+				Messages: messages,
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-3",
+			InputModelMessages:     messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("malformed authorization data")),
+			},
+		},
+		{
+			// model error
+			InputBodyObject: &ApiDeploymentLog{
+				Messages: messages,
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-4",
+			InputModelError:        errors.New("model error"),
+			InputModelMessages:     messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
+			},
+		},
+		{
+			// deployment not assigned to device
+			InputBodyObject: &ApiDeploymentLog{
+				Messages: messages,
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-5",
+			InputModelError:        ErrModelDeploymentNotFound,
+			InputModelMessages:     messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNotFound,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment not found")),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-5"}`),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Logf("testing %s %s %v %v",
+			testCase.InputModelDeploymentID, testCase.InputModelDeviceID,
+			testCase.InputBodyObject, testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("SaveDeviceDeploymentLog",
+			testCase.InputModelDeviceID,
+			testCase.InputModelDeploymentID,
+			testCase.InputModelMessages).
+			Return(testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Put("/r/:id",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).PutDeploymentLogForDevice))
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		req := test.MakeSimpleRequest("PUT", "http://localhost/r/"+testCase.InputModelDeploymentID,
+			testCase.InputBodyObject)
+		for k, v := range testCase.Headers {
+			req.Header.Set(k, v)
+		}
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+	}
+}
+
+func parseTime(t *testing.T, value string) *time.Time {
+	tm, err := time.Parse(time.RFC3339, value)
+	if assert.NoError(t, err) == false {
+		t.Fatalf("failed to parse time %s", value)
+	}
+
+	return &tm
+}
+
+func TestControllerGetDeploymentLog(t *testing.T) {
+
+	t.Parallel()
+
+	type log struct {
+		Messages string `json:"messages"`
+	}
+
+	tref := parseTime(t, "2006-01-02T15:04:05-07:00")
+
+	messages := []deployments.LogMessage{
+		{
+			Timestamp: tref,
+			Message:   "foo",
+			Level:     "notice",
+		},
+		{
+			Timestamp: tref,
+			Message:   "zed zed zed",
+			Level:     "debug",
+		},
+		{
+			Timestamp: tref,
+			Message:   "bar bar bar",
+			Level:     "info",
+		},
+	}
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputModelDeploymentLog *deployments.DeploymentLog
+		InputModelDeploymentID  string
+		InputModelDeviceID      string
+		InputModelMessages      []deployments.LogMessage
+		InputModelError         error
+
+		Body string
+	}{
+		{
+			// all correct
+			InputModelDeploymentLog: &deployments.DeploymentLog{
+				DeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+				DeviceID:     "device-id-1",
+				Messages:     messages,
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-1",
+			InputModelMessages:     messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNoContent,
+				OutputBodyObject: nil,
+			},
+			Body: `2006-01-02 22:04:05 +0000 UTC notice: foo
+2006-01-02 22:04:05 +0000 UTC debug: zed zed zed
+2006-01-02 22:04:05 +0000 UTC info: bar bar bar
+`,
+		},
+		{
+			// model error
+			InputModelDeploymentLog: nil,
+			InputModelDeploymentID:  "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:      "device-id-4",
+			InputModelError:         errors.New("model error"),
+			InputModelMessages:      messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+			},
+		},
+		{
+			// deployment not assigned to device
+			InputModelDeploymentLog: nil,
+			InputModelDeploymentID:  "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:      "device-id-5",
+			InputModelError:         ErrModelDeploymentNotFound,
+			InputModelMessages:      messages,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNotFound,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment not found")),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Logf("testing %s %s %v",
+			testCase.InputModelDeploymentID, testCase.InputModelDeviceID,
+			testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("GetDeviceDeploymentLog",
+			testCase.InputModelDeviceID,
+			testCase.InputModelDeploymentID).
+			Return(testCase.InputModelDeploymentLog, testCase.InputModelError)
+
+		router, err := rest.MakeRouter(
+			rest.Get("/r/:id/:devid",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).GetDeploymentLogForDevice))
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+
+			testCase.InputModelDeploymentID+"/"+testCase.InputModelDeviceID,
+			nil)
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+		if testCase.InputModelError != nil {
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		} else {
+			assert.Equal(t, testCase.Body, recorded.Recorder.Body.String())
+			assert.Equal(t, http.StatusOK, recorded.Recorder.Code)
+			assert.Equal(t, "text/plain", recorded.Recorder.HeaderMap.Get("Content-Type"))
+			t.Logf("content:\n%s", recorded.Recorder.Body)
+		}
 	}
 }
