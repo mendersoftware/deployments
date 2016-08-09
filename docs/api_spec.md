@@ -1092,7 +1092,6 @@ Set deployment log. Messages are split by line in the payload.
 
 ### Deployment log [GET /api/0.0.1/deployments/{deployment_id}/devices/{device_id}/log]
 Device statuses for the deployment.
-TODO: To be implemented
 
 + Parameters
     + deployment_id: `f81d4fae-7dec-11d0-a765-00a0c91e6bf6` (string,required) - Deployment identifier
