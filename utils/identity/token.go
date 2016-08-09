@@ -40,6 +40,11 @@ func decodeClaims(token string) (rawClaims, error) {
 	}
 
 	b64claims := parts[1]
+	// add padding as needed
+	if pad := len(b64claims) % 4; pad != 0 {
+		b64claims += strings.Repeat("=", 4-pad)
+	}
+
 	rawclaims, err := base64.StdEncoding.DecodeString(b64claims)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to decode raw claims %v",
