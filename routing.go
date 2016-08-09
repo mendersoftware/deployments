@@ -137,7 +137,7 @@ func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsC
 			controller.GetDeviceStatusesForDeployment),
 		rest.Put("/api/0.0.1/device/deployments/:id/log",
 			controller.PutDeploymentLogForDevice),
-		rest.Get("/api/0.0.1/device/deployments/:id/devices/:devid/log",
+		rest.Get("/api/0.0.1/deployments/:id/devices/:devid/log",
 			controller.GetDeploymentLogForDevice),
 	}
 }
