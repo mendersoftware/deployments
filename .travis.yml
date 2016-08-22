@@ -3,11 +3,6 @@ language: go
 # Forces travis to use VM insted container, required to be able to build containers.
 sudo: required
 
-
-# related to mongodb as per:
-# https://github.com/travis-ci/travis-ci/issues/5948
-group: edge
-
 services:
     - docker
     - mongodb
@@ -77,8 +72,6 @@ env:
         - BUILD_ARTIFATS=${BUILD_ARTIFATS_OVERRIDE:-$BUILD_ARTIFATS_DEFAULT}
 
 before_install:
-    # Fix for MEN-586
-    - sudo service mongod start
 
     # Install code coverage / coveralls tooling
     - go get -u github.com/axw/gocov/gocov
