@@ -36,8 +36,7 @@ responses:
 paths:
   '/device/update':
     get:
-      description: |
-        List next update to be installed on the device
+      summary: List next update to be installed on the device
       parameters:
         - name: Authorization
           in: header
@@ -93,6 +92,7 @@ paths:
 
   '/device/deployments/{id}/status':
     put:
+      summary: Update device deployment status
       description: |
         Update the status of a deployment on a particular device. Final status
         of the deployment is required to be set to indicate the success or failure 
@@ -140,6 +140,7 @@ paths:
 
   '/device/deployments/{id}/log':
     put:
+      summary: Upload device deployment log
       description: |
         Set deployment log. Messages are split by line in the payload.
       parameters:
@@ -192,6 +193,7 @@ paths:
 
   /deployments:
     get:
+      summary: Find deployments
       description: |
         Lookup deployments in the system, including active and history.
       parameters:
@@ -257,6 +259,7 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     post:
+      summary: Create deployment
       description: |
         Deploy software to specified devices. Image is auto assigned to the
         device from all available images based on artifact name and device type.
@@ -298,8 +301,7 @@ paths:
 
   '/deployments/{id}':
     get:
-      description: |
-        Check status of specified deployment
+      summary: Deployment details
       parameters:
         - name: id
           in: path
@@ -344,8 +346,9 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     delete:
+      summary: Cancel deployment
       description: |
-        Cancel deployment
+        Cancels a deployment
         TODO: to be implemented
 
       parameters:
@@ -366,7 +369,7 @@ paths:
 
   '/deployments/{deployment_id}/statistics':
     get:
-      description: Statistics for the deployment
+      summary: Deployment statistics
       parameters:
         - name: deployment_id
           in: path
@@ -426,6 +429,7 @@ paths:
 
   '/deployments/{deployment_id}/devices':
     get:
+      summary: List devices of a deployment
       description: |
         List deployment status for each assigned device
       parameters:
@@ -484,6 +488,7 @@ paths:
 
   '/deployments/{deployment_id}/devices/{device_id}/log':
     get:
+      summary: Download deployment log
       description: |
         Device log collected during deployment.
       parameters:
@@ -510,8 +515,7 @@ paths:
 
   /images:
     get:
-      description: |
-        List all firmware images.
+      summary: List firmware images
       produces:
         - application/json
       responses:
@@ -536,6 +540,7 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     post:
+      summary: Create firmware image
       description: |
         Create firmware image. Afterwards upload link can be generated to upload
         image file.
@@ -562,7 +567,7 @@ paths:
 
   '/images/{id}':
     get:
-      description: Image details
+      summary: Firmare image details
       parameters:
         - name: id
           in: path
@@ -582,6 +587,7 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     put:
+      summary: Update firmware image
       description: |
         Edit image information. Image is not allowed to be edited if it was used
         in any deployment.
@@ -612,7 +618,7 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     delete:
-      description: Remove firmware image
+      summary: Remove firmware image
       produces:
         - application/json
       parameters:
@@ -631,6 +637,7 @@ paths:
 
   '/images/{id}/upload':
     get:
+      summary: Generate upload link
       description: |
         Generate signed URL for uploading image file. URI can be used only with PUT HTTP method.
         It is valid for specified period if time.
