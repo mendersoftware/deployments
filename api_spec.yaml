@@ -3,14 +3,13 @@ info:
   title: Deployments Service API
   version: '0.0.1'
   description: |
-    # Common information about all exposed API endpoints.
+    ### Common information about all exposed API endpoints.
     
-    CORS and none-CORS requests are supported. Details
-    [wikipedia](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing#Simple_example).
+    CORS and none-CORS requests are supported. Details [wikipedia](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing#Simple_example).
 
     Allows `Location` header exposure.
     
-    # Device endpoints and Authorization
+    ### Device endpoints and Authorization
     
     Incoming requests must set `Authorization` header and include device token
     obtained from the API. The header shall look like this:
