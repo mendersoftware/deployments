@@ -779,8 +779,8 @@ TODO: To be implemented & statuses may change
                 "failure": 0,
                 "downloading": 1,
                 "installing": 2,
-                "rebooting": 3
-                "noimage:" 0
+                "rebooting": 3,
+                "noimage": 0
             }
 
 + Response 404 (application/json)
