@@ -91,9 +91,7 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Device
-          
+
   '/device/deployments/{id}/status':
     put:
       description: |
@@ -140,8 +138,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Device
 
   '/device/deployments/{id}/log':
     put:
@@ -194,8 +190,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Device
 
   /deployments:
     get:
@@ -262,8 +256,6 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Deployment
 
     post:
       description: |
@@ -304,8 +296,6 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Deployment
 
   '/deployments/{id}':
     get:
@@ -353,8 +343,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Deployment
 
     delete:
       description: |
@@ -376,8 +364,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Deployment
 
   '/deployments/{deployment_id}/statistics':
     get:
@@ -438,8 +424,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Deployment
 
   '/deployments/{deployment_id}/devices':
     get:
@@ -498,8 +482,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Deployment
 
   '/deployments/{deployment_id}/devices/{device_id}/log':
     get:
@@ -526,8 +508,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Deployment
 
   /images:
     get:
@@ -555,8 +535,6 @@ paths:
 
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Firmware Images
 
     post:
       description: |
@@ -582,8 +560,6 @@ paths:
               type: string
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Firmware Images
 
   '/images/{id}':
     get:
@@ -605,8 +581,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Firmware Images
 
     put:
       description: |
@@ -637,8 +611,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Firmware Images
 
     delete:
       description: Remove firmware image
@@ -657,8 +629,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-      tags:
-        - Firmware Images
 
   '/images/{id}/upload':
     get:
@@ -713,8 +683,6 @@ paths:
               error: Detailed error message
           schema:
             $ref: "#/definitions/SimpleError"
-      tags:
-        - Firmware Images
 
   '/images/{id}/download':
     get:
@@ -768,8 +736,6 @@ paths:
               error: Detailed error message
           schema:
             $ref: "#/definitions/SimpleError"
-      tags:
-        - Firmware Images
 
 definitions:
   SimpleError:
