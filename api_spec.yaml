@@ -549,7 +549,7 @@ paths:
           in: body
           required: true
           schema:
-            $ref: "#/definitions/ImageNew"
+            $ref: "#/definitions/ImageBase"
       produces:
         - application/json
       responses:
@@ -597,7 +597,7 @@ paths:
         - name: image
           in: body
           schema:
-            $ref: "#/definitions/ImageNew"
+            $ref: "#/definitions/ImageUpdate"
       produces:
         - application/json
       responses:
@@ -744,8 +744,8 @@ definitions:
       error:
         description: Description of error
         type: string
-  ImageNew:
-    description: Firmware image
+  ImageBase:
+    description: Base firmware image
     type: object
     properties:
       name:
@@ -759,12 +759,20 @@ definitions:
     required:
       - name
       - description
+      - device_type
       - checksum
+  ImageUpdate:
+    description: Firmware image information update
+    allOf:
+      - $ref: "#/definitions/ImageBase"
+    required:
+      - name
+      - description
       - device_type
   Image:
-    description: Firmware image
+    description: Detailed firmware image
     allOf:
-      - $ref: "#/definitions/ImageNew"
+      - $ref: "#/definitions/ImageBase"
       - type: object
         properties:
           id:
