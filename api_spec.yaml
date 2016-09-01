@@ -548,11 +548,7 @@ paths:
         - name: image
           in: body
           schema:
-            $ref: "#/definitions/Image"
-            required:
-              - name
-              - yocto_id
-              - device_type
+            $ref: "#/definitions/ImageNew"
       produces:
         - application/json
       responses:
@@ -600,11 +596,7 @@ paths:
         - name: image
           in: body
           schema:
-            $ref: "#/definitions/Image"
-            required:
-              - name
-              - yocto_id
-              - device_type
+            $ref: "#/definitions/ImageNew"
       produces:
         - application/json
       responses:
@@ -751,7 +743,7 @@ definitions:
       error:
         description: Description of error
         type: string
-  Image:
+  ImageNew:
     description: Firmware image
     type: object
     properties:
@@ -763,24 +755,31 @@ definitions:
         type: string
       device_type:
         type: string
-      id:
-        type: string
-      verified:
-        type: boolean
-      modified:
-        type: string
-        format: date-time
-        description: |
-          Represents creation / last edition of any of the image properties,
-          including image file upload or rewrite
     required:
       - name
       - description
       - checksum
       - device_type
-      - id
-      - verified
-      - modified
+  Image:
+    description: Firmware image
+    allOf:
+      - $ref: "#/definitions/ImageNew"
+      - type: object
+        properties:
+          id:
+            type: string
+          verified:
+            type: boolean
+          modified:
+            type: string
+            format: date-time
+            description: |
+              Represents creation / last edition of any of the image properties,
+              including image file upload or rewrite
+        required:
+          - id
+          - verified
+          - modified
   ImageLink:
     description: URL for firmare image upload/download
     type: object
