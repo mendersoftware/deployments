@@ -999,7 +999,7 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 			InputModelMessages:      messages,
 
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusNotFound,
+				OutputStatus:     http.StatusInternalServerError,
 				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment not found")),
 			},
 		},

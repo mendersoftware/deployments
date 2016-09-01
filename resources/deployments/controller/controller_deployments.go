@@ -313,14 +313,16 @@ func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter,
 	devid := r.PathParam("devid")
 
 	depl, err := d.model.GetDeviceDeploymentLog(devid, did)
+
 	if err != nil {
-		if err == ErrModelDeploymentNotFound {
-			d.view.RenderError(w, err, http.StatusNotFound)
-		} else {
-			d.view.RenderError(w, err, http.StatusInternalServerError)
-		}
+		d.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
+
+    if depl == nil {
+        d.view.RenderErrorNotFound(w)
+        return
+    }
 
 	d.view.RenderDeploymentLog(w, *depl)
 }
