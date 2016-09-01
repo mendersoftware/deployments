@@ -73,7 +73,7 @@ paths:
                     type: string
                   expire:
                     type: string
-                    format: date
+                    format: date-time
                   yocto_id:
                     type: string
                 required:
@@ -168,7 +168,7 @@ paths:
                   properties:
                     timestamp:
                       type: string
-                      format: date
+                      format: date-time
                     level:
                       type: string
                     message:
@@ -231,7 +231,7 @@ paths:
               properties:
                 created:
                   type: string
-                  format: date
+                  format: date-time
                 name:
                   type: string
                 artifact_name:
@@ -240,7 +240,7 @@ paths:
                   type: string
                 finished:
                   type: string
-                  format: date
+                  format: date-time
                 status:
                   type: string
                   enum:
@@ -325,7 +325,7 @@ paths:
             properties:
               created:
                 type: string
-                format: date
+                format: date-time
               name:
                 type: string
               artifact_name:
@@ -334,7 +334,7 @@ paths:
                 type: string
               finished:
                 type: string
-                format: date
+                format: date-time
             required:
               - created
               - name
@@ -461,7 +461,7 @@ paths:
                   description: device ID
                 finished:
                   type: string
-                  format: date
+                  format: date-time
                 status:
                   type: string
                   enum:
@@ -472,7 +472,7 @@ paths:
                     - noimage
                 started:
                   type: string
-                  format: date
+                  format: date-time
                 device_type:
                   type: string
                 artifact_id:
@@ -769,7 +769,7 @@ definitions:
         type: boolean
       modified:
         type: string
-        format: date
+        format: date-time
         description: |
           Represents creation / last edition of any of the image properties,
           including image file upload or rewrite
@@ -789,7 +789,7 @@ definitions:
         type: string
       expire:
         type: string
-        format: date
+        format: date-time
     required:
       - uri
       - expire
