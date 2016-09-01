@@ -101,7 +101,7 @@ paths:
       parameters:
         - name: id
           in: path
-          description: Deployment ID
+          description: Deployment identifier
           required: true
           type: string
         - name: Authorization
@@ -146,7 +146,7 @@ paths:
       parameters:
         - name: id
           in: path
-          description: Deployment ID
+          description: Deployment identifier
           required: true
           type: string
         - name: Authorization
