@@ -547,6 +547,7 @@ paths:
       parameters:
         - name: image
           in: body
+          required: true
           schema:
             $ref: "#/definitions/ImageNew"
       produces:
