@@ -15,7 +15,6 @@
 package deployments
 
 import (
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -107,23 +106,6 @@ func NewDeploymentFromConstructor(constructor *DeploymentConstructor) *Deploymen
 func (d *Deployment) Validate() error {
 	_, err := govalidator.ValidateStruct(d)
 	return err
-}
-
-// To be able to hide devices field, from API output provice custom marshaler
-func (d *Deployment) MarshalJSON() ([]byte, error) {
-
-	//Prevents from inheriting original MarshalJSON (if would, infinite loop)
-	type Alias Deployment
-
-	slim := struct {
-		*Alias
-		Devices []string `json:"devices,omitempty"`
-	}{
-		Alias:   (*Alias)(d),
-		Devices: nil,
-	}
-
-	return json.Marshal(&slim)
 }
 
 func (d *Deployment) IsInProgress() bool {
