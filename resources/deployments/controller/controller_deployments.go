@@ -321,6 +321,7 @@ func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter,
 
     if depl == nil {
         d.view.RenderErrorNotFound(w)
+        return
     }
 
 	d.view.RenderDeploymentLog(w, *depl)
