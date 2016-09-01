@@ -527,7 +527,7 @@ paths:
                 description: Johns Monday test build
                 checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
                 device_type: Beagle Bone
-                id: 0C13A0E6-6B63-475D-8260-EE42A590E8FF
+                id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
                 verified: false
                 modified: 2016-03-11T13:03:17.063493443Z
                 yocto_id: core-image-full-cmdline-20160330201408
