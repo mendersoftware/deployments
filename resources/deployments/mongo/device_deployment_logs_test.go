@@ -78,7 +78,7 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 				Messages:     []deployments.LogMessage{},
 			},
-			OutputError: errors.New("Messages: non zero value required;"),
+			OutputError: nil,
 		},
 		{
 			InputDeviceDeploymentLog: deployments.DeploymentLog{
