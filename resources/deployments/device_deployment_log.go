@@ -34,7 +34,7 @@ type DeploymentLog struct {
 	DeviceID     string `json:"-" valid:"required"`
 	DeploymentID string `json:"-" valid:"uuidv4,required"`
 
-	Messages []LogMessage `json:"messages" valid:"required"`
+	Messages []LogMessage `json:"messages" valid:"optional"`
 }
 
 var (
