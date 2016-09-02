@@ -236,10 +236,6 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 	d.view.RenderSuccessGet(w, deps)
 }
 
-type ApiDeploymentLog struct {
-	Messages []deployments.LogMessage `json:"messages"`
-}
-
 func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {
 
 	did := r.PathParam("id")
@@ -252,7 +248,7 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 
 	// reuse DeploymentLog, device and deployment IDs are ignored when
 	// (un-)marshalling DeploymentLog to/from JSON
-	var log ApiDeploymentLog
+	var log deployments.DeploymentLog
 
 	err = r.DecodeJsonPayload(&log)
 	if err != nil {
