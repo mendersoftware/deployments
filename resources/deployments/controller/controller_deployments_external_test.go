@@ -818,7 +818,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// all correct
-			InputBodyObject: &ApiDeploymentLog{
+			InputBodyObject: &deployments.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
@@ -835,7 +835,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// no authorization
-			InputBodyObject: &ApiDeploymentLog{
+			InputBodyObject: &deployments.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
@@ -849,7 +849,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// model error
-			InputBodyObject: &ApiDeploymentLog{
+			InputBodyObject: &deployments.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
@@ -867,7 +867,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// deployment not assigned to device
-			InputBodyObject: &ApiDeploymentLog{
+			InputBodyObject: &deployments.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
