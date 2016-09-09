@@ -94,9 +94,7 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 		return
 	}
 
-	ad := NewApiDeploymentWrapper(deployment)
-
-	d.view.RenderSuccessGet(w, ad)
+	d.view.RenderSuccessGet(w, deployment)
 }
 
 func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *rest.Request) {
@@ -195,33 +193,6 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 	d.view.RenderSuccessGet(w, statuses)
 }
 
-// Deployment as returned in deployment lookup query results
-type ApiDeploymentWrapper struct {
-	deployments.Deployment
-
-	// Status
-	Status string `json:"status"`
-}
-
-func NewApiDeploymentWrapper(dep *deployments.Deployment) *ApiDeploymentWrapper {
-	ad := &ApiDeploymentWrapper{
-		Deployment: *dep,
-	}
-	ad.UpdateStatus()
-	return ad
-}
-
-// fill Status field
-func (a *ApiDeploymentWrapper) UpdateStatus() {
-	if a.IsInProgress() {
-		a.Status = "inprogress"
-	} else if a.IsFinished() {
-		a.Status = "finished"
-	} else {
-		a.Status = "pending"
-	}
-}
-
 func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 	query := deployments.Query{}
 
@@ -262,17 +233,7 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 		return
 	}
 
-	res := make([]ApiDeploymentWrapper, len(deps))
-	for i, dep := range deps {
-		res[i].Deployment = *dep
-		res[i].UpdateStatus()
-	}
-
-	d.view.RenderSuccessGet(w, res)
-}
-
-type ApiDeploymentLog struct {
-	Messages []deployments.LogMessage `json:"messages"`
+	d.view.RenderSuccessGet(w, deps)
 }
 
 func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {
@@ -287,7 +248,7 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 
 	// reuse DeploymentLog, device and deployment IDs are ignored when
 	// (un-)marshalling DeploymentLog to/from JSON
-	var log ApiDeploymentLog
+	var log deployments.DeploymentLog
 
 	err = r.DecodeJsonPayload(&log)
 	if err != nil {
@@ -319,10 +280,10 @@ func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter,
 		return
 	}
 
-    if depl == nil {
-        d.view.RenderErrorNotFound(w)
-        return
-    }
+	if depl == nil {
+		d.view.RenderErrorNotFound(w)
+		return
+	}
 
 	d.view.RenderDeploymentLog(w, *depl)
 }

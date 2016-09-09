@@ -168,7 +168,10 @@ func TestControllerGetDeployment(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
-				OutputBodyObject: &ApiDeploymentWrapper{
+				OutputBodyObject: &struct {
+					deployments.Deployment
+					Status string `json:"string"`
+				}{
 					Deployment: deployments.Deployment{
 						Id: StringToPointer("id 123"),
 					},
@@ -621,7 +624,10 @@ func TestControllerLookupDeployment(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
-				OutputBodyObject: []ApiDeploymentWrapper{
+				OutputBodyObject: []struct {
+					deployments.Deployment
+					Status string `json:"status"`
+				}{
 					{
 						Deployment: deployments.Deployment{
 							DeploymentConstructor: &deployments.DeploymentConstructor{
@@ -630,6 +636,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 							},
 							Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 						},
+						Status: "finished",
 					},
 					{
 						Deployment: deployments.Deployment{
@@ -639,6 +646,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 							},
 							Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
 						},
+						Status: "finished",
 					},
 				},
 			},
@@ -810,7 +818,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// all correct
-			InputBodyObject: &ApiDeploymentLog{
+			InputBodyObject: &deployments.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
@@ -827,7 +835,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// no authorization
-			InputBodyObject: &ApiDeploymentLog{
+			InputBodyObject: &deployments.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
@@ -841,7 +849,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// model error
-			InputBodyObject: &ApiDeploymentLog{
+			InputBodyObject: &deployments.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
@@ -859,7 +867,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// deployment not assigned to device
-			InputBodyObject: &ApiDeploymentLog{
+			InputBodyObject: &deployments.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",

@@ -186,7 +186,8 @@ func TestDeploymentMarshalJSON(t *testing.T) {
         "name": "Region: NYC",
         "artifact_name": "App 123",
         "created":"` + dep.Created.Format(time.RFC3339Nano) + `",
-        "id":"14ddec54-30be-49bf-aa6b-97ce271d71f5"
+        "id":"14ddec54-30be-49bf-aa6b-97ce271d71f5",
+		"status": "inprogress"
     }`
 
 	assert.JSONEq(t, expectedJSON, string(j))

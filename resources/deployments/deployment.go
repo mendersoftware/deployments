@@ -118,9 +118,11 @@ func (d *Deployment) MarshalJSON() ([]byte, error) {
 	slim := struct {
 		*Alias
 		Devices []string `json:"devices,omitempty"`
+		Status  string   `json:"status"`
 	}{
 		Alias:   (*Alias)(d),
 		Devices: nil,
+		Status:  d.GetStatus(),
 	}
 
 	return json.Marshal(&slim)
@@ -168,6 +170,16 @@ func (d *Deployment) IsPending() bool {
 	}
 
 	return true
+}
+
+func (d *Deployment) GetStatus() string {
+	if d.IsInProgress() {
+		return "inprogress"
+	} else if d.IsFinished() {
+		return "finished"
+	} else {
+		return "pending"
+	}
 }
 
 type StatusQuery int
