@@ -35,6 +35,9 @@ env:
         # Can be overridden by travis private variable set in travis settings: AWS_BUCKET_OVERRIDE
         - AWS_BUCKET_DEFAULT=mender-buildsystem
 
+        # AWS S3 bucket name, to store updated docs
+        - AWS_BUCKET_DOCS=mender-docs
+
         # AWS region.
         # Can be overridden by travis private variable set in travis settings: AWS_REGION_OVERRIDE
         - AWS_REGION_DEFAULT=eu-west-1
@@ -93,6 +96,17 @@ before_install:
     - sudo apt-get -qq update
     - sudo apt-get install -y mongodb-org
 
+    # Install swagger-cli
+    - sudo apt-get -qq update && sudo apt-get -qq install -y npm
+    - sudo npm install -g swagger-cli
+
+    # Install yaml python module
+    - pip install pyyaml
+
+    # Get our own Swagger verifier
+    - wget https://raw.githubusercontent.com/mendersoftware/autodocs/master/verify_docs.py
+
+
 
 before_script:
     # Print build info that binary is compiled with.
@@ -113,7 +127,11 @@ before_script:
     # Fail builds when the cyclomatic complexity reaches 15 or more
     - gocyclo -over 15 `find . -iname '*.go' | grep -v 'vendor' | grep -v '_test.go'`
 
+    # Verify that the Swagger docs are valid
+    - swagger validate docs/*.yml
 
+    # Verify that the Swagger docs follow the autodeployment requirements
+    - python2.7 verify_docs.py `find docs -name "*.yml"`
 
 script:
     # go list supply import paths for all sub directories.
@@ -149,6 +167,9 @@ after_success:
     # Make build directory and copy all artifacts to this directory.
     - mkdir build
     - cp $BUILD_ARTIFATS $CONFIG_FILE build/
+
+    # Check if api docs have changed
+    - git diff --name-status ${TRAVIS_COMMIT_RANGE} | grep -E "(A|M)\s+docs/.+\.yml" && export API_DOCS_CHANGED=true
 
 before_deploy:
     # Master is always lastest
@@ -222,3 +243,19 @@ deploy:
         acl: $AWS_S3_ACL
         on:
             repo: $DEPLOY_REPO
+
+     # Store docs for auto-deployment script
+    -
+        provider: s3
+        access_key_id: $AWS_ACCESS_KEY_ID
+        secret_access_key: $AWS_SECRET_ACCESS_KEY
+        bucket: $AWS_BUCKET_DOCS
+        region: $AWS_REGION
+        upload-dir: $DEPLOY_REPO/latest/$TRAVIS_BRANCH
+        local_dir: docs
+        skip_cleanup: true
+        acl: public_read
+        on:
+            repo: $DEPLOY_REPO
+            all_branches: true
+            condition: $API_DOCS_CHANGED = true
