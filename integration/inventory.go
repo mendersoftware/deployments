@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 )
 
@@ -29,15 +30,20 @@ const (
 )
 
 type Attibute struct {
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	Value       interface{} `json:"value"`
+	Name        string      `json:"name" valid:"length(1|4096),required"`
+	Description string      `json:"description" valid:"optional"`
+	Value       interface{} `json:"value" valid:"length(1|4096),required`
 }
 
 type Device struct {
-	ID         DeviceID    `json:"id"`
-	Updated    time.Time   `json:"updated_ts"`
-	Attributes []*Attibute `json:"Attributes"`
+	ID         DeviceID    `json:"id" valid:"length(1|4096),required"`
+	Updated    time.Time   `json:"updated_ts" valid:"required"`
+	Attributes []*Attibute `json:"Attributes" valid:"optional"`
+}
+
+func (d *Device) Validate() error {
+	_, err := govalidator.ValidateStruct(d)
+	return err
 }
 
 type DeviceID string
@@ -71,7 +77,11 @@ func (api *MenderAPI) GetDeviceInventory(id DeviceID) (*Device, error) {
 
 	var device Device
 	if err := json.NewDecoder(resp.Body).Decode(&device); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "parsig server response")
+	}
+
+	if err := device.Validate(); err != nil {
+		return nil, errors.Wrap(err, "validating server response")
 	}
 
 	return &device, nil
