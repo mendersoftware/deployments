@@ -32,7 +32,7 @@ const (
 type Attibute struct {
 	Name        string      `json:"name" valid:"length(1|4096),required"`
 	Description string      `json:"description" valid:"optional"`
-	Value       interface{} `json:"value" valid:"length(1|4096),required`
+	Value       interface{} `json:"value" valid:"length(1|4096),required"`
 }
 
 type Device struct {
