@@ -47,9 +47,12 @@ func (d DeviceID) String() string {
 }
 
 type Inventory interface {
+	// Fetch Device object from inventory service.
 	GetDeviceInventory(id DeviceID) (*Device, error)
 }
 
+// GetDeviceInventory returns device object from inventory
+// If object is not found return nil, nil
 func (api *MenderAPI) GetDeviceInventory(id DeviceID) (*Device, error) {
 
 	resp, err := api.client.Get(fmt.Sprintf(api.uri+DevicesInventory, id))
@@ -59,7 +62,10 @@ func (api *MenderAPI) GetDeviceInventory(id DeviceID) (*Device, error) {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	switch {
+	case resp.StatusCode == http.StatusNotFound:
+		return nil, nil
+	case resp.StatusCode != http.StatusOK:
 		return nil, errors.Wrap(api.parseErrorResponse(resp.Body), "error server response")
 	}
 
