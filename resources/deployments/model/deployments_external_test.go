@@ -455,6 +455,9 @@ func TestGetDeploymentStats(t *testing.T) {
 		InputModelDeploymentStats deployments.Stats
 		InputModelError           error
 
+		InoutFindByIDDeployment *deployments.Deployment
+		InoutFindByIDError      error
+
 		OutputStats deployments.Stats
 		OutputError error
 	}{
@@ -462,16 +465,38 @@ func TestGetDeploymentStats(t *testing.T) {
 			InputDeploymentID:         "ID:123",
 			InputModelDeploymentStats: nil,
 
+			InoutFindByIDDeployment: new(deployments.Deployment),
+
 			OutputStats: nil,
 		},
 		{
 			InputDeploymentID: "ID:234",
 			InputModelError:   errors.New("storage issue"),
 
+			InoutFindByIDDeployment: new(deployments.Deployment),
+
 			OutputError: errors.New("storage issue"),
 		},
 		{
-			InputDeploymentID: "ID:345",
+			InputDeploymentID: "ID:234",
+			InputModelError:   errors.New("storage issue"),
+
+			InoutFindByIDDeployment: nil,
+
+			OutputError: errors.New("Deployment not found"),
+		},
+		{
+			InputDeploymentID: "ID:234",
+			InputModelError:   errors.New("storage issue"),
+
+			InoutFindByIDDeployment: new(deployments.Deployment),
+			InoutFindByIDError:      errors.New("an error"),
+
+			OutputError: errors.New("Internal error"),
+		},
+		{
+			InputDeploymentID:       "ID:345",
+			InoutFindByIDDeployment: new(deployments.Deployment),
 			InputModelDeploymentStats: deployments.Stats{
 				deployments.DeviceDeploymentStatusPending:     2,
 				deployments.DeviceDeploymentStatusSuccess:     4,
@@ -501,9 +526,14 @@ func TestGetDeploymentStats(t *testing.T) {
 			testCase.InputDeploymentID).
 			Return(testCase.InputModelDeploymentStats, testCase.InputModelError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
+		deploymentStorage := new(mocks.DeploymentsStorage)
+		deploymentStorage.On("FindByID", testCase.InputDeploymentID).
+			Return(testCase.InoutFindByIDDeployment, testCase.InoutFindByIDError)
+
+		model := NewDeploymentModel(deploymentStorage, nil, deviceDeploymentStorage, nil, nil)
 
 		stats, err := model.GetDeploymentStats(testCase.InputDeploymentID)
+
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
 		} else {

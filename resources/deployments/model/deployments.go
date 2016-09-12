@@ -175,6 +175,16 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 }
 
 func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.Stats, error) {
+	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
+
+	if err != nil {
+		return nil, controller.ErrModelInternal
+	}
+
+	if deployment == nil {
+		return nil, controller.ErrModelDeploymentNotFound
+	}
+
 	return d.deviceDeploymentsStorage.AggregateDeviceDeploymentByStatus(deploymentID)
 }
 
