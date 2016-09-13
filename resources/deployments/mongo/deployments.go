@@ -15,6 +15,8 @@
 package mongo
 
 import (
+	"time"
+
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/pkg/errors"
@@ -41,6 +43,7 @@ const (
 	StorageKeyDeploymentName         = "deploymentconstructor.name"
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
 	StorageKeyDeploymentStats        = "stats"
+	StorageKeyDeploymentFinished     = "finished"
 )
 
 var (
@@ -327,4 +330,28 @@ func (d *DeploymentsStorage) Find(match deployments.Query) ([]*deployments.Deplo
 	}
 
 	return deployment, nil
+}
+
+func (d *DeploymentsStorage) Finish(id string, when time.Time) error {
+	if govalidator.IsNull(id) {
+		return ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	// note dot notation on embedded document
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeploymentFinished: &when,
+		},
+	}
+
+	err := session.DB(DatabaseName).C(CollectionDeployments).UpdateId(id, update)
+
+	if err == mgo.ErrNotFound {
+		return ErrStorageInvalidID
+	}
+
+	return err
 }
