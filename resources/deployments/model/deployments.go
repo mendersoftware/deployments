@@ -171,7 +171,23 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 		return err
 	}
 
-	return d.deploymentsStorage.UpdateStats(deploymentID, old, status)
+	if err := d.deploymentsStorage.UpdateStats(deploymentID, old, status); err != nil {
+		return err
+	}
+
+	// fetch deployment stats and update finished field if needed
+	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
+	if err != nil {
+		return errors.Wrap(err, "failed when searching for deployment")
+	}
+
+	if deployment.IsFinished() {
+		if err := d.deploymentsStorage.Finish(deploymentID, time.Now()); err != nil {
+			return errors.Wrap(err, "failed to mark deployment as finished")
+		}
+	}
+
+	return nil
 }
 
 func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.Stats, error) {
