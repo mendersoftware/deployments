@@ -482,8 +482,6 @@ func TestGetDeploymentStats(t *testing.T) {
 			InputModelError:   errors.New("storage issue"),
 
 			InoutFindByIDDeployment: nil,
-
-			OutputError: errors.New("Deployment not found"),
 		},
 		{
 			InputDeploymentID: "ID:234",
@@ -492,7 +490,7 @@ func TestGetDeploymentStats(t *testing.T) {
 			InoutFindByIDDeployment: new(deployments.Deployment),
 			InoutFindByIDError:      errors.New("an error"),
 
-			OutputError: errors.New("Internal error"),
+			OutputError: errors.New("checking deployment id: an error"),
 		},
 		{
 			InputDeploymentID:       "ID:345",
