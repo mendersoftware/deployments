@@ -103,3 +103,11 @@ func NewDeviceDeploymentStats() Stats {
 
 	return s
 }
+
+func IsDeviceDeploymentStatusFinished(status string) bool {
+	if status == DeviceDeploymentStatusFailure || status == DeviceDeploymentStatusSuccess ||
+		status == DeviceDeploymentStatusNoImage {
+		return true
+	}
+	return false
+}
