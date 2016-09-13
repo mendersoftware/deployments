@@ -165,7 +165,15 @@ func (d *DeploymentsModel) ActiveDeploymentStatuses() []string {
 // ID `deviceID`. Returns nil if update was successful.
 func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 	deviceID string, status string) error {
-	old, err := d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID, status)
+
+	var finishTime *time.Time = nil
+	if deployments.IsDeviceDeploymentStatusFinished(status) {
+		now := time.Now()
+		finishTime = &now
+	}
+
+	old, err := d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID,
+		status, finishTime)
 
 	if err != nil {
 		return err

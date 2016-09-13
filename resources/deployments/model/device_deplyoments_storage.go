@@ -15,6 +15,8 @@
 package model
 
 import (
+	"time"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
@@ -23,7 +25,7 @@ type DeviceDeploymentStorage interface {
 	InsertMany(deployment ...*deployments.DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(id string, statuses ...string) (bool, error)
 	FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
-	UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) (string, error)
+	UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error)
 	AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error)
 	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
 	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)

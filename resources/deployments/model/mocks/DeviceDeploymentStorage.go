@@ -15,6 +15,8 @@
 package mocks
 
 import (
+	"time"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/stretchr/testify/mock"
 )
@@ -82,8 +84,8 @@ func (_m *DeviceDeploymentStorage) InsertMany(deployment ...*deployments.DeviceD
 	return r0
 }
 
-func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) (string, error) {
-	ret := _m.Called(deviceID, deploymentID, status)
+func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error) {
+	ret := _m.Called(deviceID, deploymentID, status, finishTime)
 
 	return ret.Get(0).(string), ret.Error(1)
 }

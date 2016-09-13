@@ -465,7 +465,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
 			testCase.InputDeviceID, *testCase.InputDeployment.Id,
-			testCase.InputStatus).
+			testCase.InputStatus, mock.AnythingOfType("*time.Time")).
 			Return("dontcare", testCase.InputDevsStorageError)
 
 		deploymentStorage := new(mocks.DeploymentsStorage)
@@ -488,6 +488,14 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			testCase.InputDeviceID, testCase.InputStatus)
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
+
+			if deployments.IsDeviceDeploymentStatusFinished(testCase.InputStatus) {
+				// verify that device deployment finish time was passed, finish time is
+				// passed as 4th argument to UpdateDeviceDeploymentStatus
+				ft, ok := deviceDeploymentStorage.Calls[0].Arguments.Get(3).(*time.Time)
+				assert.True(t, ok)
+				assert.WithinDuration(t, time.Now(), *ft, time.Second)
+			}
 
 			// check that Finish was called
 			if testCase.isFinished {
