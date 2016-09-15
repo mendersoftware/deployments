@@ -15,6 +15,7 @@
 package mocks
 
 import (
+	"os"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -27,19 +28,19 @@ type ImagesModel struct {
 }
 
 // CreateImage provides a mock function with given fields: constructorData
-func (_m *ImagesModel) CreateImage(constructorData *images.SoftwareImageConstructor) (string, error) {
-	ret := _m.Called(constructorData)
+func (_m *ImagesModel) CreateImage(imageFile *os.File, constructorData *images.SoftwareImageConstructor) (string, error) {
+	ret := _m.Called(imageFile, constructorData)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(*images.SoftwareImageConstructor) string); ok {
-		r0 = rf(constructorData)
+	if rf, ok := ret.Get(0).(func(*os.File, *images.SoftwareImageConstructor) string); ok {
+		r0 = rf(imageFile, constructorData)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*images.SoftwareImageConstructor) error); ok {
-		r1 = rf(constructorData)
+	if rf, ok := ret.Get(1).(func(*os.File, *images.SoftwareImageConstructor) error); ok {
+		r1 = rf(imageFile, constructorData)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -144,29 +145,6 @@ func (_m *ImagesModel) ListImages(filters map[string]string) ([]*images.Software
 	var r1 error
 	if rf, ok := ret.Get(1).(func(map[string]string) error); ok {
 		r1 = rf(filters)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// UploadLink provides a mock function with given fields: imageID, expire
-func (_m *ImagesModel) UploadLink(imageID string, expire time.Duration) (*images.Link, error) {
-	ret := _m.Called(imageID, expire)
-
-	var r0 *images.Link
-	if rf, ok := ret.Get(0).(func(string, time.Duration) *images.Link); ok {
-		r0 = rf(imageID, expire)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*images.Link)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, time.Duration) error); ok {
-		r1 = rf(imageID, expire)
 	} else {
 		r1 = ret.Error(1)
 	}

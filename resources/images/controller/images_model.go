@@ -16,6 +16,7 @@ package controller
 
 import (
 	"errors"
+	"os"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -32,6 +33,6 @@ type ImagesModel interface {
 	DownloadLink(imageID string, expire time.Duration) (*images.Link, error)
 	GetImage(id string) (*images.SoftwareImage, error)
 	DeleteImage(imageID string) error
-	CreateImage(constructorData *images.SoftwareImageConstructor) (string, error)
+	CreateImage(imageFile *os.File, constructorData *images.SoftwareImageConstructor) (string, error)
 	EditImage(id string, constructorData *images.SoftwareImageConstructor) (bool, error)
 }

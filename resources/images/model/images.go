@@ -15,6 +15,7 @@
 package model
 
 import (
+	"os"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -24,6 +25,7 @@ import (
 
 var (
 	ErrModelMissingInputMetadata     = errors.New("Missing input metadata")
+	ErrModelInvalidMetadata          = errors.New("Metadata invalid")
 	ErrModelImageInActiveDeployment  = errors.New("Image is used in active deployment and cannot be removed")
 	ErrModelImageUsedInAnyDeployment = errors.New("Image have been already used in deployment")
 )
@@ -46,20 +48,25 @@ func NewImagesModel(
 	}
 }
 
-func (i *ImagesModel) CreateImage(constructor *images.SoftwareImageConstructor) (string, error) {
+func (i *ImagesModel) CreateImage(imageFile *os.File, constructor *images.SoftwareImageConstructor) (string, error) {
 
 	if constructor == nil {
 		return "", ErrModelMissingInputMetadata
 	}
 
 	if err := constructor.Validate(); err != nil {
-		return "", errors.Wrap(err, "Validating image metadata")
+		return "", ErrModelInvalidMetadata
 	}
 
 	image := images.NewSoftwareImageFromConstructor(constructor)
 
 	if err := i.imagesStorage.Insert(image); err != nil {
-		return "", errors.Wrap(err, "Storing image metadata")
+		return "", errors.Wrap(err, "Fail to store the metadata")
+	}
+
+	if err := i.fileStorage.PutFile(*image.Id, imageFile); err != nil {
+		i.imagesStorage.Delete(*image.Id)
+		return "", errors.Wrap(err, "Fail to store the image")
 	}
 
 	return *image.Id, nil

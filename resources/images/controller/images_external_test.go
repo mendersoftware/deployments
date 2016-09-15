@@ -15,9 +15,11 @@
 package controller_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -50,6 +52,7 @@ type fakeImageModeler struct {
 	editImage         bool
 	editError         error
 	deleteError       error
+	saveError         error
 }
 
 func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
@@ -72,12 +75,16 @@ func (fim *fakeImageModeler) DeleteImage(imageID string) error {
 	return fim.deleteError
 }
 
-func (fim *fakeImageModeler) CreateImage(constructorData *images.SoftwareImageConstructor) (string, error) {
+func (fim *fakeImageModeler) CreateImage(imageFileName string, constructorData *images.SoftwareImageConstructor) (string, error) {
 	return "", nil
 }
 
 func (fim *fakeImageModeler) EditImage(id string, constructorData *images.SoftwareImageConstructor) (bool, error) {
 	return fim.editImage, fim.editError
+}
+
+func (fim *fakeImageModeler) SaveImage(id string, img io.ReadSeeker) error {
+	return fim.saveImage, fim.saveError
 }
 
 type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.Route
@@ -245,39 +252,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputBodyObject: nil,
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating request body: JSON payload is empty")),
-			},
-		},
-		{
-			InputBodyObject: images.NewSoftwareImageConstructor(),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Validating request body: YoctoId: non zero value required;Name: non zero value required;DeviceType: non zero value required;`)),
-			},
-		},
-		{
-			InputBodyObject: &images.SoftwareImageConstructor{
-				YoctoId:    pointers.StringToPointer("core-image-123"),
-				Name:       pointers.StringToPointer("App 123"),
-				DeviceType: pointers.StringToPointer("BBB"),
-			},
-			InputModelError: errors.New("model error"),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
-			},
-		},
-		{
-			InputBodyObject: &images.SoftwareImageConstructor{
-				YoctoId:    pointers.StringToPointer("core-image-123"),
-				Name:       pointers.StringToPointer("App 123"),
-				DeviceType: pointers.StringToPointer("BBB"),
-			},
-			InputModelID: "1234",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusCreated,
-				OutputBodyObject: nil,
-				OutputHeaders:    map[string]string{"Location": "http://localhost/r/1234"},
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("mime: no media type")),
 			},
 		},
 	}
@@ -298,10 +273,33 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		api.SetApp(router)
 
 		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject))
+			MakeMultipartRequest("POST", "http://localhost/r", "multipart/mixed", testCase.InputBodyObject))
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
+}
+
+// MakeMultipartRequest returns a http.Request.
+func MakeMuiltipartRequest(method string, urlStr string, contentType string, payload interface{}) *http.Request {
+	var s string
+
+	if payload != nil {
+		b, err := json.Marshal(payload)
+		if err != nil {
+			panic(err)
+		}
+		s = fmt.Sprintf("%s", b)
+	}
+
+	r, err := http.NewRequest(method, urlStr, strings.NewReader(s))
+	if err != nil {
+		panic(err)
+	}
+	if payload != nil {
+		r.Header.Set("Content-Type", contentType)
+	}
+
+	return r
 }
 
 func TestSoftwareImagesControllerDownloadLink(t *testing.T) {

@@ -16,6 +16,7 @@ package model
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -26,7 +27,7 @@ import (
 
 func TestCreateImageEmptyConstructor(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
-	if _, err := iModel.CreateImage(nil); err != ErrModelMissingInputMetadata {
+	if _, err := iModel.CreateImage(nil, nil); err != ErrModelMissingInputMetadata {
 		t.FailNow()
 	}
 }
@@ -35,7 +36,7 @@ func TestCreateImageMissingFields(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
 
 	image := images.NewSoftwareImageConstructor()
-	if _, err := iModel.CreateImage(image); err == nil {
+	if _, err := iModel.CreateImage(nil, image); err == nil {
 		t.FailNow()
 	}
 }
@@ -89,6 +90,13 @@ func createValidImage() *images.SoftwareImageConstructor {
 	return image
 }
 
+func createValidImageFile() *os.File {
+	someData := []byte{115, 111, 109, 101, 10, 11}
+	tmpfile, _ := ioutil.TempFile("", "firmware-")
+	tmpfile.Write(someData)
+	return tmpfile
+}
+
 func TestCreateImageInsertError(t *testing.T) {
 	fakeIS := new(FakeImageStorage)
 	fakeIS.insertError = errors.New("insert error")
@@ -96,7 +104,25 @@ func TestCreateImageInsertError(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, fakeIS)
 	image := createValidImage()
 
-	if _, err := iModel.CreateImage(image); err == nil {
+	if _, err := iModel.CreateImage(nil, image); err == nil {
+		t.FailNow()
+	}
+}
+
+func TestCreateImagePutFileError(t *testing.T) {
+	fakeIS := new(FakeImageStorage)
+	fakeIS.insertError = nil
+	fakeFS := new(FakeFileStorage)
+	fakeFS.putFileError = errors.New("Cannot upload file")
+
+	iModel := NewImagesModel(fakeFS, nil, fakeIS)
+
+	image := createValidImage()
+	file := createValidImageFile()
+	defer os.Remove(file.Name())
+	defer file.Close()
+
+	if _, err := iModel.CreateImage(file, image); err == nil {
 		t.FailNow()
 	}
 }
@@ -104,12 +130,16 @@ func TestCreateImageInsertError(t *testing.T) {
 func TestCreateImageCreateOK(t *testing.T) {
 	fakeIS := new(FakeImageStorage)
 	fakeIS.insertError = nil
+	fakeFS := new(FakeFileStorage)
 
-	iModel := NewImagesModel(nil, nil, fakeIS)
+	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
 	image := createValidImage()
+	file := createValidImageFile()
+	defer os.Remove(file.Name())
+	defer file.Close()
 
-	if _, err := iModel.CreateImage(image); err != nil {
+	if _, err := iModel.CreateImage(file, image); err != nil {
 		t.FailNow()
 	}
 }
@@ -285,6 +315,12 @@ func TestDeleteImage(t *testing.T) {
 	if err := iModel.DeleteImage(""); err == nil {
 		t.FailNow()
 	}
+
+	fakeFS.getError = errors.New("error")
+	fakeChecker.isUsedInActiveDeployment = false
+	if err := iModel.DeleteImage(""); err == nil {
+		t.FailNow()
+	}
 }
 
 func TestListImages(t *testing.T) {
@@ -419,6 +455,13 @@ func TestDownloadLink(t *testing.T) {
 	// image exists error
 	fakeIS.imageEsistsError = errors.New("error")
 	if _, err := iModel.DownloadLink("iamge", time.Hour); err == nil {
+		t.FailNow()
+	}
+
+	// searching for image failed
+	fakeIS.imageEsistsError = errors.New("Serarching for image failed")
+	fakeIS.imageExists = false
+	if link, err := iModel.DownloadLink("iamge", time.Hour); err == nil || link != nil {
 		t.FailNow()
 	}
 
