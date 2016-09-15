@@ -216,27 +216,6 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 	return true, nil
 }
 
-// UploadLink generated presigned PUT link to upload image file.
-// Image meta has to be created first.
-func (i *ImagesModel) UploadLink(imageID string, expire time.Duration) (*images.Link, error) {
-
-	found, err := i.imagesStorage.Exists(imageID)
-	if err != nil {
-		return nil, errors.Wrap(err, "Searching for image with specified ID")
-	}
-
-	if !found {
-		return nil, nil
-	}
-
-	link, err := i.fileStorage.PutRequest(imageID, expire)
-	if err != nil {
-		return nil, errors.Wrap(err, "Generating upload link")
-	}
-
-	return link, nil
-}
-
 // DownloadLink presigned GET link to download image file.
 // Returns error if image have not been uploaded.
 func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*images.Link, error) {

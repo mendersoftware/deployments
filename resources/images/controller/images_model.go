@@ -29,7 +29,6 @@ var (
 
 type ImagesModel interface {
 	ListImages(filters map[string]string) ([]*images.SoftwareImage, error)
-	UploadLink(imageID string, expire time.Duration) (*images.Link, error)
 	DownloadLink(imageID string, expire time.Duration) (*images.Link, error)
 	GetImage(id string) (*images.SoftwareImage, error)
 	DeleteImage(imageID string) error

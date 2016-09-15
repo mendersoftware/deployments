@@ -34,7 +34,6 @@ import (
 // API input validation constants
 const (
 	DefaultDownloadLinkExpire = 60
-	DefaultUploadLinkExpire   = 60
 
 	// AWS limitation is 1 week
 	MaxLinkExpire = 60 * 7 * 24
@@ -91,35 +90,6 @@ func (s *SoftwareImagesController) ListImages(w rest.ResponseWriter, r *rest.Req
 	s.view.RenderSuccessGet(w, list)
 }
 
-func (s *SoftwareImagesController) UploadLink(w rest.ResponseWriter, r *rest.Request) {
-
-	id := r.PathParam("id")
-
-	if !govalidator.IsUUIDv4(id) {
-		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
-		return
-	}
-
-	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
-	if err != nil {
-		s.view.RenderError(w, err, http.StatusBadRequest)
-		return
-	}
-
-	link, err := s.model.UploadLink(id, expire)
-	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	if link == nil {
-		s.view.RenderErrorNotFound(w)
-		return
-	}
-
-	s.view.RenderSuccessGet(w, link)
-}
-
 func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.Request) {
 
 	id := r.PathParam("id")
@@ -129,7 +99,7 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 		return
 	}
 
-	expire, err := s.getLinkExpireParam(r, DefaultUploadLinkExpire)
+	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
 	if err != nil {
 		s.view.RenderError(w, err, http.StatusBadRequest)
 		return

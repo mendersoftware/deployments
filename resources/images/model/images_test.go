@@ -408,44 +408,6 @@ func TestEditImage(t *testing.T) {
 	}
 }
 
-func TestUploadLink(t *testing.T) {
-	fakeChecker := new(FakeUseChecker)
-	fakeIS := new(FakeImageStorage)
-	fakeFS := new(FakeFileStorage)
-	iModel := NewImagesModel(fakeFS, fakeChecker, fakeIS)
-
-	// image exists error
-	fakeIS.imageEsistsError = errors.New("error")
-	if _, err := iModel.UploadLink("iamge", time.Hour); err == nil {
-		t.FailNow()
-	}
-
-	// iamge does not esists
-	fakeIS.imageEsistsError = nil
-	fakeIS.imageExists = false
-	if link, err := iModel.UploadLink("iamge", time.Hour); err != nil || link != nil {
-		t.FailNow()
-	}
-
-	// can not generate link
-	fakeIS.imageExists = true
-	fakeFS.putError = errors.New("error")
-	if _, err := iModel.UploadLink("iamge", time.Hour); err == nil {
-		t.FailNow()
-	}
-
-	// upload link generation success
-	fakeFS.putError = nil
-	link := images.NewLink("uri", time.Now())
-	fakeFS.putReq = link
-
-	receivedLink, err := iModel.UploadLink("image", time.Hour)
-	if err != nil || !reflect.DeepEqual(link, receivedLink) {
-		t.FailNow()
-	}
-
-}
-
 func TestDownloadLink(t *testing.T) {
 	fakeChecker := new(FakeUseChecker)
 	fakeIS := new(FakeImageStorage)
