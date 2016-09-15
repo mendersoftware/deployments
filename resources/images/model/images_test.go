@@ -16,6 +16,7 @@ package model
 
 import (
 	"errors"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -50,6 +51,7 @@ type FakeImageStorage struct {
 	imageEsistsError error
 	update           bool
 	updateError      error
+	putFileError     error
 }
 
 func (fis *FakeImageStorage) Exists(id string) (bool, error) {
@@ -142,6 +144,7 @@ type FakeFileStorage struct {
 	putError          error
 	getReq            *images.Link
 	getError          error
+	putFileError      error
 }
 
 func (ffs *FakeFileStorage) Delete(objectId string) error {
@@ -162,6 +165,10 @@ func (ffs *FakeFileStorage) PutRequest(objectId string, duration time.Duration) 
 
 func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration) (*images.Link, error) {
 	return ffs.getReq, ffs.getError
+}
+
+func (fis *FakeFileStorage) PutFile(id string, img *os.File) error {
+	return fis.putFileError
 }
 
 func TestSyncLastModifiedTimeWithFileUpload(t *testing.T) {
