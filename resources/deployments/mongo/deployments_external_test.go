@@ -652,3 +652,61 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		session.Close()
 	}
 }
+
+func TestDeploymentFinish(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestDeploymentFinish in short mode.")
+	}
+
+	testCases := map[string]struct {
+		InputID         string
+		InputDeployment *deployments.Deployment
+
+		OutputError error
+	}{
+		"finished": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+			},
+			OutputError: nil,
+		},
+		"nonexistent": {
+			InputID:     "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			OutputError: errors.New("Invalid id"),
+		},
+	}
+
+	for id, tc := range testCases {
+		t.Logf("testing case %s", id)
+
+		db.Wipe()
+
+		session := db.Session()
+		store := NewDeploymentsStorage(session)
+
+		dep := session.DB(DatabaseName).C(CollectionDeployments)
+		if tc.InputDeployment != nil {
+			assert.NoError(t, dep.Insert(tc.InputDeployment))
+		}
+
+		now := time.Now()
+		err := store.Finish(tc.InputID, now)
+
+		if tc.OutputError != nil {
+			assert.EqualError(t, err, tc.OutputError.Error())
+		} else {
+			var deployment *deployments.Deployment
+			err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
+			assert.NoError(t, err)
+
+			if assert.NotNil(t, deployment.Finished) {
+				// mongo might have trimmed our time a bit, let's check that we are within a 1s range
+				assert.WithinDuration(t, now, *deployment.Finished, time.Second)
+			}
+		}
+
+		// Need to close all sessions to be able to call wipe at next test case
+		session.Close()
+	}
+}

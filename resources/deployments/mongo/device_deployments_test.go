@@ -17,6 +17,7 @@ package mongo_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
@@ -98,13 +99,17 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		t.Skip("skipping TestUpdateDeviceDeploymentStatus in short mode.")
 	}
 
+	now := time.Now()
+
 	testCases := []struct {
 		InputDeviceID         string
 		InputDeploymentID     string
 		InputStatus           string
 		InputDeviceDeployment []*deployments.DeviceDeployment
-		OutputError           error
-		OutputOldStatus       string
+		InputFinishTime       *time.Time
+
+		OutputError     error
+		OutputOldStatus string
 	}{
 		{
 			// null status
@@ -145,6 +150,17 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			OutputError:     nil,
 			OutputOldStatus: "pending",
 		},
+		{
+			InputDeviceID:     "567",
+			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			InputStatus:       deployments.DeviceDeploymentStatusFailure,
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				deployments.NewDeviceDeployment("567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+			},
+			InputFinishTime: &now,
+			OutputError:     nil,
+			OutputOldStatus: "pending",
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -164,7 +180,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		assert.NoError(t, err)
 
 		old, err := store.UpdateDeviceDeploymentStatus(testCase.InputDeviceID,
-			testCase.InputDeploymentID, testCase.InputStatus)
+			testCase.InputDeploymentID, testCase.InputStatus, testCase.InputFinishTime)
 
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
@@ -189,6 +205,11 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			} else {
 				assert.Equal(t, testCase.InputStatus, *deployment.Status)
 				assert.Equal(t, testCase.OutputOldStatus, old)
+				// verify deployment finish time
+				if testCase.InputFinishTime != nil && assert.NotNil(t, deployment.Finished) {
+					// mongo might have trimmed our time a bit, let's check that we are within a 1s range
+					assert.WithinDuration(t, *testCase.InputFinishTime, *deployment.Finished, time.Second)
+				}
 			}
 		}
 
