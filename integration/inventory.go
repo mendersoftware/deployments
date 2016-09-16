@@ -32,11 +32,11 @@ const (
 type Attibute struct {
 	Name        string      `json:"name" valid:"length(1|4096),required"`
 	Description string      `json:"description" valid:"optional"`
-	Value       interface{} `json:"value" valid:"length(1|4096),required`
+	Value       interface{} `json:"value" valid:"-"`
 }
 
 type Device struct {
-	ID         DeviceID    `json:"id" valid:"length(1|4096),required"`
+	ID         DeviceID    `json:"id" valid:"required"`
 	Updated    time.Time   `json:"updated_ts" valid:"required"`
 	Attributes []*Attibute `json:"Attributes" valid:"optional"`
 }

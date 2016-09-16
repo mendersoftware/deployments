@@ -32,7 +32,7 @@ type MenderAPI struct {
 func NewMenderAPI(uri string, options ...MenderAPIOption) (*MenderAPI, error) {
 
 	if !govalidator.IsURL(uri) {
-		return nil, errors.New("Empty uri")
+		return nil, errors.New("invalid server uri")
 	}
 
 	api := &MenderAPI{uri: uri}

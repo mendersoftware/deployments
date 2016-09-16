@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 
@@ -27,15 +28,23 @@ func TestWithHTTPClient(t *testing.T) {
 
 	cases := map[string]struct {
 		Client *http.Client
+		Uri    string
+
 		OutErr error
 	}{
 		"Nil client, set default": {
+			Uri:    "http://localhost",
 			Client: nil,
 			OutErr: nil,
 		},
 		"Set client to custom one": {
+			Uri:    "http://localhost",
 			Client: &http.Client{},
 			OutErr: nil,
+		},
+		"broken uri": {
+			Uri:    "ht/localhost",
+			OutErr: errors.New("invalid server uri"),
 		},
 	}
 
@@ -43,7 +52,7 @@ func TestWithHTTPClient(t *testing.T) {
 
 		t.Logf("Case: %s \n", caseName)
 
-		api, err := NewMenderAPI("some_uri", WithHTTPClient(test.Client))
+		api, err := NewMenderAPI(test.Uri, WithHTTPClient(test.Client))
 
 		if err == nil {
 			assert.NotNil(t, api)

@@ -66,8 +66,9 @@ func TestGetDeviceInventory(t *testing.T) {
 				Updated: time.Unix(10, 10),
 				Attributes: []*Attibute{
 					&Attibute{
-						Name:  "sialalala",
-						Value: "something",
+						Name:        "sialalala",
+						Description: "lala",
+						Value:       "something",
 					},
 				},
 			},
@@ -77,8 +78,9 @@ func TestGetDeviceInventory(t *testing.T) {
 				Updated: time.Unix(10, 10),
 				Attributes: []*Attibute{
 					&Attibute{
-						Name:  "sialalala",
-						Value: "something",
+						Name:        "sialalala",
+						Description: "lala",
+						Value:       "something",
 					},
 				},
 			},
