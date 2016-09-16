@@ -15,6 +15,8 @@
 package mongo
 
 import (
+	"time"
+
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
@@ -35,6 +37,7 @@ const (
 	StorageKeyDeviceDeploymentDeviceId        = "deviceid"
 	StorageKeyDeviceDeploymentStatus          = "status"
 	StorageKeyDeviceDeploymentDeploymentID    = "deploymentid"
+	StorageKeyDeviceDeploymentFinished        = "finished"
 )
 
 // Errors
@@ -144,7 +147,7 @@ func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 	return deployment, nil
 }
 
-func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string) (string, error) {
+func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error) {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) ||
@@ -162,11 +165,17 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string,
 		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
 	}
 
-	// update status field only
+	// update status field
+	set := bson.M{
+		StorageKeyDeviceDeploymentStatus: status,
+	}
+	// and finish time if provided
+	if finishTime != nil {
+		set[StorageKeyDeviceDeploymentFinished] = finishTime
+	}
+
 	update := bson.M{
-		"$set": bson.M{
-			StorageKeyDeviceDeploymentStatus: status,
-		},
+		"$set": set,
 	}
 
 	var old deployments.DeviceDeployment

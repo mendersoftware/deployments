@@ -15,6 +15,8 @@
 package mocks
 
 import (
+	"time"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/stretchr/testify/mock"
 )
@@ -83,6 +85,12 @@ func (_m *DeploymentsStorage) Insert(deployment *deployments.Deployment) error {
 
 func (_m *DeploymentsStorage) UpdateStats(id string, state_from, state_to string) error {
 	ret := _m.Called(id, state_from, state_to)
+
+	return ret.Error(0)
+}
+
+func (_m *DeploymentsStorage) Finish(id string, when time.Time) error {
+	ret := _m.Called(id, when)
 
 	return ret.Error(0)
 }

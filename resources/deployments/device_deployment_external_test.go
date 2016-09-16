@@ -139,3 +139,26 @@ func TestDeviceDeploymentStats(t *testing.T) {
 		assert.Contains(t, ds, f, "stats must contain status '%v'", f)
 	}
 }
+
+func TestDeviceDeploymentIsFinished(t *testing.T) {
+	tcs := []struct {
+		status   string
+		finished bool
+	}{
+		{DeviceDeploymentStatusNoImage, true},
+		{DeviceDeploymentStatusFailure, true},
+		{DeviceDeploymentStatusSuccess, true},
+		// statuses 'in progress'
+		{DeviceDeploymentStatusPending, false},
+		{DeviceDeploymentStatusRebooting, false},
+		{DeviceDeploymentStatusInstalling, false},
+		{DeviceDeploymentStatusDownloading, false},
+	}
+	for _, tc := range tcs {
+		if tc.finished {
+			assert.True(t, IsDeviceDeploymentStatusFinished(tc.status))
+		} else {
+			assert.False(t, IsDeviceDeploymentStatusFinished(tc.status))
+		}
+	}
+}

@@ -165,16 +165,50 @@ func (d *DeploymentsModel) ActiveDeploymentStatuses() []string {
 // ID `deviceID`. Returns nil if update was successful.
 func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 	deviceID string, status string) error {
-	old, err := d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID, status)
+
+	var finishTime *time.Time = nil
+	if deployments.IsDeviceDeploymentStatusFinished(status) {
+		now := time.Now()
+		finishTime = &now
+	}
+
+	old, err := d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID,
+		status, finishTime)
 
 	if err != nil {
 		return err
 	}
 
-	return d.deploymentsStorage.UpdateStats(deploymentID, old, status)
+	if err := d.deploymentsStorage.UpdateStats(deploymentID, old, status); err != nil {
+		return err
+	}
+
+	// fetch deployment stats and update finished field if needed
+	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
+	if err != nil {
+		return errors.Wrap(err, "failed when searching for deployment")
+	}
+
+	if deployment.IsFinished() {
+		if err := d.deploymentsStorage.Finish(deploymentID, time.Now()); err != nil {
+			return errors.Wrap(err, "failed to mark deployment as finished")
+		}
+	}
+
+	return nil
 }
 
 func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.Stats, error) {
+	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "checking deployment id")
+	}
+
+	if deployment == nil {
+		return nil, nil
+	}
+
 	return d.deviceDeploymentsStorage.AggregateDeviceDeploymentByStatus(deploymentID)
 }
 

@@ -14,7 +14,11 @@
 
 package model
 
-import "github.com/mendersoftware/deployments/resources/deployments"
+import (
+	"time"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
+)
 
 // Storage for Deployment type
 type DeploymentsStorage interface {
@@ -23,4 +27,5 @@ type DeploymentsStorage interface {
 	FindByID(id string) (*deployments.Deployment, error)
 	UpdateStats(id string, state_from, state_to string) error
 	Find(query deployments.Query) ([]*deployments.Deployment, error)
+	Finish(id string, when time.Time) error
 }
