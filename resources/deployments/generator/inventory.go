@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package inventory
+package generator
 
 import (
 	"github.com/mendersoftware/deployments/integration"
@@ -21,15 +21,20 @@ import (
 
 // Attibute keys
 const (
-	AttibuteNameDeviceType string = "device_type"
+	// Reported by devices
+	AttibuteNameDeviceType string = "DEVICE_TYPE"
 )
 
-type Inventory struct {
-	api integration.Inventory
+type APIClient interface {
+	GetDeviceInventory(device integration.DeviceID) (*integration.Device, error)
 }
 
-func NewInventory(inv integration.Inventory) *Inventory {
-	return &Inventory{api: inv}
+type Inventory struct {
+	api APIClient
+}
+
+func NewInventory(client APIClient) *Inventory {
+	return &Inventory{api: client}
 }
 
 // GetDeviceType returns device type for device of specified ID.
@@ -40,13 +45,15 @@ func (i *Inventory) GetDeviceType(deviceID string) (string, error) {
 		return "", errors.Wrap(err, "fetching inventory data for device")
 	}
 
-	for _, attribute := range device.Attributes {
-		if attribute.Name == AttibuteNameDeviceType {
-			strVal, stringType := attribute.Value.(string)
-			if !stringType {
-				return "", errors.New("device type value is not string type")
+	if device != nil {
+		for _, attribute := range device.Attributes {
+			if attribute.Name == AttibuteNameDeviceType {
+				strVal, stringType := attribute.Value.(string)
+				if !stringType {
+					return "", errors.New("device type value is not string type")
+				}
+				return strVal, nil
 			}
-			return strVal, nil
 		}
 	}
 

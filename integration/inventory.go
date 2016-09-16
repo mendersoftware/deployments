@@ -32,7 +32,7 @@ const (
 type Attibute struct {
 	Name        string      `json:"name" valid:"length(1|4096),required"`
 	Description string      `json:"description" valid:"optional"`
-	Value       interface{} `json:"value" valid:"length(1|4096),required"`
+	Value       interface{} `json:"value" valid:"length(1|4096),required`
 }
 
 type Device struct {
@@ -75,12 +75,12 @@ func (api *MenderAPI) GetDeviceInventory(id DeviceID) (*Device, error) {
 		return nil, errors.Wrap(api.parseErrorResponse(resp.Body), "error server response")
 	}
 
-	var device Device
+	device := Device{}
 	if err := json.NewDecoder(resp.Body).Decode(&device); err != nil {
 		return nil, errors.Wrap(err, "parsig server response")
 	}
 
-	if err := device.Validate(); err != nil {
+	if err := (&device).Validate(); err != nil {
 		return nil, errors.Wrap(err, "validating server response")
 	}
 

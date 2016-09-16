@@ -17,9 +17,9 @@ package main
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/deployments/integration"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/resources/deployments/generator"
-	"github.com/mendersoftware/deployments/resources/deployments/inventory"
 	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	deploymentsMongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	deploymentsView "github.com/mendersoftware/deployments/resources/deployments/view"
@@ -29,6 +29,7 @@ import (
 	"github.com/mendersoftware/deployments/resources/images/s3"
 	imagesView "github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/mendersoftware/deployments/utils/restutil"
+	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 )
 
@@ -69,13 +70,18 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 		return nil, err
 	}
 
+	inventory, err := integration.NewMenderAPI(c.GetString(SettingGateway))
+	if err != nil {
+		return nil, errors.Wrap(err, "init inventory client")
+	}
+
 	// Domian Models
 	deploymentModel := deploymentsModel.NewDeploymentModel(
 		deploymentsStorage,
 		generator.NewImageBasedDeviceDeployment(
 			imagesStorage,
-			// can easily add configuration from main config file
-			inventory.NewInventoryWithHardcodedType("TestDevice")),
+			generator.NewInventory(inventory),
+		),
 		deviceDeploymentsStorage,
 		deviceDeploymentLogsStorage,
 		fileStorage,

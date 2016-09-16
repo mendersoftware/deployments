@@ -17,6 +17,8 @@ package integration
 import (
 	"errors"
 	"net/http"
+
+	"github.com/asaskevich/govalidator"
 )
 
 // MenderAPIOption is the type of constructor options for NewMenderAPI
@@ -29,7 +31,7 @@ type MenderAPI struct {
 
 func NewMenderAPI(uri string, options ...MenderAPIOption) (*MenderAPI, error) {
 
-	if uri == "" {
+	if !govalidator.IsURL(uri) {
 		return nil, errors.New("Empty uri")
 	}
 
