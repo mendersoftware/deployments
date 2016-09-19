@@ -542,14 +542,18 @@ paths:
     post:
       summary: Create firmware image
       description: |
-        Create firmware image. Afterwards upload link can be generated to upload
-        image file.
+        Create firmware image. Mulitpart request with meta and image.
+      consumes:
+        - multipart/mixed
       parameters:
-        - name: image
-          in: body
+        - name: meta
+          in: formData
           required: true
-          schema:
-            $ref: "#/definitions/ImageBase"
+          type: file
+        - name: firmware
+          in: formData
+          required: true
+          type: file
       produces:
         - application/json
       responses:
@@ -559,6 +563,8 @@ paths:
             Location:
               description: URL of newly created image
               type: string
+        400:
+          $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -627,61 +633,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-
-  '/images/{id}/upload':
-    get:
-      summary: Generate upload link
-      description: |
-        Generate signed URL for uploading image file. URI can be used only with PUT HTTP method.
-        It is valid for specified period if time.
-
-        In case link is used multiple times to upload file, file will be
-        overwritten.
-      parameters:
-        - name: id
-          in: path
-          description: Image ID
-          required: true
-          type: string
-        - name: expire
-          in: query
-          description: |
-            Link validity length in minutes. Min 1 minute, max 10080 (1 week)
-          required: false
-          type: integer
-          default: 60
-      produces:
-        - application/json
-      responses:
-        200:
-          description: OK
-          schema:
-            $ref: "#/definitions/ImageLink"
-          examples:
-            application/json:
-              uri: 'https://exmple.com/file123'
-              expire: '2016-03-11T13:03:17.063493443Z'
-        400:
-          description: Bad Request
-          examples:
-            application/json:
-              error: Detailed error message
-          schema:
-            $ref: "#/definitions/SimpleError"
-        404:
-          description: Not Found
-          examples:
-            application/json:
-              error: Detailed error message
-          schema:
-            $ref: "#/definitions/SimpleError"
-        500:
-          description: Internal Server Error
-          examples:
-            application/json:
-              error: Detailed error message
-          schema:
-            $ref: "#/definitions/SimpleError"
 
   '/images/{id}/download':
     get:
@@ -783,14 +734,13 @@ definitions:
             type: string
             format: date-time
             description: |
-              Represents creation / last edition of any of the image properties,
-              including image file upload or rewrite
+              Represents creation / last edition of any of the image properties
         required:
           - id
           - verified
           - modified
   ImageLink:
-    description: URL for firmare image upload/download
+    description: URL for firmare image download
     type: object
     properties:
       uri:
