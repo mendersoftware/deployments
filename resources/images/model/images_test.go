@@ -201,41 +201,6 @@ func (fis *FakeFileStorage) PutFile(id string, img *os.File) error {
 	return fis.putFileError
 }
 
-func TestSyncLastModifiedTimeWithFileUpload(t *testing.T) {
-	fakeIS := new(FakeImageStorage)
-	fakeIS.findByIdImage = nil
-
-	fakeFS := new(FakeFileStorage)
-	fakeFS.lastModifiedTime = time.Now()
-	fakeFS.lastModifiedError = ErrFileStorageFileNotFound
-
-	iModel := NewImagesModel(fakeFS, nil, fakeIS)
-
-	image := createValidImage()
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
-	now := time.Now()
-	constructorImage.Modified = &now
-
-	if err := iModel.syncLastModifiedTimeWithFileUpload(constructorImage); err != nil {
-		t.FailNow()
-	}
-
-	fakeFS.lastModifiedError = errors.New("error")
-	if err := iModel.syncLastModifiedTimeWithFileUpload(constructorImage); err == nil {
-		t.FailNow()
-	}
-
-	fakeFS.lastModifiedError = nil
-	if err := iModel.syncLastModifiedTimeWithFileUpload(constructorImage); err != nil {
-		t.FailNow()
-	}
-
-	fakeFS.lastModifiedTime = time.Now()
-	if err := iModel.syncLastModifiedTimeWithFileUpload(constructorImage); err != nil {
-		t.FailNow()
-	}
-}
-
 func TestGetImageOK(t *testing.T) {
 	image := createValidImage()
 	constructorImage := images.NewSoftwareImageFromConstructor(image)
@@ -340,7 +305,7 @@ func TestListImages(t *testing.T) {
 		t.FailNow()
 	}
 
-	//have some valid image that will pass syncLastModifiedTimeWithFileUpload check
+	//have some valid image
 	image := createValidImage()
 	constructorImage := images.NewSoftwareImageFromConstructor(image)
 	now := time.Now()
@@ -349,12 +314,6 @@ func TestListImages(t *testing.T) {
 	listedImages := []*images.SoftwareImage{constructorImage}
 	fakeIS.findAllImages = listedImages
 	if _, err := iModel.ListImages(nil); err != nil {
-		t.FailNow()
-	}
-
-	//have some valid image that won't pass syncLastModifiedTimeWithFileUpload check
-	fakeFS.lastModifiedError = errors.New("error")
-	if _, err := iModel.ListImages(nil); err == nil {
 		t.FailNow()
 	}
 }
