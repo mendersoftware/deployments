@@ -15,12 +15,15 @@
 package controller_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -51,6 +54,12 @@ type fakeImageModeler struct {
 	editImage         bool
 	editError         error
 	deleteError       error
+}
+
+type Part struct {
+	ContentType string
+	ImageData   []byte
+	MetaStruct  interface{}
 }
 
 func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
@@ -234,10 +243,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 	testCases := []struct {
 		h.JSONResponseParams
 
-		InputBodyObject interface{}
+		InputBodyObject []Part
 
-		InputModelID    string
-		InputModelError error
+		InputContentType string
+		InputModelID     string
+		InputModelError  error
 	}{
 		{
 			InputBodyObject: nil,
@@ -246,13 +256,158 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 				OutputBodyObject: h.ErrorToErrStruct(errors.New("mime: no media type")),
 			},
 		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+				},
+			},
+			InputContentType: "multipart/form-data",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusUnsupportedMediaType,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Content-Type should be multipart/mixed")),
+			},
+		},
+		{
+			InputBodyObject:  []Part{},
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain metadata part: EOF")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/octet-stream",
+				},
+			},
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("First part should be a metadata (application/json)")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+				},
+			},
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Parsing matadata: unexpected end of JSON input")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+					MetaStruct:  images.NewSoftwareImageConstructor(),
+				},
+			},
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating metadata: YoctoId: non zero value required;Name: non zero value required;DeviceType: non zero value required;")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+					MetaStruct: &images.SoftwareImageConstructor{
+						YoctoId:    pointers.StringToPointer("yocto-id"),
+						Name:       pointers.StringToPointer("name"),
+						DeviceType: pointers.StringToPointer("dev-type"),
+					},
+				},
+			},
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain image part: EOF")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+					MetaStruct: &images.SoftwareImageConstructor{
+						YoctoId:    pointers.StringToPointer("yocto-id"),
+						Name:       pointers.StringToPointer("name"),
+						DeviceType: pointers.StringToPointer("dev-type"),
+					},
+				},
+				Part{
+					ContentType: "application/json",
+					MetaStruct: &images.SoftwareImageConstructor{
+						YoctoId:    pointers.StringToPointer("yocto-id"),
+						Name:       pointers.StringToPointer("name"),
+						DeviceType: pointers.StringToPointer("dev-type"),
+					},
+				},
+			},
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Second part should be an image (octet-stream)")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+					MetaStruct: &images.SoftwareImageConstructor{
+						YoctoId:    pointers.StringToPointer("yocto-id"),
+						Name:       pointers.StringToPointer("name"),
+						DeviceType: pointers.StringToPointer("dev-type"),
+					},
+				},
+				Part{
+					ContentType: "application/octet-stream",
+					ImageData:   []byte{0},
+				},
+			},
+			InputContentType: "multipart/mixed",
+			InputModelID:     "1234",
+			InputModelError:  errors.New("create image error"),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("create image error")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+					MetaStruct: &images.SoftwareImageConstructor{
+						YoctoId:    pointers.StringToPointer("yocto-id"),
+						Name:       pointers.StringToPointer("name"),
+						DeviceType: pointers.StringToPointer("dev-type"),
+					},
+				},
+				Part{
+					ContentType: "application/octet-stream",
+					ImageData:   []byte{0},
+				},
+			},
+			InputContentType: "multipart/mixed",
+			InputModelID:     "1234",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusCreated,
+				OutputBodyObject: nil,
+				OutputHeaders:    map[string]string{"Location": "http://localhost/r/1234"},
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
 
 		model := new(mocks.ImagesModel)
 
-		model.On("CreateImage", testCase.InputBodyObject).
+		model.On("CreateImage", mock.AnythingOfType("*os.File"), mock.AnythingOfType("*images.SoftwareImageConstructor")).
 			Return(testCase.InputModelID, testCase.InputModelError)
 
 		router, err := rest.MakeRouter(
@@ -264,30 +419,42 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		api.SetApp(router)
 
 		recorded := test.RunRequest(t, api.MakeHandler(),
-			MakeMultipartRequest("POST", "http://localhost/r", "multipart/mixed", testCase.InputBodyObject))
+			MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject))
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
 }
 
 // MakeMultipartRequest returns a http.Request.
-func MakeMultipartRequest(method string, urlStr string, contentType string, payload interface{}) *http.Request {
-	var s string
-
-	if payload != nil {
-		b, err := json.Marshal(payload)
-		if err != nil {
-			panic(err)
+func MakeMultipartRequest(method string, urlStr string, contentType string, payload []Part) *http.Request {
+	body_buf := new(bytes.Buffer)
+	body_writer := multipart.NewWriter(body_buf)
+	for _, part := range payload {
+		mh := make(textproto.MIMEHeader)
+		mh.Set("Content-Type", part.ContentType)
+		part_writer, err := body_writer.CreatePart(mh)
+		if nil != err {
+			panic(err.Error())
 		}
-		s = fmt.Sprintf("%s", b)
+		if part.ContentType == "application/json" && part.MetaStruct != nil {
+			b, err := json.Marshal(part.MetaStruct)
+			if err != nil {
+				panic(err)
+			}
+			io.Copy(part_writer, bytes.NewReader(b))
+		} else {
+			io.Copy(part_writer, bytes.NewReader(part.ImageData))
+		}
 	}
+	body_writer.Close()
 
-	r, err := http.NewRequest(method, urlStr, strings.NewReader(s))
+	r, err := http.NewRequest(method, urlStr, bytes.NewReader(body_buf.Bytes()))
 	if err != nil {
 		panic(err)
 	}
+	r.Header.Set("Accept-Encoding", "gzip")
 	if payload != nil {
-		r.Header.Set("Content-Type", contentType)
+		r.Header.Set("Content-Type", contentType+";boundary="+body_writer.Boundary())
 	}
 
 	return r
