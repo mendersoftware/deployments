@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -52,7 +53,6 @@ type fakeImageModeler struct {
 	editImage         bool
 	editError         error
 	deleteError       error
-	saveError         error
 }
 
 func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
@@ -75,16 +75,12 @@ func (fim *fakeImageModeler) DeleteImage(imageID string) error {
 	return fim.deleteError
 }
 
-func (fim *fakeImageModeler) CreateImage(imageFileName string, constructorData *images.SoftwareImageConstructor) (string, error) {
+func (fim *fakeImageModeler) CreateImage(imageFile *os.File, constructorData *images.SoftwareImageConstructor) (string, error) {
 	return "", nil
 }
 
 func (fim *fakeImageModeler) EditImage(id string, constructorData *images.SoftwareImageConstructor) (bool, error) {
 	return fim.editImage, fim.editError
-}
-
-func (fim *fakeImageModeler) SaveImage(id string, img io.ReadSeeker) error {
-	return fim.saveImage, fim.saveError
 }
 
 type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.Route
@@ -237,6 +233,7 @@ func TestControllerEditImage(t *testing.T) {
 	recorded.BodyIs("")
 }
 
+// TODO test mulitpart upload
 func TestSoftwareImagesControllerNewImage(t *testing.T) {
 	t.Parallel()
 
@@ -280,7 +277,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 }
 
 // MakeMultipartRequest returns a http.Request.
-func MakeMuiltipartRequest(method string, urlStr string, contentType string, payload interface{}) *http.Request {
+func MakeMultipartRequest(method string, urlStr string, contentType string, payload interface{}) *http.Request {
 	var s string
 
 	if payload != nil {
