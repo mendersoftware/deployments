@@ -40,7 +40,7 @@ func TestInventoryGetDeviceType(t *testing.T) {
 		"not found device": {
 			InID: "lala",
 
-			OutErr: errors.New("DEVICE_TYPE inventory attibute not found"),
+			OutErr: errors.New("device_type inventory attibute not found"),
 		},
 		"remote error": {
 			InID:         "lala",
@@ -50,7 +50,7 @@ func TestInventoryGetDeviceType(t *testing.T) {
 		"not found attribute": {
 			InID:      "lala",
 			GetDevice: &integration.Device{},
-			OutErr:    errors.New("DEVICE_TYPE inventory attibute not found"),
+			OutErr:    errors.New("device_type inventory attibute not found"),
 		},
 		"unexpected type": {
 			InID: "lala",

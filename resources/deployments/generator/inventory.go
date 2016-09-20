@@ -22,7 +22,7 @@ import (
 // Attibute keys
 const (
 	// Reported by devices
-	AttibuteNameDeviceType string = "DEVICE_TYPE"
+	AttibuteNameDeviceType string = "device_type"
 )
 
 type APIClient interface {
