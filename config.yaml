@@ -57,6 +57,10 @@ listen: :8080
             # Defaults to: "mongo-deployments"
 mongo-url: mongo-deployments
 
+        # Public API gateway address
+        # Defaults to: "http://mender-inventory:8080"
+mender-gateway: "http://mender-inventory:8080"
+
 aws:
                 # AWS region
                 # Defaults to: "eu-west-1"

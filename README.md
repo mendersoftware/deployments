@@ -48,6 +48,7 @@ Default configuration file is provided to be downloaded from [config.yaml](https
 Application requirements:
 * Access to AWS S3 bucket, keys can be configured in several ways, documented in the configuration file.
 * Access to MongoDB instance and configured in config file. [Installation instructions](https://www.mongodb.org/downloads#)
+* Access to Mender Gateway with Integration API access.
 
 ## API documentation
 

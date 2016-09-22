@@ -42,6 +42,9 @@ const (
 
 	SettingMongo        = "mongo-url"
 	SettingMongoDefault = "mongo-deployments"
+
+	SettingGateway        = "mender-gateway"
+	SettingGatewayDefault = "localhost:9080"
 )
 
 // ValidateAwsAuth validates configuration of SettingsAwsAuth section if provided.

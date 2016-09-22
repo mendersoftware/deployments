@@ -15,6 +15,8 @@
 package generator
 
 import (
+	"time"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/pkg/errors"
@@ -65,6 +67,8 @@ func (d *ImageBasedDeviceDeployment) Generate(deviceID string, deployment *deplo
 	if deviceDeployment.Image == nil {
 		status := deployments.DeviceDeploymentStatusNoImage
 		deviceDeployment.Status = &status
+		now := time.Now()
+		deviceDeployment.Finished = &now
 	}
 
 	return deviceDeployment, nil
