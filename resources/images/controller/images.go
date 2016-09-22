@@ -188,7 +188,7 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 		return
 	}
 
-	constructor, err := s.getSoftwareImageConstructorFromBody(r)
+	constructor, err := s.getSoftwareImageMetaConstructorFromBody(r)
 	if err != nil {
 		s.view.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest)
 		return
@@ -245,7 +245,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 			http.StatusBadRequest)
 		return
 	}
-	constructor, status, err := s.handleMeta(p, DefaultMaxMetaSize)
+	metaConstructor, status, err := s.handleMeta(p, DefaultMaxMetaSize)
 	if err != nil {
 		s.view.RenderError(w, err, status)
 		return
@@ -259,7 +259,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 			http.StatusBadRequest)
 		return
 	}
-	imageFile, status, err := s.handleImage(p, DefaultMaxImageSize)
+	imageFile, metaYoctoConstructor, status, err := s.handleImage(p, DefaultMaxImageSize)
 	if err != nil {
 		s.view.RenderError(w, err, status)
 		return
@@ -267,7 +267,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	defer os.Remove(imageFile.Name())
 	defer imageFile.Close()
 
-	imgId, err := s.model.CreateImage(imageFile, constructor)
+	imgId, err := s.model.CreateImage(imageFile, metaConstructor, metaYoctoConstructor)
 	if err != nil {
 		// TODO: check if this is bad request or internal error
 		s.view.RenderError(w, err, http.StatusInternalServerError)
@@ -280,7 +280,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 
 // Meta part of multipart meta/image request handler.
 // Parses meta body, returns image constructor, success code and nil on success.
-func (s *SoftwareImagesController) handleMeta(p *multipart.Part, maxMetaSize int64) (*images.SoftwareImageConstructor, int, error) {
+func (s *SoftwareImagesController) handleMeta(p *multipart.Part, maxMetaSize int64) (*images.SoftwareImageMetaConstructor, int, error) {
 	if p.Header.Get("Content-Type") != "application/json" {
 		return nil, http.StatusBadRequest, errors.New("First part should be a metadata (application/json)")
 	}
@@ -290,7 +290,7 @@ func (s *SoftwareImagesController) handleMeta(p *multipart.Part, maxMetaSize int
 		return nil, http.StatusBadRequest, errors.Wrap(err, "Failed to obtain metadata")
 	}
 	//parse meta
-	var constructor *images.SoftwareImageConstructor
+	var constructor *images.SoftwareImageMetaConstructor
 	if err := json.Unmarshal(metaPart, &constructor); err != nil {
 		return nil, http.StatusBadRequest, errors.Wrap(err, "Parsing matadata")
 	}
@@ -303,29 +303,30 @@ func (s *SoftwareImagesController) handleMeta(p *multipart.Part, maxMetaSize int
 // Image part of multipart meta/image request handler.
 // Saves uploaded image in temporary file.
 // Returns temporary file name, success code and nil on success.
-func (s *SoftwareImagesController) handleImage(p *multipart.Part, maxImageSize int64) (*os.File, int, error) {
+func (s *SoftwareImagesController) handleImage(
+	p *multipart.Part, maxImageSize int64) (*os.File, *images.SoftwareImageMetaYoctoConstructor, int, error) {
 	if p.Header.Get("Content-Type") != "application/octet-stream" {
-		return nil, http.StatusBadRequest, errors.New("Second part should be an image (octet-stream)")
+		return nil, nil, http.StatusBadRequest, errors.New("Second part should be an image (octet-stream)")
 	}
 	tmpfile, err := ioutil.TempFile("", "firmware-")
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, nil, http.StatusInternalServerError, err
 	}
 
 	n, err := io.CopyN(tmpfile, p, maxImageSize+1)
 	if err != nil && err != io.EOF {
-		return nil, http.StatusBadRequest, errors.Wrap(err, "Request body invalid")
+		return nil, nil, http.StatusBadRequest, errors.Wrap(err, "Request body invalid")
 	}
 	if n == maxImageSize+1 {
-		return nil, http.StatusBadRequest, errors.New("Image file too large")
+		return nil, nil, http.StatusBadRequest, errors.New("Image file too large")
 	}
 
-	return tmpfile, http.StatusOK, nil
+	return tmpfile, images.NewSoftwareImageMetaYoctoConstructor(), http.StatusOK, nil
 }
 
-func (s SoftwareImagesController) getSoftwareImageConstructorFromBody(r *rest.Request) (*images.SoftwareImageConstructor, error) {
+func (s SoftwareImagesController) getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*images.SoftwareImageMetaConstructor, error) {
 
-	var constructor *images.SoftwareImageConstructor
+	var constructor *images.SoftwareImageMetaConstructor
 
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err
