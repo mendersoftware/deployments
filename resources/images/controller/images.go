@@ -187,7 +187,7 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 		return
 	}
 
-	constructor, err := s.getSoftwareImageConstructorFromBody(r)
+	constructor, err := s.getSoftwareImageMetaConstructorFromBody(r)
 	if err != nil {
 		s.view.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest)
 		return
@@ -244,7 +244,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	defer os.Remove(imageFile.Name())
 	defer imageFile.Close()
 
-	imgId, err := s.model.CreateImage(imageFile, constructor)
+	imgId, err := s.model.CreateImage(imageFile, metaConstructor, metaYoctoConstructor)
 	if err != nil {
 		// TODO: check if this is bad request or internal error
 		s.view.RenderError(w, err, http.StatusInternalServerError)
@@ -309,34 +309,34 @@ func (s *SoftwareImagesController) handleImage(p *multipart.Part, maxImageSize i
 	}
 	tmpfile, err := ioutil.TempFile("", "firmware-")
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, nil, http.StatusInternalServerError, err
 	}
 
 	n, err := io.CopyN(tmpfile, p, maxImageSize+1)
 	if err != nil && err != io.EOF {
-		return nil, http.StatusBadRequest, errors.Wrap(err, "Request body invalid")
+		return nil, nil, http.StatusBadRequest, errors.Wrap(err, "Request body invalid")
 	}
 	if n == maxImageSize+1 {
-		return nil, http.StatusBadRequest, errors.New("Image file too large")
+		return nil, nil, http.StatusBadRequest, errors.New("Image file too large")
 	}
 
-	return tmpfile, http.StatusOK, nil
+	return tmpfile, images.NewSoftwareImageMetaYoctoConstructor(), http.StatusOK, nil
 }
 
 func (s *SoftwareImagesController) getFormFieldValue(p *multipart.Part, maxMetaSize int64) (*string, error) {
 	metaReader := io.LimitReader(p, maxMetaSize)
 	bytes, err := ioutil.ReadAll(metaReader)
 	if err != nil && err != io.EOF {
-		return nil, errors.Wrap(err, "Failed to obtain value for " + p.FormName())
+		return nil, errors.Wrap(err, "Failed to obtain value for "+p.FormName())
 	}
 
 	strValue := string(bytes)
 	return &strValue, nil
 }
 
-func (s SoftwareImagesController) getSoftwareImageConstructorFromBody(r *rest.Request) (*images.SoftwareImageConstructor, error) {
+func (s SoftwareImagesController) getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*images.SoftwareImageMetaConstructor, error) {
 
-	var constructor *images.SoftwareImageConstructor
+	var constructor *images.SoftwareImageMetaConstructor
 
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err
