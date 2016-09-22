@@ -48,17 +48,23 @@ func NewImagesModel(
 	}
 }
 
-func (i *ImagesModel) CreateImage(imageFile *os.File, constructor *images.SoftwareImageConstructor) (string, error) {
+func (i *ImagesModel) CreateImage(
+	imageFile *os.File,
+	metaConstructor *images.SoftwareImageMetaConstructor,
+	metaYoctoConstructor *images.SoftwareImageMetaYoctoConstructor) (string, error) {
 
-	if constructor == nil {
+	if metaConstructor == nil || metaYoctoConstructor == nil {
 		return "", ErrModelMissingInputMetadata
 	}
 
-	if err := constructor.Validate(); err != nil {
+	if err := metaConstructor.Validate(); err != nil {
+		return "", ErrModelInvalidMetadata
+	}
+	if err := metaYoctoConstructor.Validate(); err != nil {
 		return "", ErrModelInvalidMetadata
 	}
 
-	image := images.NewSoftwareImageFromConstructor(constructor)
+	image := images.NewSoftwareImage(metaConstructor, metaYoctoConstructor)
 
 	if err := i.imagesStorage.Insert(image); err != nil {
 		return "", errors.Wrap(err, "Fail to store the metadata")
@@ -144,7 +150,7 @@ func (i *ImagesModel) ListImages(filters map[string]string) ([]*images.SoftwareI
 }
 
 // EditObject allows editing only if image have not been used yet in any deployment.
-func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImageConstructor) (bool, error) {
+func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImageMetaConstructor) (bool, error) {
 
 	if err := constructor.Validate(); err != nil {
 		return false, errors.Wrap(err, "Validating image metadata")
@@ -168,7 +174,6 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 		return false, nil
 	}
 
-	foundImage.SoftwareImageConstructor = constructor
 	foundImage.SetModified(time.Now())
 
 	_, err = i.imagesStorage.Update(foundImage)
