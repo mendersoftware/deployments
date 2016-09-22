@@ -12,22 +12,22 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package inventory_test
+package integration
 
 import (
-	"testing"
+	"encoding/json"
+	"io"
 
-	. "github.com/mendersoftware/deployments/resources/deployments/inventory"
-	"github.com/stretchr/testify/assert"
+	"github.com/pkg/errors"
 )
 
-func TestInventoryWithHardcodedTypeGetDeviceType(t *testing.T) {
+func (api *MenderAPI) parseErrorResponse(body io.ReadCloser) error {
+	errResp := struct {
+		Error string `json:"error"`
+	}{}
 
-	t.Parallel()
-
-	value := "dummy value"
-	deviceType, err := NewInventoryWithHardcodedType(value).GetDeviceType("")
-	assert.NoError(t, err)
-	assert.Equal(t, value, deviceType)
-
+	if err := json.NewDecoder(body).Decode(&errResp); err != nil {
+		return errors.Wrap(err, "parsing server error response")
+	}
+	return errors.New(errResp.Error)
 }

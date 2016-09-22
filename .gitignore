@@ -31,10 +31,6 @@ profile.coverprofile
 
 debug
 
-.vscode/launch.json
+.vscode
 
 /artifacts
-
-.vscode/.browse.VC.db
-
-.vscode/.browse.VC.db-wal
