@@ -26,7 +26,7 @@ import (
 
 // Routes
 const (
-	DevicesInventory string = "/api/integrations/0.1/inventory/devices/%s"
+	DevicesInventory string = "/api/0.1.0/devices/%s"
 )
 
 type Attibute struct {
