@@ -15,9 +15,15 @@
 package controller_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"os"
 	"testing"
 	"time"
 
@@ -43,8 +49,6 @@ type fakeImageModeler struct {
 	getImageError     error
 	imagesList        []*images.SoftwareImage
 	listImagesError   error
-	uploadLink        *images.Link
-	uploadLinkError   error
 	downloadLink      *images.Link
 	downloadLinkError error
 	editImage         bool
@@ -52,12 +56,14 @@ type fakeImageModeler struct {
 	deleteError       error
 }
 
-func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
-	return fim.imagesList, fim.listImagesError
+type Part struct {
+	ContentType string
+	ImageData   []byte
+	MetaStruct  interface{}
 }
 
-func (fim *fakeImageModeler) UploadLink(imageID string, expire time.Duration) (*images.Link, error) {
-	return fim.uploadLink, fim.uploadLinkError
+func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
+	return fim.imagesList, fim.listImagesError
 }
 
 func (fim *fakeImageModeler) DownloadLink(imageID string, expire time.Duration) (*images.Link, error) {
@@ -72,7 +78,7 @@ func (fim *fakeImageModeler) DeleteImage(imageID string) error {
 	return fim.deleteError
 }
 
-func (fim *fakeImageModeler) CreateImage(constructorData *images.SoftwareImageConstructor) (string, error) {
+func (fim *fakeImageModeler) CreateImage(imageFile *os.File, constructorData *images.SoftwareImageConstructor) (string, error) {
 	return "", nil
 }
 
@@ -230,50 +236,165 @@ func TestControllerEditImage(t *testing.T) {
 	recorded.BodyIs("")
 }
 
+// TODO test mulitpart upload
 func TestSoftwareImagesControllerNewImage(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
 		h.JSONResponseParams
 
-		InputBodyObject interface{}
+		InputBodyObject []Part
 
-		InputModelID    string
-		InputModelError error
+		InputContentType string
+		InputModelID     string
+		InputModelError  error
 	}{
 		{
 			InputBodyObject: nil,
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating request body: JSON payload is empty")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("mime: no media type")),
 			},
 		},
 		{
-			InputBodyObject: images.NewSoftwareImageConstructor(),
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+				},
+			},
+			InputContentType: "multipart/form-data",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusUnsupportedMediaType,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Content-Type should be multipart/mixed")),
+			},
+		},
+		{
+			InputBodyObject:  []Part{},
+			InputContentType: "multipart/mixed",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Validating request body: YoctoId: non zero value required;Name: non zero value required;DeviceType: non zero value required;`)),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain metadata part: EOF")),
 			},
 		},
 		{
-			InputBodyObject: &images.SoftwareImageConstructor{
-				YoctoId:    pointers.StringToPointer("core-image-123"),
-				Name:       pointers.StringToPointer("App 123"),
-				DeviceType: pointers.StringToPointer("BBB"),
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/octet-stream",
+				},
 			},
-			InputModelError: errors.New("model error"),
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("First part should be a metadata (application/json)")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+				},
+			},
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Parsing matadata: unexpected end of JSON input")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+					MetaStruct:  images.NewSoftwareImageConstructor(),
+				},
+			},
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating metadata: YoctoId: non zero value required;Name: non zero value required;DeviceType: non zero value required;")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+					MetaStruct: &images.SoftwareImageConstructor{
+						YoctoId:    pointers.StringToPointer("yocto-id"),
+						Name:       pointers.StringToPointer("name"),
+						DeviceType: pointers.StringToPointer("dev-type"),
+					},
+				},
+			},
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain image part: EOF")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+					MetaStruct: &images.SoftwareImageConstructor{
+						YoctoId:    pointers.StringToPointer("yocto-id"),
+						Name:       pointers.StringToPointer("name"),
+						DeviceType: pointers.StringToPointer("dev-type"),
+					},
+				},
+				Part{
+					ContentType: "application/json",
+					MetaStruct: &images.SoftwareImageConstructor{
+						YoctoId:    pointers.StringToPointer("yocto-id"),
+						Name:       pointers.StringToPointer("name"),
+						DeviceType: pointers.StringToPointer("dev-type"),
+					},
+				},
+			},
+			InputContentType: "multipart/mixed",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Second part should be an image (octet-stream)")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+					MetaStruct: &images.SoftwareImageConstructor{
+						YoctoId:    pointers.StringToPointer("yocto-id"),
+						Name:       pointers.StringToPointer("name"),
+						DeviceType: pointers.StringToPointer("dev-type"),
+					},
+				},
+				Part{
+					ContentType: "application/octet-stream",
+					ImageData:   []byte{0},
+				},
+			},
+			InputContentType: "multipart/mixed",
+			InputModelID:     "1234",
+			InputModelError:  errors.New("create image error"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("create image error")),
 			},
 		},
 		{
-			InputBodyObject: &images.SoftwareImageConstructor{
-				YoctoId:    pointers.StringToPointer("core-image-123"),
-				Name:       pointers.StringToPointer("App 123"),
-				DeviceType: pointers.StringToPointer("BBB"),
+			InputBodyObject: []Part{
+				Part{
+					ContentType: "application/json",
+					MetaStruct: &images.SoftwareImageConstructor{
+						YoctoId:    pointers.StringToPointer("yocto-id"),
+						Name:       pointers.StringToPointer("name"),
+						DeviceType: pointers.StringToPointer("dev-type"),
+					},
+				},
+				Part{
+					ContentType: "application/octet-stream",
+					ImageData:   []byte{0},
+				},
 			},
-			InputModelID: "1234",
+			InputContentType: "multipart/mixed",
+			InputModelID:     "1234",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusCreated,
 				OutputBodyObject: nil,
@@ -286,7 +407,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 
 		model := new(mocks.ImagesModel)
 
-		model.On("CreateImage", testCase.InputBodyObject).
+		model.On("CreateImage", mock.AnythingOfType("*os.File"), mock.AnythingOfType("*images.SoftwareImageConstructor")).
 			Return(testCase.InputModelID, testCase.InputModelError)
 
 		router, err := rest.MakeRouter(
@@ -298,10 +419,45 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		api.SetApp(router)
 
 		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject))
+			MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject))
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
+}
+
+// MakeMultipartRequest returns a http.Request.
+func MakeMultipartRequest(method string, urlStr string, contentType string, payload []Part) *http.Request {
+	body_buf := new(bytes.Buffer)
+	body_writer := multipart.NewWriter(body_buf)
+	for _, part := range payload {
+		mh := make(textproto.MIMEHeader)
+		mh.Set("Content-Type", part.ContentType)
+		part_writer, err := body_writer.CreatePart(mh)
+		if nil != err {
+			panic(err.Error())
+		}
+		if part.ContentType == "application/json" && part.MetaStruct != nil {
+			b, err := json.Marshal(part.MetaStruct)
+			if err != nil {
+				panic(err)
+			}
+			io.Copy(part_writer, bytes.NewReader(b))
+		} else {
+			io.Copy(part_writer, bytes.NewReader(part.ImageData))
+		}
+	}
+	body_writer.Close()
+
+	r, err := http.NewRequest(method, urlStr, bytes.NewReader(body_buf.Bytes()))
+	if err != nil {
+		panic(err)
+	}
+	r.Header.Set("Accept-Encoding", "gzip")
+	if payload != nil {
+		r.Header.Set("Content-Type", contentType+";boundary="+body_writer.Boundary())
+	}
+
+	return r
 }
 
 func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
@@ -392,113 +548,6 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 		router, err := rest.MakeRouter(
 			rest.Post("/:id",
 				NewSoftwareImagesController(model, new(view.RESTView)).DownloadLink))
-		assert.NoError(t, err)
-
-		api := rest.NewApi()
-		api.SetApp(router)
-
-		var expire string
-		if testCase.InputParamExpire != nil {
-			expire = "?expire=" + *testCase.InputParamExpire
-		}
-
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("POST",
-				fmt.Sprintf("http://localhost/%s%s", testCase.InputID, expire),
-				nil))
-
-		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
-	}
-}
-
-func TestSoftwareImagesControllerUploadLink(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		h.JSONResponseParams
-
-		InputID          string
-		InputParamExpire *string
-
-		InputModelLink  *images.Link
-		InputModelError error
-	}{
-		{
-			InputID: "89r89r4y",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(ErrIDNotUUIDv4),
-			},
-		},
-		{
-			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
-			InputParamExpire: pointers.StringToPointer("ala ma kota"),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(ErrInvalidExpireParam),
-			},
-		},
-		{
-			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
-			InputParamExpire: pointers.StringToPointer("1.1"),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(ErrInvalidExpireParam),
-			},
-		},
-		{
-			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
-			InputParamExpire: pointers.StringToPointer("9999999"),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(ErrInvalidExpireParam),
-			},
-		},
-		{
-			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
-			InputParamExpire: pointers.StringToPointer("123"),
-			InputModelError:  errors.New("file service down"),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`file service down`)),
-			},
-		},
-		{
-			InputID:         "83241c4b-6281-40dd-b6fa-932633e21bab",
-			InputModelError: errors.New("file service down"),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`file service down`)),
-			},
-		},
-		// no file found
-		{
-			InputID: "83241c4b-6281-40dd-b6fa-932633e21bab",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusNotFound,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Resource not found`)),
-			},
-		},
-		{
-			InputID:        "83241c4b-6281-40dd-b6fa-932633e21bab",
-			InputModelLink: images.NewLink("http://come.and.get.me", time.Time{}),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusOK,
-				OutputBodyObject: images.NewLink("http://come.and.get.me", time.Time{}),
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-
-		model := new(mocks.ImagesModel)
-
-		model.On("UploadLink", testCase.InputID, mock.AnythingOfType("time.Duration")).
-			Return(testCase.InputModelLink, testCase.InputModelError)
-
-		router, err := rest.MakeRouter(
-			rest.Post("/:id",
-				NewSoftwareImagesController(model, new(view.RESTView)).UploadLink))
 		assert.NoError(t, err)
 
 		api := rest.NewApi()
