@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.com/mendersoftware/deployments.svg?token=rx8YqsZ2ZyaopcMPmDmo&branch=master)](https://travis-ci.com/mendersoftware/deployments)
 [![Coverage Status](https://coveralls.io/repos/github/mendersoftware/deployments/badge.svg?branch=master&t=n7mVVE)](https://coveralls.io/github/mendersoftware/deployments?branch=master)
 
-Mender: Deployments Service
+Mender: Deployment Service
 ==============================================
 
 Mender is an open source over-the-air (OTA) software updater for embedded Linux
@@ -13,9 +13,7 @@ This repository contains the Mender Deployments service, which is part of the
 Mender server. The Mender server is designed as a microservices architecture
 and comprises several repositories.
 
-Deployments Service is the central module concerned with the management of software artifacts and updates. It allows
-the user to define and schedule deployments for selected groups of devices, and dispatches them accordingly - all
-the while monitoring the status and progress of installations.
+The Deployment Service manages artifacts, deployments, and reports of outcome of deployments.
 
 
 ![Mender logo](https://mender.io/user/pages/04.resources/_logos/logoS.png)
