@@ -24,7 +24,7 @@ import (
 // Informations provided by the user
 type SoftwareImageMetaConstructor struct {
 	// Application Name & Version
-	Name *string `json:"name" valid:"length(1|4096),required"`
+	Name *string `json:"name" bson:"name" valid:"length(1|4096),required"`
 
 	// Image description
 	Description *string `json:"description,omitempty" valid:"length(1|4096),optional"`
@@ -47,7 +47,7 @@ type SoftwareImageMetaYoctoConstructor struct {
 	YoctoId *string `json:"yocto_id" valid:"length(1|4096),required"`
 
 	// Compatible device model for the application
-	DeviceType *string `json:"device_type" valid:"length(1|4096),required"`
+	DeviceType *string `json:"device_type" bson:"device_type" valid:"length(1|4096),required"`
 
 	// Image file checksum
 	Checksum *string `json:"checksum" valid:"required"`
@@ -66,10 +66,10 @@ func (s *SoftwareImageMetaYoctoConstructor) Validate() error {
 // SoftwareImage YOCTO image with user application
 type SoftwareImage struct {
 	// User provided field set
-	*SoftwareImageMetaConstructor
+	*SoftwareImageMetaConstructor `bson:"meta"`
 
 	// Field set provided with yocto image
-	*SoftwareImageMetaYoctoConstructor
+	*SoftwareImageMetaYoctoConstructor `bson:"meta_yocto"`
 
 	// Image ID
 	Id *string `json:"id" bson:"_id" valid:"uuidv4,required"`
