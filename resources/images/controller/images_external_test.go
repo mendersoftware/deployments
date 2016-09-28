@@ -78,11 +78,14 @@ func (fim *fakeImageModeler) DeleteImage(imageID string) error {
 	return fim.deleteError
 }
 
-func (fim *fakeImageModeler) CreateImage(imageFile *os.File, constructorData *images.SoftwareImageConstructor) (string, error) {
+func (fim *fakeImageModeler) CreateImage(
+	imageFile *os.File,
+	metaConstructor *images.SoftwareImageMetaConstructor,
+	metaYoctoConstructor *images.SoftwareImageMetaYoctoConstructor) (string, error) {
 	return "", nil
 }
 
-func (fim *fakeImageModeler) EditImage(id string, constructorData *images.SoftwareImageConstructor) (bool, error) {
+func (fim *fakeImageModeler) EditImage(id string, metaConstructor *images.SoftwareImageMetaConstructor) (bool, error) {
 	return fim.editImage, fim.editError
 }
 
@@ -120,8 +123,9 @@ func TestControllerGetImage(t *testing.T) {
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	// have image, get OK
-	image := images.NewSoftwareImageConstructor()
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
+	imageMeta := images.NewSoftwareImageMetaConstructor()
+	imageMetaYocto := images.NewSoftwareImageMetaYoctoConstructor()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaYocto)
 	imagesModel.getImageError = nil
 	imagesModel.getImage = constructorImage
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -149,8 +153,9 @@ func TestControllerListImages(t *testing.T) {
 
 	//getting list OK
 	imagesModel.listImagesError = nil
-	image := images.NewSoftwareImageConstructor()
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
+	imageMeta := images.NewSoftwareImageMetaConstructor()
+	imageMetaYocto := images.NewSoftwareImageMetaYoctoConstructor()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaYocto)
 	imagesModel.imagesList = append(imagesModel.imagesList, constructorImage)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images", nil))
@@ -164,8 +169,9 @@ func TestControllerDeleteImage(t *testing.T) {
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Delete, controller.DeleteImage)
 
-	image := images.NewSoftwareImageConstructor()
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
+	imageMeta := images.NewSoftwareImageMetaConstructor()
+	imageMetaYocto := images.NewSoftwareImageMetaYoctoConstructor()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaYocto)
 
 	// wrong id
 	recorded := test.RunRequest(t, api.MakeHandler(),
@@ -236,7 +242,6 @@ func TestControllerEditImage(t *testing.T) {
 	recorded.BodyIs("")
 }
 
-// TODO test mulitpart upload
 func TestSoftwareImagesControllerNewImage(t *testing.T) {
 	t.Parallel()
 
@@ -304,23 +309,21 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputBodyObject: []Part{
 				Part{
 					ContentType: "application/json",
-					MetaStruct:  images.NewSoftwareImageConstructor(),
+					MetaStruct:  images.NewSoftwareImageMetaConstructor(),
 				},
 			},
 			InputContentType: "multipart/mixed",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating metadata: YoctoId: non zero value required;Name: non zero value required;DeviceType: non zero value required;")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating metadata: Name: non zero value required;")),
 			},
 		},
 		{
 			InputBodyObject: []Part{
 				Part{
 					ContentType: "application/json",
-					MetaStruct: &images.SoftwareImageConstructor{
-						YoctoId:    pointers.StringToPointer("yocto-id"),
-						Name:       pointers.StringToPointer("name"),
-						DeviceType: pointers.StringToPointer("dev-type"),
+					MetaStruct: &images.SoftwareImageMetaConstructor{
+						Name: pointers.StringToPointer("name"),
 					},
 				},
 			},
@@ -334,18 +337,14 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputBodyObject: []Part{
 				Part{
 					ContentType: "application/json",
-					MetaStruct: &images.SoftwareImageConstructor{
-						YoctoId:    pointers.StringToPointer("yocto-id"),
-						Name:       pointers.StringToPointer("name"),
-						DeviceType: pointers.StringToPointer("dev-type"),
+					MetaStruct: &images.SoftwareImageMetaConstructor{
+						Name: pointers.StringToPointer("name"),
 					},
 				},
 				Part{
 					ContentType: "application/json",
-					MetaStruct: &images.SoftwareImageConstructor{
-						YoctoId:    pointers.StringToPointer("yocto-id"),
-						Name:       pointers.StringToPointer("name"),
-						DeviceType: pointers.StringToPointer("dev-type"),
+					MetaStruct: &images.SoftwareImageMetaConstructor{
+						Name: pointers.StringToPointer("name"),
 					},
 				},
 			},
@@ -355,59 +354,61 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 				OutputBodyObject: h.ErrorToErrStruct(errors.New("Second part should be an image (octet-stream)")),
 			},
 		},
-		{
-			InputBodyObject: []Part{
-				Part{
-					ContentType: "application/json",
-					MetaStruct: &images.SoftwareImageConstructor{
-						YoctoId:    pointers.StringToPointer("yocto-id"),
-						Name:       pointers.StringToPointer("name"),
-						DeviceType: pointers.StringToPointer("dev-type"),
+		// TODO: add archive upload tests here
+		/*
+			{
+				InputBodyObject: []Part{
+					Part{
+						ContentType: "application/json",
+						MetaStruct: &images.SoftwareImageMetaConstructor{
+							Name: pointers.StringToPointer("name"),
+						},
+					},
+					Part{
+						ContentType: "application/octet-stream",
+						ImageData:   []byte{0},
 					},
 				},
-				Part{
-					ContentType: "application/octet-stream",
-					ImageData:   []byte{0},
+				InputContentType: "multipart/mixed",
+				InputModelID:     "1234",
+				InputModelError:  errors.New("create image error"),
+				JSONResponseParams: h.JSONResponseParams{
+					OutputStatus:     http.StatusInternalServerError,
+					OutputBodyObject: h.ErrorToErrStruct(errors.New("create image error")),
 				},
 			},
-			InputContentType: "multipart/mixed",
-			InputModelID:     "1234",
-			InputModelError:  errors.New("create image error"),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("create image error")),
-			},
-		},
-		{
-			InputBodyObject: []Part{
-				Part{
-					ContentType: "application/json",
-					MetaStruct: &images.SoftwareImageConstructor{
-						YoctoId:    pointers.StringToPointer("yocto-id"),
-						Name:       pointers.StringToPointer("name"),
-						DeviceType: pointers.StringToPointer("dev-type"),
+			{
+				InputBodyObject: []Part{
+					Part{
+						ContentType: "application/json",
+						MetaStruct: &images.SoftwareImageMetaConstructor{
+							Name: pointers.StringToPointer("name"),
+						},
+					},
+					Part{
+						ContentType: "application/octet-stream",
+						ImageData:   []byte{0},
 					},
 				},
-				Part{
-					ContentType: "application/octet-stream",
-					ImageData:   []byte{0},
+				InputContentType: "multipart/mixed",
+				InputModelID:     "1234",
+				JSONResponseParams: h.JSONResponseParams{
+					OutputStatus:     http.StatusCreated,
+					OutputBodyObject: nil,
+					OutputHeaders:    map[string]string{"Location": "http://localhost/r/1234"},
 				},
-			},
-			InputContentType: "multipart/mixed",
-			InputModelID:     "1234",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusCreated,
-				OutputBodyObject: nil,
-				OutputHeaders:    map[string]string{"Location": "http://localhost/r/1234"},
-			},
-		},
+			},*/
 	}
 
 	for _, testCase := range testCases {
 
 		model := new(mocks.ImagesModel)
 
-		model.On("CreateImage", mock.AnythingOfType("*os.File"), mock.AnythingOfType("*images.SoftwareImageConstructor")).
+		model.On(
+			"CreateImage",
+			mock.AnythingOfType("*os.File"),
+			mock.AnythingOfType("*images.SoftwareImageMetaConstructor"),
+			mock.AnythingOfType("*images.SoftwareImageMetaYoctoConstructor")).
 			Return(testCase.InputModelID, testCase.InputModelError)
 
 		router, err := rest.MakeRouter(
