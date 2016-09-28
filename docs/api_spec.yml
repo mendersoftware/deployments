@@ -592,7 +592,7 @@ paths:
     put:
       summary: Update firmware image
       description: |
-        Edit image information. Image is not allowed to be edited if it was used
+        Edit image name and description. Image is not allowed to be edited if it was used
         in any deployment.
       parameters:
         - name: id
@@ -714,12 +714,15 @@ definitions:
       - checksum
   ImageUpdate:
     description: Firmware image information update
-    allOf:
-      - $ref: "#/definitions/ImageBase"
+    type: object
+    properties:
+      name:
+        type: string
+      description:
+        type: string
     required:
       - name
       - description
-      - device_type
   Image:
     description: Detailed firmware image
     allOf:
