@@ -16,6 +16,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -27,6 +28,8 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/artifacts/parser"
+	"github.com/mendersoftware/artifacts/reader"
 	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/pkg/errors"
 )
@@ -308,20 +311,86 @@ func (s *SoftwareImagesController) handleImage(
 	if p.Header.Get("Content-Type") != "application/octet-stream" {
 		return nil, nil, http.StatusBadRequest, errors.New("Second part should be an image (octet-stream)")
 	}
+
 	tmpfile, err := ioutil.TempFile("", "firmware-")
 	if err != nil {
 		return nil, nil, http.StatusInternalServerError, err
 	}
 
-	n, err := io.CopyN(tmpfile, p, maxImageSize+1)
-	if err != nil && err != io.EOF {
-		return nil, nil, http.StatusBadRequest, errors.Wrap(err, "Request body invalid")
-	}
-	if n == maxImageSize+1 {
-		return nil, nil, http.StatusBadRequest, errors.New("Image file too large")
+	lr := io.LimitReader(p, maxImageSize)
+	tee := io.TeeReader(lr, tmpfile)
+	meta, err := s.getMetaFromArchive(&tee, maxImageSize)
+	if err != nil {
+		return nil, nil, http.StatusBadRequest, err
 	}
 
-	return tmpfile, images.NewSoftwareImageMetaYoctoConstructor(), http.StatusOK, nil
+	_, err = io.Copy(ioutil.Discard, tee)
+	if err != nil {
+		return nil, nil, http.StatusInternalServerError, err
+	}
+
+	return tmpfile, meta, http.StatusOK, nil
+}
+
+func (s *SoftwareImagesController) getMetaFromArchive(r *io.Reader, maxImageSize int64) (*images.SoftwareImageMetaYoctoConstructor, error) {
+	metaYocto := images.NewSoftwareImageMetaYoctoConstructor()
+	aReader := areader.NewReader(*r)
+	defer aReader.Close()
+	rp := &parser.RootfsParser{}
+	aReader.Register(rp)
+
+	_, err := aReader.ReadInfo()
+	if err != nil {
+		return nil, errors.Wrap(err, "info error")
+	}
+	hInfo, err := aReader.ReadHeaderInfo()
+	if err != nil {
+		return nil, errors.Wrap(err, "header info error")
+	}
+	//check if there is only one update
+	if len(hInfo.Updates) != 1 {
+		return nil, errors.New("Too many updats")
+	}
+	uCnt := 0
+	for cnt, update := range hInfo.Updates {
+		if update.Type == "rootfs-image" {
+			rp := &parser.RootfsParser{}
+			aReader.PushWorker(rp, fmt.Sprintf("%04d", cnt))
+			uCnt += 1
+		}
+	}
+	if uCnt != 1 {
+		return nil, errors.New("Only rootfs-image updates supported")
+	}
+
+	_, err = aReader.ReadHeader()
+	if err != nil {
+		return nil, errors.Wrap(err, "header error")
+	}
+	w, err := aReader.ReadData()
+	if err != nil {
+		return nil, errors.Wrap(err, "read data error")
+	}
+	for _, p := range w {
+		deviceType := p.GetDeviceType()
+		metaYocto.DeviceType = &deviceType
+		if rp, ok := p.(*parser.RootfsParser); ok {
+			yoctoId := rp.GetImageID()
+			metaYocto.YoctoId = &yoctoId
+		}
+		updateFiles := p.GetUpdateFiles()
+		if len(updateFiles) != 1 {
+			return nil, errors.New("Too many update files")
+		}
+		for _, u := range updateFiles {
+			if u.Size > maxImageSize {
+				return nil, errors.New("Image too large")
+			}
+			checksum := string(u.Checksum)
+			metaYocto.Checksum = &checksum
+		}
+	}
+	return metaYocto, nil
 }
 
 func (s SoftwareImagesController) getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*images.SoftwareImageMetaConstructor, error) {
