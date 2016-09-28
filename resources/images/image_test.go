@@ -15,49 +15,60 @@
 package images
 
 import "testing"
-import "time"
 
-func TestValidateEmptyImage(t *testing.T) {
-	image := NewSoftwareImageConstructor()
+func TestValidateEmptyImageMeta(t *testing.T) {
+	image := NewSoftwareImageMetaConstructor()
 
 	if err := image.Validate(); err == nil {
 		t.FailNow()
 	}
 }
 
-func TestValidateCorrectImage(t *testing.T) {
-	image := NewSoftwareImageConstructor()
+func TestValidateEmptyImageMetaYocto(t *testing.T) {
+	image := NewSoftwareImageMetaYoctoConstructor()
+
+	if err := image.Validate(); err == nil {
+		t.FailNow()
+	}
+}
+
+func TestValidateCorrectImageMeta(t *testing.T) {
+	image := NewSoftwareImageMetaConstructor()
 	required := "required"
 
-	image.YoctoId = &required
 	image.Name = &required
-	image.DeviceType = &required
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()
 	}
 }
 
-func TestValidateEmptyImageFromConstructor(t *testing.T) {
-	image := NewSoftwareImageConstructor()
+func TestValidateCorrectImageMetaYocot(t *testing.T) {
+	image := NewSoftwareImageMetaYoctoConstructor()
+	required := "required"
 
-	constructorImage := NewSoftwareImageFromConstructor(image)
-	if err := constructorImage.Validate(); err != nil {
+	image.YoctoId = &required
+	image.DeviceType = &required
+	image.Checksum = &required
+
+	if err := image.Validate(); err != nil {
 		t.FailNow()
 	}
 }
 
-func TestModifyImageSetTime(t *testing.T) {
-	image := NewSoftwareImageConstructor()
+func TestValidateCorrectImage(t *testing.T) {
+	required := "required"
+	imageMeta := NewSoftwareImageMetaConstructor()
+	imageMetaYocto := NewSoftwareImageMetaYoctoConstructor()
 
-	constructorImage := NewSoftwareImageFromConstructor(image)
-	constructorImage.Validate()
+	imageMetaYocto.YoctoId = &required
+	imageMetaYocto.DeviceType = &required
+	imageMetaYocto.Checksum = &required
+	imageMeta.Name = &required
 
-	modifiedTime := time.Now().Add(time.Hour)
-	constructorImage.SetModified(modifiedTime)
+	image := NewSoftwareImage(imageMeta, imageMetaYocto)
 
-	if !modifiedTime.Equal(*constructorImage.Modified) {
+	if err := image.Validate(); err != nil {
 		t.FailNow()
 	}
-
 }
