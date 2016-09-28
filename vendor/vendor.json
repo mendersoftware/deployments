@@ -209,6 +209,12 @@
 			"revisionTime": "2015-12-07T23:31:27Z"
 		},
 		{
+			"checksumSHA1": "1EeQyedHb98VzKIm72WMGVN3DIg=",
+			"path": "github.com/mendersoftware/artifacts",
+			"revision": "61cbec4466b50d96dc0fd8d4207cd0590aa1bb01",
+			"revisionTime": "2016-09-28T12:25:32Z"
+		},
+		{
 			"checksumSHA1": "TLlxKOpBYLjG7octzGBxkqmmb0Y=",
 			"path": "github.com/mendersoftware/log",
 			"revision": "97987cb221fea3db4acfccb6a0803edfd318aed1",
