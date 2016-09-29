@@ -171,7 +171,7 @@ after_success:
     - cp $BUILD_ARTIFATS $CONFIG_FILE build/
 
     # Check if api docs have changed
-    - git diff --name-status ${TRAVIS_COMMIT_RANGE} | grep -E "(A|M)\s+docs/.+\.yml" && export API_DOCS_CHANGED=true
+    - git show --stat ${TRAVIS_COMMIT_RANGE} | grep -E "docs/.+\.yml" && export API_DOCS_CHANGED=true
 
 before_deploy:
     # Master is always lastest
