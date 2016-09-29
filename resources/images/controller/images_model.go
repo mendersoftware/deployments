@@ -32,6 +32,9 @@ type ImagesModel interface {
 	DownloadLink(imageID string, expire time.Duration) (*images.Link, error)
 	GetImage(id string) (*images.SoftwareImage, error)
 	DeleteImage(imageID string) error
-	CreateImage(imageFile *os.File, constructorData *images.SoftwareImageConstructor) (string, error)
-	EditImage(id string, constructorData *images.SoftwareImageConstructor) (bool, error)
+	CreateImage(
+		imageFile *os.File,
+		metaConstructor *images.SoftwareImageMetaConstructor,
+		metaYoctoConstructor *images.SoftwareImageMetaYoctoConstructor) (string, error)
+	EditImage(id string, constructorData *images.SoftwareImageMetaConstructor) (bool, error)
 }

@@ -21,29 +21,50 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-type SoftwareImageConstructor struct {
-	// Yocto ID build in the image
-	YoctoId *string `json:"yocto_id" valid:"length(1|4096),required"`
-
+// Informations provided by the user
+type SoftwareImageMetaConstructor struct {
 	// Application Name & Version
-	Name *string `json:"name" valid:"length(1|4096),required"`
-
-	// Compatible device model for the application
-	DeviceType *string `json:"device_type" valid:"length(1|4096),required"`
+	Name *string `json:"name" bson:"name" valid:"length(1|4096),required"`
 
 	// Image description
 	Description *string `json:"description,omitempty" valid:"length(1|4096),optional"`
-
-	// Image file checksum
-	Checksum *string `json:"checksum,omitempty" valid:"optional"`
 }
 
-func NewSoftwareImageConstructor() *SoftwareImageConstructor {
-	return &SoftwareImageConstructor{}
+// Creates new, empty SoftwareImageMetaConstructor
+func NewSoftwareImageMetaConstructor() *SoftwareImageMetaConstructor {
+	return &SoftwareImageMetaConstructor{}
 }
 
 // Validate checkes structure according to valid tags.
-func (s *SoftwareImageConstructor) Validate() error {
+func (s *SoftwareImageMetaConstructor) Validate() error {
+	_, err := govalidator.ValidateStruct(s)
+	return err
+}
+
+// Information provided with YOCTO image
+type SoftwareImageMetaYoctoConstructor struct {
+	// Yocto ID build in the image
+	YoctoId *string `json:"yocto_id" valid:"length(1|4096),required"`
+
+	// Compatible device model for the application
+	DeviceType *string `json:"device_type" bson:"device_type" valid:"length(1|4096),required"`
+
+	// Image file checksum
+	Checksum *string `json:"checksum" valid:"required"`
+
+	// Image size
+	ImageSize int64 `json:"image_size" valid:"optional"`
+
+	// Date built
+	DateBuilt time.Time `json:"date_built" valid:"optional"`
+}
+
+func NewSoftwareImageMetaYoctoConstructor() *SoftwareImageMetaYoctoConstructor {
+	return &SoftwareImageMetaYoctoConstructor{}
+}
+
+// Validate checkes structure according to valid tags.
+func (s *SoftwareImageMetaYoctoConstructor) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
 }
@@ -51,7 +72,10 @@ func (s *SoftwareImageConstructor) Validate() error {
 // SoftwareImage YOCTO image with user application
 type SoftwareImage struct {
 	// User provided field set
-	*SoftwareImageConstructor
+	*SoftwareImageMetaConstructor `bson:"meta"`
+
+	// Field set provided with yocto image
+	*SoftwareImageMetaYoctoConstructor `bson:"meta_yocto"`
 
 	// Image ID
 	Id *string `json:"id" bson:"_id" valid:"uuidv4,required"`
@@ -63,17 +87,20 @@ type SoftwareImage struct {
 	Modified *time.Time `json:"modified" valid:"_"`
 }
 
-// NewSoftwareImageFromConstructor create new software image object.
-func NewSoftwareImageFromConstructor(constructor *SoftwareImageConstructor) *SoftwareImage {
+// NewSoftwareImage create new software image object.
+func NewSoftwareImage(
+	metaConstructor *SoftwareImageMetaConstructor,
+	metaYoctoConstructor *SoftwareImageMetaYoctoConstructor) *SoftwareImage {
 
 	now := time.Now()
 	id := uuid.NewV4().String()
 
 	return &SoftwareImage{
-		SoftwareImageConstructor: constructor,
-		Modified:                 &now,
-		Verified:                 false,
-		Id:                       &id,
+		SoftwareImageMetaConstructor:      metaConstructor,
+		SoftwareImageMetaYoctoConstructor: metaYoctoConstructor,
+		Modified: &now,
+		Verified: false,
+		Id:       &id,
 	}
 }
 
