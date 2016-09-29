@@ -232,7 +232,17 @@ func (d *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) (
 }
 
 func (d *DeploymentsModel) LookupDeployment(query deployments.Query) ([]*deployments.Deployment, error) {
-	return d.deploymentsStorage.Find(query)
+	list, err := d.deploymentsStorage.Find(query)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "searching for deployments")
+	}
+
+	if list == nil {
+		return make([]*deployments.Deployment, 0), nil
+	}
+
+	return list, nil
 }
 
 // SaveDeviceDeploymentLog will save the deployment log for device of

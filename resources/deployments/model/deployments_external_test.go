@@ -115,7 +115,7 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
-				testCase.InputExistAssignedImageWithIDAndStatusesError)
+			testCase.InputExistAssignedImageWithIDAndStatusesError)
 
 		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
 
@@ -169,7 +169,7 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputImageUsedInDeploymentFound,
-				testCase.InputImageUsedInDeploymentError)
+			testCase.InputImageUsedInDeploymentError)
 
 		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
 
@@ -248,7 +248,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputOlderstDeviceDeployment,
-				testCase.InputOlderstDeviceDeploymentError)
+			testCase.InputOlderstDeviceDeploymentError)
 
 		imageLinker := new(mocks.GetRequester)
 		// Notice: force GetRequest to expect image id returned by FindOldestDeploymentForDeviceIDWithStatuses
@@ -790,5 +790,50 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 		} else {
 			assert.NoError(t, err)
 		}
+	}
+}
+
+func TestDeploymentModelLookupDeployment(t *testing.T) {
+
+	t.Parallel()
+
+	testCases := map[string]struct {
+		MockDeployments []*deployments.Deployment
+		MockError       error
+
+		OutputError       error
+		OutputDeployments []*deployments.Deployment
+	}{
+		"nothing found": {
+			MockDeployments:   nil,
+			OutputDeployments: []*deployments.Deployment{},
+		},
+		"error": {
+			MockError:   errors.New("bad bad bad"),
+			OutputError: errors.New("searching for deployments: bad bad bad"),
+		},
+		"found deplyoments": {
+			MockDeployments:   []*deployments.Deployment{&deployments.Deployment{Id: StringToPointer("lala")}},
+			OutputDeployments: []*deployments.Deployment{&deployments.Deployment{Id: StringToPointer("lala")}},
+		},
+	}
+
+	for name, testCase := range testCases {
+
+		t.Logf("Case: %s\n", name)
+
+		deploymentStorage := new(mocks.DeploymentsStorage)
+		deploymentStorage.On("Find", mock.AnythingOfType("deployments.Query")).
+			Return(testCase.MockDeployments, testCase.MockError)
+
+		model := NewDeploymentModel(deploymentStorage, nil, nil, nil, nil)
+
+		deployments, err := model.LookupDeployment(deployments.Query{})
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, testCase.OutputDeployments, deployments)
 	}
 }
