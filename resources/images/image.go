@@ -51,6 +51,12 @@ type SoftwareImageMetaYoctoConstructor struct {
 
 	// Image file checksum
 	Checksum *string `json:"checksum" valid:"required"`
+
+	// Image size
+	ImageSize int64 `json:"image_size" valid:"optional"`
+
+	// Date build
+	DateBuild time.Time `json:"date_build" valid:"optional"`
 }
 
 func NewSoftwareImageMetaYoctoConstructor() *SoftwareImageMetaYoctoConstructor {
