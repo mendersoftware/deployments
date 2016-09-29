@@ -388,6 +388,8 @@ func (s *SoftwareImagesController) getMetaFromArchive(r *io.Reader, maxImageSize
 			}
 			checksum := string(u.Checksum)
 			metaYocto.Checksum = &checksum
+			metaYocto.ImageSize = u.Size / (1024 * 1024)
+			metaYocto.DateBuilt = u.Date
 		}
 	}
 	return metaYocto, nil
