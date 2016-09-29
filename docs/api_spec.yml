@@ -707,6 +707,10 @@ definitions:
         type: string
       device_type:
         type: string
+      date_built:
+        type: string
+      image_size:
+        type: integer
     required:
       - name
       - description
