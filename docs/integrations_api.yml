@@ -377,6 +377,7 @@ paths:
       summary: Create firmware image
       description: |
         Create firmware image. Mulitpart request with meta and image.
+        Image part (named firmware) has to be the last one.
       consumes:
         - multipart/form-data
       parameters:
