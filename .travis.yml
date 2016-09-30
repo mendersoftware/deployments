@@ -128,8 +128,7 @@ before_script:
     - gocyclo -over 15 `find . -iname '*.go' | grep -v 'vendor' | grep -v '_test.go'`
 
     # Verify that the Swagger docs are valid
-    # turned off bacause of no support for multipart/mixed content-type
-    # - swagger validate docs/*.yml
+    - swagger validate docs/*.yml
 
     # Verify that the Swagger docs follow the autodeployment requirements
     - python2.7 verify_docs.py `find docs -name "*.yml"`
