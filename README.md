@@ -1,5 +1,7 @@
 # Deployments
 [![Build Status](https://travis-ci.com/mendersoftware/deployments.svg?token=rx8YqsZ2ZyaopcMPmDmo&branch=master)](https://travis-ci.com/mendersoftware/deployments)
+[![Docker pulls](https://img.shields.io/docker/pulls/mendersoftware/deployments.svg?maxAge=3600)](https://hub.docker.com/r/mendersoftware/deployments/)
+
 
 Mender: Deployment Service
 ==============================================
