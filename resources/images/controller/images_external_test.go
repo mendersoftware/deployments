@@ -257,18 +257,6 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: []Part{
-				Part{
-					ContentType: "",
-				},
-			},
-			InputContentType: "multipart/mixed",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusUnsupportedMediaType,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Content-Type should be multipart/form-data")),
-			},
-		},
-		{
 			InputBodyObject:  []Part{},
 			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
@@ -425,7 +413,6 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		recorded := test.RunRequest(t, api.MakeHandler(),
 			MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject))
 
-		fmt.Printf("body: %s\n", recorded.Recorder.Body.String())
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
 }

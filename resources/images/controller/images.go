@@ -222,15 +222,9 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	)
 
 	// parse content type and params according to RFC 1521
-	contentType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		s.view.RenderError(w, err, http.StatusBadRequest)
-		return
-	}
-	if contentType != "multipart/form-data" {
-		s.view.RenderError(
-			w, errors.New("Content-Type should be multipart/form-data"),
-			http.StatusUnsupportedMediaType)
 		return
 	}
 
