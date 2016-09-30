@@ -1,6 +1,5 @@
 # Deployments
 [![Build Status](https://travis-ci.com/mendersoftware/deployments.svg?token=rx8YqsZ2ZyaopcMPmDmo&branch=master)](https://travis-ci.com/mendersoftware/deployments)
-[![Coverage Status](https://coveralls.io/repos/github/mendersoftware/deployments/badge.svg?branch=master&t=n7mVVE)](https://coveralls.io/github/mendersoftware/deployments?branch=master)
 
 Mender: Deployment Service
 ==============================================
