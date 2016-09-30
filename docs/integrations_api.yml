@@ -377,13 +377,30 @@ paths:
       summary: Create firmware image
       description: |
         Create firmware image. Mulitpart request with meta and image.
+        Image part (named firmware) has to be the last one.
       consumes:
-        - multipart/mixed
+        - multipart/form-data
       parameters:
-        - name: meta
+        - name: name
           in: formData
           required: true
-          type: file
+          type: string
+        - name: yocto_id
+          in: formData
+          required: true
+          type: string
+        - name: device_type
+          in: formData
+          required: true
+          type: string
+        - name: checksum
+          in: formData
+          required: false
+          type: string
+        - name: description
+          in: formData
+          required: false
+          type: string
         - name: firmware
           in: formData
           required: true

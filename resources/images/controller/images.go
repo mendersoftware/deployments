@@ -15,7 +15,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -209,7 +208,7 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 }
 
 // Multipart Image/Meta upload handler.
-// Request should be of type "multipart/mixed".
+// Request should be of type "multipart/form-data".
 // First part should contain Metadata file. This file should be of type "application/json".
 // Second part should contain Image file. This part should be of type "application/octet-strem".
 func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Request) {
@@ -223,43 +222,21 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	)
 
 	// parse content type and params according to RFC 1521
-	contentType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		s.view.RenderError(w, err, http.StatusBadRequest)
-		return
-	}
-	if contentType != "multipart/mixed" {
-		s.view.RenderError(
-			w, errors.New("Content-Type should be multipart/mixed"),
-			http.StatusUnsupportedMediaType)
 		return
 	}
 
 	mr := multipart.NewReader(r.Body, params["boundary"])
 
-	// fist part is the metadata part
-	p, err := mr.NextPart()
-	if err != nil {
-		s.view.RenderError(
-			w, errors.Wrap(err, "Request does not contain metadata part"),
-			http.StatusBadRequest)
-		return
-	}
-	constructor, status, err := s.handleMeta(p, DefaultMaxMetaSize)
-	if err != nil {
-		s.view.RenderError(w, err, status)
+	constructor, imagePart, err := s.handleMeta(mr, DefaultMaxMetaSize)
+	if err != nil || imagePart == nil {
+		s.view.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
 
-	// Second part is the image part
-	p, err = mr.NextPart()
-	if err != nil {
-		s.view.RenderError(
-			w, errors.Wrap(err, "Request does not contain image part"),
-			http.StatusBadRequest)
-		return
-	}
-	imageFile, status, err := s.handleImage(p, DefaultMaxImageSize)
+	imageFile, status, err := s.handleImage(imagePart, DefaultMaxImageSize)
 	if err != nil {
 		s.view.RenderError(w, err, status)
 		return
@@ -280,32 +257,55 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 
 // Meta part of multipart meta/image request handler.
 // Parses meta body, returns image constructor, success code and nil on success.
-func (s *SoftwareImagesController) handleMeta(p *multipart.Part, maxMetaSize int64) (*images.SoftwareImageConstructor, int, error) {
-	if p.Header.Get("Content-Type") != "application/json" {
-		return nil, http.StatusBadRequest, errors.New("First part should be a metadata (application/json)")
+func (s *SoftwareImagesController) handleMeta(mr *multipart.Reader, maxMetaSize int64) (*images.SoftwareImageConstructor, *multipart.Part, error) {
+	constructor := &images.SoftwareImageConstructor{}
+	for {
+		p, err := mr.NextPart()
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "Request does not contain firmware part")
+		}
+		switch p.FormName() {
+		case "name":
+			constructor.Name, err = s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, nil, err
+			}
+		case "yocto_id":
+			constructor.YoctoId, err = s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, nil, err
+			}
+		case "device_type":
+			constructor.DeviceType, err = s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, nil, err
+			}
+		case "checksum":
+			constructor.Checksum, err = s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, nil, err
+			}
+		case "description":
+			constructor.Description, err = s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, nil, err
+			}
+		case "firmware":
+			if err := constructor.Validate(); err != nil {
+				return nil, nil, errors.Wrap(err, "Validating metadata")
+			}
+			return constructor, p, nil
+		}
 	}
-	metaReader := io.LimitReader(p, maxMetaSize)
-	metaPart, err := ioutil.ReadAll(metaReader)
-	if err != nil && err != io.EOF {
-		return nil, http.StatusBadRequest, errors.Wrap(err, "Failed to obtain metadata")
-	}
-	//parse meta
-	var constructor *images.SoftwareImageConstructor
-	if err := json.Unmarshal(metaPart, &constructor); err != nil {
-		return nil, http.StatusBadRequest, errors.Wrap(err, "Parsing matadata")
-	}
-	if err := constructor.Validate(); err != nil {
-		return nil, http.StatusBadRequest, errors.Wrap(err, "Validating metadata")
-	}
-	return constructor, http.StatusOK, nil
 }
 
 // Image part of multipart meta/image request handler.
 // Saves uploaded image in temporary file.
 // Returns temporary file name, success code and nil on success.
 func (s *SoftwareImagesController) handleImage(p *multipart.Part, maxImageSize int64) (*os.File, int, error) {
-	if p.Header.Get("Content-Type") != "application/octet-stream" {
-		return nil, http.StatusBadRequest, errors.New("Second part should be an image (octet-stream)")
+	// HTML form can't set specific content-type, it's automatic, if not empty - it's a file
+	if p.Header.Get("Content-Type") == "" {
+		return nil, http.StatusBadRequest, errors.New("Last part should be an image")
 	}
 	tmpfile, err := ioutil.TempFile("", "firmware-")
 	if err != nil {
@@ -321,6 +321,17 @@ func (s *SoftwareImagesController) handleImage(p *multipart.Part, maxImageSize i
 	}
 
 	return tmpfile, http.StatusOK, nil
+}
+
+func (s *SoftwareImagesController) getFormFieldValue(p *multipart.Part, maxMetaSize int64) (*string, error) {
+	metaReader := io.LimitReader(p, maxMetaSize)
+	bytes, err := ioutil.ReadAll(metaReader)
+	if err != nil && err != io.EOF {
+		return nil, errors.Wrap(err, "Failed to obtain value for " + p.FormName())
+	}
+
+	strValue := string(bytes)
+	return &strValue, nil
 }
 
 func (s SoftwareImagesController) getSoftwareImageConstructorFromBody(r *rest.Request) (*images.SoftwareImageConstructor, error) {

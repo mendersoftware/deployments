@@ -16,7 +16,6 @@ package controller_test
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -59,7 +58,8 @@ type fakeImageModeler struct {
 type Part struct {
 	ContentType string
 	ImageData   []byte
-	MetaStruct  interface{}
+	FieldName   string
+	FieldValue  string
 }
 
 func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
@@ -257,57 +257,21 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: []Part{
-				Part{
-					ContentType: "application/json",
-				},
-			},
+			InputBodyObject:  []Part{},
 			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusUnsupportedMediaType,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Content-Type should be multipart/mixed")),
-			},
-		},
-		{
-			InputBodyObject:  []Part{},
-			InputContentType: "multipart/mixed",
-			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain metadata part: EOF")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain firmware part: EOF")),
 			},
 		},
 		{
 			InputBodyObject: []Part{
 				Part{
+					FieldName: "firmware",
 					ContentType: "application/octet-stream",
 				},
 			},
-			InputContentType: "multipart/mixed",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("First part should be a metadata (application/json)")),
-			},
-		},
-		{
-			InputBodyObject: []Part{
-				Part{
-					ContentType: "application/json",
-				},
-			},
-			InputContentType: "multipart/mixed",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Parsing matadata: unexpected end of JSON input")),
-			},
-		},
-		{
-			InputBodyObject: []Part{
-				Part{
-					ContentType: "application/json",
-					MetaStruct:  images.NewSoftwareImageConstructor(),
-				},
-			},
-			InputContentType: "multipart/mixed",
+			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
 				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating metadata: YoctoId: non zero value required;Name: non zero value required;DeviceType: non zero value required;")),
@@ -316,61 +280,84 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		{
 			InputBodyObject: []Part{
 				Part{
-					ContentType: "application/json",
-					MetaStruct: &images.SoftwareImageConstructor{
-						YoctoId:    pointers.StringToPointer("yocto-id"),
-						Name:       pointers.StringToPointer("name"),
-						DeviceType: pointers.StringToPointer("dev-type"),
-					},
-				},
-			},
-			InputContentType: "multipart/mixed",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain image part: EOF")),
-			},
-		},
-		{
-			InputBodyObject: []Part{
-				Part{
-					ContentType: "application/json",
-					MetaStruct: &images.SoftwareImageConstructor{
-						YoctoId:    pointers.StringToPointer("yocto-id"),
-						Name:       pointers.StringToPointer("name"),
-						DeviceType: pointers.StringToPointer("dev-type"),
-					},
-				},
-				Part{
-					ContentType: "application/json",
-					MetaStruct: &images.SoftwareImageConstructor{
-						YoctoId:    pointers.StringToPointer("yocto-id"),
-						Name:       pointers.StringToPointer("name"),
-						DeviceType: pointers.StringToPointer("dev-type"),
-					},
-				},
-			},
-			InputContentType: "multipart/mixed",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Second part should be an image (octet-stream)")),
-			},
-		},
-		{
-			InputBodyObject: []Part{
-				Part{
-					ContentType: "application/json",
-					MetaStruct: &images.SoftwareImageConstructor{
-						YoctoId:    pointers.StringToPointer("yocto-id"),
-						Name:       pointers.StringToPointer("name"),
-						DeviceType: pointers.StringToPointer("dev-type"),
-					},
-				},
-				Part{
+					FieldName: "firmware",
 					ContentType: "application/octet-stream",
 					ImageData:   []byte{0},
 				},
 			},
-			InputContentType: "multipart/mixed",
+			InputContentType: "multipart/form-data",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating metadata: YoctoId: non zero value required;Name: non zero value required;DeviceType: non zero value required;")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					FieldName: "name",
+					FieldValue: "n",
+				},
+				Part{
+					FieldName: "device_type",
+					FieldValue: "dt",
+				},
+				Part{
+					FieldName: "yocto_id",
+					FieldValue: "yi",
+				},
+			},
+			InputContentType: "multipart/form-data",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain firmware part: EOF")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					FieldName: "name",
+					FieldValue: "n",
+				},
+				Part{
+					FieldName: "device_type",
+					FieldValue: "dt",
+				},
+				Part{
+					FieldName: "yocto_id",
+					FieldValue: "yi",
+				},
+				Part{
+					FieldName: "firmware",
+					FieldValue: "ff",
+				},
+			},
+			InputContentType: "multipart/form-data",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Last part should be an image")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					FieldName: "name",
+					FieldValue: "n",
+				},
+				Part{
+					FieldName: "device_type",
+					FieldValue: "dt",
+				},
+				Part{
+					FieldName: "yocto_id",
+					FieldValue: "yi",
+				},
+				Part{
+					FieldName: "firmware",
+					ContentType: "application/octet-stream",
+					ImageData:   []byte{0},
+				},
+			},
+			InputContentType: "multipart/form-data",
 			InputModelID:     "1234",
 			InputModelError:  errors.New("create image error"),
 			JSONResponseParams: h.JSONResponseParams{
@@ -381,19 +368,24 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		{
 			InputBodyObject: []Part{
 				Part{
-					ContentType: "application/json",
-					MetaStruct: &images.SoftwareImageConstructor{
-						YoctoId:    pointers.StringToPointer("yocto-id"),
-						Name:       pointers.StringToPointer("name"),
-						DeviceType: pointers.StringToPointer("dev-type"),
-					},
+					FieldName: "name",
+					FieldValue: "n",
 				},
 				Part{
+					FieldName: "device_type",
+					FieldValue: "dt",
+				},
+				Part{
+					FieldName: "yocto_id",
+					FieldValue: "yi",
+				},
+				Part{
+					FieldName: "firmware",
 					ContentType: "application/octet-stream",
 					ImageData:   []byte{0},
 				},
 			},
-			InputContentType: "multipart/mixed",
+			InputContentType: "multipart/form-data",
 			InputModelID:     "1234",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusCreated,
@@ -432,15 +424,17 @@ func MakeMultipartRequest(method string, urlStr string, contentType string, payl
 	for _, part := range payload {
 		mh := make(textproto.MIMEHeader)
 		mh.Set("Content-Type", part.ContentType)
+		if part.ContentType == "" && part.ImageData == nil {
+			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"")
+		} else {
+			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"; filename=\"firmware-213.tar.gz\"")
+		}
 		part_writer, err := body_writer.CreatePart(mh)
 		if nil != err {
 			panic(err.Error())
 		}
-		if part.ContentType == "application/json" && part.MetaStruct != nil {
-			b, err := json.Marshal(part.MetaStruct)
-			if err != nil {
-				panic(err)
-			}
+		if part.ContentType == "" && part.ImageData == nil {
+			b := []byte(part.FieldValue)
 			io.Copy(part_writer, bytes.NewReader(b))
 		} else {
 			io.Copy(part_writer, bytes.NewReader(part.ImageData))

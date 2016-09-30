@@ -80,7 +80,7 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 	api.Use(DefaultDevStack...)
 
 	// Verifies the request Content-Type header if the content is non-null.
-	// For the POST /api/0.0.1/images request expected Content-Type is 'multipart/mixed'.
+	// For the POST /api/0.0.1/images request expected Content-Type is 'multipart/form-data'.
 	// For the rest of the requests expected Content-Type is 'application/json'.
 	api.Use(&rest.IfMiddleware{
 		Condition: func(r *rest.Request) bool {
@@ -93,8 +93,8 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 		IfTrue: rest.MiddlewareSimple(func(handler rest.HandlerFunc) rest.HandlerFunc {
 			return func(w rest.ResponseWriter, r *rest.Request) {
 				mediatype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-				if r.ContentLength > 0 && !(mediatype == "multipart/mixed") {
-					rest.Error(w, "Bad Content-Type, expected 'multipart/mixed'", http.StatusUnsupportedMediaType)
+				if r.ContentLength > 0 && !(mediatype == "multipart/form-data") {
+					rest.Error(w, "Bad Content-Type, expected 'multipart/form-data'", http.StatusUnsupportedMediaType)
 					return
 				}
 				// call the wrapped handler
