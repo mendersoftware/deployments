@@ -150,7 +150,7 @@ script:
 
 after_success:
     # Integrate with https://codecov.io
-    - bash <(curl -s https://codecov.io/bash
+    - bash <(curl -s https://codecov.io/bash)
 
     # Make build directory and copy all artifacts to this directory.
     - mkdir build
