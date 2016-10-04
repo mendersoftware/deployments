@@ -215,6 +215,12 @@
 			"revisionTime": "2016-03-08T14:18:24Z"
 		},
 		{
+			"checksumSHA1": "i38FeB/pqmU7xcluq/0LHjIwDY8=",
+			"path": "github.com/mendersoftware/mendertesting",
+			"revision": "8f7685eaafcdf5702c7484892858237090f1240a",
+			"revisionTime": "2016-09-27T12:54:33Z"
+		},
+		{
 			"checksumSHA1": "c2FGEPqomq7w/r8Zq+YOXHT/IUg=",
 			"path": "github.com/mendersoftware/scopestack",
 			"revision": "a2fd82754c9c4e9dcad1e4c736ac37f424b21aeb",

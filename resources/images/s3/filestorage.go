@@ -16,6 +16,7 @@ package s3
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -125,6 +126,25 @@ func (s *SimpleStorageService) Exists(objectID string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// Puts object into AWS S3
+func (s *SimpleStorageService) PutFile(objectID string, image *os.File) error {
+
+	fi, err := image.Stat()
+	if err != nil {
+		return err
+	}
+	params := &s3.PutObjectInput{
+		Body:          image,
+		Bucket:        aws.String(s.bucket),
+		Key:           aws.String(objectID),
+		ContentLength: aws.Int64(fi.Size()),
+	}
+
+	// Ignore out object?
+	_, err = s.client.PutObject(params)
+	return err
 }
 
 // PutRequest duration is limited to 7 days (AWS limitation)

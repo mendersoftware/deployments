@@ -15,6 +15,7 @@
 package model
 
 import (
+	"os"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -24,6 +25,7 @@ import (
 
 var (
 	ErrModelMissingInputMetadata     = errors.New("Missing input metadata")
+	ErrModelInvalidMetadata          = errors.New("Metadata invalid")
 	ErrModelImageInActiveDeployment  = errors.New("Image is used in active deployment and cannot be removed")
 	ErrModelImageUsedInAnyDeployment = errors.New("Image have been already used in deployment")
 )
@@ -46,27 +48,31 @@ func NewImagesModel(
 	}
 }
 
-func (i *ImagesModel) CreateImage(constructor *images.SoftwareImageConstructor) (string, error) {
+func (i *ImagesModel) CreateImage(imageFile *os.File, constructor *images.SoftwareImageConstructor) (string, error) {
 
 	if constructor == nil {
 		return "", ErrModelMissingInputMetadata
 	}
 
 	if err := constructor.Validate(); err != nil {
-		return "", errors.Wrap(err, "Validating image metadata")
+		return "", ErrModelInvalidMetadata
 	}
 
 	image := images.NewSoftwareImageFromConstructor(constructor)
 
 	if err := i.imagesStorage.Insert(image); err != nil {
-		return "", errors.Wrap(err, "Storing image metadata")
+		return "", errors.Wrap(err, "Fail to store the metadata")
+	}
+
+	if err := i.fileStorage.PutFile(*image.Id, imageFile); err != nil {
+		i.imagesStorage.Delete(*image.Id)
+		return "", errors.Wrap(err, "Fail to store the image")
 	}
 
 	return *image.Id, nil
 }
 
 // GetImage allows to fetch image obeject with specified id
-// On each lookup it syncs last file upload time with metadata in case file was uploaded or reuploaded
 // Nil if not found
 func (i *ImagesModel) GetImage(id string) (*images.SoftwareImage, error) {
 
@@ -77,10 +83,6 @@ func (i *ImagesModel) GetImage(id string) (*images.SoftwareImage, error) {
 
 	if image == nil {
 		return nil, nil
-	}
-
-	if err := i.syncLastModifiedTimeWithFileUpload(image); err != nil {
-		return nil, errors.Wrap(err, "Synchronizing image upload time")
 	}
 
 	return image, nil
@@ -127,7 +129,6 @@ func (i *ImagesModel) DeleteImage(imageID string) error {
 }
 
 // ListImages according to specified filers.
-// On each lookup it syncs last file upload time with metadata in case file was uploaded or reuploaded
 func (i *ImagesModel) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
 
 	imageList, err := i.imagesStorage.FindAll()
@@ -139,38 +140,7 @@ func (i *ImagesModel) ListImages(filters map[string]string) ([]*images.SoftwareI
 		return make([]*images.SoftwareImage, 0), nil
 	}
 
-	for _, image := range imageList {
-		if err := i.syncLastModifiedTimeWithFileUpload(image); err != nil {
-			return nil, errors.Wrap(err, "Synchronizing image upload time")
-		}
-	}
-
 	return imageList, nil
-}
-
-// Sync file upload time with last modified time of image metadata.
-// Need to check when image was uploaded and if it was overwritten
-// Ugly but required by frontend design, in future can be split.
-// Expensive! Will go away with switching to one-step file upload.
-func (i *ImagesModel) syncLastModifiedTimeWithFileUpload(image *images.SoftwareImage) error {
-
-	uploaded, err := i.fileStorage.LastModified(*image.Id)
-	if err != nil {
-		if errors.Cause(err).Error() == ErrFileStorageFileNotFound.Error() {
-			return nil
-		}
-
-		return errors.Wrap(err, "Cheking last modified time for image file")
-	}
-
-	if image.Modified.Before(uploaded) {
-		image.Modified = &uploaded
-		if _, err := i.imagesStorage.Update(image); err != nil {
-			return errors.Wrap(err, "Updating image metadata")
-		}
-	}
-
-	return nil
 }
 
 // EditObject allows editing only if image have not been used yet in any deployment.
@@ -207,27 +177,6 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 	}
 
 	return true, nil
-}
-
-// UploadLink generated presigned PUT link to upload image file.
-// Image meta has to be created first.
-func (i *ImagesModel) UploadLink(imageID string, expire time.Duration) (*images.Link, error) {
-
-	found, err := i.imagesStorage.Exists(imageID)
-	if err != nil {
-		return nil, errors.Wrap(err, "Searching for image with specified ID")
-	}
-
-	if !found {
-		return nil, nil
-	}
-
-	link, err := i.fileStorage.PutRequest(imageID, expire)
-	if err != nil {
-		return nil, errors.Wrap(err, "Generating upload link")
-	}
-
-	return link, nil
 }
 
 // DownloadLink presigned GET link to download image file.

@@ -15,7 +15,12 @@
 package controller
 
 import (
+	"io"
+	"io/ioutil"
+	"mime"
+	"mime/multipart"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -28,7 +33,6 @@ import (
 // API input validation constants
 const (
 	DefaultDownloadLinkExpire = 60
-	DefaultUploadLinkExpire   = 60
 
 	// AWS limitation is 1 week
 	MaxLinkExpire = 60 * 7 * 24
@@ -85,35 +89,6 @@ func (s *SoftwareImagesController) ListImages(w rest.ResponseWriter, r *rest.Req
 	s.view.RenderSuccessGet(w, list)
 }
 
-func (s *SoftwareImagesController) UploadLink(w rest.ResponseWriter, r *rest.Request) {
-
-	id := r.PathParam("id")
-
-	if !govalidator.IsUUIDv4(id) {
-		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
-		return
-	}
-
-	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
-	if err != nil {
-		s.view.RenderError(w, err, http.StatusBadRequest)
-		return
-	}
-
-	link, err := s.model.UploadLink(id, expire)
-	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	if link == nil {
-		s.view.RenderErrorNotFound(w)
-		return
-	}
-
-	s.view.RenderSuccessGet(w, link)
-}
-
 func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.Request) {
 
 	id := r.PathParam("id")
@@ -123,7 +98,7 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 		return
 	}
 
-	expire, err := s.getLinkExpireParam(r, DefaultUploadLinkExpire)
+	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
 	if err != nil {
 		s.view.RenderError(w, err, http.StatusBadRequest)
 		return
@@ -232,21 +207,131 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 	s.view.RenderSuccessPut(w)
 }
 
+// Multipart Image/Meta upload handler.
+// Request should be of type "multipart/form-data".
+// First part should contain Metadata file. This file should be of type "application/json".
+// Second part should contain Image file. This part should be of type "application/octet-strem".
 func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Request) {
 
-	constructor, err := s.getSoftwareImageConstructorFromBody(r)
+	// limits just for safety;
+	const (
+		// Max image size
+		DefaultMaxImageSize = 1024 * 1024 * 1024 * 10
+		// Max meta size
+		DefaultMaxMetaSize = 1024 * 1024 * 10
+	)
+
+	// parse content type and params according to RFC 1521
+	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		s.view.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest)
+		s.view.RenderError(w, err, http.StatusBadRequest)
 		return
 	}
 
-	id, err := s.model.CreateImage(constructor)
+	mr := multipart.NewReader(r.Body, params["boundary"])
+
+	constructor, imagePart, err := s.handleMeta(mr, DefaultMaxMetaSize)
+	if err != nil || imagePart == nil {
+		s.view.RenderError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	imageFile, status, err := s.handleImage(imagePart, DefaultMaxImageSize)
 	if err != nil {
+		s.view.RenderError(w, err, status)
+		return
+	}
+	defer os.Remove(imageFile.Name())
+	defer imageFile.Close()
+
+	imgId, err := s.model.CreateImage(imageFile, constructor)
+	if err != nil {
+		// TODO: check if this is bad request or internal error
 		s.view.RenderError(w, err, http.StatusInternalServerError)
 		return
 	}
 
-	s.view.RenderSuccessPost(w, r, id)
+	s.view.RenderSuccessPost(w, r, imgId)
+	return
+}
+
+// Meta part of multipart meta/image request handler.
+// Parses meta body, returns image constructor, success code and nil on success.
+func (s *SoftwareImagesController) handleMeta(mr *multipart.Reader, maxMetaSize int64) (*images.SoftwareImageConstructor, *multipart.Part, error) {
+	constructor := &images.SoftwareImageConstructor{}
+	for {
+		p, err := mr.NextPart()
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "Request does not contain firmware part")
+		}
+		switch p.FormName() {
+		case "name":
+			constructor.Name, err = s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, nil, err
+			}
+		case "yocto_id":
+			constructor.YoctoId, err = s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, nil, err
+			}
+		case "device_type":
+			constructor.DeviceType, err = s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, nil, err
+			}
+		case "checksum":
+			constructor.Checksum, err = s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, nil, err
+			}
+		case "description":
+			constructor.Description, err = s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, nil, err
+			}
+		case "firmware":
+			if err := constructor.Validate(); err != nil {
+				return nil, nil, errors.Wrap(err, "Validating metadata")
+			}
+			return constructor, p, nil
+		}
+	}
+}
+
+// Image part of multipart meta/image request handler.
+// Saves uploaded image in temporary file.
+// Returns temporary file name, success code and nil on success.
+func (s *SoftwareImagesController) handleImage(p *multipart.Part, maxImageSize int64) (*os.File, int, error) {
+	// HTML form can't set specific content-type, it's automatic, if not empty - it's a file
+	if p.Header.Get("Content-Type") == "" {
+		return nil, http.StatusBadRequest, errors.New("Last part should be an image")
+	}
+	tmpfile, err := ioutil.TempFile("", "firmware-")
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	n, err := io.CopyN(tmpfile, p, maxImageSize+1)
+	if err != nil && err != io.EOF {
+		return nil, http.StatusBadRequest, errors.Wrap(err, "Request body invalid")
+	}
+	if n == maxImageSize+1 {
+		return nil, http.StatusBadRequest, errors.New("Image file too large")
+	}
+
+	return tmpfile, http.StatusOK, nil
+}
+
+func (s *SoftwareImagesController) getFormFieldValue(p *multipart.Part, maxMetaSize int64) (*string, error) {
+	metaReader := io.LimitReader(p, maxMetaSize)
+	bytes, err := ioutil.ReadAll(metaReader)
+	if err != nil && err != io.EOF {
+		return nil, errors.Wrap(err, "Failed to obtain value for " + p.FormName())
+	}
+
+	strValue := string(bytes)
+	return &strValue, nil
 }
 
 func (s SoftwareImagesController) getSoftwareImageConstructorFromBody(r *rest.Request) (*images.SoftwareImageConstructor, error) {

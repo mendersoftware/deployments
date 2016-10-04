@@ -116,7 +116,6 @@ func NewImagesResourceRoutes(controller *imagesController.SoftwareImagesControll
 		rest.Delete("/api/0.0.1/images/:id", controller.DeleteImage),
 		rest.Put("/api/0.0.1/images/:id", controller.EditImage),
 
-		rest.Get("/api/0.0.1/images/:id/upload", controller.UploadLink),
 		rest.Get("/api/0.0.1/images/:id/download", controller.DownloadLink),
 	}
 }

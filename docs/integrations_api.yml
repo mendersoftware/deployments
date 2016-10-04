@@ -1,24 +1,15 @@
 swagger: '2.0'
 info:
-  title: Deployments Service API
-  version: '0.0.1'
+  title: Deployments Service Integration API
+  version: '0.1'
   description: |
     ### Common information about all exposed API endpoints.
-    
+
     CORS and none-CORS requests are supported. Details [wikipedia](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing#Simple_example).
 
     Allows `Location` header exposure.
-    
-    ### Device endpoints and Authorization
-    
-    Incoming requests must set `Authorization` header and include device token
-    obtained from the API. The header shall look like this:
-
-    ```
-    Authorization: Bearer <token>
-    # example
-    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ
-    ```
+host: 'localhost:8080'
+basePath: '/api/integrations/0.1/deployments'
 responses:
   NotFoundError: # 404
     description: Not Found
@@ -31,166 +22,9 @@ responses:
   InvalidRequestError: # 400
     description: Invalid Request
     schema:
-      $ref: "#/definitions/SimpleError"      
+      $ref: "#/definitions/SimpleError"
 
 paths:
-  '/device/update':
-    get:
-      summary: List next update to be installed on the device
-      parameters:
-        - name: Authorization
-          in: header
-          description: Device ID
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        200:
-          description: OK
-          examples:
-            application/json:
-              image:
-                uri: 'https://aws.my_update_bucket.com/yocto_image123'
-                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                id: f81d4fae-7dec-11d0-a765-00a0c91e6bf6
-                expire: 2016-03-11T13:03:17.063493443Z
-                yocto_id: core-image-full-cmdline-20160330201408
-              id: w81s4fae-7dec-11d0-a765-00a0c91e6bf6
-          schema:
-            type: object
-            properties:
-              id:
-                type: string
-              image:
-                type: object
-                properties:
-                  uri:
-                    type: string
-                  checksum:
-                    type: string
-                  id:
-                    type: string
-                  expire:
-                    type: string
-                    format: date-time
-                  yocto_id:
-                    type: string
-                required:
-                  - uri
-                  - id
-                  - yocto_id
-            required:
-              - image
-              - id
-        204:
-          description: No updates for device
-        404:
-          $ref: "#/responses/NotFoundError"
-        500:
-          $ref: "#/responses/InternalServerError"
-
-  '/device/deployments/{id}/status':
-    put:
-      summary: Update device deployment status
-      description: |
-        Update the status of a deployment on a particular device. Final status
-        of the deployment is required to be set to indicate the success or failure 
-        of the installation process. Reporting of intermediate steps such as installing,
-        downloading, rebooting is optional.
-      parameters:
-        - name: id
-          in: path
-          description: Deployment identifier
-          required: true
-          type: string
-        - name: Authorization
-          in: header
-          description: Device ID
-          required: true
-          type: string
-        - name: Status
-          in: body
-          description: Deployment status
-          required: true
-          schema:
-            type: object
-            properties:
-              status:
-                type: string
-                enum:
-                  - installing
-                  - downloading
-                  - rebooting
-                  - success
-                  - failure
-            required:
-              - status
-      produces:
-        - application/json
-      responses:
-        204:
-          description: Status updated
-        400:
-          $ref: "#/responses/InvalidRequestError"
-        404:
-          $ref: "#/responses/NotFoundError"
-        500:
-          $ref: "#/responses/InternalServerError"
-
-  '/device/deployments/{id}/log':
-    put:
-      summary: Upload device deployment log
-      description: |
-        Set deployment log. Messages are split by line in the payload.
-      parameters:
-        - name: id
-          in: path
-          description: Deployment identifier
-          required: true
-          type: string
-        - name: Authorization
-          in: header
-          description: Device ID
-          required: true
-          type: string
-        - name: Log
-          in: body
-          description: Deployment log
-          required: true
-          schema:
-            type: object
-            properties:
-              messages:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    timestamp:
-                      type: string
-                      format: date-time
-                    level:
-                      type: string
-                    message:
-                      type: string
-                  required:
-                    - timestamp
-                    - level
-                    - message
-            required:
-              - messages
-      produces:
-        - application/json
-      responses:
-        204:
-          description: Deployment log uploaded
-        400:
-          $ref: "#/responses/InvalidRequestError"
-        404:
-          $ref: "#/responses/NotFoundError"
-        500:
-          $ref: "#/responses/InternalServerError"
-
   /deployments:
     get:
       summary: Find deployments
@@ -532,7 +366,7 @@ paths:
                 modified: 2016-03-11T13:03:17.063493443Z
                 yocto_id: core-image-full-cmdline-20160330201408
           schema:
-            type: object
+            type: array
             items:
               $ref: "#/definitions/Image"
 
@@ -542,14 +376,35 @@ paths:
     post:
       summary: Create firmware image
       description: |
-        Create firmware image. Afterwards upload link can be generated to upload
-        image file.
+        Create firmware image. Mulitpart request with meta and image.
+        Image part (named firmware) has to be the last one.
+      consumes:
+        - multipart/form-data
       parameters:
-        - name: image
-          in: body
+        - name: name
+          in: formData
           required: true
-          schema:
-            $ref: "#/definitions/ImageBase"
+          type: string
+        - name: yocto_id
+          in: formData
+          required: true
+          type: string
+        - name: device_type
+          in: formData
+          required: true
+          type: string
+        - name: checksum
+          in: formData
+          required: false
+          type: string
+        - name: description
+          in: formData
+          required: false
+          type: string
+        - name: firmware
+          in: formData
+          required: true
+          type: file
       produces:
         - application/json
       responses:
@@ -559,6 +414,8 @@ paths:
             Location:
               description: URL of newly created image
               type: string
+        400:
+          $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -627,61 +484,6 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
-
-  '/images/{id}/upload':
-    get:
-      summary: Generate upload link
-      description: |
-        Generate signed URL for uploading image file. URI can be used only with PUT HTTP method.
-        It is valid for specified period if time.
-
-        In case link is used multiple times to upload file, file will be
-        overwritten.
-      parameters:
-        - name: id
-          in: path
-          description: Image ID
-          required: true
-          type: string
-        - name: expire
-          in: query
-          description: |
-            Link validity length in minutes. Min 1 minute, max 10080 (1 week)
-          required: false
-          type: integer
-          default: 60
-      produces:
-        - application/json
-      responses:
-        200:
-          description: OK
-          schema:
-            $ref: "#/definitions/ImageLink"
-          examples:
-            application/json:
-              uri: 'https://exmple.com/file123'
-              expire: '2016-03-11T13:03:17.063493443Z'
-        400:
-          description: Bad Request
-          examples:
-            application/json:
-              error: Detailed error message
-          schema:
-            $ref: "#/definitions/SimpleError"
-        404:
-          description: Not Found
-          examples:
-            application/json:
-              error: Detailed error message
-          schema:
-            $ref: "#/definitions/SimpleError"
-        500:
-          description: Internal Server Error
-          examples:
-            application/json:
-              error: Detailed error message
-          schema:
-            $ref: "#/definitions/SimpleError"
 
   '/images/{id}/download':
     get:
@@ -771,6 +573,7 @@ definitions:
       - device_type
   Image:
     description: Detailed firmware image
+    type: object
     allOf:
       - $ref: "#/definitions/ImageBase"
       - type: object
@@ -783,14 +586,13 @@ definitions:
             type: string
             format: date-time
             description: |
-              Represents creation / last edition of any of the image properties,
-              including image file upload or rewrite
+              Represents creation / last edition of any of the image properties
         required:
           - id
           - verified
           - modified
   ImageLink:
-    description: URL for firmare image upload/download
+    description: URL for firmare image download
     type: object
     properties:
       uri:
