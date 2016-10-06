@@ -244,3 +244,79 @@ func TestDeploymentIs(t *testing.T) {
 		assert.True(t, d.IsPending())
 	}
 }
+
+func TestDeploymentGetStatus(t *testing.T) {
+
+	tests := map[string]struct {
+		Stats        map[string]int
+		OutputStatus string
+	}{
+		"Single NoImage": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusNoImage: 1,
+			},
+			OutputStatus: "finished",
+		},
+		"Single Success": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusSuccess: 1,
+			},
+			OutputStatus: "finished",
+		},
+		"Success + NoImage": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusSuccess: 1,
+				DeviceDeploymentStatusNoImage: 1,
+			},
+			OutputStatus: "finished",
+		},
+		"Failed + NoImage": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusFailure: 1,
+				DeviceDeploymentStatusNoImage: 1,
+			},
+			OutputStatus: "finished",
+		},
+		"Rebooting + NoImage": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusRebooting: 1,
+				DeviceDeploymentStatusNoImage:   1,
+			},
+			OutputStatus: "inprogress",
+		},
+		"Rebooting + Installing": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusRebooting:  1,
+				DeviceDeploymentStatusInstalling: 1,
+			},
+			OutputStatus: "inprogress",
+		},
+		"Rebooting + Pending": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusRebooting: 1,
+				DeviceDeploymentStatusPending:   1,
+			},
+			OutputStatus: "inprogress",
+		},
+		"Pending": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusPending: 1,
+			},
+			OutputStatus: "pending",
+		},
+		"Empty": {
+			OutputStatus: "finished",
+		},
+	}
+
+	for name, test := range tests {
+
+		t.Log(name)
+
+		dep := NewDeployment()
+		dep.Stats = test.Stats
+
+		assert.Equal(t, test.OutputStatus, dep.GetStatus())
+	}
+
+}
