@@ -190,6 +190,8 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 	}
 
 	if deployment.IsFinished() {
+		// TODO: Make this part of UpdateStats() call as currently we are doing two
+		// write operations on DB - as well as it's saver to keep them in single transaction.
 		if err := d.deploymentsStorage.Finish(deploymentID, time.Now()); err != nil {
 			return errors.Wrap(err, "failed to mark deployment as finished")
 		}
