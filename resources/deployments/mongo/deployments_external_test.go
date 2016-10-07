@@ -489,6 +489,18 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusPending: 1,
 			}),
 		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("zed"),
+				ArtifactName: StringToPointer("daz"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("44dd8822-eeb1-44db-a18e-f4f5acc43796"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusNoImage: 1,
+				deployments.DeviceDeploymentStatusSuccess: 1,
+			}),
+		},
 	}
 
 	testCases := []struct {
@@ -592,6 +604,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				"d1804903-5caa-4a73-a3ae-0efcc3205405",
 				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
 				"3fe15222-0a41-401f-8f5e-582aba2a002c",
+				"44dd8822-eeb1-44db-a18e-f4f5acc43796",
 			},
 		},
 		{
@@ -609,6 +622,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				"3fe15222-0a41-401f-8f5e-582aba2a002d",
 				"3fe15222-1234-401f-8f5e-582aba2a002e",
 				"3fe15222-1234-401f-8f5e-582aba2a002f",
+				"44dd8822-eeb1-44db-a18e-f4f5acc43796",
 			},
 		},
 	}
