@@ -38,6 +38,8 @@ import (
 	"github.com/mendersoftware/deployments/resources/images/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/mendersoftware/deployments/utils/pointers"
+	"github.com/mendersoftware/deployments/utils/requestid"
+	"github.com/mendersoftware/deployments/utils/requestlog"
 	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -99,6 +101,10 @@ type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.
 func setUpRestTest(route string, routeType routerTypeHandler, handler func(w rest.ResponseWriter, r *rest.Request)) *rest.Api {
 	router, _ := rest.MakeRouter(routeType(route, handler))
 	api := rest.NewApi()
+	api.Use(
+		&requestlog.RequestLogMiddleware{},
+		&requestid.RequestIdMiddleware{},
+	)
 	api.SetApp(router)
 
 	return api
@@ -437,13 +443,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			mock.AnythingOfType("*images.SoftwareImageMetaYoctoConstructor")).
 			Return(testCase.InputModelID, testCase.InputModelError)
 
-		router, err := rest.MakeRouter(
-			rest.Post("/r",
-				NewSoftwareImagesController(model, new(view.RESTView)).NewImage))
-		assert.NoError(t, err)
-
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := setUpRestTest("/r", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).NewImage)
 
 		recorded := test.RunRequest(t, api.MakeHandler(),
 			MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject))
@@ -611,13 +611,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 		model.On("DownloadLink", testCase.InputID, mock.AnythingOfType("time.Duration")).
 			Return(testCase.InputModelLink, testCase.InputModelError)
 
-		router, err := rest.MakeRouter(
-			rest.Post("/:id",
-				NewSoftwareImagesController(model, new(view.RESTView)).DownloadLink))
-		assert.NoError(t, err)
-
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := setUpRestTest("/:id", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).DownloadLink)
 
 		var expire string
 		if testCase.InputParamExpire != nil {
