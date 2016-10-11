@@ -9,10 +9,10 @@
 			"revisionTime": "2015-05-01T10:40:42Z"
 		},
 		{
-			"checksumSHA1": "wKuvwiT/th0w1aKpz+n2lOWJLYs=",
+			"checksumSHA1": "DWPL08pD/SQ2GzLfoR7ZXnjj7Sw=",
 			"path": "github.com/Sirupsen/logrus",
-			"revision": "3455d89ac9652295c85db2a98ea32f1d61c380bc",
-			"revisionTime": "2016-02-12T11:24:02Z"
+			"revision": "4b6ea7319e214d98c938f12692336f7ca9348d6b",
+			"revisionTime": "2016-03-17T14:11:10Z"
 		},
 		{
 			"checksumSHA1": "BTcyA6tXJB1HHopuuYhi1XrtR+s=",
