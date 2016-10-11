@@ -14,15 +14,18 @@
 
 package controller
 
-import "github.com/ant0ine/go-json-rest/rest"
-import "github.com/mendersoftware/deployments/resources/deployments"
+import (
+	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/utils/log"
+)
 
 type RESTView interface {
 	RenderNoUpdateForDevice(w rest.ResponseWriter)
 	RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string)
 	RenderSuccessGet(w rest.ResponseWriter, object interface{})
 	RenderEmptySuccessResponse(w rest.ResponseWriter)
-	RenderError(w rest.ResponseWriter, err error, status int)
-	RenderErrorNotFound(w rest.ResponseWriter)
+	RenderError(w rest.ResponseWriter, err error, status int, l *log.Logger)
+	RenderErrorNotFound(w rest.ResponseWriter, l *log.Logger)
 	RenderDeploymentLog(w rest.ResponseWriter, dlog deployments.DeploymentLog)
 }
