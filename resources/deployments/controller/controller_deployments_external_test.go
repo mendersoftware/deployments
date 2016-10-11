@@ -30,6 +30,8 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/deployments/view"
 	. "github.com/mendersoftware/deployments/utils/pointers"
+	"github.com/mendersoftware/deployments/utils/requestid"
+	"github.com/mendersoftware/deployments/utils/requestlog"
 	"github.com/stretchr/testify/assert"
 
 	h "github.com/mendersoftware/deployments/utils/testing"
@@ -42,6 +44,16 @@ import (
 func makeDeviceAuthHeader(claim string) string {
 	return fmt.Sprintf("Bearer foo.%s.bar",
 		base64.StdEncoding.EncodeToString([]byte(claim)))
+}
+
+func makeApi(router rest.App) *rest.Api {
+	api := rest.NewApi()
+	api.Use(
+		&requestlog.RequestLogMiddleware{},
+		&requestid.RequestIdMiddleware{},
+	)
+	api.SetApp(router)
+	return api
 }
 
 func TestControllerGetDeploymentForDevice(t *testing.T) {
@@ -114,8 +126,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeploymentForDevice))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		req := test.MakeSimpleRequest("GET", "http://localhost/r/update", nil)
 		for k, v := range testCase.Headers {
@@ -193,8 +204,7 @@ func TestControllerGetDeployment(t *testing.T) {
 				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeployment))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		recorded := test.RunRequest(t, api.MakeHandler(),
 			test.MakeSimpleRequest("GET", "http://localhost/r/"+testCase.InputID, nil))
@@ -268,8 +278,7 @@ func TestControllerPostDeployment(t *testing.T) {
 				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).PostDeployment))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		recorded := test.RunRequest(t, api.MakeHandler(),
 			test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject))
@@ -377,8 +386,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 					new(view.DeploymentsView)).PutDeploymentStatusForDevice))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
 			testCase.InputBodyObject)
@@ -461,8 +469,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
 			nil)
@@ -541,8 +548,7 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		recorded := test.RunRequest(t, api.MakeHandler(),
 			test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil))
@@ -668,8 +674,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		u := url.URL{
 			Scheme: "http",
@@ -903,8 +908,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 					new(view.DeploymentsView)).PutDeploymentLogForDevice))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		req := test.MakeSimpleRequest("PUT", "http://localhost/r/"+testCase.InputModelDeploymentID,
 			testCase.InputBodyObject)
@@ -1030,8 +1034,7 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 					new(view.DeploymentsView)).GetDeploymentLogForDevice))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+
 			testCase.InputModelDeploymentID+"/"+testCase.InputModelDeviceID,
