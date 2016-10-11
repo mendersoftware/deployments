@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mendersoftware/log"
+	"github.com/mendersoftware/deployments/utils/log"
 
 	"github.com/mendersoftware/deployments/config"
 	"github.com/spf13/viper"
@@ -40,12 +40,14 @@ func main() {
 		os.Exit(0)
 	}
 
+	l := log.New(log.Ctx{})
+
 	configuration, err := HandleConfigFile(configPath)
 	if err != nil {
-		log.Fatalln(err)
+		l.Fatalf("error loading configuration: %s", err)
 	}
 
-	log.Fatalln(RunServer(configuration))
+	l.Fatal(RunServer(configuration))
 }
 
 func HandleConfigFile(filePath string) (config.ConfigReader, error) {
