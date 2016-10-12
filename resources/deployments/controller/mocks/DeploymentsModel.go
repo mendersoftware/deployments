@@ -15,6 +15,7 @@
 package mocks
 
 import (
+	"context"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/stretchr/testify/mock"
 )
@@ -25,19 +26,19 @@ type DeploymentsModel struct {
 }
 
 // CreateDeployment provides a mock function with given fields: constructor
-func (_m *DeploymentsModel) CreateDeployment(constructor *deployments.DeploymentConstructor) (string, error) {
+func (_m *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *deployments.DeploymentConstructor) (string, error) {
 	ret := _m.Called(constructor)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(*deployments.DeploymentConstructor) string); ok {
-		r0 = rf(constructor)
+	if rf, ok := ret.Get(0).(func(context.Context, *deployments.DeploymentConstructor) string); ok {
+		r0 = rf(ctx, constructor)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*deployments.DeploymentConstructor) error); ok {
-		r1 = rf(constructor)
+	if rf, ok := ret.Get(1).(func(context.Context, *deployments.DeploymentConstructor) error); ok {
+		r1 = rf(ctx, constructor)
 	} else {
 		r1 = ret.Error(1)
 	}

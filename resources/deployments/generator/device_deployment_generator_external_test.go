@@ -15,6 +15,7 @@
 package generator_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -116,11 +117,11 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 			Return(testCase.InputImageByNameAndDeviceType, testCase.InputImageByNameAndDeviceTypeError)
 
 		inventory := new(mocks.GetDeviceTyper)
-		inventory.On("GetDeviceType", mock.AnythingOfType("string")).
+		inventory.On("GetDeviceType", mock.AnythingOfType("*context.emptyCtx"), mock.AnythingOfType("string")).
 			Return(testCase.InputGetDeviceType, testCase.InputGetDeviceTypeError)
 
 		deviceDeployment, err := NewImageBasedDeviceDeployment(images, inventory).
-			Generate(testCase.InputID, testCase.InputDeployment)
+			Generate(context.Background(), testCase.InputID, testCase.InputDeployment)
 
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())

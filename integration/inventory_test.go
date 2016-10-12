@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -106,7 +107,7 @@ func TestGetDeviceInventory(t *testing.T) {
 		api, err := NewMenderAPI(ts.URL)
 		assert.NoError(t, err, "api client init")
 
-		device, err := api.GetDeviceInventory(DeviceID("whatever"))
+		device, err := api.GetDeviceInventory(context.TODO(), DeviceID("whatever"))
 
 		if test.Err != nil {
 			assert.EqualError(t, err, test.Err.Error())
