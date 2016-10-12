@@ -410,7 +410,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputModelError:  errors.New("create image error"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("create image error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 		},
 		{
@@ -578,7 +578,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 			InputModelError:  errors.New("file service down"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`file service down`)),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`internal error`)),
 			},
 		},
 		{
@@ -586,7 +586,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 			InputModelError: errors.New("file service down"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`file service down`)),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`internal error`)),
 			},
 		},
 		// no file found

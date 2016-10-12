@@ -71,7 +71,7 @@ func (s *SoftwareImagesController) GetImage(w rest.ResponseWriter, r *rest.Reque
 
 	image, err := s.model.GetImage(id)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, err, l)
 		return
 	}
 
@@ -88,7 +88,7 @@ func (s *SoftwareImagesController) ListImages(w rest.ResponseWriter, r *rest.Req
 
 	list, err := s.model.ListImages(r.PathParams)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, err, l)
 		return
 	}
 
@@ -113,7 +113,7 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 
 	link, err := s.model.DownloadLink(id, expire)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, err, l)
 		return
 	}
 
@@ -179,7 +179,7 @@ func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Re
 			s.view.RenderErrorNotFound(w, l)
 			return
 		}
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, err, l)
 		return
 	}
 
@@ -204,7 +204,7 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 
 	found, err := s.model.EditImage(id, constructor)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, err, l)
 		return
 	}
 
@@ -248,7 +248,11 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 
 	imageFile, metaYoctoConstructor, status, err := s.handleImage(imagePart, DefaultMaxImageSize)
 	if err != nil {
-		s.view.RenderError(w, err, status, l)
+		if status == http.StatusInternalServerError {
+			s.view.RenderInternalError(w, err, l)
+		} else {
+			s.view.RenderError(w, err, status, l)
+		}
 		return
 	}
 	defer os.Remove(imageFile.Name())
@@ -257,7 +261,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	imgId, err := s.model.CreateImage(imageFile, metaConstructor, metaYoctoConstructor)
 	if err != nil {
 		// TODO: check if this is bad request or internal error
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, err, l)
 		return
 	}
 
