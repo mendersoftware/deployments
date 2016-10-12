@@ -15,6 +15,7 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"github.com/mendersoftware/deployments/resources/deployments"
 )
@@ -30,7 +31,7 @@ var (
 
 // Domain model for deployment
 type DeploymentsModel interface {
-	CreateDeployment(constructor *deployments.DeploymentConstructor) (string, error)
+	CreateDeployment(ctx context.Context, constructor *deployments.DeploymentConstructor) (string, error)
 	GetDeployment(deploymentID string) (*deployments.Deployment, error)
 	GetDeploymentStats(deploymentID string) (deployments.Stats, error)
 	GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error)

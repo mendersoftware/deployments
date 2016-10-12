@@ -15,6 +15,7 @@
 package generator
 
 import (
+	"context"
 	"github.com/mendersoftware/deployments/integration"
 	"github.com/pkg/errors"
 )
@@ -26,7 +27,7 @@ const (
 )
 
 type APIClient interface {
-	GetDeviceInventory(device integration.DeviceID) (*integration.Device, error)
+	GetDeviceInventory(ctx context.Context, device integration.DeviceID) (*integration.Device, error)
 }
 
 type Inventory struct {
@@ -39,8 +40,8 @@ func NewInventory(client APIClient) *Inventory {
 
 // GetDeviceType returns device type for device of specified ID.
 // In case of device type attribute is not available for this device.
-func (i *Inventory) GetDeviceType(deviceID string) (string, error) {
-	device, err := i.api.GetDeviceInventory(integration.DeviceID(deviceID))
+func (i *Inventory) GetDeviceType(ctx context.Context, deviceID string) (string, error) {
+	device, err := i.api.GetDeviceInventory(ctx, integration.DeviceID(deviceID))
 	if err != nil {
 		return "", errors.Wrap(err, "fetching inventory data for device")
 	}

@@ -15,10 +15,12 @@
 package controller
 
 import (
+	"context"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/utils/identity"
+	"github.com/mendersoftware/deployments/utils/requestid"
 	"github.com/mendersoftware/deployments/utils/requestlog"
 	"github.com/pkg/errors"
 	"net/http"
@@ -53,7 +55,9 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 		return
 	}
 
-	id, err := d.model.CreateDeployment(constructor)
+	reqId := requestid.GetReqId(r)
+	ctx := context.WithValue(context.Background(), requestid.RequestIdHeader, reqId)
+	id, err := d.model.CreateDeployment(ctx, constructor)
 	if err != nil {
 		d.view.RenderError(w, err, http.StatusInternalServerError, l)
 		return

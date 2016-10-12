@@ -15,6 +15,7 @@
 package model
 
 import (
+	"context"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
@@ -55,7 +56,7 @@ func NewDeploymentModel(
 // Automatically assigns matching images to target device types.
 // In case no image is available for target device, noimage status is set.
 // TODO: check if specified devices are bootstrapped (when have a way to do this)
-func (d *DeploymentsModel) CreateDeployment(constructor *deployments.DeploymentConstructor) (string, error) {
+func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *deployments.DeploymentConstructor) (string, error) {
 
 	if constructor == nil {
 		return "", controller.ErrModelMissingInput
@@ -72,7 +73,7 @@ func (d *DeploymentsModel) CreateDeployment(constructor *deployments.DeploymentC
 	deviceDeployments := make([]*deployments.DeviceDeployment, 0, len(constructor.Devices))
 	for _, id := range constructor.Devices {
 
-		deviceDeployment, err := d.deviceDeploymentGenerator.Generate(id, deployment)
+		deviceDeployment, err := d.deviceDeploymentGenerator.Generate(ctx, id, deployment)
 		if err != nil {
 			return "", errors.Wrap(err, "Prepring deplyoment for device")
 		}
