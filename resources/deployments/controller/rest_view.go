@@ -26,6 +26,7 @@ type RESTView interface {
 	RenderSuccessGet(w rest.ResponseWriter, object interface{})
 	RenderEmptySuccessResponse(w rest.ResponseWriter)
 	RenderError(w rest.ResponseWriter, err error, status int, l *log.Logger)
+	RenderInternalError(w rest.ResponseWriter, err error, l *log.Logger)
 	RenderErrorNotFound(w rest.ResponseWriter, l *log.Logger)
 	RenderDeploymentLog(w rest.ResponseWriter, dlog deployments.DeploymentLog)
 }

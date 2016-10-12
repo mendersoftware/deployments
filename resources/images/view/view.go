@@ -50,6 +50,11 @@ func (p *RESTView) RenderError(w rest.ResponseWriter, err error, status int, l *
 	rest.Error(w, err.Error(), status)
 }
 
+func (p *RESTView) RenderInternalError(w rest.ResponseWriter, err error, l *log.Logger) {
+	l.F(log.Ctx{log.LogHttpCode: http.StatusInternalServerError}).Error(err.Error())
+	rest.Error(w, "internal error", http.StatusInternalServerError)
+}
+
 func (p *RESTView) RenderErrorNotFound(w rest.ResponseWriter, l *log.Logger) {
 	p.RenderError(w, ErrNotFound, http.StatusNotFound, l)
 }
