@@ -55,7 +55,7 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 
 	id, err := d.model.CreateDeployment(constructor)
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusInternalServerError, l)
+		d.view.RenderInternalError(w, err, l)
 		return
 	}
 
@@ -87,7 +87,7 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 
 	deployment, err := d.model.GetDeployment(id)
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusInternalServerError, l)
+		d.view.RenderInternalError(w, err, l)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *res
 
 	stats, err := d.model.GetDeploymentStats(id)
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusInternalServerError, l)
+		d.view.RenderInternalError(w, err, l)
 		return
 	}
 
@@ -134,7 +134,7 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 
 	deployment, err := d.model.GetDeploymentForDevice(idata.Subject)
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusInternalServerError, l)
+		d.view.RenderInternalError(w, err, l)
 		return
 	}
 
@@ -168,7 +168,7 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 
 	status := report.Status
 	if err := d.model.UpdateDeviceDeploymentStatus(did, idata.Subject, status); err != nil {
-		d.view.RenderError(w, err, http.StatusInternalServerError, l)
+		d.view.RenderInternalError(w, err, l)
 		return
 	}
 
@@ -192,7 +192,7 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 			d.view.RenderError(w, err, http.StatusNotFound, l)
 			return
 		default:
-			d.view.RenderError(w, ErrInternal, http.StatusInternalServerError, l)
+			d.view.RenderInternalError(w, ErrInternal, l)
 			return
 		}
 	}
@@ -270,7 +270,7 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 		if err == ErrModelDeploymentNotFound {
 			d.view.RenderError(w, err, http.StatusNotFound, l)
 		} else {
-			d.view.RenderError(w, err, http.StatusInternalServerError, l)
+			d.view.RenderInternalError(w, err, l)
 		}
 		return
 	}
@@ -287,7 +287,7 @@ func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter,
 	depl, err := d.model.GetDeviceDeploymentLog(devid, did)
 
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusInternalServerError, l)
+		d.view.RenderInternalError(w, err, l)
 		return
 	}
 

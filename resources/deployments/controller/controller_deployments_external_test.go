@@ -90,7 +90,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			InputModelError: errors.New("model error"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-1"}`),
@@ -166,7 +166,7 @@ func TestControllerGetDeployment(t *testing.T) {
 			InputModelError: errors.New("model error"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 		},
 		{
@@ -252,7 +252,7 @@ func TestControllerPostDeployment(t *testing.T) {
 			InputModelError: errors.New("model error"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 		},
 		{
@@ -364,7 +364,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
@@ -428,7 +428,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("storage issue")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 		},
 		{
@@ -531,7 +531,7 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 		"unknown model error": {
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Internal error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 			deploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			modelStatuses: nil,
@@ -868,7 +868,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
@@ -985,7 +985,7 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 			InputModelMessages:     messages,
 
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusNoContent,
+				OutputStatus:     http.StatusOK,
 				OutputBodyObject: nil,
 			},
 			Body: `2006-01-02 22:04:05 +0000 UTC notice: foo
@@ -1003,7 +1003,7 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 		},
 		{
@@ -1011,12 +1011,12 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 			InputModelDeploymentLog: nil,
 			InputModelDeploymentID:  "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:      "device-id-5",
-			InputModelError:         ErrModelDeploymentNotFound,
+			InputModelError:         nil,
 			InputModelMessages:      messages,
 
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment not found")),
+				OutputStatus:     http.StatusNotFound,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Resource not found")),
 			},
 		},
 	}
@@ -1044,7 +1044,7 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 			testCase.InputModelDeploymentID+"/"+testCase.InputModelDeviceID,
 			nil)
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
-		if testCase.InputModelError != nil {
+		if testCase.JSONResponseParams.OutputStatus != http.StatusOK {
 			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 		} else {
 			assert.Equal(t, testCase.Body, recorded.Recorder.Body.String())
