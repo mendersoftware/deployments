@@ -18,6 +18,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
@@ -49,7 +51,9 @@ func makeDeviceAuthHeader(claim string) string {
 func makeApi(router rest.App) *rest.Api {
 	api := rest.NewApi()
 	api.Use(
-		&requestlog.RequestLogMiddleware{},
+		&requestlog.RequestLogMiddleware{
+			BaseLogger: &logrus.Logger{Out: ioutil.Discard},
+		},
 		&requestid.RequestIdMiddleware{},
 	)
 	api.SetApp(router)

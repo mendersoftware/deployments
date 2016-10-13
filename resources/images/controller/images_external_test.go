@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -102,7 +103,9 @@ func setUpRestTest(route string, routeType routerTypeHandler, handler func(w res
 	router, _ := rest.MakeRouter(routeType(route, handler))
 	api := rest.NewApi()
 	api.Use(
-		&requestlog.RequestLogMiddleware{},
+		&requestlog.RequestLogMiddleware{
+			BaseLogger: &logrus.Logger{Out: ioutil.Discard},
+		},
 		&requestid.RequestIdMiddleware{},
 	)
 	api.SetApp(router)
