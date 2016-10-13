@@ -14,6 +14,7 @@
 package requestlog
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/deployments/utils/log"
 )
@@ -24,13 +25,22 @@ const ReqLog = "request_log"
 // RequestLogMiddleware creates a per-request logger and sticks it into Env.
 // The logger will be ready to use in the handler (less boilerplate).
 // Other middlewares (notably requestid) may add context to the log.
+// Per-request loggers will by default be derived from the global log.Log,
+// unless BaseLogger is specified. In that case, it will serve as the root logger.
 type RequestLogMiddleware struct {
+	BaseLogger *logrus.Logger
 }
 
 // MiddlewareFunc makes RequestLogMiddleware implement the Middleware interface.
 func (mw *RequestLogMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc {
 	return func(w rest.ResponseWriter, r *rest.Request) {
-		l := log.New(log.Ctx{})
+		var l *log.Logger
+		if mw.BaseLogger == nil {
+			l = log.New(log.Ctx{})
+		} else {
+			l = log.NewFromLogger(mw.BaseLogger, log.Ctx{})
+		}
+
 		r.Env[ReqLog] = l
 		h(w, r)
 	}

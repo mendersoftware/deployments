@@ -16,12 +16,24 @@ package log
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"testing"
 )
 
 func TestNew(t *testing.T) {
 	l := New(Ctx{"foo": "bar"})
 	assert.NotNil(t, l)
+}
+
+func TestNewFromLogger(t *testing.T) {
+	baselog := logrus.New()
+	baselog.Level = logrus.PanicLevel
+	baselog.Out = ioutil.Discard
+
+	l := NewFromLogger(baselog, Ctx{})
+	assert.NotNil(t, l)
+	assert.Equal(t, l.Logger.Level, logrus.PanicLevel)
+	assert.Equal(t, l.Logger.Out, ioutil.Discard)
 }
 
 func TestSetup(t *testing.T) {

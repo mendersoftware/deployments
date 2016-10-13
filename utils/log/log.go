@@ -75,9 +75,14 @@ type Logger struct {
 	*logrus.Entry
 }
 
-// New returns a new Logger with a given context.
+// New returns a new Logger with a given context, derived from the global Log.
 func New(ctx Ctx) *Logger {
-	return &Logger{Log.WithFields(logrus.Fields(ctx))}
+	return NewFromLogger(Log, ctx)
+}
+
+// NewFromLogger returns a new Logger derived from a given logrus.Logger, instead of the global one.
+func NewFromLogger(log *logrus.Logger, ctx Ctx) *Logger {
+	return &Logger{log.WithFields(logrus.Fields(ctx))}
 }
 
 // F returns a new Logger enriched with new context fields.
