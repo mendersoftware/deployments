@@ -49,13 +49,13 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 
 	constructor, err := d.getDeploymentConstructorFromBody(r)
 	if err != nil {
-		d.view.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
+		d.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
 		return
 	}
 
 	id, err := d.model.CreateDeployment(constructor)
 	if err != nil {
-		d.view.RenderInternalError(w, err, l)
+		d.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
@@ -81,18 +81,18 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		d.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
 	deployment, err := d.model.GetDeployment(id)
 	if err != nil {
-		d.view.RenderInternalError(w, err, l)
+		d.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
 	if deployment == nil {
-		d.view.RenderErrorNotFound(w, l)
+		d.view.RenderErrorNotFound(w, r, l)
 		return
 	}
 
@@ -105,18 +105,18 @@ func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *res
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		d.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
 	stats, err := d.model.GetDeploymentStats(id)
 	if err != nil {
-		d.view.RenderInternalError(w, err, l)
+		d.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
 	if stats == nil {
-		d.view.RenderErrorNotFound(w, l)
+		d.view.RenderErrorNotFound(w, r, l)
 		return
 	}
 
@@ -128,13 +128,13 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 
 	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
 	deployment, err := d.model.GetDeploymentForDevice(idata.Subject)
 	if err != nil {
-		d.view.RenderInternalError(w, err, l)
+		d.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
@@ -153,7 +153,7 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 
 	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
@@ -162,13 +162,13 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 
 	err = r.DecodeJsonPayload(&report)
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
 	status := report.Status
 	if err := d.model.UpdateDeviceDeploymentStatus(did, idata.Subject, status); err != nil {
-		d.view.RenderInternalError(w, err, l)
+		d.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
@@ -181,7 +181,7 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 	did := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(did) {
-		d.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
@@ -189,10 +189,10 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 	if err != nil {
 		switch err {
 		case ErrModelDeploymentNotFound:
-			d.view.RenderError(w, err, http.StatusNotFound, l)
+			d.view.RenderError(w, r, err, http.StatusNotFound, l)
 			return
 		default:
-			d.view.RenderInternalError(w, ErrInternal, l)
+			d.view.RenderInternalError(w, r, ErrInternal, l)
 			return
 		}
 	}
@@ -232,13 +232,13 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 	query, err := ParseLookupQuery(r.URL.Query())
 
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
 	deps, err := d.model.LookupDeployment(query)
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
@@ -252,7 +252,7 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 
 	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
@@ -262,15 +262,15 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 
 	err = r.DecodeJsonPayload(&log)
 	if err != nil {
-		d.view.RenderError(w, err, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
 	if err := d.model.SaveDeviceDeploymentLog(idata.Subject, did, log.Messages); err != nil {
 		if err == ErrModelDeploymentNotFound {
-			d.view.RenderError(w, err, http.StatusNotFound, l)
+			d.view.RenderError(w, r, err, http.StatusNotFound, l)
 		} else {
-			d.view.RenderInternalError(w, err, l)
+			d.view.RenderInternalError(w, r, err, l)
 		}
 		return
 	}
@@ -287,12 +287,12 @@ func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter,
 	depl, err := d.model.GetDeviceDeploymentLog(devid, did)
 
 	if err != nil {
-		d.view.RenderInternalError(w, err, l)
+		d.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
 	if depl == nil {
-		d.view.RenderErrorNotFound(w, l)
+		d.view.RenderErrorNotFound(w, r, l)
 		return
 	}
 

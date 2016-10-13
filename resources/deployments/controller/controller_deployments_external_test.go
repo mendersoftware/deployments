@@ -136,6 +136,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		for k, v := range testCase.Headers {
 			req.Header.Set(k, v)
 		}
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
@@ -210,8 +211,9 @@ func TestControllerGetDeployment(t *testing.T) {
 
 		api := makeApi(router)
 
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("GET", "http://localhost/r/"+testCase.InputID, nil))
+		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+testCase.InputID, nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
@@ -284,8 +286,9 @@ func TestControllerPostDeployment(t *testing.T) {
 
 		api := makeApi(router)
 
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject))
+		req := test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
@@ -397,6 +400,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 		for k, v := range testCase.Headers {
 			req.Header.Set(k, v)
 		}
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
@@ -477,6 +481,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 
 		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
 			nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
@@ -554,8 +559,9 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 
 		api := makeApi(router)
 
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil))
+		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
 	}
@@ -693,6 +699,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 		u.RawQuery = q.Encode()
 		t.Logf("query: %s", u.String())
 		req := test.MakeSimpleRequest("GET", u.String(), nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
@@ -919,6 +926,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		for k, v := range testCase.Headers {
 			req.Header.Set(k, v)
 		}
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
@@ -1043,6 +1051,7 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+
 			testCase.InputModelDeploymentID+"/"+testCase.InputModelDeviceID,
 			nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 		if testCase.JSONResponseParams.OutputStatus != http.StatusOK {
 			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
