@@ -21,6 +21,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/deployments/utils/log"
+	"github.com/mendersoftware/deployments/utils/requestid"
 )
 
 // Headers
@@ -45,18 +46,29 @@ func (p *RESTView) RenderSuccessGet(w rest.ResponseWriter, object interface{}) {
 	w.WriteJson(object)
 }
 
-func (p *RESTView) RenderError(w rest.ResponseWriter, err error, status int, l *log.Logger) {
+func (p *RESTView) RenderError(w rest.ResponseWriter, r *rest.Request, err error, status int, l *log.Logger) {
 	l.Error(err.Error())
-	rest.Error(w, err.Error(), status)
+	renderErrorWithMsg(w, r, status, err.Error())
 }
 
-func (p *RESTView) RenderInternalError(w rest.ResponseWriter, err error, l *log.Logger) {
-	l.F(log.Ctx{log.LogHttpCode: http.StatusInternalServerError}).Error(err.Error())
-	rest.Error(w, "internal error", http.StatusInternalServerError)
+func (p *RESTView) RenderInternalError(w rest.ResponseWriter, r *rest.Request, err error, l *log.Logger) {
+	l.F(log.Ctx{}).Error(err.Error())
+	renderErrorWithMsg(w, r, http.StatusInternalServerError, "internal error")
 }
 
-func (p *RESTView) RenderErrorNotFound(w rest.ResponseWriter, l *log.Logger) {
-	p.RenderError(w, ErrNotFound, http.StatusNotFound, l)
+func renderErrorWithMsg(w rest.ResponseWriter, r *rest.Request, status int, msg string) {
+	w.WriteHeader(status)
+	writeErr := w.WriteJson(map[string]string{
+		"error":      msg,
+		"request_id": requestid.GetReqId(r),
+	})
+	if writeErr != nil {
+		panic(writeErr)
+	}
+}
+
+func (p *RESTView) RenderErrorNotFound(w rest.ResponseWriter, r *rest.Request, l *log.Logger) {
+	p.RenderError(w, r, ErrNotFound, http.StatusNotFound, l)
 }
 
 func (p *RESTView) RenderSuccessDelete(w rest.ResponseWriter) {
