@@ -11,19 +11,18 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-
-package controller
+package requestid
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/deployments/utils/log"
 )
 
-type RESTView interface {
-	RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string)
-	RenderSuccessGet(w rest.ResponseWriter, object interface{})
-	RenderError(w rest.ResponseWriter, err error, status int, l *log.Logger)
-	RenderErrorNotFound(w rest.ResponseWriter, l *log.Logger)
-	RenderSuccessDelete(w rest.ResponseWriter)
-	RenderSuccessPut(w rest.ResponseWriter)
+// GetReqId helper for retrieving current request Id
+func GetReqId(r *rest.Request) string {
+	reqid := r.Env[RequestIdHeader]
+	if reqid != nil {
+		return reqid.(string)
+	}
+
+	return ""
 }

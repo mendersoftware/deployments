@@ -21,6 +21,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
 	. "github.com/mendersoftware/deployments/resources/images/view"
+	"github.com/mendersoftware/deployments/utils/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -107,7 +108,9 @@ func TestRenderSuccessPut(t *testing.T) {
 func TestRenderErrorNotFound(t *testing.T) {
 
 	router, err := rest.MakeRouter(rest.Get("/test", func(w rest.ResponseWriter, r *rest.Request) {
-		new(RESTView).RenderErrorNotFound(w)
+
+		l := log.New(log.Ctx{})
+		new(RESTView).RenderErrorNotFound(w, l)
 	}))
 
 	if err != nil {
