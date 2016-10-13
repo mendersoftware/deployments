@@ -392,15 +392,19 @@ paths:
 
 definitions:
   Error:
-    description: Error descriptor
+    description: Error descriptor.
     type: object
     properties:
       error:
-        description: Description of the error
+        description: Description of the error.
+        type: string
+      request_id:
+        description: Request ID (same as in X-MEN-RequestID header).
         type: string
     example:
       application/json:
           error: "failed to decode device group data: JSON payload is empty"
+          request_id: "f7881e82-0492-49fb-b459-795654e7188a"
   NewDeployment:
     type: object
     properties:
