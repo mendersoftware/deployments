@@ -15,6 +15,7 @@
 package model_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -115,7 +116,7 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
-			testCase.InputExistAssignedImageWithIDAndStatusesError)
+				testCase.InputExistAssignedImageWithIDAndStatusesError)
 
 		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
 
@@ -169,7 +170,7 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputImageUsedInDeploymentFound,
-			testCase.InputImageUsedInDeploymentError)
+				testCase.InputImageUsedInDeploymentError)
 
 		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
 
@@ -248,7 +249,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputOlderstDeviceDeployment,
-			testCase.InputOlderstDeviceDeploymentError)
+				testCase.InputOlderstDeviceDeploymentError)
 
 		imageLinker := new(mocks.GetRequester)
 		// Notice: force GetRequest to expect image id returned by FindOldestDeploymentForDeviceIDWithStatuses
@@ -364,7 +365,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 	for _, testCase := range testCases {
 
 		generator := new(mocks.Generator)
-		generator.On("Generate", mock.AnythingOfType("string"), mock.AnythingOfType("*deployments.Deployment")).
+		generator.On("Generate", mock.AnythingOfType("*context.emptyCtx"), mock.AnythingOfType("string"), mock.AnythingOfType("*deployments.Deployment")).
 			Return(testCase.InputGenerateDeviceDeployment, testCase.InputGenerateError)
 
 		deploymentStorage := new(mocks.DeploymentsStorage)
@@ -379,7 +380,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 
 		model := NewDeploymentModel(deploymentStorage, generator, deviceDeploymentStorage, nil, nil)
 
-		out, err := model.CreateDeployment(testCase.InputConstructor)
+		out, err := model.CreateDeployment(context.Background(), testCase.InputConstructor)
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
 		} else {

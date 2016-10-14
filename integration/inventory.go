@@ -15,12 +15,14 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/deployments/utils/requestid"
 	"github.com/pkg/errors"
 )
 
@@ -59,9 +61,19 @@ type Inventory interface {
 
 // GetDeviceInventory returns device object from inventory
 // If object is not found return nil, nil
-func (api *MenderAPI) GetDeviceInventory(id DeviceID) (*Device, error) {
+func (api *MenderAPI) GetDeviceInventory(ctx context.Context, id DeviceID) (*Device, error) {
+	url := fmt.Sprintf(api.uri+DevicesInventory, id)
 
-	resp, err := api.client.Get(fmt.Sprintf(api.uri+DevicesInventory, id))
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+
+	//propagate request id
+	reqId := ctx.Value(requestid.RequestIdHeader)
+	if reqId != nil {
+		req.Header.Set(requestid.RequestIdHeader, reqId.(string))
+	}
+
+	resp, err := api.client.Do(req)
+
 	if err != nil {
 		return nil, errors.Wrap(err, "sending request for device inventory")
 	}

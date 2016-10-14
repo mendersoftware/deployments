@@ -15,6 +15,7 @@
 package generator_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -71,13 +72,13 @@ func TestInventoryGetDeviceType(t *testing.T) {
 		t.Logf("Case: %s\n", name)
 
 		api := new(mocks.APIClient)
-		api.On("GetDeviceInventory", mock.AnythingOfType("integration.DeviceID")).
+		api.On("GetDeviceInventory", mock.AnythingOfType("*context.emptyCtx"), mock.AnythingOfType("integration.DeviceID")).
 			Return(test.GetDevice, test.GetDeviceErr)
 
 		inv := NewInventory(api)
 		assert.NotNil(t, inv)
 
-		devType, err := inv.GetDeviceType(test.InID)
+		devType, err := inv.GetDeviceType(context.TODO(), test.InID)
 
 		if test.OutErr != nil {
 			assert.EqualError(t, err, test.OutErr.Error())

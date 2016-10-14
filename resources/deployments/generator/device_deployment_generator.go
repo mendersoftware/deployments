@@ -17,6 +17,7 @@ package generator
 import (
 	"time"
 
+	"context"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/pkg/errors"
@@ -27,7 +28,7 @@ type ImageByNameAndDeviceTyper interface {
 }
 
 type GetDeviceTyper interface {
-	GetDeviceType(deviceID string) (string, error)
+	GetDeviceType(ctx context.Context, deviceID string) (string, error)
 }
 
 type ImageBasedDeviceDeployment struct {
@@ -42,13 +43,13 @@ func NewImageBasedDeviceDeployment(images ImageByNameAndDeviceTyper, devices Get
 	}
 }
 
-func (d *ImageBasedDeviceDeployment) Generate(deviceID string, deployment *deployments.Deployment) (*deployments.DeviceDeployment, error) {
+func (d *ImageBasedDeviceDeployment) Generate(ctx context.Context, deviceID string, deployment *deployments.Deployment) (*deployments.DeviceDeployment, error) {
 
 	if err := deployment.Validate(); err != nil {
 		return nil, errors.Wrap(err, "Validating deployment")
 	}
 
-	deviceType, err := d.devices.GetDeviceType(deviceID)
+	deviceType, err := d.devices.GetDeviceType(ctx, deviceID)
 	if err != nil {
 		return nil, errors.Wrap(err, "Checking device type")
 	}

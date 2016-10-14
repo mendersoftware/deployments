@@ -14,9 +14,12 @@
 
 package model
 
-import "github.com/mendersoftware/deployments/resources/deployments"
+import (
+	"context"
+	"github.com/mendersoftware/deployments/resources/deployments"
+)
 
 // Generate deplyoment for device based on group deployment information.
 type Generator interface {
-	Generate(deviceID string, deployment *deployments.Deployment) (*deployments.DeviceDeployment, error)
+	Generate(ctx context.Context, deviceID string, deployment *deployments.Deployment) (*deployments.DeviceDeployment, error)
 }
