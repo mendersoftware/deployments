@@ -15,5 +15,11 @@
 package testing
 
 func ErrorToErrStruct(err error) interface{} {
-	return struct{ Error string }{err.Error()}
+	return struct{
+		Error string `json:"error"`
+		RequestId string `json:"request_id"`
+	} {
+		err.Error(),
+		"test",
+	}
 }

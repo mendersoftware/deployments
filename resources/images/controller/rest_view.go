@@ -22,8 +22,9 @@ import (
 type RESTView interface {
 	RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string)
 	RenderSuccessGet(w rest.ResponseWriter, object interface{})
-	RenderError(w rest.ResponseWriter, err error, status int, l *log.Logger)
-	RenderErrorNotFound(w rest.ResponseWriter, l *log.Logger)
+	RenderError(w rest.ResponseWriter, r *rest.Request, err error, status int, l *log.Logger)
+	RenderInternalError(w rest.ResponseWriter, r *rest.Request, err error, l *log.Logger)
+	RenderErrorNotFound(w rest.ResponseWriter, r *rest.Request, l *log.Logger)
 	RenderSuccessDelete(w rest.ResponseWriter)
 	RenderSuccessPut(w rest.ResponseWriter)
 }

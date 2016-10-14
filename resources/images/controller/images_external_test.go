@@ -249,9 +249,11 @@ func TestControllerEditImage(t *testing.T) {
 
 	// correct id; correct payload; have image
 	imagesModel.editImage = true
-	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
-			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
+
+	req := test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
+		map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"})
+	req.Header.Add(requestid.RequestIdHeader, "test")
+	recorded = test.RunRequest(t, api.MakeHandler(), req)
 	recorded.CodeIs(http.StatusNoContent)
 	recorded.BodyIs("")
 }
@@ -410,7 +412,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputModelError:  errors.New("create image error"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("create image error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 		},
 		{
@@ -448,8 +450,9 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 
 		api := setUpRestTest("/r", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).NewImage)
 
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject))
+		req := MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
@@ -578,7 +581,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 			InputModelError:  errors.New("file service down"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`file service down`)),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`internal error`)),
 			},
 		},
 		{
@@ -586,7 +589,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 			InputModelError: errors.New("file service down"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`file service down`)),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`internal error`)),
 			},
 		},
 		// no file found
@@ -621,10 +624,11 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 			expire = "?expire=" + *testCase.InputParamExpire
 		}
 
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("POST",
-				fmt.Sprintf("http://localhost/%s%s", testCase.InputID, expire),
-				nil))
+		req := test.MakeSimpleRequest("POST",
+			fmt.Sprintf("http://localhost/%s%s", testCase.InputID, expire),
+			nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}

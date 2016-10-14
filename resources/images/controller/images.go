@@ -65,18 +65,18 @@ func (s *SoftwareImagesController) GetImage(w rest.ResponseWriter, r *rest.Reque
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		s.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
 	image, err := s.model.GetImage(id)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
 	if image == nil {
-		s.view.RenderErrorNotFound(w, l)
+		s.view.RenderErrorNotFound(w, r, l)
 		return
 	}
 
@@ -88,7 +88,7 @@ func (s *SoftwareImagesController) ListImages(w rest.ResponseWriter, r *rest.Req
 
 	list, err := s.model.ListImages(r.PathParams)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
@@ -101,24 +101,24 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		s.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
 	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusBadRequest, l)
+		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
 	link, err := s.model.DownloadLink(id, expire)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
 	if link == nil {
-		s.view.RenderErrorNotFound(w, l)
+		s.view.RenderErrorNotFound(w, r, l)
 		return
 	}
 
@@ -170,16 +170,16 @@ func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Re
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		s.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
 	if err := s.model.DeleteImage(id); err != nil {
 		if err == ErrImageMetaNotFound {
-			s.view.RenderErrorNotFound(w, l)
+			s.view.RenderErrorNotFound(w, r, l)
 			return
 		}
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
@@ -192,24 +192,24 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		s.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
 	constructor, err := s.getSoftwareImageMetaConstructorFromBody(r)
 	if err != nil {
-		s.view.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
+		s.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
 		return
 	}
 
 	found, err := s.model.EditImage(id, constructor)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
 	if !found {
-		s.view.RenderErrorNotFound(w, l)
+		s.view.RenderErrorNotFound(w, r, l)
 		return
 	}
 
@@ -234,7 +234,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	// parse content type and params according to RFC 1521
 	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusBadRequest, l)
+		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
@@ -242,13 +242,17 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 
 	metaConstructor, imagePart, err := s.handleMeta(mr, DefaultMaxMetaSize)
 	if err != nil || imagePart == nil {
-		s.view.RenderError(w, err, http.StatusBadRequest, l)
+		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
 	imageFile, metaYoctoConstructor, status, err := s.handleImage(imagePart, DefaultMaxImageSize)
 	if err != nil {
-		s.view.RenderError(w, err, status, l)
+		if status == http.StatusInternalServerError {
+			s.view.RenderInternalError(w, r, err, l)
+		} else {
+			s.view.RenderError(w, r, err, status, l)
+		}
 		return
 	}
 	defer os.Remove(imageFile.Name())
@@ -257,7 +261,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	imgId, err := s.model.CreateImage(imageFile, metaConstructor, metaYoctoConstructor)
 	if err != nil {
 		// TODO: check if this is bad request or internal error
-		s.view.RenderError(w, err, http.StatusInternalServerError, l)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
