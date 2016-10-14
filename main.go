@@ -62,6 +62,10 @@ func HandleConfigFile(filePath string) (config.ConfigReader, error) {
 	c.BindEnv(SettingAwsAuthSecret, "AWS_SECRET_ACCESS_KEY")
 	c.BindEnv(SettingAwsAuthToken, "AWS_SESSION_TOKEN")
 
+	// Enable setting also other conig values by environment variables
+	c.SetEnvPrefix("DEPLOYMENTS")
+	c.AutomaticEnv()
+
 	c.SetConfigFile(filePath)
 
 	// Set default values for config
