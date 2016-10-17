@@ -20,9 +20,9 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/deployments/config"
-	"github.com/mendersoftware/deployments/utils/accesslog"
-	"github.com/mendersoftware/deployments/utils/requestid"
-	"github.com/mendersoftware/deployments/utils/requestlog"
+	"github.com/mendersoftware/go-lib-micro/accesslog"
+	"github.com/mendersoftware/go-lib-micro/requestid"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
 )
 
 const (

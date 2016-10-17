@@ -30,7 +30,7 @@ import (
 	"github.com/mendersoftware/artifacts/parser"
 	"github.com/mendersoftware/artifacts/reader"
 	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/utils/requestlog"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/pkg/errors"
 )
 

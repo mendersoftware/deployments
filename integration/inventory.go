@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/deployments/utils/requestid"
+	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/pkg/errors"
 )
 
