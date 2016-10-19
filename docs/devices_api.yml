@@ -97,6 +97,7 @@ paths:
                   - rebooting
                   - success
                   - failure
+                  - already-installed
             required:
               - status
       produces:
