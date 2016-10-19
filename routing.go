@@ -33,7 +33,7 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-func SetupS3(c config.ConfigReader) imagesModel.FileStorage {
+func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
 
 	bucket := c.GetString(SettingAweS3Bucket)
 	region := c.GetString(SettingAwsS3Region)
@@ -61,7 +61,10 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	dbSession.SetSafe(&mgo.Safe{})
 
 	// Storage Layer
-	fileStorage := SetupS3(c)
+	fileStorage, err := SetupS3(c)
+	if err != nil {
+		return nil, err
+	}
 	deploymentsStorage := deploymentsMongo.NewDeploymentsStorage(dbSession)
 	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
 	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
