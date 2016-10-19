@@ -62,9 +62,8 @@ mongo-url: mongo-deployments
 mender-gateway: "http://mender-inventory:8080"
 
 aws:
-                # AWS region
-                # Defaults to: "eu-west-1"
-    region: eu-west-1
+        # AWS region for minio shoud be "us-east-1"
+    region: us-east-1
 
 
                 # S3 bucket where the uploaded images will be stored and served from.
