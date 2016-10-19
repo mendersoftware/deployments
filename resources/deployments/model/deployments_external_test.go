@@ -457,6 +457,19 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		{
 			isFinished: true,
 			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("345"),
+				Stats: deployments.Stats{
+					deployments.DeviceDeploymentStatusAlreadyInst: 1,
+				},
+			},
+			InputDeviceID: "345",
+			InputStatus:   "already-installed",
+
+			InputDevsStorageError: nil,
+		},
+		{
+			isFinished: true,
+			InputDeployment: &deployments.Deployment{
 				Id: StringToPointer("456"),
 				Stats: deployments.Stats{
 					deployments.DeviceDeploymentStatusSuccess: 1,
@@ -581,6 +594,7 @@ func TestGetDeploymentStats(t *testing.T) {
 				deployments.DeviceDeploymentStatusInstalling:  3,
 				deployments.DeviceDeploymentStatusRebooting:   3,
 				deployments.DeviceDeploymentStatusDownloading: 3,
+				deployments.DeviceDeploymentStatusAlreadyInst: 0,
 			},
 
 			OutputStats: deployments.Stats{
@@ -590,6 +604,7 @@ func TestGetDeploymentStats(t *testing.T) {
 				deployments.DeviceDeploymentStatusSuccess:     4,
 				deployments.DeviceDeploymentStatusFailure:     1,
 				deployments.DeviceDeploymentStatusPending:     2,
+				deployments.DeviceDeploymentStatusAlreadyInst: 0,
 			},
 		},
 	}
