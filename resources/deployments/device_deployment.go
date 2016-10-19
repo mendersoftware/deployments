@@ -31,6 +31,7 @@ const (
 	DeviceDeploymentStatusSuccess     = "success"
 	DeviceDeploymentStatusFailure     = "failure"
 	DeviceDeploymentStatusNoImage     = "noimage"
+	DeviceDeploymentStatusAlreadyInst = "already-installed"
 )
 
 type DeviceDeployment struct {
@@ -92,6 +93,7 @@ func NewDeviceDeploymentStats() Stats {
 		DeviceDeploymentStatusRebooting,
 		DeviceDeploymentStatusInstalling,
 		DeviceDeploymentStatusDownloading,
+		DeviceDeploymentStatusAlreadyInst,
 	}
 
 	s := make(Stats)
@@ -106,7 +108,7 @@ func NewDeviceDeploymentStats() Stats {
 
 func IsDeviceDeploymentStatusFinished(status string) bool {
 	if status == DeviceDeploymentStatusFailure || status == DeviceDeploymentStatusSuccess ||
-		status == DeviceDeploymentStatusNoImage {
+		status == DeviceDeploymentStatusNoImage || status == DeviceDeploymentStatusAlreadyInst {
 		return true
 	}
 	return false
