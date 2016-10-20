@@ -445,6 +445,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 				deployments.DeviceDeploymentStatusInstalling:  1,
 				deployments.DeviceDeploymentStatusPending:     2,
 				deployments.DeviceDeploymentStatusNoImage:     0,
+				deployments.DeviceDeploymentStatusAlreadyInst: 0,
 			},
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -457,6 +458,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 					deployments.DeviceDeploymentStatusInstalling:  1,
 					deployments.DeviceDeploymentStatusPending:     2,
 					deployments.DeviceDeploymentStatusNoImage:     0,
+					deployments.DeviceDeploymentStatusAlreadyInst: 0,
 				},
 			},
 		},

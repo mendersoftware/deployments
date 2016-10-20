@@ -134,6 +134,7 @@ func TestDeviceDeploymentStats(t *testing.T) {
 		DeviceDeploymentStatusRebooting,
 		DeviceDeploymentStatusInstalling,
 		DeviceDeploymentStatusDownloading,
+		DeviceDeploymentStatusAlreadyInst,
 	}
 	for _, f := range must {
 		assert.Contains(t, ds, f, "stats must contain status '%v'", f)
@@ -148,6 +149,7 @@ func TestDeviceDeploymentIsFinished(t *testing.T) {
 		{DeviceDeploymentStatusNoImage, true},
 		{DeviceDeploymentStatusFailure, true},
 		{DeviceDeploymentStatusSuccess, true},
+		{DeviceDeploymentStatusAlreadyInst, true},
 		// statuses 'in progress'
 		{DeviceDeploymentStatusPending, false},
 		{DeviceDeploymentStatusRebooting, false},

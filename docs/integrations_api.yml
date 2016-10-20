@@ -154,6 +154,7 @@ paths:
               installing: 2
               rebooting: 3
               noimage: 0
+              already-installed: 0
           schema:
             $ref: "#/definitions/DeploymentStatistics"
         404:
@@ -486,6 +487,9 @@ definitions:
       noimage:
         type: integer
         description: Do not have apropriate image for device type.
+      already-installed:
+        type: integer
+        description: Number of devices unaffected by upgrade, since they are already running the specified software version.
     required:
       - success
       - pending
@@ -494,6 +498,7 @@ definitions:
       - rebooting
       - failure
       - noimage
+      - already-installed
     example:
       application/json:
         success: 3
@@ -503,6 +508,7 @@ definitions:
         installing: 2
         rebooting: 3
         noimage: 0
+        already-installed: 0
   Device:
     type: object
     properties:
