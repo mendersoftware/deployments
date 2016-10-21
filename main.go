@@ -29,7 +29,7 @@ func main() {
 
 	var configPath string
 	var printVersion bool
-	flag.StringVar(&configPath, "config", "config.yaml", "Configuration file path. Supports JSON, TOML, YAML and HCL formatted configs.")
+	flag.StringVar(&configPath, "config", "", "Configuration file path. Supports JSON, TOML, YAML and HCL formatted configs.")
 	flag.BoolVar(&printVersion, "version", false, "Show version")
 
 	flag.Parse()
@@ -62,14 +62,19 @@ func HandleConfigFile(filePath string) (config.ConfigReader, error) {
 	c.BindEnv(SettingAwsAuthSecret, "AWS_SECRET_ACCESS_KEY")
 	c.BindEnv(SettingAwsAuthToken, "AWS_SESSION_TOKEN")
 
-	c.SetConfigFile(filePath)
+	// Enable setting also other conig values by environment variables
+	c.SetEnvPrefix("DEPLOYMENTS")
+	c.AutomaticEnv()
 
 	// Set default values for config
 	SetDefaultConfigs(c)
 
 	// Find and read the config file
-	if err := c.ReadInConfig(); err != nil {
-		return nil, err
+	if filePath != "" {
+		c.SetConfigFile(filePath)
+		if err := c.ReadInConfig(); err != nil {
+			return nil, err
+		}
 	}
 
 	// Validate config

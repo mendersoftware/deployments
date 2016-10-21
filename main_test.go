@@ -18,7 +18,13 @@ import "testing"
 
 func TestHandleConfigFile(t *testing.T) {
 
-	if _, err := HandleConfigFile(""); err == nil {
+	// Empty config allowed (using default values)
+	if _, err := HandleConfigFile(""); err != nil {
+		t.FailNow()
+	}
+
+	// Non-existing file should fail
+	if _, err := HandleConfigFile("Non-existing-file.yaml"); err == nil {
 		t.FailNow()
 	}
 
