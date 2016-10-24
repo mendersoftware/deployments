@@ -15,8 +15,8 @@ package requestid
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/deployments/utils/log"
-	"github.com/mendersoftware/deployments/utils/requestlog"
+	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/satori/go.uuid"
 )
 

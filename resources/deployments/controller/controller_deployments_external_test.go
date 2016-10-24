@@ -32,8 +32,8 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/deployments/view"
 	. "github.com/mendersoftware/deployments/utils/pointers"
-	"github.com/mendersoftware/deployments/utils/requestid"
-	"github.com/mendersoftware/deployments/utils/requestlog"
+	"github.com/mendersoftware/go-lib-micro/requestid"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/stretchr/testify/assert"
 
 	h "github.com/mendersoftware/deployments/utils/testing"

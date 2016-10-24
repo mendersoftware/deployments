@@ -17,7 +17,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/deployments/utils/requestlog"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"net"
 	"os"
 	"strings"

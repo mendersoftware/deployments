@@ -37,8 +37,6 @@ import (
 	"strings"
 )
 
-const LogHttpCode = "http_code"
-
 var (
 	// log is a global logger instance
 	Log = logrus.New()

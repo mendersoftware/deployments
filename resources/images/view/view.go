@@ -20,8 +20,8 @@ import (
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/deployments/utils/log"
-	"github.com/mendersoftware/deployments/utils/requestid"
+	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/mendersoftware/go-lib-micro/requestid"
 )
 
 // Headers

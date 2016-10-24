@@ -16,7 +16,7 @@ package requestlog
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/deployments/utils/log"
+	"github.com/mendersoftware/go-lib-micro/log"
 )
 
 // name of the per-request log in the request's context

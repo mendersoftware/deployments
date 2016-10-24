@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mendersoftware/deployments/utils/log"
+	"github.com/mendersoftware/go-lib-micro/log"
 
 	"github.com/mendersoftware/deployments/config"
 	"github.com/spf13/viper"
