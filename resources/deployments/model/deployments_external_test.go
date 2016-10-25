@@ -470,6 +470,17 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		{
 			isFinished: true,
 			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("345"),
+				Stats: deployments.Stats{
+					deployments.DeviceDeploymentStatusAborted: 1,
+				},
+			},
+			InputDeviceID: "345",
+			InputStatus:   "aborted",
+		},
+		{
+			isFinished: true,
+			InputDeployment: &deployments.Deployment{
 				Id: StringToPointer("456"),
 				Stats: deployments.Stats{
 					deployments.DeviceDeploymentStatusSuccess: 1,
@@ -514,6 +525,8 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			testCase.InputDeviceID, testCase.InputStatus)
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
 
 			if deployments.IsDeviceDeploymentStatusFinished(testCase.InputStatus) {
 				// verify that device deployment finish time was passed, finish time is
@@ -528,11 +541,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 				deploymentStorage.AssertCalled(t, "Finish",
 					*testCase.InputDeployment.Id, mock.AnythingOfType("time.Time"))
 			} else {
-				deploymentStorage.AssertNotCalled(t, "Finish")
-			}
 
-		} else {
-			assert.NoError(t, err)
+				deploymentStorage.AssertNotCalled(t, "Finish",
+					*testCase.InputDeployment.Id, mock.AnythingOfType("time.Time"))
+			}
 		}
 	}
 
