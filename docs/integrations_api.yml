@@ -155,6 +155,7 @@ paths:
               rebooting: 3
               noimage: 0
               already-installed: 0
+              aborted: 0
           schema:
             $ref: "#/definitions/DeploymentStatistics"
         404:
@@ -490,6 +491,9 @@ definitions:
       already-installed:
         type: integer
         description: Number of devices unaffected by upgrade, since they are already running the specified software version.
+      aborted:
+        type: integer
+        description: Number of deployments aborted by user.
     required:
       - success
       - pending
@@ -499,6 +503,7 @@ definitions:
       - failure
       - noimage
       - already-installed
+      - aborted
     example:
       application/json:
         success: 3
@@ -509,6 +514,7 @@ definitions:
         rebooting: 3
         noimage: 0
         already-installed: 0
+        aborted: 0
   Device:
     type: object
     properties:
