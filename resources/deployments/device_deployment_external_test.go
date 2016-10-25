@@ -150,6 +150,7 @@ func TestDeviceDeploymentIsFinished(t *testing.T) {
 		{DeviceDeploymentStatusFailure, true},
 		{DeviceDeploymentStatusSuccess, true},
 		{DeviceDeploymentStatusAlreadyInst, true},
+		{DeviceDeploymentStatusAborted, true},
 		// statuses 'in progress'
 		{DeviceDeploymentStatusPending, false},
 		{DeviceDeploymentStatusRebooting, false},
