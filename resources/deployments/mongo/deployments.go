@@ -236,6 +236,9 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 						buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): eq0,
 					},
 					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusAborted): eq0,
+					},
+					bson.M{
 						buildStatusKey(deployments.DeviceDeploymentStatusFailure): eq0,
 					},
 					bson.M{
@@ -281,6 +284,9 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 							},
 							bson.M{
 								buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): gt0,
+							},
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusAborted): gt0,
 							},
 						},
 					},
