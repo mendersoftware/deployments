@@ -33,6 +33,6 @@ type FileStorage interface {
 	Exists(objectId string) (bool, error)
 	LastModified(objectId string) (time.Time, error)
 	PutRequest(objectId string, duration time.Duration) (*images.Link, error)
-	GetRequest(objectId string, duration time.Duration) (*images.Link, error)
-	PutFile(objectId string, image *os.File) error
+	GetRequest(objectId string, duration time.Duration, responseContentType string) (*images.Link, error)
+	PutFile(objectId string, image *os.File, contentType string) error
 }
