@@ -68,8 +68,9 @@ paths:
       description: |
         Updates the status of a deployment on a particular device. Final status
         of the deployment is required to be set to indicate the success or failure
-        of the installation process. Reporting of intermediate steps such as installing,
-        downloading, rebooting is optional.
+        of the installation process. The status can not be changed when deployment
+        status is set to aborted. Reporting of intermediate steps such as
+        installing, downloading, rebooting is optional.
       parameters:
         - name: id
           in: path
@@ -109,6 +110,8 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         404:
           $ref: "#/responses/NotFoundError"
+        409:
+          description: Status already set to aborted.
         500:
           $ref: "#/responses/InternalServerError"
 
