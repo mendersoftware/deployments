@@ -434,3 +434,57 @@ func TestHasDeploymentForDevice(t *testing.T) {
 
 	session.Close()
 }
+
+func TestGetDeviceDeploymentStatus(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping GetDeviceDeploymentStatus in short mode.")
+	}
+
+	input := []*deployments.DeviceDeployment{
+		deployments.NewDeviceDeployment("device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+		deployments.NewDeviceDeployment("device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+		deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+	}
+
+	// setup db - once for all cases
+	db.Wipe()
+
+	session := db.Session()
+	store := NewDeviceDeploymentsStorage(session)
+
+	err := store.InsertMany(input...)
+	assert.NoError(t, err)
+
+	testCases := map[string]struct {
+		deviceID     string
+		deploymentID string
+
+		status string
+	}{
+		"device deployment exists": {
+			deviceID:     "device0001",
+			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			status:       "pending",
+		},
+		"deployment not exists": {
+			deviceID:     "device0003",
+			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+			status:       "",
+		},
+		"no deployment for device": {
+			deviceID:     "device0004",
+			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",
+			status:       "",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Logf("test case: %s %v %v %v %v", name, tc.deviceID, tc.deploymentID, tc.status)
+
+		status, err := store.GetDeviceDeploymentStatus(tc.deploymentID, tc.deviceID)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.status, status)
+	}
+
+	session.Close()
+}

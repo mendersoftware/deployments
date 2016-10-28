@@ -286,3 +286,25 @@ func (d *DeviceDeploymentsStorage) HasDeploymentForDevice(deploymentID string, d
 
 	return true, nil
 }
+
+func (d *DeviceDeploymentsStorage) GetDeviceDeploymentStatus(deploymentID string, deviceID string) (string, error) {
+	session := d.session.Copy()
+	defer session.Close()
+
+	query := bson.M{
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+	}
+
+	var dep deployments.DeviceDeployment
+	err := session.DB(DatabaseName).C(CollectionDevices).Find(query).One(&dep)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return "", nil
+		} else {
+			return "", err
+		}
+	}
+
+	return *dep.Status, nil
+}

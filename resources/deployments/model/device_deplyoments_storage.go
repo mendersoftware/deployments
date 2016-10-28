@@ -29,4 +29,5 @@ type DeviceDeploymentStorage interface {
 	AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error)
 	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
 	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)
+	GetDeviceDeploymentStatus(deploymentID string, deviceID string) (string, error)
 }
