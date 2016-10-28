@@ -479,7 +479,7 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 	}
 
 	for name, tc := range testCases {
-		t.Logf("test case: %s %v %v %v %v", name, tc.deviceID, tc.deploymentID, tc.status)
+		t.Logf("test case: %s %v %v %v", name, tc.deviceID, tc.deploymentID, tc.status)
 
 		status, err := store.GetDeviceDeploymentStatus(tc.deploymentID, tc.deviceID)
 		assert.NoError(t, err)
