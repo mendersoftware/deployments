@@ -400,6 +400,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 	testCases := []struct {
 		InputDeployment *deployments.Deployment
 		InputDeviceID   string
+		OldStatus       string
 		InputStatus     string
 
 		InputDevsStorageError error
@@ -420,6 +421,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			},
 			InputDeviceID: "123",
 			InputStatus:   "installing",
+			OldStatus:     "pending",
 
 			InputDevsStorageError: errors.New("device deployments storage issue"),
 			InputDepsStorageError: nil,
@@ -435,6 +437,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			},
 			InputDeviceID: "234",
 			InputStatus:   "none",
+			OldStatus:     "pending",
 
 			InputDevsStorageError: nil,
 			InputDepsStorageError: errors.New("deployments storage issue"),
@@ -451,46 +454,64 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			},
 			InputDeviceID: "345",
 			InputStatus:   "success",
+			OldStatus:     "installing",
 
 			InputDevsStorageError: nil,
-		},
-		{
-			isFinished: true,
-			InputDeployment: &deployments.Deployment{
-				Id: StringToPointer("345"),
-				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusAlreadyInst: 1,
-				},
-			},
-			InputDeviceID: "345",
-			InputStatus:   "already-installed",
-
-			InputDevsStorageError: nil,
-		},
-		{
-			isFinished: true,
-			InputDeployment: &deployments.Deployment{
-				Id: StringToPointer("345"),
-				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusAborted: 1,
-				},
-			},
-			InputDeviceID: "345",
-			InputStatus:   "aborted",
 		},
 		{
 			isFinished: true,
 			InputDeployment: &deployments.Deployment{
 				Id: StringToPointer("456"),
 				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusSuccess: 1,
+					deployments.DeviceDeploymentStatusAlreadyInst: 1,
 				},
 			},
 			InputDeviceID: "456",
+			InputStatus:   "already-installed",
+			OldStatus:     "pending",
+
+			InputDevsStorageError: nil,
+		},
+		{
+			isFinished: true,
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("567"),
+				Stats: deployments.Stats{
+					deployments.DeviceDeploymentStatusAborted: 1,
+				},
+			},
+			InputDeviceID: "567",
+			InputStatus:   "aborted",
+			OldStatus:     "pending",
+		},
+		{
+			isFinished: true,
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("678"),
+				Stats: deployments.Stats{
+					deployments.DeviceDeploymentStatusSuccess: 1,
+				},
+			},
+			InputDeviceID: "678",
 			InputStatus:   "success",
+			OldStatus:     "rebooting",
 
 			InputDepsFinishError: errors.New("deployments storage finish issue"),
 			OutputError:          errors.New("failed to mark deployment as finished: deployments storage finish issue"),
+		},
+		{
+			isFinished: true,
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("789"),
+				Stats: deployments.Stats{
+					deployments.DeviceDeploymentStatusAborted: 1,
+				},
+			},
+			InputDeviceID: "789",
+			InputStatus:   "rebooting",
+			OldStatus:     "aborted",
+
+			OutputError: controller.ErrDeploymentAborted,
 		},
 	}
 
@@ -504,6 +525,9 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			testCase.InputDeviceID, *testCase.InputDeployment.Id,
 			testCase.InputStatus, mock.AnythingOfType("*time.Time")).
 			Return("dontcare", testCase.InputDevsStorageError)
+		deviceDeploymentStorage.On("GetDeviceDeploymentStatus",
+			*testCase.InputDeployment.Id, testCase.InputDeviceID).
+			Return(testCase.OldStatus, testCase.InputDevsStorageError)
 
 		deploymentStorage := new(mocks.DeploymentsStorage)
 		deploymentStorage.On("UpdateStats",
@@ -531,7 +555,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			if deployments.IsDeviceDeploymentStatusFinished(testCase.InputStatus) {
 				// verify that device deployment finish time was passed, finish time is
 				// passed as 4th argument to UpdateDeviceDeploymentStatus
-				ft, ok := deviceDeploymentStorage.Calls[0].Arguments.Get(3).(*time.Time)
+				ft, ok := deviceDeploymentStorage.Calls[1].Arguments.Get(3).(*time.Time)
 				assert.True(t, ok)
 				assert.WithinDuration(t, time.Now(), *ft, time.Second)
 			}
