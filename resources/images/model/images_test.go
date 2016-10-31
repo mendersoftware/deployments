@@ -206,11 +206,11 @@ func (ffs *FakeFileStorage) PutRequest(objectId string, duration time.Duration) 
 	return ffs.putReq, ffs.putError
 }
 
-func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration) (*images.Link, error) {
+func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration, responseContentType string) (*images.Link, error) {
 	return ffs.getReq, ffs.getError
 }
 
-func (fis *FakeFileStorage) PutFile(id string, img *os.File) error {
+func (fis *FakeFileStorage) PutFile(id string, img *os.File, contentType string) error {
 	return fis.putFileError
 }
 

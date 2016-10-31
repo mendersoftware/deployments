@@ -27,12 +27,12 @@ type GetRequester struct {
 }
 
 // GetRequest provides a mock function with given fields: objectId, duration
-func (_m *GetRequester) GetRequest(objectId string, duration time.Duration) (*images.Link, error) {
+func (_m *GetRequester) GetRequest(objectId string, duration time.Duration, responseContentType string) (*images.Link, error) {
 	ret := _m.Called(objectId, duration)
 
 	var r0 *images.Link
-	if rf, ok := ret.Get(0).(func(string, time.Duration) *images.Link); ok {
-		r0 = rf(objectId, duration)
+	if rf, ok := ret.Get(0).(func(string, time.Duration, string) *images.Link); ok {
+		r0 = rf(objectId, duration, responseContentType)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*images.Link)
@@ -40,8 +40,8 @@ func (_m *GetRequester) GetRequest(objectId string, duration time.Duration) (*im
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, time.Duration) error); ok {
-		r1 = rf(objectId, duration)
+	if rf, ok := ret.Get(1).(func(string, time.Duration, string) error); ok {
+		r1 = rf(objectId, duration, responseContentType)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -78,17 +78,18 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 		return nil, errors.Wrap(err, "init inventory client")
 	}
 
-	// Domian Models
-	deploymentModel := deploymentsModel.NewDeploymentModel(
-		deploymentsStorage,
-		generator.NewImageBasedDeviceDeployment(
+	// Domain Models
+	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{
+		DeploymentsStorage:          deploymentsStorage,
+		DeviceDeploymentsStorage:    deviceDeploymentsStorage,
+		DeviceDeploymentLogsStorage: deviceDeploymentLogsStorage,
+		ImageLinker:                 fileStorage,
+		DeviceDeploymentGenerator: generator.NewImageBasedDeviceDeployment(
 			imagesStorage,
 			generator.NewInventory(inventory),
 		),
-		deviceDeploymentsStorage,
-		deviceDeploymentLogsStorage,
-		fileStorage,
-	)
+		ImageContentType: imagesModel.ImageContentType,
+	})
 
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
 

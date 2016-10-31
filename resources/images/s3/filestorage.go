@@ -163,12 +163,16 @@ func (s *SimpleStorageService) Exists(objectID string) (bool, error) {
 }
 
 // Puts object into AWS S3
-func (s *SimpleStorageService) PutFile(objectID string, image *os.File) error {
+func (s *SimpleStorageService) PutFile(objectID string, image *os.File, contentType string) error {
 
 	params := &s3.PutObjectInput{
 		Body:   image,
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(objectID),
+	}
+
+	if contentType != "" {
+		params.ContentType = &contentType
 	}
 
 	// Ignore out object?
@@ -201,7 +205,7 @@ func (s *SimpleStorageService) PutRequest(objectID string, duration time.Duratio
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
-func (s *SimpleStorageService) GetRequest(objectID string, duration time.Duration) (*images.Link, error) {
+func (s *SimpleStorageService) GetRequest(objectID string, duration time.Duration, responseContentType string) (*images.Link, error) {
 
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
@@ -210,6 +214,10 @@ func (s *SimpleStorageService) GetRequest(objectID string, duration time.Duratio
 	params := &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(objectID),
+	}
+
+	if responseContentType != "" {
+		params.ResponseContentType = &responseContentType
 	}
 
 	// Ignore out object

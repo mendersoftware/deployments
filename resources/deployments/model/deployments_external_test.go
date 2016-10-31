@@ -65,7 +65,7 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 		deploymentStorage.On("FindByID", testCase.InputDeploymentID).
 			Return(testCase.InoutFindByIDDeployment, testCase.InoutFindByIDError)
 
-		model := NewDeploymentModel(deploymentStorage, nil, nil, nil, nil)
+		model := NewDeploymentModel(DeploymentsModelConfig{DeploymentsStorage: deploymentStorage})
 
 		deployment, err := model.GetDeployment(testCase.InputDeploymentID)
 		if testCase.OutputError != nil {
@@ -118,7 +118,7 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 			Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
 				testCase.InputExistAssignedImageWithIDAndStatusesError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
+		model := NewDeploymentModel(DeploymentsModelConfig{DeviceDeploymentsStorage: deviceDeploymentStorage})
 
 		found, err := model.ImageUsedInActiveDeployment(testCase.InputID)
 		if testCase.OutputError != nil {
@@ -172,7 +172,7 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 			Return(testCase.InputImageUsedInDeploymentFound,
 				testCase.InputImageUsedInDeploymentError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, nil)
+		model := NewDeploymentModel(DeploymentsModelConfig{DeviceDeploymentsStorage: deviceDeploymentStorage})
 
 		found, err := model.ImageUsedInDeployment(testCase.InputID)
 		if testCase.OutputError != nil {
@@ -257,7 +257,10 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		imageLinker.On("GetRequest", "ID:456", DefaultUpdateDownloadLinkExpire).
 			Return(testCase.InputGetRequestLink, testCase.InputGetRequestError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage, nil, imageLinker)
+		model := NewDeploymentModel(DeploymentsModelConfig{
+			DeviceDeploymentsStorage: deviceDeploymentStorage,
+			ImageLinker:              imageLinker,
+		})
 
 		out, err := model.GetDeploymentForDevice(testCase.InputID)
 		if testCase.OutputError != nil {
@@ -378,7 +381,11 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		deviceDeploymentStorage.On("InsertMany", mock.AnythingOfType("[]*deployments.DeviceDeployment")).
 			Return(testCase.InputDeviceDeploymentStorageInsertManyError)
 
-		model := NewDeploymentModel(deploymentStorage, generator, deviceDeploymentStorage, nil, nil)
+		model := NewDeploymentModel(DeploymentsModelConfig{
+			DeploymentsStorage:        deploymentStorage,
+			DeviceDeploymentGenerator: generator,
+			DeviceDeploymentsStorage:  deviceDeploymentStorage,
+		})
 
 		out, err := model.CreateDeployment(context.Background(), testCase.InputConstructor)
 		if testCase.OutputError != nil {
@@ -543,7 +550,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			*testCase.InputDeployment.Id, mock.AnythingOfType("time.Time")).
 			Return(testCase.InputDepsFinishError)
 
-		model := NewDeploymentModel(deploymentStorage, nil, deviceDeploymentStorage, nil, nil)
+		model := NewDeploymentModel(DeploymentsModelConfig{
+			DeploymentsStorage:       deploymentStorage,
+			DeviceDeploymentsStorage: deviceDeploymentStorage,
+		})
 
 		err := model.UpdateDeviceDeploymentStatus(*testCase.InputDeployment.Id,
 			testCase.InputDeviceID, testCase.InputStatus)
@@ -658,7 +668,10 @@ func TestGetDeploymentStats(t *testing.T) {
 		deploymentStorage.On("FindByID", testCase.InputDeploymentID).
 			Return(testCase.InoutFindByIDDeployment, testCase.InoutFindByIDError)
 
-		model := NewDeploymentModel(deploymentStorage, nil, deviceDeploymentStorage, nil, nil)
+		model := NewDeploymentModel(DeploymentsModelConfig{
+			DeploymentsStorage:       deploymentStorage,
+			DeviceDeploymentsStorage: deviceDeploymentStorage,
+		})
 
 		stats, err := model.GetDeploymentStats(testCase.InputDeploymentID)
 
@@ -751,7 +764,10 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 		depsDb.On("FindByID", tc.inDeploymentId).
 			Return(tc.depsStorageDeployment, tc.depsStorageErr)
 
-		model := NewDeploymentModel(depsDb, nil, devsDb, nil, nil)
+		model := NewDeploymentModel(DeploymentsModelConfig{
+			DeploymentsStorage:       depsDb,
+			DeviceDeploymentsStorage: devsDb,
+		})
 		statuses, err := model.GetDeviceStatusesForDeployment(tc.inDeploymentId)
 
 		if tc.modelErr != nil {
@@ -844,8 +860,10 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 			testCase.InputDeviceID).
 			Return(testCase.InputHasDeployment, testCase.InputHasModelError)
 
-		model := NewDeploymentModel(nil, nil, deviceDeploymentStorage,
-			deviceDeploymentLogStorage, nil)
+		model := NewDeploymentModel(DeploymentsModelConfig{
+			DeviceDeploymentsStorage:    deviceDeploymentStorage,
+			DeviceDeploymentLogsStorage: deviceDeploymentLogStorage,
+		})
 
 		err := model.SaveDeviceDeploymentLog(testCase.InputDeviceID,
 			testCase.InputDeploymentID, testCase.InputLog)
@@ -890,7 +908,7 @@ func TestDeploymentModelLookupDeployment(t *testing.T) {
 		deploymentStorage.On("Find", mock.AnythingOfType("deployments.Query")).
 			Return(testCase.MockDeployments, testCase.MockError)
 
-		model := NewDeploymentModel(deploymentStorage, nil, nil, nil, nil)
+		model := NewDeploymentModel(DeploymentsModelConfig{DeploymentsStorage: deploymentStorage})
 
 		deployments, err := model.LookupDeployment(deployments.Query{})
 		if testCase.OutputError != nil {

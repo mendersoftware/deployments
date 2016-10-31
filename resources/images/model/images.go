@@ -30,6 +30,10 @@ var (
 	ErrModelImageUsedInAnyDeployment = errors.New("Image have been already used in deployment")
 )
 
+const (
+	ImageContentType = "application/vnd.mender-artifact"
+)
+
 type ImagesModel struct {
 	fileStorage   FileStorage
 	deployments   ImageUsedIn
@@ -70,7 +74,7 @@ func (i *ImagesModel) CreateImage(
 		return "", errors.Wrap(err, "Fail to store the metadata")
 	}
 
-	if err := i.fileStorage.PutFile(*image.Id, imageFile); err != nil {
+	if err := i.fileStorage.PutFile(*image.Id, imageFile, ImageContentType); err != nil {
 		i.imagesStorage.Delete(*image.Id)
 		return "", errors.Wrap(err, "Fail to store the image")
 	}
@@ -206,7 +210,7 @@ func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*image
 		return nil, nil
 	}
 
-	link, err := i.fileStorage.GetRequest(imageID, expire)
+	link, err := i.fileStorage.GetRequest(imageID, expire, ImageContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
 	}

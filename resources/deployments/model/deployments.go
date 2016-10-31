@@ -34,21 +34,26 @@ type DeploymentsModel struct {
 	deviceDeploymentLogsStorage DeviceDeploymentLogsStorage
 	imageLinker                 GetRequester
 	deviceDeploymentGenerator   Generator
+	imageContentType            string
 }
 
-func NewDeploymentModel(
-	deploymentsStorage DeploymentsStorage,
-	deviceDeploymentGenerator Generator,
-	deviceDeploymentsStorage DeviceDeploymentStorage,
-	deviceDeploymentLogsStorage DeviceDeploymentLogsStorage,
-	imageLinker GetRequester,
-) *DeploymentsModel {
+type DeploymentsModelConfig struct {
+	DeploymentsStorage          DeploymentsStorage
+	DeviceDeploymentsStorage    DeviceDeploymentStorage
+	DeviceDeploymentLogsStorage DeviceDeploymentLogsStorage
+	ImageLinker                 GetRequester
+	DeviceDeploymentGenerator   Generator
+	ImageContentType            string
+}
+
+func NewDeploymentModel(config DeploymentsModelConfig) *DeploymentsModel {
 	return &DeploymentsModel{
-		deploymentsStorage:          deploymentsStorage,
-		deviceDeploymentsStorage:    deviceDeploymentsStorage,
-		deviceDeploymentLogsStorage: deviceDeploymentLogsStorage,
-		imageLinker:                 imageLinker,
-		deviceDeploymentGenerator:   deviceDeploymentGenerator,
+		deploymentsStorage:          config.DeploymentsStorage,
+		deviceDeploymentsStorage:    config.DeviceDeploymentsStorage,
+		deviceDeploymentLogsStorage: config.DeviceDeploymentLogsStorage,
+		imageLinker:                 config.ImageLinker,
+		deviceDeploymentGenerator:   config.DeviceDeploymentGenerator,
+		imageContentType:            config.ImageContentType,
 	}
 }
 
@@ -154,7 +159,7 @@ func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployments
 		return nil, nil
 	}
 
-	link, err := d.imageLinker.GetRequest(*deployment.Image.Id, DefaultUpdateDownloadLinkExpire)
+	link, err := d.imageLinker.GetRequest(*deployment.Image.Id, DefaultUpdateDownloadLinkExpire, d.imageContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}
