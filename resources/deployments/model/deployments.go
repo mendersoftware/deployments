@@ -183,6 +183,14 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 		finishTime = &now
 	}
 
+	currentStatus, err := d.deviceDeploymentsStorage.GetDeviceDeploymentStatus(deploymentID, deviceID)
+	if err != nil {
+		return err
+	}
+	if currentStatus == deployments.DeviceDeploymentStatusAborted {
+		return controller.ErrDeploymentAborted
+	}
+
 	old, err := d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID,
 		status, finishTime)
 

@@ -27,6 +27,7 @@ var (
 	ErrModelDeploymentNotFound = errors.New("Deployment not found")
 	ErrModelInternal           = errors.New("Internal error")
 	ErrStorageInvalidLog       = errors.New("Invalid deployment log")
+	ErrDeploymentAborted       = errors.New("Deployment aborted")
 )
 
 // Domain model for deployment

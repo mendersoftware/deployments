@@ -182,6 +182,7 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 		DeviceDeploymentStatusNoImage:     6,
 		DeviceDeploymentStatusDownloading: 7,
 		DeviceDeploymentStatusAlreadyInst: 8,
+		DeviceDeploymentStatusAborted:     9,
 	}
 
 	j, err := dep.MarshalJSON()
@@ -230,6 +231,7 @@ func TestDeploymentIs(t *testing.T) {
 		DeviceDeploymentStatusFailure,
 		DeviceDeploymentStatusNoImage,
 		DeviceDeploymentStatusAlreadyInst,
+		DeviceDeploymentStatusAborted,
 	}
 	for _, as := range finished {
 		t.Logf("checking finished deployment stat %s", as)
@@ -289,6 +291,13 @@ func TestDeploymentGetStatus(t *testing.T) {
 			Stats: map[string]int{
 				DeviceDeploymentStatusFailure:     1,
 				DeviceDeploymentStatusAlreadyInst: 1,
+			},
+			OutputStatus: "finished",
+		},
+		"Failed + Aborted": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusFailure: 1,
+				DeviceDeploymentStatusAborted: 1,
 			},
 			OutputStatus: "finished",
 		},

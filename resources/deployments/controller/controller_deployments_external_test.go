@@ -373,6 +373,37 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
 			},
 		},
+		{
+			// aborted -> installing, forbidden
+			InputBodyObject:        &report{Status: "installing"},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-2",
+			InputModelStatus:       "installing",
+			InputModelError:        ErrDeploymentAborted,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusConflict,
+				OutputBodyObject: h.ErrorToErrStruct(ErrDeploymentAborted),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
+			},
+		},
+		{
+			// change to aborted forbidden
+			InputBodyObject:        &report{Status: "aborted"},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-2",
+			InputModelStatus:       "aborted",
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(ErrBadStatus),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -446,6 +477,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 				deployments.DeviceDeploymentStatusPending:     2,
 				deployments.DeviceDeploymentStatusNoImage:     0,
 				deployments.DeviceDeploymentStatusAlreadyInst: 0,
+				deployments.DeviceDeploymentStatusAborted:     0,
 			},
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -459,6 +491,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 					deployments.DeviceDeploymentStatusPending:     2,
 					deployments.DeviceDeploymentStatusNoImage:     0,
 					deployments.DeviceDeploymentStatusAlreadyInst: 0,
+					deployments.DeviceDeploymentStatusAborted:     0,
 				},
 			},
 		},

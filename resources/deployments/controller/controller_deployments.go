@@ -172,7 +172,11 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 
 	status := report.Status
 	if err := d.model.UpdateDeviceDeploymentStatus(did, idata.Subject, status); err != nil {
-		d.view.RenderInternalError(w, r, err, l)
+		if err == ErrDeploymentAborted {
+			d.view.RenderError(w, r, err, http.StatusConflict, l)
+		} else {
+			d.view.RenderInternalError(w, r, err, l)
+		}
 		return
 	}
 

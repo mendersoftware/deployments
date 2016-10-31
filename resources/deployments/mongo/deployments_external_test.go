@@ -209,6 +209,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 						deployments.DeviceDeploymentStatusFailure:     1,
 						deployments.DeviceDeploymentStatusNoImage:     0,
 						deployments.DeviceDeploymentStatusAlreadyInst: 0,
+						deployments.DeviceDeploymentStatusAborted:     0,
 					},
 				},
 				&deployments.Deployment{
@@ -227,6 +228,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 						deployments.DeviceDeploymentStatusFailure:     3,
 						deployments.DeviceDeploymentStatusNoImage:     0,
 						deployments.DeviceDeploymentStatusAlreadyInst: 0,
+						deployments.DeviceDeploymentStatusAborted:     0,
 					},
 				},
 			},
@@ -247,6 +249,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 					deployments.DeviceDeploymentStatusFailure:     1,
 					deployments.DeviceDeploymentStatusNoImage:     0,
 					deployments.DeviceDeploymentStatusAlreadyInst: 0,
+					deployments.DeviceDeploymentStatusAborted:     0,
 				},
 			},
 		},
@@ -307,6 +310,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 					deployments.DeviceDeploymentStatusFailure:     4,
 					deployments.DeviceDeploymentStatusNoImage:     5,
 					deployments.DeviceDeploymentStatusAlreadyInst: 0,
+					deployments.DeviceDeploymentStatusAborted:     0,
 				},
 			},
 			InputStateFrom: deployments.DeviceDeploymentStatusPending,
@@ -322,6 +326,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 				deployments.DeviceDeploymentStatusFailure:     4,
 				deployments.DeviceDeploymentStatusNoImage:     5,
 				deployments.DeviceDeploymentStatusAlreadyInst: 0,
+				deployments.DeviceDeploymentStatusAborted:     0,
 			},
 		},
 		"rebooting -> failed": {
@@ -337,6 +342,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 					deployments.DeviceDeploymentStatusFailure:     4,
 					deployments.DeviceDeploymentStatusNoImage:     5,
 					deployments.DeviceDeploymentStatusAlreadyInst: 0,
+					deployments.DeviceDeploymentStatusAborted:     0,
 				},
 			},
 			InputStateFrom: deployments.DeviceDeploymentStatusRebooting,
@@ -352,6 +358,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 				deployments.DeviceDeploymentStatusFailure:     5,
 				deployments.DeviceDeploymentStatusNoImage:     5,
 				deployments.DeviceDeploymentStatusAlreadyInst: 0,
+				deployments.DeviceDeploymentStatusAborted:     0,
 			},
 		},
 		"invalid deployment id": {
@@ -508,6 +515,17 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusSuccess: 1,
 			}),
 		},
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("123"),
+				ArtifactName: StringToPointer("dfs"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc34a"},
+			},
+			Id: StringToPointer("3fe15222-1234-401f-8f5e-582aba2a002a"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusAborted: 1,
+			}),
+		},
 	}
 
 	testCases := []struct {
@@ -612,6 +630,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
 				"3fe15222-0a41-401f-8f5e-582aba2a002c",
 				"44dd8822-eeb1-44db-a18e-f4f5acc43796",
+				"3fe15222-1234-401f-8f5e-582aba2a002a",
 			},
 		},
 		{
@@ -630,6 +649,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				"3fe15222-1234-401f-8f5e-582aba2a002e",
 				"3fe15222-1234-401f-8f5e-582aba2a002f",
 				"44dd8822-eeb1-44db-a18e-f4f5acc43796",
+				"3fe15222-1234-401f-8f5e-582aba2a002a",
 			},
 		},
 	}
