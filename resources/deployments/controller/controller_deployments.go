@@ -29,9 +29,11 @@ import (
 
 // Errors
 var (
-	ErrIDNotUUIDv4  = errors.New("ID is not UUIDv4")
-	ErrDeploymentID = errors.New("Invalid deployment ID")
-	ErrInternal     = errors.New("Internal error")
+	ErrIDNotUUIDv4                = errors.New("ID is not UUIDv4")
+	ErrDeploymentID               = errors.New("Invalid deployment ID")
+	ErrInternal                   = errors.New("Internal error")
+	ErrDeploymentAlreadyFinished  = errors.New("Deployment already finished")
+	ErrUnexpectedDeploymentStatus = errors.New("Unexpected deployment status")
 )
 
 type DeploymentsController struct {
@@ -125,6 +127,51 @@ func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *res
 	}
 
 	d.view.RenderSuccessGet(w, stats)
+}
+
+func (d *DeploymentsController) AbortDeployment(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r.Env)
+
+	id := r.PathParam("id")
+
+	if !govalidator.IsUUIDv4(id) {
+		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		return
+	}
+
+	// receive request body
+	var status struct {
+		Status string
+	}
+
+	err := r.DecodeJsonPayload(&status)
+	if err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+	// "aborted" is the only supported status
+	if status.Status != deployments.DeviceDeploymentStatusAborted {
+		d.view.RenderError(w, r, ErrUnexpectedDeploymentStatus, http.StatusBadRequest, l)
+	}
+
+	// Check if deployment is finished
+	isDeploymentFinished, err := d.model.IsDeploymentFinished(id)
+	if err != nil {
+		d.view.RenderInternalError(w, r, err, l)
+		return
+	}
+	if isDeploymentFinished {
+		d.view.RenderError(w, r, ErrDeploymentAlreadyFinished, http.StatusUnprocessableEntity, l)
+		return
+	}
+
+	// Abort deployments for devices
+	if err := d.model.AbortDeviceDeployments(id); err != nil {
+		d.view.RenderInternalError(w, r, err, l)
+	}
+	// Update deployment stats
+
+	d.view.RenderEmptySuccessResponse(w)
 }
 
 func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
@@ -224,6 +271,8 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 		query.Status = deployments.StatusQueryFinished
 	case "pending":
 		query.Status = deployments.StatusQueryPending
+	case "aborted":
+		query.Status = deployments.StatusQueryAborted
 	case "":
 		query.Status = deployments.StatusQueryAny
 	default:
