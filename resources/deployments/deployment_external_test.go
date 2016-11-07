@@ -182,7 +182,7 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 		DeviceDeploymentStatusNoImage:     6,
 		DeviceDeploymentStatusDownloading: 7,
 		DeviceDeploymentStatusAlreadyInst: 8,
-		DeviceDeploymentStatusAborted:     9,
+		DeviceDeploymentStatusAborted:     0,
 	}
 
 	j, err := dep.MarshalJSON()
@@ -299,7 +299,7 @@ func TestDeploymentGetStatus(t *testing.T) {
 				DeviceDeploymentStatusFailure: 1,
 				DeviceDeploymentStatusAborted: 1,
 			},
-			OutputStatus: "finished",
+			OutputStatus: "aborted",
 		},
 		"Rebooting + NoImage": {
 			Stats: map[string]int{
