@@ -110,6 +110,20 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *de
 	return *deployment.Id, nil
 }
 
+// IsDeploymentFinished checks if there is unfinished deplyoment with given ID
+func (d *DeploymentsModel) IsDeploymentFinished(deploymentID string) (bool, error) {
+
+	deployment, err := d.deploymentsStorage.FindUnfinishedByID(deploymentID)
+	if err != nil {
+		return false, errors.Wrap(err, "Searching for unfinished deployment by ID")
+	}
+	if deployment == nil {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 // GetDeployment fetches deplyoment by ID
 func (d *DeploymentsModel) GetDeployment(deploymentID string) (*deployments.Deployment, error) {
 
@@ -304,4 +318,18 @@ func (d *DeploymentsModel) GetDeviceDeploymentLog(deviceID, deploymentID string)
 
 func (d *DeploymentsModel) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
 	return d.deviceDeploymentsStorage.HasDeploymentForDevice(deploymentID, deviceID)
+}
+
+func (d *DeploymentsModel) AbortDeviceDeployments(deploymentID string) error {
+
+	if err := d.deviceDeploymentsStorage.AbortDeviceDeployments(deploymentID); err != nil {
+		return err
+	}
+
+	stats, err := d.deviceDeploymentsStorage.AggregateDeviceDeploymentByStatus(deploymentID)
+	if err != nil {
+		return err
+	}
+
+	return d.deploymentsStorage.ReplaceStats(deploymentID, stats)
 }

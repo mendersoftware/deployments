@@ -34,6 +34,8 @@ var (
 type DeploymentsModel interface {
 	CreateDeployment(ctx context.Context, constructor *deployments.DeploymentConstructor) (string, error)
 	GetDeployment(deploymentID string) (*deployments.Deployment, error)
+	IsDeploymentFinished(deploymentID string) (bool, error)
+	AbortDeviceDeployments(deploymentID string) error
 	GetDeploymentStats(deploymentID string) (deployments.Stats, error)
 	GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error)
 	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)
