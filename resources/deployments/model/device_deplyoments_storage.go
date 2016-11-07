@@ -30,4 +30,5 @@ type DeviceDeploymentStorage interface {
 	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
 	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)
 	GetDeviceDeploymentStatus(deploymentID string, deviceID string) (string, error)
+	AbortDeviceDeployments(deploymentID string) error
 }
