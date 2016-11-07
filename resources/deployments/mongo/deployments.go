@@ -160,6 +160,53 @@ func (d *DeploymentsStorage) FindByID(id string) (*deployments.Deployment, error
 	return deployment, nil
 }
 
+func (d *DeploymentsStorage) FindUnfinishedByID(id string) (*deployments.Deployment, error) {
+
+	if govalidator.IsNull(id) {
+		return nil, ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	var deployment *deployments.Deployment
+	filter := bson.M{
+		"_id": id,
+		StorageKeyDeploymentFinished: time.Time{},
+	}
+	if err := session.DB(DatabaseName).C(CollectionDeployments).
+		Find(filter).One(&deployment); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return deployment, nil
+}
+
+func (d *DeploymentsStorage) ReplaceStats(id string, stats map[string]int) error {
+	if govalidator.IsNull(id) {
+		return ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeploymentStats: stats,
+		},
+	}
+
+	err := session.DB(DatabaseName).C(CollectionDeployments).UpdateId(id, update)
+	if err == mgo.ErrNotFound {
+		return ErrStorageInvalidID
+	}
+
+	return err
+}
+
 func (d *DeploymentsStorage) UpdateStats(id string, state_from, state_to string) error {
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
