@@ -134,7 +134,7 @@ func (_m *DeploymentsModel) GetDeviceDeploymentLog(deviceID, deploymentID string
 	return ret.Get(0).(*deployments.DeploymentLog), ret.Error(1)
 }
 
-func (_m *DeploymentsModel) AbortDeviceDeployments(deploymentID string) error {
+func (_m *DeploymentsModel) AbortDeployment(deploymentID string) error {
 	ret := _m.Called(deploymentID)
 	return ret.Error(0)
 }

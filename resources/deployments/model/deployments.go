@@ -310,7 +310,8 @@ func (d *DeploymentsModel) HasDeploymentForDevice(deploymentID string, deviceID 
 	return d.deviceDeploymentsStorage.HasDeploymentForDevice(deploymentID, deviceID)
 }
 
-func (d *DeploymentsModel) AbortDeviceDeployments(deploymentID string) error {
+// AbortDeployment aborts deployment for devices and updates deployment stats
+func (d *DeploymentsModel) AbortDeployment(deploymentID string) error {
 
 	if err := d.deviceDeploymentsStorage.AbortDeviceDeployments(deploymentID); err != nil {
 		return err
@@ -321,5 +322,6 @@ func (d *DeploymentsModel) AbortDeviceDeployments(deploymentID string) error {
 		return err
 	}
 
+	// Update deployment stats
 	return d.deploymentsStorage.ReplaceStats(deploymentID, stats)
 }

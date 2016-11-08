@@ -165,11 +165,10 @@ func (d *DeploymentsController) AbortDeployment(w rest.ResponseWriter, r *rest.R
 		return
 	}
 
-	// Abort deployments for devices
-	if err := d.model.AbortDeviceDeployments(id); err != nil {
+	// Abort deployments for devices and update deployment stats
+	if err := d.model.AbortDeployment(id); err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 	}
-	// Update deployment stats
 
 	d.view.RenderEmptySuccessResponse(w)
 }
