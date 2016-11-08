@@ -320,12 +320,8 @@ func (d *DeviceDeploymentsStorage) AbortDeviceDeployments(deploymentId string) e
 		bson.M{StorageKeyDeviceDeploymentDeploymentID: deploymentId},
 		bson.M{
 			"status": bson.M{
-				"$in": []string{
-					deployments.DeviceDeploymentStatusDownloading,
-					deployments.DeviceDeploymentStatusInstalling,
-					deployments.DeviceDeploymentStatusRebooting,
-					deployments.DeviceDeploymentStatusPending,
-				}}},
+				"$in": deployments.ActiveDeploymentStatuses(),
+			}},
 	}}
 
 	update := bson.M{"$set": bson.M{"status": deployments.DeviceDeploymentStatusAborted}}

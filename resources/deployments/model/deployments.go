@@ -139,7 +139,7 @@ func (d *DeploymentsModel) GetDeployment(deploymentID string) (*deployments.Depl
 // Image is considered to be in use if it's participating in at lest one non success/error deployment.
 func (d *DeploymentsModel) ImageUsedInActiveDeployment(imageID string) (bool, error) {
 
-	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageID, d.ActiveDeploymentStatuses()...)
+	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageID, deployments.ActiveDeploymentStatuses()...)
 	if err != nil {
 		return false, errors.Wrap(err, "Checking if image is used by active deplyoment")
 	}
@@ -163,7 +163,7 @@ func (d *DeploymentsModel) ImageUsedInDeployment(imageID string) (bool, error) {
 // nil in case of nothing deploy for device.
 func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error) {
 
-	deployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(deviceID, d.ActiveDeploymentStatuses()...)
+	deployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(deviceID, deployments.ActiveDeploymentStatuses()...)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for oldest active deployment for the device")
@@ -179,16 +179,6 @@ func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployments
 	}
 
 	return deployments.NewDeploymentInstructions(*deployment.DeploymentId, link, deployment.Image), nil
-}
-
-// ActiveDeploymentStatuses lists statuses that represent deployment in active state (not finished).
-func (d *DeploymentsModel) ActiveDeploymentStatuses() []string {
-	return []string{
-		deployments.DeviceDeploymentStatusPending,
-		deployments.DeviceDeploymentStatusDownloading,
-		deployments.DeviceDeploymentStatusInstalling,
-		deployments.DeviceDeploymentStatusRebooting,
-	}
 }
 
 // UpdateDeviceDeploymentStatus will update the deployment status for device of
