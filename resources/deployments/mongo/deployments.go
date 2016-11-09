@@ -185,17 +185,19 @@ func (d *DeploymentsStorage) FindUnfinishedByID(id string) (*deployments.Deploym
 	return deployment, nil
 }
 
-func (d *DeploymentsStorage) ReplaceStats(id string, stats map[string]int) error {
+func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(id string, stats map[string]int) error {
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
 	}
 
 	session := d.session.Copy()
 	defer session.Close()
+	now := time.Now()
 
 	update := bson.M{
 		"$set": bson.M{
-			StorageKeyDeploymentStats: stats,
+			StorageKeyDeploymentStats:    stats,
+			StorageKeyDeploymentFinished: &now,
 		},
 	}
 

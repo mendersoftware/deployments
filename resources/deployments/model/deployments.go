@@ -322,6 +322,8 @@ func (d *DeploymentsModel) AbortDeployment(deploymentID string) error {
 		return err
 	}
 
-	// Update deployment stats
-	return d.deploymentsStorage.ReplaceStats(deploymentID, stats)
+	// Update deployment stats and finish deployment (set finished timestamp to current time)
+	// Aborted deployment is considered to be finished even if some devices are
+	// still processing this deployment.
+	return d.deploymentsStorage.UpdateStatsAndFinishDeployment(deploymentID, stats)
 }
