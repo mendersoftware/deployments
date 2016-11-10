@@ -89,7 +89,7 @@ func (_m *DeploymentsStorage) UpdateStats(id string, state_from, state_to string
 	return ret.Error(0)
 }
 
-func (_m *DeploymentsStorage) UpdateStatsAndFinishDeployment(id string, stats map[string]int) error {
+func (_m *DeploymentsStorage) UpdateStatsAndFinishDeployment(id string, stats deployments.Stats) error {
 	ret := _m.Called(id, stats)
 
 	return ret.Error(0)

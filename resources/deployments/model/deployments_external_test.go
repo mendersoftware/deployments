@@ -919,3 +919,116 @@ func TestDeploymentModelLookupDeployment(t *testing.T) {
 		assert.Equal(t, testCase.OutputDeployments, deployments)
 	}
 }
+
+func TestDeploymentModelIsDeploymentFinished(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		InputDeploymentID string
+		MockDeployment    *deployments.Deployment
+		MockError         error
+
+		OutputValue bool
+		OutputError error
+	}{
+		"nothing found": {
+			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
+			MockDeployment:    nil,
+			OutputError:       nil,
+			OutputValue:       false,
+		},
+		"error": {
+			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
+			MockDeployment:    nil,
+			MockError:         errors.New("bad bad bad"),
+			OutputError:       errors.New("Searching for unfinished deployment by ID: bad bad bad"),
+		},
+		"found unfinished deplyoment": {
+			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
+			MockDeployment:    &deployments.Deployment{Id: StringToPointer("f826484e-1157-4109-af21-304e6d711561")},
+			OutputValue:       true,
+		},
+	}
+
+	for name, testCase := range testCases {
+
+		t.Logf("testing case %s\n", name)
+
+		deploymentStorage := new(mocks.DeploymentsStorage)
+		deploymentStorage.On("FindUnfinishedByID", mock.AnythingOfType("string")).
+			Return(testCase.MockDeployment, testCase.MockError)
+
+		model := NewDeploymentModel(DeploymentsModelConfig{DeploymentsStorage: deploymentStorage})
+
+		isFinished, err := model.IsDeploymentFinished(testCase.InputDeploymentID)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, testCase.OutputValue, isFinished)
+	}
+}
+
+func TestDeploymentModelAbortDeployment(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		InputDeploymentID string
+
+		AbortDeviceDeploymentsError            error
+		AggregateDeviceDeploymentByStatusStats deployments.Stats
+		AggregateDeviceDeploymentByStatusError error
+		UpdateStatsAndFinishDeploymentError    error
+
+		OutputError error
+	}{
+		"AbortDeviceDeployments error": {
+			InputDeploymentID:           "f826484e-1157-4109-af21-304e6d711561",
+			AbortDeviceDeploymentsError: errors.New("AbortDeviceDeploymentsError"),
+			OutputError:                 errors.New("AbortDeviceDeploymentsError"),
+		},
+		"AggregateDeviceDeploymentByStatus error": {
+			InputDeploymentID:                      "f826484e-1157-4109-af21-304e6d711561",
+			AggregateDeviceDeploymentByStatusError: errors.New("AggregateDeviceDeploymentByStatusError"),
+			AggregateDeviceDeploymentByStatusStats: deployments.Stats{},
+			OutputError:                            errors.New("AggregateDeviceDeploymentByStatusError"),
+		},
+		"UpdateStatsAndFinishDeployment error": {
+			InputDeploymentID:                      "f826484e-1157-4109-af21-304e6d711561",
+			AggregateDeviceDeploymentByStatusStats: deployments.Stats{"aaa": 1},
+			UpdateStatsAndFinishDeploymentError:    errors.New("UpdateStatsAndFinishDeploymentError"),
+			OutputError:                            errors.New("UpdateStatsAndFinishDeploymentError"),
+		},
+		"all correct": {
+			InputDeploymentID:                      "f826484e-1157-4109-af21-304e6d711561",
+			AggregateDeviceDeploymentByStatusStats: deployments.Stats{"aaa": 1},
+		},
+	}
+
+	for name, testCase := range testCases {
+
+		t.Logf("testing case %s\n", name)
+
+		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
+		deploymentStorage := new(mocks.DeploymentsStorage)
+		deviceDeploymentStorage.On("AbortDeviceDeployments", mock.AnythingOfType("string")).
+			Return(testCase.AbortDeviceDeploymentsError)
+		deviceDeploymentStorage.On("AggregateDeviceDeploymentByStatus", mock.AnythingOfType("string")).
+			Return(testCase.AggregateDeviceDeploymentByStatusStats, testCase.AggregateDeviceDeploymentByStatusError)
+		deploymentStorage.On("UpdateStatsAndFinishDeployment", mock.AnythingOfType("string"), mock.AnythingOfType("deployments.Stats")).
+			Return(testCase.UpdateStatsAndFinishDeploymentError)
+
+		model := NewDeploymentModel(DeploymentsModelConfig{
+			DeploymentsStorage:       deploymentStorage,
+			DeviceDeploymentsStorage: deviceDeploymentStorage,
+		})
+
+		err := model.AbortDeployment(testCase.InputDeploymentID)
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+	}
+}

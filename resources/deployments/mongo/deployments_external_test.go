@@ -282,9 +282,179 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 	}
 }
 
+func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("skipping TestDeploymentStorageFindUnfinishedByID in short mode.")
+	}
+	now := time.Now()
+	nullTime := time.Time{}
+
+	testCases := map[string]struct {
+		InputID                    string
+		InputDeplyomentsCollection []interface{}
+
+		OutputError      error
+		OutputDeployment *deployments.Deployment
+	}{
+		"empty ID": {
+			InputID:     "",
+			OutputError: ErrStorageInvalidID,
+		},
+		"empty database": {
+			InputID:          "b532b01a-9313-404f-8d19-e7fcbe5cc347",
+			OutputError:      nil,
+			OutputDeployment: nil,
+		},
+		"no deployments with given ID": {
+			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
+			InputDeplyomentsCollection: []interface{}{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Finished: &nullTime,
+				},
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:       StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Finished: &nullTime,
+				},
+			},
+			OutputError:      nil,
+			OutputDeployment: nil,
+		},
+		"all correct": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeplyomentsCollection: []interface{}{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Finished: &nullTime,
+					Stats: map[string]int{
+						deployments.DeviceDeploymentStatusDownloading: 0,
+						deployments.DeviceDeploymentStatusInstalling:  0,
+						deployments.DeviceDeploymentStatusRebooting:   0,
+						deployments.DeviceDeploymentStatusPending:     10,
+						deployments.DeviceDeploymentStatusSuccess:     15,
+						deployments.DeviceDeploymentStatusFailure:     1,
+						deployments.DeviceDeploymentStatusNoImage:     0,
+						deployments.DeviceDeploymentStatusAlreadyInst: 0,
+						deployments.DeviceDeploymentStatusAborted:     0,
+					},
+				},
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:       StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Finished: &nullTime,
+					Stats: map[string]int{
+						deployments.DeviceDeploymentStatusDownloading: 0,
+						deployments.DeviceDeploymentStatusInstalling:  0,
+						deployments.DeviceDeploymentStatusRebooting:   0,
+						deployments.DeviceDeploymentStatusPending:     5,
+						deployments.DeviceDeploymentStatusSuccess:     10,
+						deployments.DeviceDeploymentStatusFailure:     3,
+						deployments.DeviceDeploymentStatusNoImage:     0,
+						deployments.DeviceDeploymentStatusAlreadyInst: 0,
+						deployments.DeviceDeploymentStatusAborted:     0,
+					},
+				},
+			},
+			OutputError: nil,
+			OutputDeployment: &deployments.Deployment{
+				DeploymentConstructor: &deployments.DeploymentConstructor{
+					Name:         StringToPointer("NYC Production"),
+					ArtifactName: StringToPointer("App 123"),
+					//Devices is not kept around!
+				},
+				Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Finished: &nullTime,
+				Stats: map[string]int{
+					deployments.DeviceDeploymentStatusDownloading: 0,
+					deployments.DeviceDeploymentStatusInstalling:  0,
+					deployments.DeviceDeploymentStatusRebooting:   0,
+					deployments.DeviceDeploymentStatusPending:     10,
+					deployments.DeviceDeploymentStatusSuccess:     15,
+					deployments.DeviceDeploymentStatusFailure:     1,
+					deployments.DeviceDeploymentStatusNoImage:     0,
+					deployments.DeviceDeploymentStatusAlreadyInst: 0,
+					deployments.DeviceDeploymentStatusAborted:     0,
+				},
+			},
+		},
+		"deployment already finished": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeplyomentsCollection: []interface{}{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Finished: &now,
+				},
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:       StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Finished: &nullTime,
+				},
+			},
+			OutputError:      nil,
+			OutputDeployment: nil,
+		},
+	}
+
+	for id, testCase := range testCases {
+
+		t.Logf("testing case %s", id)
+		// Make sure we start test with empty database
+		db.Wipe()
+
+		session := db.Session()
+		store := NewDeploymentsStorage(session)
+
+		dep := session.DB(DatabaseName).C(CollectionDeployments)
+		if testCase.InputDeplyomentsCollection != nil {
+			assert.NoError(t, dep.Insert(testCase.InputDeplyomentsCollection...))
+		}
+
+		deployment, err := store.FindUnfinishedByID(testCase.InputID)
+
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.OutputDeployment, deployment)
+		}
+
+		// Need to close all sessions to be able to call wipe at next test case
+		session.Close()
+	}
+}
+
 func TestDeploymentStorageUpdateStats(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping TestDeploymentStorageInsert in short mode.")
+		t.Skip("skipping TestDeploymentStorageUpdateStats in short mode.")
 	}
 
 	testCases := map[string]struct {
@@ -403,6 +573,93 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 			err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.OutputStats, deployment.Stats)
+		}
+
+		// Need to close all sessions to be able to call wipe at next test case
+		session.Close()
+	}
+}
+
+func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestDeploymentStorageUpdateStatsAndFinishDeployment in short mode.")
+	}
+
+	testCases := map[string]struct {
+		InputID         string
+		InputDeployment *deployments.Deployment
+		InputStats      map[string]int
+
+		OutputError error
+	}{
+		"all correct": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Stats: map[string]int{
+					deployments.DeviceDeploymentStatusDownloading: 1,
+					deployments.DeviceDeploymentStatusInstalling:  2,
+					deployments.DeviceDeploymentStatusRebooting:   3,
+					deployments.DeviceDeploymentStatusPending:     3,
+					deployments.DeviceDeploymentStatusSuccess:     6,
+					deployments.DeviceDeploymentStatusFailure:     8,
+					deployments.DeviceDeploymentStatusNoImage:     4,
+					deployments.DeviceDeploymentStatusAlreadyInst: 2,
+					deployments.DeviceDeploymentStatusAborted:     5,
+				},
+			},
+			InputStats: map[string]int{
+				deployments.DeviceDeploymentStatusDownloading: 1,
+				deployments.DeviceDeploymentStatusInstalling:  2,
+				deployments.DeviceDeploymentStatusRebooting:   3,
+				deployments.DeviceDeploymentStatusPending:     10,
+				deployments.DeviceDeploymentStatusSuccess:     15,
+				deployments.DeviceDeploymentStatusFailure:     4,
+				deployments.DeviceDeploymentStatusNoImage:     5,
+				deployments.DeviceDeploymentStatusAlreadyInst: 0,
+				deployments.DeviceDeploymentStatusAborted:     5,
+			},
+
+			OutputError: nil,
+		},
+		"invalid deployment id": {
+			InputID:         "",
+			InputDeployment: nil,
+			InputStats:      nil,
+
+			OutputError: ErrStorageInvalidID,
+		},
+		"wrong deployment id": {
+			InputID:         "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: nil,
+			InputStats:      nil,
+
+			OutputError: ErrStorageInvalidID,
+		},
+	}
+
+	for id, tc := range testCases {
+		t.Logf("testing case %s", id)
+
+		db.Wipe()
+
+		session := db.Session()
+		store := NewDeploymentsStorage(session)
+
+		dep := session.DB(DatabaseName).C(CollectionDeployments)
+		if tc.InputDeployment != nil {
+			assert.NoError(t, dep.Insert(tc.InputDeployment))
+		}
+
+		err := store.UpdateStatsAndFinishDeployment(tc.InputID, tc.InputStats)
+
+		if tc.OutputError != nil {
+			assert.EqualError(t, err, tc.OutputError.Error())
+		} else {
+			var deployment *deployments.Deployment
+			err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.InputStats, deployment.Stats)
 		}
 
 		// Need to close all sessions to be able to call wipe at next test case

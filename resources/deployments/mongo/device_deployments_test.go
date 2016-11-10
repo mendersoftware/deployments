@@ -21,7 +21,6 @@ import (
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
-	// . "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -487,4 +486,77 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 	}
 
 	session.Close()
+}
+
+func TestAbortDeviceDeployments(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("skipping TestAbortDeviceDeployments in short mode.")
+	}
+
+	testCases := map[string]struct {
+		InputDeploymentID     string
+		InputDeviceDeployment []*deployments.DeviceDeployment
+
+		OutputError error
+	}{
+		"null deployment id": {
+			OutputError: ErrStorageInvalidID,
+		},
+		"all correct": {
+			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+				deployments.NewDeviceDeployment("567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+			},
+			OutputError: nil,
+		},
+	}
+
+	for name, testCase := range testCases {
+
+		t.Logf("testing case %s", name)
+
+		// Make sure we start test with empty database
+		db.Wipe()
+
+		session := db.Session()
+		store := NewDeviceDeploymentsStorage(session)
+
+		err := store.InsertMany(testCase.InputDeviceDeployment...)
+		assert.NoError(t, err)
+
+		err = store.AbortDeviceDeployments(testCase.InputDeploymentID)
+
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+
+		if testCase.InputDeviceDeployment != nil {
+			// these checks only make sense if there are any deployments in database
+			var deploymentList []deployments.DeviceDeployment
+			dep := session.DB(DatabaseName).C(CollectionDevices)
+			query := bson.M{
+				StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
+			}
+			err := dep.Find(query).All(&deploymentList)
+			assert.NoError(t, err)
+
+			if testCase.OutputError != nil {
+				for _, deployment := range deploymentList {
+					// status must be unchanged in case of errors
+					assert.Equal(t, deployments.DeviceDeploymentStatusPending, *deployment.Status)
+				}
+			} else {
+				for _, deployment := range deploymentList {
+					assert.Equal(t, deployments.DeviceDeploymentStatusAborted, *deployment.Status)
+				}
+			}
+		}
+
+		// Need to close all sessions to be able to call wipe at next test case
+		session.Close()
+	}
 }
