@@ -330,7 +330,7 @@ paths:
 
   /images/{id}:
     get:
-      summary: Get the details of a selected firmare image
+      summary: Get the details of a selected firmware image
       description: |
         Returns the details of a selected firmware image.
       parameters:
@@ -393,7 +393,7 @@ paths:
           type: string
       responses:
         204:
-          description: The imagae deleted successfully.
+          description: The image deleted successfully.
         404:
           $ref: "#/responses/NotFoundError"
         500:
@@ -408,7 +408,7 @@ paths:
         'If-Modified-Since', 'If-Unmodified-Since' It is valid for specified
         period of time.
 
-        To be able to recieve download link, image file have to be uploaded
+        To be able to receive download link, image file have to be uploaded
         first.
       parameters:
         - name: id
@@ -532,7 +532,7 @@ definitions:
         description: Number of failed deployments.
       noimage:
         type: integer
-        description: Do not have apropriate image for device type.
+        description: Do not have appropriate image for device type.
       already-installed:
         type: integer
         description: Number of devices unaffected by upgrade, since they are already running the specified software version.
@@ -565,7 +565,7 @@ definitions:
     properties:
       id:
         type: string
-        description: Device idenfifier.
+        description: Device identifier.
       finished:
         type: string
         format: date-time
