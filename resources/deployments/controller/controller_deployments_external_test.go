@@ -1098,3 +1098,116 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 		}
 	}
 }
+
+func TestControllerAbortDeployment(t *testing.T) {
+
+	t.Parallel()
+
+	type report struct {
+		Status string `json:"status"`
+	}
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputBodyObject interface{}
+
+		InputModelDeploymentID              string
+		InputModelStatus                    string
+		InputModelDeploymentFinishedFlag    bool
+		InputModelIsDeploymentFinishedError error
+		InputModelError                     error
+	}{
+		{
+			// empty body
+			InputBodyObject: nil,
+
+			InputModelDeploymentID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputModelStatus:                 "none",
+			InputModelDeploymentFinishedFlag: false,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("JSON payload is empty")),
+			},
+		},
+		{
+			// wrong status
+			InputBodyObject:                  &report{Status: "finished"},
+			InputModelDeploymentID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputModelStatus:                 "finished",
+			InputModelDeploymentFinishedFlag: false,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Unexpected deployment status")),
+			},
+		},
+		{
+			// deployment finished already
+			InputBodyObject:                  &report{Status: "aborted"},
+			InputModelDeploymentID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputModelStatus:                 "aborted",
+			InputModelDeploymentFinishedFlag: true,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusUnprocessableEntity,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment already finished")),
+			},
+		},
+		{
+			// checking if deploymen was finished error
+			InputBodyObject:                     &report{Status: "aborted"},
+			InputModelDeploymentID:              "f826484e-1157-4109-af21-304e6d711560",
+			InputModelStatus:                    "aborted",
+			InputModelDeploymentFinishedFlag:    true,
+			InputModelIsDeploymentFinishedError: errors.New("IsDeploymentFinished error"),
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
+			},
+		},
+		{
+			// all correct
+			InputBodyObject:                  &report{Status: "aborted"},
+			InputModelDeploymentID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputModelStatus:                 "aborted",
+			InputModelDeploymentFinishedFlag: false,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusNoContent,
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing %s %s %t %v %v",
+			testCase.InputModelDeploymentID, testCase.InputModelStatus,
+			testCase.InputModelDeploymentFinishedFlag, testCase.InputModelIsDeploymentFinishedError,
+			testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("AbortDeployment", testCase.InputModelDeploymentID).
+			Return(testCase.InputModelError)
+
+		deploymentModel.On("IsDeploymentFinished", testCase.InputModelDeploymentID).
+			Return(testCase.InputModelDeploymentFinishedFlag, testCase.InputModelIsDeploymentFinishedError)
+
+		router, err := rest.MakeRouter(
+			rest.Post("/r/:id",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).AbortDeployment))
+		assert.NoError(t, err)
+
+		api := makeApi(router)
+
+		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
+			testCase.InputBodyObject)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+	}
+}

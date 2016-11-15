@@ -308,3 +308,29 @@ func (d *DeviceDeploymentsStorage) GetDeviceDeploymentStatus(deploymentID string
 
 	return *dep.Status, nil
 }
+
+func (d *DeviceDeploymentsStorage) AbortDeviceDeployments(deploymentId string) error {
+	if govalidator.IsNull(deploymentId) {
+		return ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+	selector := bson.M{"$and": []bson.M{
+		bson.M{StorageKeyDeviceDeploymentDeploymentID: deploymentId},
+		bson.M{
+			"status": bson.M{
+				"$in": deployments.ActiveDeploymentStatuses(),
+			}},
+	}}
+
+	update := bson.M{"$set": bson.M{"status": deployments.DeviceDeploymentStatusAborted}}
+
+	_, err := session.DB(DatabaseName).C(CollectionDevices).UpdateAll(selector, update)
+
+	if err == mgo.ErrNotFound {
+		return ErrStorageInvalidID
+	}
+
+	return err
+}

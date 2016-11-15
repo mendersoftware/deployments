@@ -24,6 +24,10 @@ responses:
     description: Invalid Request.
     schema:
       $ref: "#/definitions/Error"
+  UnprocessableEntityError: # 422
+    description: Unprocessable Entity.
+    schema:
+      $ref: "#/definitions/Error"
 
 paths:
   /deployments:
@@ -128,6 +132,47 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
+
+  /deployments/{deployment_id}/status:
+    put:
+      summary: Abort the deployment
+      description: |
+        Aborts the deployment that is pending or in progress. For devices included in this deployment it means that:
+        - Devices that have completed the deployment (i.e. reported final status) are not affected by the abort, and their original status is kept in the deployment report.
+        - Devices that do not yet know about the deployment at time of abort will not start the deployment.
+        - Devices that are in the middle of the deployment at time of abort will finish its deployment normally, but they will not be able to change its deployment status so they will perform rollback.
+      parameters:
+        - name: deployment_id
+          in: path
+          description: Deployment identifier.
+          required: true
+          type: string
+        - name: Status
+          in: body
+          description: Deployment status.
+          required: true
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum:
+                - aborted
+            required:
+              - status
+      produces:
+        - application/json
+      responses:
+        204:
+            description: Status updated successfully.
+        400:
+            $ref: "#/responses/InvalidRequestError"
+        404:
+            $ref: "#/responses/NotFoundError"
+        422:
+            $ref: "#/responses/UnprocessableEntityError"
+        500:
+            $ref: "#/responses/InternalServerError"
 
   /deployments/{deployment_id}/statistics:
     get:

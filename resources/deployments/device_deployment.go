@@ -116,3 +116,13 @@ func IsDeviceDeploymentStatusFinished(status string) bool {
 	}
 	return false
 }
+
+// ActiveDeploymentStatuses lists statuses that represent deployment in active state (not finished).
+func ActiveDeploymentStatuses() []string {
+	return []string{
+		DeviceDeploymentStatusPending,
+		DeviceDeploymentStatusDownloading,
+		DeviceDeploymentStatusInstalling,
+		DeviceDeploymentStatusRebooting,
+	}
+}

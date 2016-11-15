@@ -135,6 +135,7 @@ func TestDeviceDeploymentStats(t *testing.T) {
 		DeviceDeploymentStatusInstalling,
 		DeviceDeploymentStatusDownloading,
 		DeviceDeploymentStatusAlreadyInst,
+		DeviceDeploymentStatusAborted,
 	}
 	for _, f := range must {
 		assert.Contains(t, ds, f, "stats must contain status '%v'", f)

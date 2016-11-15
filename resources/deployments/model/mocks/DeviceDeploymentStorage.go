@@ -113,3 +113,9 @@ func (_m *DeviceDeploymentStorage) GetDeviceDeploymentStatus(deploymentID string
 
 	return ret.Get(0).(string), ret.Error(1)
 }
+
+func (_m *DeviceDeploymentStorage) AbortDeviceDeployments(deploymentID string) error {
+	ret := _m.Called(deploymentID)
+
+	return ret.Error(0)
+}
