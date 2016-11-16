@@ -119,7 +119,7 @@ paths:
     put:
       summary: Upload the device deployment log
       description: |
-        Set the log of a selected deployment. Messages are splitted by line in the payload.
+        Set the log of a selected deployment. Messages are split by line in the payload.
       parameters:
         - name: id
           in: path
