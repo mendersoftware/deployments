@@ -799,9 +799,10 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 		InputDeviceID     string
 		InputLog          []deployments.LogMessage
 
-		InputModelError    error
-		InputHasDeployment bool
-		InputHasModelError error
+		InputModelError     error
+		InputHasDeployment  bool
+		InputHasModelError  error
+		InputUpdateLogError error
 
 		OutputError error
 	}{
@@ -809,10 +810,10 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 			InputDeploymentID:  "f826484e-1157-4109-af21-304e6d711560",
 			InputDeviceID:      "123",
 			InputLog:           messages,
-			InputModelError:    errors.New("storage issue"),
+			InputModelError:    errors.New("Storage issue"),
 			InputHasDeployment: true,
 
-			OutputError: errors.New("storage issue"),
+			OutputError: errors.New("Storage issue"),
 		},
 		{
 			InputDeploymentID:  "ID:234",
@@ -833,8 +834,18 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 			OutputError: errors.New("Deployment not found"),
 		},
 		{
-			InputDeploymentID:  "f826484e-1157-4109-af21-304e6d711562",
-			InputDeviceID:      "456",
+			InputDeploymentID:   "f826484e-1157-4109-af21-304e6d711562",
+			InputDeviceID:       "456",
+			InputLog:            messages,
+			InputModelError:     nil,
+			InputHasDeployment:  true,
+			InputUpdateLogError: errors.New("Could not set log availability"),
+
+			OutputError: errors.New("Could not set log availability"),
+		},
+		{
+			InputDeploymentID:  "f826484e-1157-4109-af21-304e6d711563",
+			InputDeviceID:      "567",
 			InputLog:           messages,
 			InputHasDeployment: true,
 		},
@@ -856,9 +867,11 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("HasDeploymentForDevice",
-			testCase.InputDeploymentID,
-			testCase.InputDeviceID).
+			testCase.InputDeploymentID, testCase.InputDeviceID).
 			Return(testCase.InputHasDeployment, testCase.InputHasModelError)
+		deviceDeploymentStorage.On("UpdateDeviceDeploymentLogAvailability",
+			testCase.InputDeviceID, testCase.InputDeploymentID, true).
+			Return(testCase.InputUpdateLogError)
 
 		model := NewDeploymentModel(DeploymentsModelConfig{
 			DeviceDeploymentsStorage:    deviceDeploymentStorage,
