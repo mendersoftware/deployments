@@ -280,15 +280,17 @@ func (s *SoftwareImagesController) handleMeta(mr *multipart.Reader, maxMetaSize 
 		}
 		switch p.FormName() {
 		case "name":
-			constructor.Name, err = s.getFormFieldValue(p, maxMetaSize)
+			name, err := s.getFormFieldValue(p, maxMetaSize)
 			if err != nil {
 				return nil, nil, err
 			}
+			constructor.Name = *name
 		case "description":
-			constructor.Description, err = s.getFormFieldValue(p, maxMetaSize)
+			desc, err := s.getFormFieldValue(p, maxMetaSize)
 			if err != nil {
 				return nil, nil, err
 			}
+			constructor.Description = *desc
 		case "firmware":
 			if err := constructor.Validate(); err != nil {
 				return nil, nil, errors.Wrap(err, "Validating metadata")
@@ -370,10 +372,10 @@ func (s *SoftwareImagesController) getMetaFromArchive(
 	}
 	for _, p := range w {
 		deviceType := p.GetDeviceType()
-		metaYocto.DeviceType = &deviceType
+		metaYocto.DeviceType = deviceType
 		if rp, ok := p.(*parser.RootfsParser); ok {
 			yoctoId := rp.GetImageID()
-			metaYocto.YoctoId = &yoctoId
+			metaYocto.YoctoId = yoctoId
 		}
 		updateFiles := p.GetUpdateFiles()
 		if len(updateFiles) != 1 {
@@ -384,9 +386,9 @@ func (s *SoftwareImagesController) getMetaFromArchive(
 				return nil, errors.New("Image too large")
 			}
 			checksum := string(u.Checksum)
-			metaYocto.Checksum = &checksum
+			metaYocto.Checksum = checksum
 			metaYocto.ImageSize = u.Size / (1024 * 1024)
-			metaYocto.DateBuild = u.Date
+			metaYocto.DateBuild = &u.Date
 		}
 	}
 	return metaYocto, nil

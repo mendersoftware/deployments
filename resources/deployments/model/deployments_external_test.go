@@ -217,7 +217,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			InputID: "ID:123",
 			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
 				Image: &images.SoftwareImage{
-					Id: StringToPointer("ID:456"),
+					Id: "ID:456",
 				},
 			},
 			InputGetRequestError: errors.New("file storage error"),
@@ -228,7 +228,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			InputID: "ID:123",
 			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
 				Image: &images.SoftwareImage{
-					Id: StringToPointer("ID:456"),
+					Id: "ID:456",
 				},
 				DeploymentId: StringToPointer("ID:678"),
 			},
@@ -238,7 +238,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				"ID:678",
 				&images.Link{},
 				&images.SoftwareImage{
-					Id: StringToPointer("ID:456"),
+					Id: "ID:456",
 				},
 			),
 		},
