@@ -31,6 +31,7 @@ import (
 	. "github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/resources/deployments/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/deployments/view"
+	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
@@ -64,13 +65,28 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 	t.Parallel()
 
+	image := images.NewSoftwareImage(
+		&images.SoftwareImageMetaConstructor{
+			Name:        "foo-image",
+			Description: "foo-image-desc",
+		},
+		&images.SoftwareImageMetaYoctoConstructor{
+			YoctoId: "yocto-id",
+		})
+
 	testCases := []struct {
 		h.JSONResponseParams
 
 		InputID string
+		Params  url.Values
 
 		InputModelDeploymentInstructions *deployments.DeploymentInstructions
 		InputModelError                  error
+
+		InputModelUpdateStatusDeviceID     string
+		InputModelUpdateStatusDeploymentId string
+		InputModelUpdateStatusStatus       string
+		InputModelUpdateStatusError        error
 
 		Headers map[string]string
 	}{
@@ -107,10 +123,32 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		},
 		{
 			InputID: "device-id-3",
-			InputModelDeploymentInstructions: deployments.NewDeploymentInstructions("", nil, nil),
+			InputModelDeploymentInstructions: deployments.NewDeploymentInstructions("foo-1",
+				&images.Link{}, image),
+
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusOK,
-				OutputBodyObject: deployments.NewDeploymentInstructions("", nil, nil),
+				OutputStatus: http.StatusOK,
+				OutputBodyObject: deployments.NewDeploymentInstructions("foo-1",
+					&images.Link{}, image),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
+			},
+		},
+		{
+			InputID: "device-id-3",
+			InputModelDeploymentInstructions: deployments.NewDeploymentInstructions("foo-1",
+				&images.Link{}, image),
+
+			InputModelUpdateStatusDeploymentId: "foo-1",
+			InputModelUpdateStatusDeviceID:     "device-id-3",
+			InputModelUpdateStatusStatus:       deployments.DeviceDeploymentStatusAlreadyInst,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusNoContent,
+			},
+			Params: url.Values{
+				"artifact": []string{"yocto-id"},
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
@@ -118,12 +156,18 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for tidx, testCase := range testCases {
 
-		t.Logf("testing input ID: %v", testCase.InputID)
+		t.Logf("testing input ID: %v tc: %d", testCase.InputID, tidx)
 		deploymentModel := new(mocks.DeploymentsModel)
 		deploymentModel.On("GetDeploymentForDevice", testCase.InputID).
 			Return(testCase.InputModelDeploymentInstructions, testCase.InputModelError)
+
+		deploymentModel.On("UpdateDeviceDeploymentStatus",
+			testCase.InputModelUpdateStatusDeploymentId,
+			testCase.InputModelUpdateStatusDeviceID,
+			testCase.InputModelUpdateStatusStatus).
+			Return(testCase.InputModelUpdateStatusError)
 
 		router, err := rest.MakeRouter(
 			rest.Get("/r/update",
@@ -132,7 +176,8 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 		api := makeApi(router)
 
-		req := test.MakeSimpleRequest("GET", "http://localhost/r/update", nil)
+		vals := testCase.Params.Encode()
+		req := test.MakeSimpleRequest("GET", "http://localhost/r/update?"+vals, nil)
 		for k, v := range testCase.Headers {
 			req.Header.Set(k, v)
 		}

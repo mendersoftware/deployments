@@ -174,6 +174,8 @@ func (d *DeploymentsController) AbortDeployment(w rest.ResponseWriter, r *rest.R
 }
 
 func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
+	const queryArtifact = "artifact"
+
 	l := requestlog.GetRequestLogger(r.Env)
 
 	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
@@ -182,6 +184,9 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 		return
 	}
 
+	q := r.URL.Query()
+	artifact := q.Get(queryArtifact)
+
 	deployment, err := d.model.GetDeploymentForDevice(idata.Subject)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
@@ -189,6 +194,24 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 	}
 
 	if deployment == nil {
+		d.view.RenderNoUpdateForDevice(w)
+		return
+	}
+
+	if artifact != "" && deployment.Image.YoctoId == artifact {
+		// handle artifact that is already installed
+
+		// 1. update deployment status
+		err := d.model.UpdateDeviceDeploymentStatus(deployment.ID,
+			idata.Subject,
+			deployments.DeviceDeploymentStatusAlreadyInst)
+
+		if err != nil {
+			d.view.RenderError(w, r, err, http.StatusInternalServerError, l)
+			return
+		}
+
+		// 2. pretend there is no update
 		d.view.RenderNoUpdateForDevice(w)
 		return
 	}
