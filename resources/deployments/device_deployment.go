@@ -59,6 +59,9 @@ type DeviceDeployment struct {
 
 	// Target device type
 	DeviceType *string `json:"device_type,omitempty" valid:"-"`
+
+	// Presence of deployment log
+	IsLogAvailable bool `json:"log" valid:"-"`
 }
 
 func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
@@ -68,11 +71,12 @@ func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
 	id := uuid.NewV4().String()
 
 	return &DeviceDeployment{
-		Status:       &initStatus,
-		DeviceId:     &deviceId,
-		DeploymentId: &deploymentId,
-		Id:           &id,
-		Created:      &now,
+		Status:         &initStatus,
+		DeviceId:       &deviceId,
+		DeploymentId:   &deploymentId,
+		Id:             &id,
+		Created:        &now,
+		IsLogAvailable: false,
 	}
 }
 

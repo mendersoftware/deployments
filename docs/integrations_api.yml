@@ -582,10 +582,14 @@ definitions:
         format: date-time
       device_type:
         type: string
+      log:
+        type: boolean
+        description: Availability of the device's deployment log.
     required:
       - id
       - status
       - device_type
+      - log
     example:
       application/json:
         - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
@@ -593,6 +597,7 @@ definitions:
           status: pending
           created: 2016-02-11T13:03:17.063493443Z
           device_type: Raspberry Pi 3
+          log: false
   ImageBase:
     description: Base firmware image.
     type: object

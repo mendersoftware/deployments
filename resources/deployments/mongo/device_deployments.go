@@ -38,6 +38,7 @@ const (
 	StorageKeyDeviceDeploymentStatus          = "status"
 	StorageKeyDeviceDeploymentDeploymentID    = "deploymentid"
 	StorageKeyDeviceDeploymentFinished        = "finished"
+	StorageKeyDeviceDeploymentIsLogAvailable  = "log"
 )
 
 // Errors
@@ -198,6 +199,35 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string,
 	return *old.Status, nil
 }
 
+func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentLogAvailability(
+	deviceID string, deploymentID string, log bool) error {
+	// Verify ID formatting
+	if govalidator.IsNull(deviceID) ||
+		govalidator.IsNull(deploymentID) {
+		return ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	selector := bson.M{
+		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeviceDeploymentIsLogAvailable: log,
+		},
+	}
+
+	if err := session.DB(DatabaseName).C(CollectionDevices).Update(selector, update); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error) {
 
 	if govalidator.IsNull(id) {
@@ -324,7 +354,11 @@ func (d *DeviceDeploymentsStorage) AbortDeviceDeployments(deploymentId string) e
 			}},
 	}}
 
-	update := bson.M{"$set": bson.M{"status": deployments.DeviceDeploymentStatusAborted}}
+	update := bson.M{
+		"$set": bson.M{
+			"status": deployments.DeviceDeploymentStatusAborted,
+		},
+	}
 
 	_, err := session.DB(DatabaseName).C(CollectionDevices).UpdateAll(selector, update)
 

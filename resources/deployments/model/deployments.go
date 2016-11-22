@@ -202,12 +202,11 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 
 	old, err := d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID,
 		status, finishTime)
-
 	if err != nil {
 		return err
 	}
 
-	if err := d.deploymentsStorage.UpdateStats(deploymentID, old, status); err != nil {
+	if err = d.deploymentsStorage.UpdateStats(deploymentID, old, status); err != nil {
 		return err
 	}
 
@@ -298,7 +297,11 @@ func (d *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
 		}
 	}
 
-	return d.deviceDeploymentLogsStorage.SaveDeviceDeploymentLog(dlog)
+	if err := d.deviceDeploymentLogsStorage.SaveDeviceDeploymentLog(dlog); err != nil {
+		return err
+	}
+
+	return d.deviceDeploymentsStorage.UpdateDeviceDeploymentLogAvailability(deviceID, deploymentID, true)
 }
 
 func (d *DeploymentsModel) GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error) {

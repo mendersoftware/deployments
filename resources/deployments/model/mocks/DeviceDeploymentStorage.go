@@ -90,6 +90,12 @@ func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(deviceID string,
 	return ret.Get(0).(string), ret.Error(1)
 }
 
+func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentLogAvailability(deviceID string, deploymentID string, log bool) error {
+	ret := _m.Called(deviceID, deploymentID, log)
+
+	return ret.Error(0)
+}
+
 func (_m *DeviceDeploymentStorage) AggregateDeviceDeploymentByStatus(deploymentID string) (deployments.Stats, error) {
 	ret := _m.Called(deploymentID)
 

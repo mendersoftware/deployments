@@ -32,8 +32,9 @@ func TestNewDeviceDeployment(t *testing.T) {
 	assert.Equal(t, DeviceDeploymentStatusPending, *dd.Status)
 	assert.Equal(t, "device_123", *dd.DeviceId)
 	assert.Equal(t, "deployment_123", *dd.DeploymentId)
-	assert.WithinDuration(t, time.Now(), *dd.Created, time.Minute)
 	assert.NotEmpty(t, dd.Id)
+	assert.WithinDuration(t, time.Now(), *dd.Created, time.Minute)
+	assert.Equal(t, false, dd.IsLogAvailable)
 }
 
 func TestDeviceDeploymentValidate(t *testing.T) {
