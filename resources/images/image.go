@@ -24,10 +24,10 @@ import (
 // Informations provided by the user
 type SoftwareImageMetaConstructor struct {
 	// Application Name & Version
-	Name *string `json:"name" bson:"name" valid:"length(1|4096),required"`
+	Name string `json:"name" bson:"name" valid:"length(1|4096),required"`
 
 	// Image description
-	Description *string `json:"description,omitempty" valid:"length(1|4096),optional"`
+	Description string `json:"description,omitempty" valid:"length(1|4096),optional"`
 }
 
 // Creates new, empty SoftwareImageMetaConstructor
@@ -44,19 +44,19 @@ func (s *SoftwareImageMetaConstructor) Validate() error {
 // Information provided with YOCTO image
 type SoftwareImageMetaYoctoConstructor struct {
 	// Yocto ID build in the image
-	YoctoId *string `json:"yocto_id" valid:"length(1|4096),required"`
+	YoctoId string `json:"yocto_id" valid:"length(1|4096),required"`
 
 	// Compatible device model for the application
-	DeviceType *string `json:"device_type" bson:"device_type" valid:"length(1|4096),required"`
+	DeviceType string `json:"device_type" bson:"device_type" valid:"length(1|4096),required"`
 
 	// Image file checksum
-	Checksum *string `json:"checksum" valid:"required"`
+	Checksum string `json:"checksum" valid:"required"`
 
 	// Image size
 	ImageSize int64 `json:"image_size" valid:"optional"`
 
 	// Date build
-	DateBuild time.Time `json:"date_build" valid:"optional"`
+	DateBuild *time.Time `json:"date_build" valid:"optional"`
 }
 
 func NewSoftwareImageMetaYoctoConstructor() *SoftwareImageMetaYoctoConstructor {
@@ -72,13 +72,13 @@ func (s *SoftwareImageMetaYoctoConstructor) Validate() error {
 // SoftwareImage YOCTO image with user application
 type SoftwareImage struct {
 	// User provided field set
-	*SoftwareImageMetaConstructor `bson:"meta"`
+	SoftwareImageMetaConstructor `bson:"meta"`
 
 	// Field set provided with yocto image
-	*SoftwareImageMetaYoctoConstructor `bson:"meta_yocto"`
+	SoftwareImageMetaYoctoConstructor `bson:"meta_yocto"`
 
 	// Image ID
-	Id *string `json:"id" bson:"_id" valid:"uuidv4,required"`
+	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
 
 	// Status if image was verified after upload
 	Verified bool `json:"verified" valid:"-"`
@@ -96,11 +96,11 @@ func NewSoftwareImage(
 	id := uuid.NewV4().String()
 
 	return &SoftwareImage{
-		SoftwareImageMetaConstructor:      metaConstructor,
-		SoftwareImageMetaYoctoConstructor: metaYoctoConstructor,
+		SoftwareImageMetaConstructor:      *metaConstructor,
+		SoftwareImageMetaYoctoConstructor: *metaYoctoConstructor,
 		Modified: &now,
 		Verified: false,
-		Id:       &id,
+		Id:       id,
 	}
 }
 

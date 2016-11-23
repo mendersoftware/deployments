@@ -17,21 +17,21 @@ package deployments
 import "github.com/mendersoftware/deployments/resources/images"
 
 type ImageInstallInstructions struct {
-	*images.Link
-	*images.SoftwareImage
+	images.Link
+	images.SoftwareImage
 }
 
 type DeploymentInstructions struct {
-	ID    *string                  `json:"id"`
+	ID    string                   `json:"id"`
 	Image ImageInstallInstructions `json:"image"`
 }
 
 func NewDeploymentInstructions(id string, link *images.Link, image *images.SoftwareImage) *DeploymentInstructions {
 	return &DeploymentInstructions{
-		ID: &id,
+		ID: id,
 		Image: ImageInstallInstructions{
-			Link:          link,
-			SoftwareImage: image,
+			Link:          *link,
+			SoftwareImage: *image,
 		},
 	}
 }

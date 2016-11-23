@@ -36,7 +36,7 @@ func TestValidateCorrectImageMeta(t *testing.T) {
 	image := NewSoftwareImageMetaConstructor()
 	required := "required"
 
-	image.Name = &required
+	image.Name = required
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()
@@ -47,9 +47,9 @@ func TestValidateCorrectImageMetaYocot(t *testing.T) {
 	image := NewSoftwareImageMetaYoctoConstructor()
 	required := "required"
 
-	image.YoctoId = &required
-	image.DeviceType = &required
-	image.Checksum = &required
+	image.YoctoId = required
+	image.DeviceType = required
+	image.Checksum = required
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()
@@ -61,10 +61,10 @@ func TestValidateCorrectImage(t *testing.T) {
 	imageMeta := NewSoftwareImageMetaConstructor()
 	imageMetaYocto := NewSoftwareImageMetaYoctoConstructor()
 
-	imageMetaYocto.YoctoId = &required
-	imageMetaYocto.DeviceType = &required
-	imageMetaYocto.Checksum = &required
-	imageMeta.Name = &required
+	imageMetaYocto.YoctoId = required
+	imageMetaYocto.DeviceType = required
+	imageMetaYocto.Checksum = required
+	imageMeta.Name = required
 
 	image := NewSoftwareImage(imageMeta, imageMetaYocto)
 

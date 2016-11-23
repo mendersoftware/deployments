@@ -189,6 +189,14 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 
 	t.Parallel()
 
+	image := images.NewSoftwareImage(
+		&images.SoftwareImageMetaConstructor{
+			Name: "foo",
+		},
+		&images.SoftwareImageMetaYoctoConstructor{
+			YoctoId: "foo-artifact",
+		})
+
 	testCases := []struct {
 		InputID string
 
@@ -216,9 +224,13 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		{
 			InputID: "ID:123",
 			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
-				Image: &images.SoftwareImage{
-					Id: StringToPointer("ID:456"),
-				},
+				Image: images.NewSoftwareImage(
+					&images.SoftwareImageMetaConstructor{
+						Name: "foo",
+					},
+					&images.SoftwareImageMetaYoctoConstructor{
+						YoctoId: "foo-artifact",
+					}),
 			},
 			InputGetRequestError: errors.New("file storage error"),
 
@@ -227,9 +239,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		{
 			InputID: "ID:123",
 			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
-				Image: &images.SoftwareImage{
-					Id: StringToPointer("ID:456"),
-				},
+				Image:        image,
 				DeploymentId: StringToPointer("ID:678"),
 			},
 			InputGetRequestLink: &images.Link{},
@@ -237,14 +247,12 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			OutputDeploymentInstructions: deployments.NewDeploymentInstructions(
 				"ID:678",
 				&images.Link{},
-				&images.SoftwareImage{
-					Id: StringToPointer("ID:456"),
-				},
-			),
+				image),
 		},
 	}
 
-	for _, testCase := range testCases {
+	for tidx, testCase := range testCases {
+		t.Logf("test case %d", tidx)
 
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
@@ -252,10 +260,15 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				testCase.InputOlderstDeviceDeploymentError)
 
 		imageLinker := new(mocks.GetRequester)
-		// Notice: force GetRequest to expect image id returned by FindOldestDeploymentForDeviceIDWithStatuses
-		//         Just as implementation does, if this changes test will break by panic ;)
-		imageLinker.On("GetRequest", "ID:456", DefaultUpdateDownloadLinkExpire).
-			Return(testCase.InputGetRequestLink, testCase.InputGetRequestError)
+		if testCase.InputOlderstDeviceDeployment != nil {
+			// Notice: force GetRequest to expect image id returned
+			// by FindOldestDeploymentForDeviceIDWithStatuses Just
+			// as implementation does, if this changes test will
+			// break by panic ;)
+			imageLinker.On("GetRequest", testCase.InputOlderstDeviceDeployment.Image.Id,
+				DefaultUpdateDownloadLinkExpire).
+				Return(testCase.InputGetRequestLink, testCase.InputGetRequestError)
+		}
 
 		model := NewDeploymentModel(DeploymentsModelConfig{
 			DeviceDeploymentsStorage: deviceDeploymentStorage,
@@ -265,10 +278,20 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		out, err := model.GetDeploymentForDevice(testCase.InputID)
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
+			assert.Nil(t, out)
 		} else {
 			assert.NoError(t, err)
+			if testCase.OutputDeploymentInstructions != nil {
+				assert.NotNil(t, out)
+				assert.WithinDuration(t, time.Now(),
+					*out.Image.Modified, time.Second)
+				// zero out Modified field, so that the test below works
+				out.Image.Modified = testCase.OutputDeploymentInstructions.Image.Modified
+				assert.EqualValues(t, testCase.OutputDeploymentInstructions, out)
+			} else {
+				assert.Nil(t, out)
+			}
 		}
-		assert.Equal(t, testCase.OutputDeploymentInstructions, out)
 	}
 
 }

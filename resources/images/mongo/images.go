@@ -110,7 +110,7 @@ func (i *SoftwareImagesStorage) Update(image *images.SoftwareImage) (bool, error
 	defer session.Close()
 
 	image.SetModified(time.Now())
-	if err := session.DB(DatabaseName).C(CollectionImages).UpdateId(*image.Id, image); err != nil {
+	if err := session.DB(DatabaseName).C(CollectionImages).UpdateId(image.Id, image); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return false, nil
 		}

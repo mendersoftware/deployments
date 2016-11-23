@@ -24,10 +24,10 @@ import (
 
 func TestErrorToErrStruct(t *testing.T) {
 	errStr := "ala ma kota"
-	assert.Equal(t, struct{
-		Error string `json:"error"`
+	assert.Equal(t, struct {
+		Error     string `json:"error"`
 		RequestId string `json:"request_id"`
-	} {
+	}{
 		errStr,
 		"test",
 	}, ErrorToErrStruct(errors.New(errStr)))

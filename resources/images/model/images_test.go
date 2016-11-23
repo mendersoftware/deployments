@@ -84,7 +84,7 @@ func createValidImageMeta() *images.SoftwareImageMetaConstructor {
 	imageMeta := images.NewSoftwareImageMetaConstructor()
 	required := "required"
 
-	imageMeta.Name = &required
+	imageMeta.Name = required
 
 	return imageMeta
 }
@@ -93,9 +93,9 @@ func createValidImageMetaYocto() *images.SoftwareImageMetaYoctoConstructor {
 	imageMetaYocto := images.NewSoftwareImageMetaYoctoConstructor()
 	required := "required"
 
-	imageMetaYocto.DeviceType = &required
-	imageMetaYocto.YoctoId = &required
-	imageMetaYocto.Checksum = &required
+	imageMetaYocto.DeviceType = required
+	imageMetaYocto.YoctoId = required
+	imageMetaYocto.Checksum = required
 
 	return imageMetaYocto
 }

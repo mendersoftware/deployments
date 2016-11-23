@@ -27,7 +27,7 @@ responses:
       $ref: "#/definitions/Error"
 
 paths:
-  /device/update:
+  /device/deployments/next:
     get:
       summary: Get a next update
       description: |
@@ -39,6 +39,16 @@ paths:
           type: string
           format: Bearer [token]
           description: Contains the JWT token issued by the Device Authentication Service.
+        - name: artifact
+          in: query
+          required: false
+          type: string
+          description: ID of currently installed artifact
+        - name: device_type
+          in: query
+          required: false
+          type: string
+          description: Device type of device
       produces:
         - application/json
       responses:

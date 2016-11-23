@@ -74,12 +74,12 @@ func (i *ImagesModel) CreateImage(
 		return "", errors.Wrap(err, "Fail to store the metadata")
 	}
 
-	if err := i.fileStorage.PutFile(*image.Id, imageFile, ImageContentType); err != nil {
-		i.imagesStorage.Delete(*image.Id)
+	if err := i.fileStorage.PutFile(image.Id, imageFile, ImageContentType); err != nil {
+		i.imagesStorage.Delete(image.Id)
 		return "", errors.Wrap(err, "Fail to store the image")
 	}
 
-	return *image.Id, nil
+	return image.Id, nil
 }
 
 // GetImage allows to fetch image obeject with specified id
