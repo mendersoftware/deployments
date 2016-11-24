@@ -173,8 +173,12 @@ func (d *DeploymentsController) AbortDeployment(w rest.ResponseWriter, r *rest.R
 	d.view.RenderEmptySuccessResponse(w)
 }
 
+const (
+	GetDeploymentForDeviceQueryArtifact   = "artifact_name"
+	GetDeploymentForDeviceQueryDeviceType = "device_type"
+)
+
 func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
-	const queryArtifact = "artifact"
 
 	l := requestlog.GetRequestLogger(r.Env)
 
@@ -185,7 +189,7 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 	}
 
 	q := r.URL.Query()
-	artifact := q.Get(queryArtifact)
+	artifact := q.Get(GetDeploymentForDeviceQueryArtifact)
 
 	deployment, err := d.model.GetDeploymentForDevice(idata.Subject)
 	if err != nil {

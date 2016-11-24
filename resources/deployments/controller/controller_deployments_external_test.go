@@ -148,7 +148,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 				OutputStatus: http.StatusNoContent,
 			},
 			Params: url.Values{
-				"artifact": []string{"yocto-id"},
+				GetDeploymentForDeviceQueryArtifact: []string{"yocto-id"},
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
