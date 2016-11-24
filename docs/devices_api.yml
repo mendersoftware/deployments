@@ -39,11 +39,11 @@ paths:
           type: string
           format: Bearer [token]
           description: Contains the JWT token issued by the Device Authentication Service.
-        - name: artifact
+        - name: artifact_name
           in: query
           required: false
           type: string
-          description: ID of currently installed artifact
+          description: currently installed artifact
         - name: device_type
           in: query
           required: false
