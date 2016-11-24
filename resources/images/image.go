@@ -41,22 +41,60 @@ func (s *SoftwareImageMetaConstructor) Validate() error {
 	return err
 }
 
-// Information provided with YOCTO image
-type SoftwareImageMetaYoctoConstructor struct {
-	// Yocto ID build in the image
-	YoctoId string `json:"yocto_id" valid:"length(1|4096),required"`
+// Structure with artifact version informations
+type ArtifactInfo struct {
+	// Mender artifact format - the only possible value is "mender"
+	//Format string `json:"format" valid:"string,equal("mender"),required"`
+	Format string `json:"format" valid:"required"`
 
-	// Compatible device model for the application
-	DeviceType string `json:"device_type" bson:"device_type" valid:"length(1|4096),required"`
+	// Mender artifact format version
+	//Version uint `json:"version" valid:"uint,equal(1),required"`
+	Version uint `json:"version" valid:"required"`
+}
+
+// Type info structure
+type ArtifactUpdateTypeInfo struct {
+	Type string `json:"type" valid:"required"`
+}
+
+// Update file structure
+type UpdateFile struct {
+	// Image name
+	Name string `json:"name" valid:"required"`
 
 	// Image file checksum
-	Checksum string `json:"checksum" valid:"required"`
+	Checksum string `json:"checksum" valid:"optional"`
+
+	// Image file signature
+	Signature string `json:"signature" valid:"optional"`
 
 	// Image size
-	ImageSize int64 `json:"image_size" valid:"optional"`
+	Size int64 `json:"size" valid:"optional"`
 
 	// Date build
-	DateBuild *time.Time `json:"date_build" valid:"optional"`
+	Date *time.Time `json:"date" valid:"optional"`
+}
+
+// Update structure
+type Update struct {
+	TypeInfo ArtifactUpdateTypeInfo `json:"type_info" valid:"required"`
+	Files    []UpdateFile           `json:"files"`
+	MetaData interface{}            `json:"meta_data" valid:"optional"` //TODO check this
+}
+
+// Information provided with YOCTO image
+type SoftwareImageMetaYoctoConstructor struct {
+	// artifact_name from artifact file
+	ArtifactName string `json:"artifact_name" valid:"length(1|4096),required"`
+
+	// Compatible device model for the application
+	DeviceTypesCompatible []string `json:"device_types_compatible" bson:"device_types_compatible" valid:"required"`
+
+	// Artifact version info
+	Info *ArtifactInfo `json:"info" valid:"required"`
+
+	// List of updates
+	Updates []Update `json:"updates" valid:"-"`
 }
 
 func NewSoftwareImageMetaYoctoConstructor() *SoftwareImageMetaYoctoConstructor {
@@ -80,9 +118,6 @@ type SoftwareImage struct {
 	// Image ID
 	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
 
-	// Status if image was verified after upload
-	Verified bool `json:"verified" valid:"-"`
-
 	// Last modification time, including image upload time
 	Modified *time.Time `json:"modified" valid:"_"`
 }
@@ -99,7 +134,6 @@ func NewSoftwareImage(
 		SoftwareImageMetaConstructor:      *metaConstructor,
 		SoftwareImageMetaYoctoConstructor: *metaYoctoConstructor,
 		Modified: &now,
-		Verified: false,
 		Id:       id,
 	}
 }

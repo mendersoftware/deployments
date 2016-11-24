@@ -27,6 +27,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/artifacts/metadata"
 	"github.com/mendersoftware/artifacts/parser"
 	"github.com/mendersoftware/artifacts/reader"
 	"github.com/mendersoftware/deployments/resources/images"
@@ -330,6 +331,30 @@ func (s *SoftwareImagesController) handleImage(
 	return tmpfile, meta, http.StatusOK, nil
 }
 
+func getArtifactInfo(info *metadata.Info) *images.ArtifactInfo {
+	return &images.ArtifactInfo{
+		Format:  info.Format,
+		Version: uint(info.Version),
+	}
+}
+
+func getUpdateFiles(maxImageSize int64, uFiles map[string]parser.UpdateFile) ([]images.UpdateFile, error) {
+	var files []images.UpdateFile
+	for _, u := range uFiles {
+		if u.Size > maxImageSize {
+			return nil, errors.New("Image too large")
+		}
+		files = append(files, images.UpdateFile{
+			Name:      u.Name,
+			Size:      u.Size,
+			Signature: string(u.Signature),
+			Date:      &u.Date,
+			Checksum:  string(u.Checksum),
+		})
+	}
+	return files, nil
+}
+
 func (s *SoftwareImagesController) getMetaFromArchive(
 	r *io.Reader, maxImageSize int64) (*images.SoftwareImageMetaYoctoConstructor, error) {
 	metaYocto := images.NewSoftwareImageMetaYoctoConstructor()
@@ -338,59 +363,56 @@ func (s *SoftwareImagesController) getMetaFromArchive(
 	rp := &parser.RootfsParser{}
 	aReader.Register(rp)
 
-	_, err := aReader.ReadInfo()
+	info, err := aReader.ReadInfo()
 	if err != nil {
 		return nil, errors.Wrap(err, "info error")
 	}
+	metaYocto.Info = getArtifactInfo(info)
+
 	hInfo, err := aReader.ReadHeaderInfo()
 	if err != nil {
 		return nil, errors.Wrap(err, "header info error")
 	}
-	//check if there is only one update
-	if len(hInfo.Updates) != 1 {
-		return nil, errors.New("Too many updats")
-	}
-	uCnt := 0
+
+	metaYocto.DeviceTypesCompatible = aReader.GetCompatibleDevices()
+	metaYocto.ArtifactName = aReader.GetArtifactName()
+
 	for cnt, update := range hInfo.Updates {
 		if update.Type == "rootfs-image" {
 			rp := &parser.RootfsParser{}
 			aReader.PushWorker(rp, fmt.Sprintf("%04d", cnt))
-			uCnt += 1
+		} else {
+			gp := &parser.GenericParser{}
+			aReader.PushWorker(gp, fmt.Sprintf("%04d", cnt))
 		}
-	}
-	if uCnt != 1 {
-		return nil, errors.New("Only rootfs-image updates supported")
 	}
 
 	_, err = aReader.ReadHeader()
 	if err != nil {
 		return nil, errors.Wrap(err, "header error")
 	}
+
 	w, err := aReader.ReadData()
 	if err != nil {
 		return nil, errors.Wrap(err, "read data error")
 	}
 	for _, p := range w {
-		deviceType := p.GetDeviceType()
-		metaYocto.DeviceType = deviceType
-		if rp, ok := p.(*parser.RootfsParser); ok {
-			yoctoId := rp.GetImageID()
-			metaYocto.YoctoId = yoctoId
+		uFiles, err := getUpdateFiles(maxImageSize, p.GetUpdateFiles())
+		if err != nil {
+			return nil, errors.Wrap(err, "Cannot get update files:")
 		}
-		updateFiles := p.GetUpdateFiles()
-		if len(updateFiles) != 1 {
-			return nil, errors.New("Too many update files")
-		}
-		for _, u := range updateFiles {
-			if u.Size > maxImageSize {
-				return nil, errors.New("Image too large")
-			}
-			checksum := string(u.Checksum)
-			metaYocto.Checksum = checksum
-			metaYocto.ImageSize = u.Size / (1024 * 1024)
-			metaYocto.DateBuild = &u.Date
-		}
+
+		metaYocto.Updates = append(
+			metaYocto.Updates,
+			images.Update{
+				TypeInfo: images.ArtifactUpdateTypeInfo{
+					Type: p.GetUpdateType().Type,
+				},
+				MetaData: p.GetMetadata(),
+				Files:    uFiles,
+			})
 	}
+
 	return metaYocto, nil
 }
 
