@@ -47,9 +47,12 @@ func TestValidateCorrectImageMetaYocot(t *testing.T) {
 	image := NewSoftwareImageMetaYoctoConstructor()
 	required := "required"
 
-	image.YoctoId = required
-	image.DeviceType = required
-	image.Checksum = required
+	image.ArtifactName = required
+	image.DeviceTypesCompatible = []string{"required"}
+	image.Info = &ArtifactInfo{
+		Format:  required,
+		Version: 1,
+	}
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()
@@ -61,9 +64,8 @@ func TestValidateCorrectImage(t *testing.T) {
 	imageMeta := NewSoftwareImageMetaConstructor()
 	imageMetaYocto := NewSoftwareImageMetaYoctoConstructor()
 
-	imageMetaYocto.YoctoId = required
-	imageMetaYocto.DeviceType = required
-	imageMetaYocto.Checksum = required
+	imageMetaYocto.ArtifactName = required
+	imageMetaYocto.DeviceTypesCompatible = []string{"required"}
 	imageMeta.Name = required
 
 	image := NewSoftwareImage(imageMeta, imageMetaYocto)

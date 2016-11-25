@@ -93,10 +93,12 @@ func createValidImageMetaYocto() *images.SoftwareImageMetaYoctoConstructor {
 	imageMetaYocto := images.NewSoftwareImageMetaYoctoConstructor()
 	required := "required"
 
-	imageMetaYocto.DeviceType = required
-	imageMetaYocto.YoctoId = required
-	imageMetaYocto.Checksum = required
-
+	imageMetaYocto.DeviceTypesCompatible = []string{"required"}
+	imageMetaYocto.ArtifactName = required
+	imageMetaYocto.Info = &images.ArtifactInfo{
+		Format:  required,
+		Version: 1,
+	}
 	return imageMetaYocto
 }
 
