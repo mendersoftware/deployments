@@ -159,11 +159,12 @@ func (d *DeploymentsModel) ImageUsedInDeployment(imageID string) (bool, error) {
 	return found, nil
 }
 
-// GetDeploymentForDevice returns deployment for the device: currenclty still in progress or next to install.
-// nil in case of nothing deploy for device.
-func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error) {
+// GetDeploymentForDeviceWithCurrent returns deployment for the device
+func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
+	installed deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error) {
 
-	deployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(deviceID, deployments.ActiveDeploymentStatuses()...)
+	deployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(deviceID,
+		deployments.ActiveDeploymentStatuses()...)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for oldest active deployment for the device")
@@ -173,12 +174,27 @@ func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployments
 		return nil, nil
 	}
 
-	link, err := d.imageLinker.GetRequest(deployment.Image.Id, DefaultUpdateDownloadLinkExpire, d.imageContentType)
+	if installed.Artifact != "" && deployment.Image.YoctoId == installed.Artifact {
+		// pretend there is no deployment for this device, but update
+		// its status to already installed first
+
+		if err := d.UpdateDeviceDeploymentStatus(*deployment.DeploymentId, deviceID,
+			deployments.DeviceDeploymentStatusAlreadyInst); err != nil {
+
+			return nil, errors.Wrap(err, "Failed to update deployment status")
+		}
+
+		return nil, nil
+	}
+
+	link, err := d.imageLinker.GetRequest(deployment.Image.Id,
+		DefaultUpdateDownloadLinkExpire, d.imageContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}
 
-	return deployments.NewDeploymentInstructions(*deployment.DeploymentId, link, deployment.Image), nil
+	return deployments.NewDeploymentInstructions(*deployment.DeploymentId,
+		link, deployment.Image), nil
 }
 
 // UpdateDeviceDeploymentStatus will update the deployment status for device of

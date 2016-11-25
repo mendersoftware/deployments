@@ -70,8 +70,10 @@ func (_m *DeploymentsModel) GetDeployment(deploymentID string) (*deployments.Dep
 }
 
 // GetDeploymentForDevice provides a mock function with given fields: deviceID
-func (_m *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error) {
-	ret := _m.Called(deviceID)
+func (_m *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
+	installed deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error) {
+
+	ret := _m.Called(deviceID, installed)
 
 	var r0 *deployments.DeploymentInstructions
 	if rf, ok := ret.Get(0).(func(string) *deployments.DeploymentInstructions); ok {

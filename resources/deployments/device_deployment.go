@@ -130,3 +130,10 @@ func ActiveDeploymentStatuses() []string {
 		DeviceDeploymentStatusRebooting,
 	}
 }
+
+// InstalledDeviceDeployment describes a deployment currently installed on the
+// device, usually reported by a device
+type InstalledDeviceDeployment struct {
+	Artifact   string
+	DeviceType string
+}
