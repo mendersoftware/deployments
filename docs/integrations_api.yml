@@ -280,12 +280,20 @@ paths:
             application/json:
               - name: MySecretApp v2
                 description: Johns Monday test build
-                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                device_type: Beagle Bone
+                artifact_name: core-image-full-cmdline-20160330201408
+                device_types_compatible: [Beagle Bone]
                 id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-                verified: false
-                modified: 2016-03-11T13:03:17.063493443Z
-                yocto_id: core-image-full-cmdline-20160330201408
+                modified: "2016-03-11T13:03:17.063493443Z"
+                info:
+                    type_info:
+                        type: rootfs
+                files:
+                  - name: rootfs-image-1
+                    checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                    signature: "12344"
+                    size: 123
+                    date: 2016-03-11T13:03:17.063+0000
+                metadata: {}
           schema:
             type: array
             items:
@@ -344,6 +352,24 @@ paths:
       responses:
         200:
           description: Successful response.
+          examples:
+            application/json:
+              name: MySecretApp v2
+              description: Johns Monday test build
+              artifact_name: core-image-full-cmdline-20160330201408
+              device_types_compatible: [Beagle Bone]
+              id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+              modified: "2016-03-11T13:03:17.063493443Z"
+              info:
+                  type_info:
+                      type: rootfs
+              files:
+                - name: rootfs-image-1
+                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                  signature: "12344"
+                  size: 123
+                  date: 2016-03-11T13:03:17.063+0000
+              metadata: {}
           schema:
             $ref: "#/definitions/Image"
         404:
@@ -598,28 +624,6 @@ definitions:
           created: 2016-02-11T13:03:17.063493443Z
           device_type: Raspberry Pi 3
           log: false
-  ImageBase:
-    description: Base firmware image.
-    type: object
-    properties:
-      name:
-        type: string
-      description:
-        type: string
-      checksum:
-        type: string
-      device_type:
-        type: string
-      date_build:
-        type: string
-        format: date-time
-      image_size:
-        type: integer
-    required:
-      - name
-      - description
-      - device_type
-      - checksum
   ImageUpdate:
     description: Firmware image information update.
     type: object
@@ -634,38 +638,106 @@ definitions:
     example:
       name: Image name
       description: Some description
+  ArtifactTypeInfo:
+      description: |
+          Information about update type.
+      type: object
+      properties:
+        type:
+          type: string
+  UpdateFile:
+      description: |
+          Information about particular update file.
+      type: object
+      properties:
+        name:
+          type: string
+        checksum:
+          type: string
+        signature:
+          type: string
+        size:
+          type: integer
+        date:
+          type: string
+          format: date-time
+  Update:
+      description: |
+          Single updated to be applied.
+      type: object
+      properties:
+        type_info:
+          $ref: "#/definitions/ArtifactTypeInfo"
+        files:
+          type: array
+          items:
+            $ref: "#/definitions/UpdateFile"
+        meta_data:
+          type: object
+          description: |
+              meta_data is an object of unknown structure as this is dependent of update type (also custom defined by user)
+  ArtifactInfo:
+      description: |
+          Information about artifact format and version.
+      type: object
+      properties:
+        format:
+          type: string
+        version:
+          type: integer
   Image:
     description: Detailed firmware image.
     type: object
-    allOf:
-      - $ref: "#/definitions/ImageBase"
-      - type: object
-        properties:
-          id:
-            type: string
-          verified:
-            type: boolean
-          modified:
-            type: string
-            format: date-time
-            description: |
-              Represents creation / last edition of any of the image properties.
-        required:
-          - id
-          - verified
-          - modified
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      artifact_name:
+        type: string
+      device_types_compatible:
+        type: array
+        items:
+          type: string
+          description: An array of compatible device types.
+      id:
+        type: string
+      modified:
+        type: string
+        format: date-time
+        description: |
+            Represents creation / last edition of any of the image properties.
+      info:
+        $ref: "#/definitions/ArtifactInfo"
+      updates:
+        type: array
+        items:
+          $ref: "#/definitions/Update"
+    required:
+      - name
+      - description
+      - artifact_name
+      - device_types_compatible
+      - id
+      - modified
     example:
       application/json:
-        name:  123
-        description:  123
-        yocto_id:  core-image-minimal-201608110900
-        device_type:  vexpress-qemu
-        checksum:  2804c37d5b4e19cc987d42cddf2df7d07563d683abe7d65e8be2911831be5b88
-        image_size: 0
-        date_build:  2016-09-29T10:45:34Z
-        id:  67565d4c-5534-4a09-baff-079f3c0a06f8
-        verified: false
-        modified:  2016-10-06T07:24:19.024Z
+        name: MySecretApp v2
+        description: Johns Monday test build
+        artifact_name: core-image-full-cmdline-20160330201408
+        device_types_compatible: [Beagle Bone]
+        id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+        modified: "2016-03-11T13:03:17.063493443Z"
+        info:
+            type_info:
+                type: rootfs
+        files:
+          - name: rootfs-image-1
+            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+            signature: "12344"
+            size: 123
+            date: 2016-03-11T13:03:17.063+0000
+        metadata: {}
   ImageLink:
     description: URL for firmare image download.
     type: object
