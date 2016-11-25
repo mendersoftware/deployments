@@ -37,7 +37,7 @@ type DeploymentsModel interface {
 	IsDeploymentFinished(deploymentID string) (bool, error)
 	AbortDeployment(deploymentID string) error
 	GetDeploymentStats(deploymentID string) (deployments.Stats, error)
-	GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error)
+	GetDeploymentForDeviceWithCurrent(deviceID string, current deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error)
 	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)
 	UpdateDeviceDeploymentStatus(deploymentID string, deviceID string, status string) error
 	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)

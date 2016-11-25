@@ -206,6 +206,8 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		InputGetRequestLink  *images.Link
 		InputGetRequestError error
 
+		InputInstalledDeployment deployments.InstalledDeviceDeployment
+
 		OutputError                  error
 		OutputDeploymentInstructions *deployments.DeploymentInstructions
 	}{
@@ -231,6 +233,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 					&images.SoftwareImageMetaYoctoConstructor{
 						YoctoId: "foo-artifact",
 					}),
+				DeploymentId: StringToPointer("ID:678"),
 			},
 			InputGetRequestError: errors.New("file storage error"),
 
@@ -249,15 +252,42 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				&images.Link{},
 				image),
 		},
+		{
+			// currently installed artifact is the same as defined by deployment
+			InputID: "ID:123",
+			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
+				Id:           StringToPointer("ID:device-deployment-123"),
+				Image:        image,
+				DeploymentId: StringToPointer("ID:678"),
+			},
+			InputGetRequestLink: &images.Link{},
+
+			InputInstalledDeployment: deployments.InstalledDeviceDeployment{
+				Artifact:   image.YoctoId,
+				DeviceType: "hammer",
+			},
+		},
 	}
 
 	for tidx, testCase := range testCases {
 		t.Logf("test case %d", tidx)
 
+		deploymentStorage := new(mocks.DeploymentsStorage)
+
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
-		deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
+		deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses",
+			testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputOlderstDeviceDeployment,
 				testCase.InputOlderstDeviceDeploymentError)
+		// if UpdateDeviceDeploymentStatus is ever called, the status
+		// will be already-installed
+		deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
+			mock.AnythingOfType("string"), mock.AnythingOfType("string"),
+			deployments.DeviceDeploymentStatusAlreadyInst, mock.AnythingOfType("*time.Time")).
+			Return("dontcare", nil)
+		deviceDeploymentStorage.On("GetDeviceDeploymentStatus",
+			mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+			Return("dontcare", nil)
 
 		imageLinker := new(mocks.GetRequester)
 		if testCase.InputOlderstDeviceDeployment != nil {
@@ -268,14 +298,38 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			imageLinker.On("GetRequest", testCase.InputOlderstDeviceDeployment.Image.Id,
 				DefaultUpdateDownloadLinkExpire).
 				Return(testCase.InputGetRequestLink, testCase.InputGetRequestError)
+
+			// if deployment is found to be already installed (i.e.
+			// case when current installation artifact is the same
+			// as device deployment one), deployment will have its
+			// statistics updated
+			deploymentStorage.On("UpdateStats",
+				*testCase.InputOlderstDeviceDeployment.DeploymentId,
+				mock.AnythingOfType("string"),
+				deployments.DeviceDeploymentStatusAlreadyInst).
+				Return(nil)
+			deploymentStorage.On("FindByID",
+				*testCase.InputOlderstDeviceDeployment.DeploymentId).
+				Return(&deployments.Deployment{
+					Id:    testCase.InputOlderstDeviceDeployment.DeploymentId,
+					Stats: deployments.NewDeviceDeploymentStats(),
+				}, nil)
+			// if deployment is found to be finished, we need to
+			// mock another call
+			deploymentStorage.On("Finish",
+				*testCase.InputOlderstDeviceDeployment.DeploymentId,
+				mock.AnythingOfType("time.Time")).
+				Return(nil)
 		}
 
 		model := NewDeploymentModel(DeploymentsModelConfig{
 			DeviceDeploymentsStorage: deviceDeploymentStorage,
+			DeploymentsStorage:       deploymentStorage,
 			ImageLinker:              imageLinker,
 		})
 
-		out, err := model.GetDeploymentForDevice(testCase.InputID)
+		out, err := model.GetDeploymentForDeviceWithCurrent(testCase.InputID,
+			testCase.InputInstalledDeployment)
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
 			assert.Nil(t, out)

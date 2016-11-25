@@ -88,6 +88,8 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		InputModelUpdateStatusStatus       string
 		InputModelUpdateStatusError        error
 
+		InputModelCurrentDeployment deployments.InstalledDeviceDeployment
+
 		Headers map[string]string
 	}{
 		{
@@ -137,18 +139,19 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		},
 		{
 			InputID: "device-id-3",
-			InputModelDeploymentInstructions: deployments.NewDeploymentInstructions("foo-1",
-				&images.Link{}, image),
+			InputModelDeploymentInstructions: nil,
 
-			InputModelUpdateStatusDeploymentId: "foo-1",
-			InputModelUpdateStatusDeviceID:     "device-id-3",
-			InputModelUpdateStatusStatus:       deployments.DeviceDeploymentStatusAlreadyInst,
+			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
+				Artifact:   "yocto-id",
+				DeviceType: "hammer",
+			},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusNoContent,
 			},
 			Params: url.Values{
-				GetDeploymentForDeviceQueryArtifact: []string{"yocto-id"},
+				GetDeploymentForDeviceQueryArtifact:   []string{"yocto-id"},
+				GetDeploymentForDeviceQueryDeviceType: []string{"hammer"},
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
@@ -160,18 +163,14 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 		t.Logf("testing input ID: %v tc: %d", testCase.InputID, tidx)
 		deploymentModel := new(mocks.DeploymentsModel)
-		deploymentModel.On("GetDeploymentForDevice", testCase.InputID).
+		deploymentModel.On("GetDeploymentForDeviceWithCurrent", testCase.InputID,
+			testCase.InputModelCurrentDeployment).
 			Return(testCase.InputModelDeploymentInstructions, testCase.InputModelError)
-
-		deploymentModel.On("UpdateDeviceDeploymentStatus",
-			testCase.InputModelUpdateStatusDeploymentId,
-			testCase.InputModelUpdateStatusDeviceID,
-			testCase.InputModelUpdateStatusStatus).
-			Return(testCase.InputModelUpdateStatusError)
 
 		router, err := rest.MakeRouter(
 			rest.Get("/r/update",
-				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeploymentForDevice))
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).GetDeploymentForDevice))
 		assert.NoError(t, err)
 
 		api := makeApi(router)
