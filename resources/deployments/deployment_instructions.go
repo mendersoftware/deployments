@@ -16,22 +16,13 @@ package deployments
 
 import "github.com/mendersoftware/deployments/resources/images"
 
-type ImageInstallInstructions struct {
-	images.Link
-	images.SoftwareImage
+type ArtifactDeploymentInstructions struct {
+	ArtifactName          string      `json:"artifact_name"`
+	Source                images.Link `json:"source"`
+	DeviceTypesCompatible []string    `json:"device_types_compatible"`
 }
 
 type DeploymentInstructions struct {
-	ID    string                   `json:"id"`
-	Image ImageInstallInstructions `json:"image"`
-}
-
-func NewDeploymentInstructions(id string, link *images.Link, image *images.SoftwareImage) *DeploymentInstructions {
-	return &DeploymentInstructions{
-		ID: id,
-		Image: ImageInstallInstructions{
-			Link:          *link,
-			SoftwareImage: *image,
-		},
-	}
+	ID       string                         `json:"id"`
+	Artifact ArtifactDeploymentInstructions `json:"artifact"`
 }
