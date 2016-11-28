@@ -31,20 +31,20 @@ type ImagesModel struct {
 func (_m *ImagesModel) CreateImage(
 	imageFile *os.File,
 	metaConstructor *images.SoftwareImageMetaConstructor,
-	metaYoctoConstructor *images.SoftwareImageMetaYoctoConstructor) (string, error) {
+	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
 
-	ret := _m.Called(imageFile, metaConstructor, metaYoctoConstructor)
+	ret := _m.Called(imageFile, metaConstructor, metaArtifactConstructor)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(*os.File, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaYoctoConstructor) string); ok {
-		r0 = rf(imageFile, metaConstructor, metaYoctoConstructor)
+	if rf, ok := ret.Get(0).(func(*os.File, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaArtifactConstructor) string); ok {
+		r0 = rf(imageFile, metaConstructor, metaArtifactConstructor)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*os.File, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaYoctoConstructor) error); ok {
-		r1 = rf(imageFile, metaConstructor, metaYoctoConstructor)
+	if rf, ok := ret.Get(1).(func(*os.File, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaArtifactConstructor) error); ok {
+		r1 = rf(imageFile, metaConstructor, metaArtifactConstructor)
 	} else {
 		r1 = ret.Error(1)
 	}

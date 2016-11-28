@@ -35,6 +35,6 @@ type ImagesModel interface {
 	CreateImage(
 		imageFile *os.File,
 		metaConstructor *images.SoftwareImageMetaConstructor,
-		metaYoctoConstructor *images.SoftwareImageMetaYoctoConstructor) (string, error)
+		metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error)
 	EditImage(id string, constructorData *images.SoftwareImageMetaConstructor) (bool, error)
 }

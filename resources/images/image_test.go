@@ -24,8 +24,8 @@ func TestValidateEmptyImageMeta(t *testing.T) {
 	}
 }
 
-func TestValidateEmptyImageMetaYocto(t *testing.T) {
-	image := NewSoftwareImageMetaYoctoConstructor()
+func TestValidateEmptyImageMetaArtifact(t *testing.T) {
+	image := NewSoftwareImageMetaArtifactConstructor()
 
 	if err := image.Validate(); err == nil {
 		t.FailNow()
@@ -44,12 +44,15 @@ func TestValidateCorrectImageMeta(t *testing.T) {
 }
 
 func TestValidateCorrectImageMetaYocot(t *testing.T) {
-	image := NewSoftwareImageMetaYoctoConstructor()
+	image := NewSoftwareImageMetaArtifactConstructor()
 	required := "required"
 
-	image.YoctoId = required
-	image.DeviceType = required
-	image.Checksum = required
+	image.ArtifactName = required
+	image.DeviceTypesCompatible = []string{"required"}
+	image.Info = &ArtifactInfo{
+		Format:  required,
+		Version: 1,
+	}
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()
@@ -59,14 +62,13 @@ func TestValidateCorrectImageMetaYocot(t *testing.T) {
 func TestValidateCorrectImage(t *testing.T) {
 	required := "required"
 	imageMeta := NewSoftwareImageMetaConstructor()
-	imageMetaYocto := NewSoftwareImageMetaYoctoConstructor()
+	imageMetaArtifact := NewSoftwareImageMetaArtifactConstructor()
 
-	imageMetaYocto.YoctoId = required
-	imageMetaYocto.DeviceType = required
-	imageMetaYocto.Checksum = required
+	imageMetaArtifact.ArtifactName = required
+	imageMetaArtifact.DeviceTypesCompatible = []string{"required"}
 	imageMeta.Name = required
 
-	image := NewSoftwareImage(imageMeta, imageMetaYocto)
+	image := NewSoftwareImage(imageMeta, imageMetaArtifact)
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()

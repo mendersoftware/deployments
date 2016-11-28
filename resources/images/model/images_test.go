@@ -36,8 +36,8 @@ func TestCreateImageMissingFields(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
 
 	imageMeta := images.NewSoftwareImageMetaConstructor()
-	imageMetaYocto := images.NewSoftwareImageMetaYoctoConstructor()
-	if _, err := iModel.CreateImage(nil, imageMeta, imageMetaYocto); err == nil {
+	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+	if _, err := iModel.CreateImage(nil, imageMeta, imageMetaArtifact); err == nil {
 		t.FailNow()
 	}
 }
@@ -89,15 +89,17 @@ func createValidImageMeta() *images.SoftwareImageMetaConstructor {
 	return imageMeta
 }
 
-func createValidImageMetaYocto() *images.SoftwareImageMetaYoctoConstructor {
-	imageMetaYocto := images.NewSoftwareImageMetaYoctoConstructor()
+func createValidImageMetaArtifact() *images.SoftwareImageMetaArtifactConstructor {
+	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
 	required := "required"
 
-	imageMetaYocto.DeviceType = required
-	imageMetaYocto.YoctoId = required
-	imageMetaYocto.Checksum = required
-
-	return imageMetaYocto
+	imageMetaArtifact.DeviceTypesCompatible = []string{"required"}
+	imageMetaArtifact.ArtifactName = required
+	imageMetaArtifact.Info = &images.ArtifactInfo{
+		Format:  required,
+		Version: 1,
+	}
+	return imageMetaArtifact
 }
 
 func createValidImageFile() *os.File {
@@ -113,9 +115,9 @@ func TestCreateImageInsertError(t *testing.T) {
 
 	iModel := NewImagesModel(nil, nil, fakeIS)
 	imageMeta := createValidImageMeta()
-	imageMetaYocto := createValidImageMetaYocto()
+	imageMetaArtifact := createValidImageMetaArtifact()
 
-	if _, err := iModel.CreateImage(nil, imageMeta, imageMetaYocto); err == nil {
+	if _, err := iModel.CreateImage(nil, imageMeta, imageMetaArtifact); err == nil {
 		t.FailNow()
 	}
 }
@@ -129,12 +131,12 @@ func TestCreateImagePutFileError(t *testing.T) {
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
 	imageMeta := createValidImageMeta()
-	imageMetaYocto := createValidImageMetaYocto()
+	imageMetaArtifact := createValidImageMetaArtifact()
 	file := createValidImageFile()
 	defer os.Remove(file.Name())
 	defer file.Close()
 
-	if _, err := iModel.CreateImage(file, imageMeta, imageMetaYocto); err == nil {
+	if _, err := iModel.CreateImage(file, imageMeta, imageMetaArtifact); err == nil {
 		t.FailNow()
 	}
 }
@@ -147,12 +149,12 @@ func TestCreateImageCreateOK(t *testing.T) {
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
 	imageMeta := createValidImageMeta()
-	imageMetaYocto := createValidImageMetaYocto()
+	imageMetaArtifact := createValidImageMetaArtifact()
 	file := createValidImageFile()
 	defer os.Remove(file.Name())
 	defer file.Close()
 
-	if _, err := iModel.CreateImage(file, imageMeta, imageMetaYocto); err != nil {
+	if _, err := iModel.CreateImage(file, imageMeta, imageMetaArtifact); err != nil {
 		t.FailNow()
 	}
 }
@@ -216,8 +218,8 @@ func (fis *FakeFileStorage) PutFile(id string, img *os.File, contentType string)
 
 func TestGetImageOK(t *testing.T) {
 	imageMeta := createValidImageMeta()
-	imageMetaYocto := createValidImageMetaYocto()
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaYocto)
+	imageMetaArtifact := createValidImageMetaArtifact()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -249,8 +251,8 @@ func (fus *FakeUseChecker) ImageUsedInDeployment(imageId string) (bool, error) {
 
 func TestDeleteImage(t *testing.T) {
 	imageMeta := createValidImageMeta()
-	imageMetaYocto := createValidImageMetaYocto()
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaYocto)
+	imageMetaArtifact := createValidImageMetaArtifact()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 
 	fakeFS := new(FakeFileStorage)
 	fakeChecker := new(FakeUseChecker)
@@ -322,8 +324,8 @@ func TestListImages(t *testing.T) {
 
 	//have some valid image
 	imageMeta := createValidImageMeta()
-	imageMetaYocto := createValidImageMetaYocto()
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaYocto)
+	imageMetaArtifact := createValidImageMetaArtifact()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -336,7 +338,7 @@ func TestListImages(t *testing.T) {
 
 func TestEditImage(t *testing.T) {
 	imageMeta := createValidImageMeta()
-	imageMetaYocto := createValidImageMetaYocto()
+	imageMetaArtifact := createValidImageMetaArtifact()
 
 	fakeChecker := new(FakeUseChecker)
 	fakeIS := new(FakeImageStorage)
@@ -370,7 +372,7 @@ func TestEditImage(t *testing.T) {
 	}
 
 	// image does not exists
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaYocto)
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 	fakeIS.findByIdImage = constructorImage
 	fakeIS.updateError = errors.New("error")
 	if _, err := iModel.EditImage("", imageMeta); err == nil {

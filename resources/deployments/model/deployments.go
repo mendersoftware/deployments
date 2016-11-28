@@ -174,7 +174,7 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
 		return nil, nil
 	}
 
-	if installed.Artifact != "" && deployment.Image.YoctoId == installed.Artifact {
+	if installed.Artifact != "" && deployment.Image.ArtifactName == installed.Artifact {
 		// pretend there is no deployment for this device, but update
 		// its status to already installed first
 

@@ -41,30 +41,68 @@ func (s *SoftwareImageMetaConstructor) Validate() error {
 	return err
 }
 
-// Information provided with YOCTO image
-type SoftwareImageMetaYoctoConstructor struct {
-	// Yocto ID build in the image
-	YoctoId string `json:"yocto_id" valid:"length(1|4096),required"`
+// Structure with artifact version informations
+type ArtifactInfo struct {
+	// Mender artifact format - the only possible value is "mender"
+	//Format string `json:"format" valid:"string,equal("mender"),required"`
+	Format string `json:"format" valid:"required"`
 
-	// Compatible device model for the application
-	DeviceType string `json:"device_type" bson:"device_type" valid:"length(1|4096),required"`
-
-	// Image file checksum
-	Checksum string `json:"checksum" valid:"required"`
-
-	// Image size
-	ImageSize int64 `json:"image_size" valid:"optional"`
-
-	// Date build
-	DateBuild *time.Time `json:"date_build" valid:"optional"`
+	// Mender artifact format version
+	//Version uint `json:"version" valid:"uint,equal(1),required"`
+	Version uint `json:"version" valid:"required"`
 }
 
-func NewSoftwareImageMetaYoctoConstructor() *SoftwareImageMetaYoctoConstructor {
-	return &SoftwareImageMetaYoctoConstructor{}
+// Type info structure
+type ArtifactUpdateTypeInfo struct {
+	Type string `json:"type" valid:"required"`
+}
+
+// Update file structure
+type UpdateFile struct {
+	// Image name
+	Name string `json:"name" valid:"required"`
+
+	// Image file checksum
+	Checksum string `json:"checksum" valid:"optional"`
+
+	// Image file signature
+	Signature string `json:"signature" valid:"optional"`
+
+	// Image size
+	Size int64 `json:"size" valid:"optional"`
+
+	// Date build
+	Date *time.Time `json:"date" valid:"optional"`
+}
+
+// Update structure
+type Update struct {
+	TypeInfo ArtifactUpdateTypeInfo `json:"type_info" valid:"required"`
+	Files    []UpdateFile           `json:"files"`
+	MetaData interface{}            `json:"meta_data" valid:"optional"` //TODO check this
+}
+
+// Information provided with YOCTO image
+type SoftwareImageMetaArtifactConstructor struct {
+	// artifact_name from artifact file
+	ArtifactName string `json:"artifact_name" valid:"length(1|4096),required"`
+
+	// Compatible device model for the application
+	DeviceTypesCompatible []string `json:"device_types_compatible" bson:"device_types_compatible" valid:"required"`
+
+	// Artifact version info
+	Info *ArtifactInfo `json:"info" valid:"required"`
+
+	// List of updates
+	Updates []Update `json:"updates" valid:"-"`
+}
+
+func NewSoftwareImageMetaArtifactConstructor() *SoftwareImageMetaArtifactConstructor {
+	return &SoftwareImageMetaArtifactConstructor{}
 }
 
 // Validate checkes structure according to valid tags.
-func (s *SoftwareImageMetaYoctoConstructor) Validate() error {
+func (s *SoftwareImageMetaArtifactConstructor) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
 }
@@ -75,13 +113,10 @@ type SoftwareImage struct {
 	SoftwareImageMetaConstructor `bson:"meta"`
 
 	// Field set provided with yocto image
-	SoftwareImageMetaYoctoConstructor `bson:"meta_yocto"`
+	SoftwareImageMetaArtifactConstructor `bson:"meta_yocto"`
 
 	// Image ID
 	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
-
-	// Status if image was verified after upload
-	Verified bool `json:"verified" valid:"-"`
 
 	// Last modification time, including image upload time
 	Modified *time.Time `json:"modified" valid:"_"`
@@ -90,16 +125,15 @@ type SoftwareImage struct {
 // NewSoftwareImage create new software image object.
 func NewSoftwareImage(
 	metaConstructor *SoftwareImageMetaConstructor,
-	metaYoctoConstructor *SoftwareImageMetaYoctoConstructor) *SoftwareImage {
+	metaArtifactConstructor *SoftwareImageMetaArtifactConstructor) *SoftwareImage {
 
 	now := time.Now()
 	id := uuid.NewV4().String()
 
 	return &SoftwareImage{
-		SoftwareImageMetaConstructor:      *metaConstructor,
-		SoftwareImageMetaYoctoConstructor: *metaYoctoConstructor,
+		SoftwareImageMetaConstructor:         *metaConstructor,
+		SoftwareImageMetaArtifactConstructor: *metaArtifactConstructor,
 		Modified: &now,
-		Verified: false,
 		Id:       id,
 	}
 }

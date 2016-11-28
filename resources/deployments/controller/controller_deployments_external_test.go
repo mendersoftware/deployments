@@ -70,8 +70,8 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			Name:        "foo-image",
 			Description: "foo-image-desc",
 		},
-		&images.SoftwareImageMetaYoctoConstructor{
-			YoctoId: "yocto-id",
+		&images.SoftwareImageMetaArtifactConstructor{
+			ArtifactName: "artifact-name",
 		})
 
 	testCases := []struct {
@@ -142,7 +142,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			InputModelDeploymentInstructions: nil,
 
 			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
-				Artifact:   "yocto-id",
+				Artifact:   "artifact-name",
 				DeviceType: "hammer",
 			},
 
@@ -150,7 +150,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 				OutputStatus: http.StatusNoContent,
 			},
 			Params: url.Values{
-				GetDeploymentForDeviceQueryArtifact:   []string{"yocto-id"},
+				GetDeploymentForDeviceQueryArtifact:   []string{"artifact-name"},
 				GetDeploymentForDeviceQueryDeviceType: []string{"hammer"},
 			},
 			Headers: map[string]string{

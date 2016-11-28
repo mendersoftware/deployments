@@ -193,8 +193,8 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		&images.SoftwareImageMetaConstructor{
 			Name: "foo",
 		},
-		&images.SoftwareImageMetaYoctoConstructor{
-			YoctoId: "foo-artifact",
+		&images.SoftwareImageMetaArtifactConstructor{
+			ArtifactName: "foo-artifact",
 		})
 
 	testCases := []struct {
@@ -230,8 +230,8 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 					&images.SoftwareImageMetaConstructor{
 						Name: "foo",
 					},
-					&images.SoftwareImageMetaYoctoConstructor{
-						YoctoId: "foo-artifact",
+					&images.SoftwareImageMetaArtifactConstructor{
+						ArtifactName: "foo-artifact",
 					}),
 				DeploymentId: StringToPointer("ID:678"),
 			},
@@ -263,7 +263,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			InputGetRequestLink: &images.Link{},
 
 			InputInstalledDeployment: deployments.InstalledDeviceDeployment{
-				Artifact:   image.YoctoId,
+				Artifact:   image.ArtifactName,
 				DeviceType: "hammer",
 			},
 		},
