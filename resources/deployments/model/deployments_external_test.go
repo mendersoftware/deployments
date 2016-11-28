@@ -195,6 +195,9 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		},
 		&images.SoftwareImageMetaArtifactConstructor{
 			ArtifactName: "foo-artifact",
+			DeviceTypesCompatible: []string{
+				"hammer",
+			},
 		})
 
 	testCases := []struct {
@@ -247,10 +250,14 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			},
 			InputGetRequestLink: &images.Link{},
 
-			OutputDeploymentInstructions: deployments.NewDeploymentInstructions(
-				"ID:678",
-				&images.Link{},
-				image),
+			OutputDeploymentInstructions: &deployments.DeploymentInstructions{
+				ID: "ID:678",
+				Artifact: deployments.ArtifactDeploymentInstructions{
+					ArtifactName:          image.ArtifactName,
+					Source:                images.Link{},
+					DeviceTypesCompatible: image.DeviceTypesCompatible,
+				},
+			},
 		},
 		{
 			// currently installed artifact is the same as defined by deployment
@@ -337,10 +344,6 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			assert.NoError(t, err)
 			if testCase.OutputDeploymentInstructions != nil {
 				assert.NotNil(t, out)
-				assert.WithinDuration(t, time.Now(),
-					*out.Image.Modified, time.Second)
-				// zero out Modified field, so that the test below works
-				out.Image.Modified = testCase.OutputDeploymentInstructions.Image.Modified
 				assert.EqualValues(t, testCase.OutputDeploymentInstructions, out)
 			} else {
 				assert.Nil(t, out)

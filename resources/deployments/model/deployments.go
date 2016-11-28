@@ -193,8 +193,16 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}
 
-	return deployments.NewDeploymentInstructions(*deployment.DeploymentId,
-		link, deployment.Image), nil
+	instructions := &deployments.DeploymentInstructions{
+		ID: *deployment.DeploymentId,
+		Artifact: deployments.ArtifactDeploymentInstructions{
+			ArtifactName:          deployment.Image.ArtifactName,
+			Source:                *link,
+			DeviceTypesCompatible: deployment.Image.DeviceTypesCompatible,
+		},
+	}
+
+	return instructions, nil
 }
 
 // UpdateDeviceDeploymentStatus will update the deployment status for device of

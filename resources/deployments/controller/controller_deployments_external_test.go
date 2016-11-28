@@ -72,6 +72,9 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		},
 		&images.SoftwareImageMetaArtifactConstructor{
 			ArtifactName: "artifact-name",
+			DeviceTypesCompatible: []string{
+				"hammer",
+			},
 		})
 
 	testCases := []struct {
@@ -125,13 +128,25 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		},
 		{
 			InputID: "device-id-3",
-			InputModelDeploymentInstructions: deployments.NewDeploymentInstructions("foo-1",
-				&images.Link{}, image),
+			InputModelDeploymentInstructions: &deployments.DeploymentInstructions{
+				ID: "foo-1",
+				Artifact: deployments.ArtifactDeploymentInstructions{
+					ArtifactName:          image.ArtifactName,
+					Source:                images.Link{},
+					DeviceTypesCompatible: image.DeviceTypesCompatible,
+				},
+			},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
-				OutputBodyObject: deployments.NewDeploymentInstructions("foo-1",
-					&images.Link{}, image),
+				OutputBodyObject: &deployments.DeploymentInstructions{
+					ID: "foo-1",
+					Artifact: deployments.ArtifactDeploymentInstructions{
+						ArtifactName:          image.ArtifactName,
+						Source:                images.Link{},
+						DeviceTypesCompatible: image.DeviceTypesCompatible,
+					},
+				},
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
