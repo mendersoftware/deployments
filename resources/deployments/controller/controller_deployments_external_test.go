@@ -70,7 +70,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			Name:        "foo-image",
 			Description: "foo-image-desc",
 		},
-		&images.SoftwareImageMetaYoctoConstructor{
+		&images.SoftwareImageMetaArtifactConstructor{
 			ArtifactName: "artifact-name",
 		})
 

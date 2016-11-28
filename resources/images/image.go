@@ -83,7 +83,7 @@ type Update struct {
 }
 
 // Information provided with YOCTO image
-type SoftwareImageMetaYoctoConstructor struct {
+type SoftwareImageMetaArtifactConstructor struct {
 	// artifact_name from artifact file
 	ArtifactName string `json:"artifact_name" valid:"length(1|4096),required"`
 
@@ -97,12 +97,12 @@ type SoftwareImageMetaYoctoConstructor struct {
 	Updates []Update `json:"updates" valid:"-"`
 }
 
-func NewSoftwareImageMetaYoctoConstructor() *SoftwareImageMetaYoctoConstructor {
-	return &SoftwareImageMetaYoctoConstructor{}
+func NewSoftwareImageMetaArtifactConstructor() *SoftwareImageMetaArtifactConstructor {
+	return &SoftwareImageMetaArtifactConstructor{}
 }
 
 // Validate checkes structure according to valid tags.
-func (s *SoftwareImageMetaYoctoConstructor) Validate() error {
+func (s *SoftwareImageMetaArtifactConstructor) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
 }
@@ -113,7 +113,7 @@ type SoftwareImage struct {
 	SoftwareImageMetaConstructor `bson:"meta"`
 
 	// Field set provided with yocto image
-	SoftwareImageMetaYoctoConstructor `bson:"meta_yocto"`
+	SoftwareImageMetaArtifactConstructor `bson:"meta_yocto"`
 
 	// Image ID
 	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
@@ -125,14 +125,14 @@ type SoftwareImage struct {
 // NewSoftwareImage create new software image object.
 func NewSoftwareImage(
 	metaConstructor *SoftwareImageMetaConstructor,
-	metaYoctoConstructor *SoftwareImageMetaYoctoConstructor) *SoftwareImage {
+	metaArtifactConstructor *SoftwareImageMetaArtifactConstructor) *SoftwareImage {
 
 	now := time.Now()
 	id := uuid.NewV4().String()
 
 	return &SoftwareImage{
-		SoftwareImageMetaConstructor:      *metaConstructor,
-		SoftwareImageMetaYoctoConstructor: *metaYoctoConstructor,
+		SoftwareImageMetaConstructor:         *metaConstructor,
+		SoftwareImageMetaArtifactConstructor: *metaArtifactConstructor,
 		Modified: &now,
 		Id:       id,
 	}

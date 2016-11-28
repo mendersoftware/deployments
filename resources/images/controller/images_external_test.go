@@ -89,7 +89,7 @@ func (fim *fakeImageModeler) DeleteImage(imageID string) error {
 func (fim *fakeImageModeler) CreateImage(
 	imageFile *os.File,
 	metaConstructor *images.SoftwareImageMetaConstructor,
-	metaYoctoConstructor *images.SoftwareImageMetaYoctoConstructor) (string, error) {
+	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
 	return "", nil
 }
 
@@ -138,8 +138,8 @@ func TestControllerGetImage(t *testing.T) {
 
 	// have image, get OK
 	imageMeta := images.NewSoftwareImageMetaConstructor()
-	imageMetaYocto := images.NewSoftwareImageMetaYoctoConstructor()
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaYocto)
+	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 	imagesModel.getImageError = nil
 	imagesModel.getImage = constructorImage
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -168,8 +168,8 @@ func TestControllerListImages(t *testing.T) {
 	//getting list OK
 	imagesModel.listImagesError = nil
 	imageMeta := images.NewSoftwareImageMetaConstructor()
-	imageMetaYocto := images.NewSoftwareImageMetaYoctoConstructor()
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaYocto)
+	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 	imagesModel.imagesList = append(imagesModel.imagesList, constructorImage)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images", nil))
@@ -184,8 +184,8 @@ func TestControllerDeleteImage(t *testing.T) {
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Delete, controller.DeleteImage)
 
 	imageMeta := images.NewSoftwareImageMetaConstructor()
-	imageMetaYocto := images.NewSoftwareImageMetaYoctoConstructor()
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaYocto)
+	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 
 	// wrong id
 	recorded := test.RunRequest(t, api.MakeHandler(),
@@ -445,7 +445,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			"CreateImage",
 			mock.AnythingOfType("*os.File"),
 			mock.AnythingOfType("*images.SoftwareImageMetaConstructor"),
-			mock.AnythingOfType("*images.SoftwareImageMetaYoctoConstructor")).
+			mock.AnythingOfType("*images.SoftwareImageMetaArtifactConstructor")).
 			Return(testCase.InputModelID, testCase.InputModelError)
 
 		api := setUpRestTest("/r", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).NewImage)

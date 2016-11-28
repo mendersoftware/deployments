@@ -247,7 +247,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 		return
 	}
 
-	imageFile, metaYoctoConstructor, status, err := s.handleImage(imagePart, DefaultMaxImageSize)
+	imageFile, metaArtifactConstructor, status, err := s.handleImage(imagePart, DefaultMaxImageSize)
 	if err != nil {
 		if status == http.StatusInternalServerError {
 			s.view.RenderInternalError(w, r, err, l)
@@ -259,7 +259,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	defer os.Remove(imageFile.Name())
 	defer imageFile.Close()
 
-	imgId, err := s.model.CreateImage(imageFile, metaConstructor, metaYoctoConstructor)
+	imgId, err := s.model.CreateImage(imageFile, metaConstructor, metaArtifactConstructor)
 	if err != nil {
 		// TODO: check if this is bad request or internal error
 		s.view.RenderInternalError(w, r, err, l)
@@ -305,7 +305,7 @@ func (s *SoftwareImagesController) handleMeta(mr *multipart.Reader, maxMetaSize 
 // Saves uploaded image in temporary file.
 // Returns temporary file, image metadata, success code and nil on success.
 func (s *SoftwareImagesController) handleImage(
-	p *multipart.Part, maxImageSize int64) (*os.File, *images.SoftwareImageMetaYoctoConstructor, int, error) {
+	p *multipart.Part, maxImageSize int64) (*os.File, *images.SoftwareImageMetaArtifactConstructor, int, error) {
 	// HTML form can't set specific content-type, it's automatic, if not empty - it's a file
 	if p.Header.Get("Content-Type") == "" {
 		return nil, nil, http.StatusBadRequest, errors.New("Last part should be an image")
@@ -356,8 +356,8 @@ func getUpdateFiles(maxImageSize int64, uFiles map[string]parser.UpdateFile) ([]
 }
 
 func (s *SoftwareImagesController) getMetaFromArchive(
-	r *io.Reader, maxImageSize int64) (*images.SoftwareImageMetaYoctoConstructor, error) {
-	metaYocto := images.NewSoftwareImageMetaYoctoConstructor()
+	r *io.Reader, maxImageSize int64) (*images.SoftwareImageMetaArtifactConstructor, error) {
+	metaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
 	aReader := areader.NewReader(*r)
 	defer aReader.Close()
 	rp := &parser.RootfsParser{}
@@ -367,15 +367,15 @@ func (s *SoftwareImagesController) getMetaFromArchive(
 	if err != nil {
 		return nil, errors.Wrap(err, "info error")
 	}
-	metaYocto.Info = getArtifactInfo(info)
+	metaArtifact.Info = getArtifactInfo(info)
 
 	hInfo, err := aReader.ReadHeaderInfo()
 	if err != nil {
 		return nil, errors.Wrap(err, "header info error")
 	}
 
-	metaYocto.DeviceTypesCompatible = aReader.GetCompatibleDevices()
-	metaYocto.ArtifactName = aReader.GetArtifactName()
+	metaArtifact.DeviceTypesCompatible = aReader.GetCompatibleDevices()
+	metaArtifact.ArtifactName = aReader.GetArtifactName()
 
 	for cnt, update := range hInfo.Updates {
 		if update.Type == "rootfs-image" {
@@ -402,8 +402,8 @@ func (s *SoftwareImagesController) getMetaFromArchive(
 			return nil, errors.Wrap(err, "Cannot get update files:")
 		}
 
-		metaYocto.Updates = append(
-			metaYocto.Updates,
+		metaArtifact.Updates = append(
+			metaArtifact.Updates,
 			images.Update{
 				TypeInfo: images.ArtifactUpdateTypeInfo{
 					Type: p.GetUpdateType().Type,
@@ -413,7 +413,7 @@ func (s *SoftwareImagesController) getMetaFromArchive(
 			})
 	}
 
-	return metaYocto, nil
+	return metaArtifact, nil
 }
 
 func (s *SoftwareImagesController) getFormFieldValue(p *multipart.Part, maxMetaSize int64) (*string, error) {

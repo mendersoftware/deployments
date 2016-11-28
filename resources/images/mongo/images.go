@@ -27,7 +27,7 @@ import (
 // Database KEYS
 const (
 	// Keys are corelated to field names in SoftwareImageMeta
-	// and SoftwareImageMetaYocto structures
+	// and SoftwareImageMetaArtifact structures
 	// Need to be kept in sync with that structure filed names
 	StorageKeySoftwareImageDeviceType = "meta_yocto.device_type"
 	StorageKeySoftwareImageName       = "meta.name"

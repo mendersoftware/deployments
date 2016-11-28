@@ -193,7 +193,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		&images.SoftwareImageMetaConstructor{
 			Name: "foo",
 		},
-		&images.SoftwareImageMetaYoctoConstructor{
+		&images.SoftwareImageMetaArtifactConstructor{
 			ArtifactName: "foo-artifact",
 		})
 
@@ -230,7 +230,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 					&images.SoftwareImageMetaConstructor{
 						Name: "foo",
 					},
-					&images.SoftwareImageMetaYoctoConstructor{
+					&images.SoftwareImageMetaArtifactConstructor{
 						ArtifactName: "foo-artifact",
 					}),
 				DeploymentId: StringToPointer("ID:678"),

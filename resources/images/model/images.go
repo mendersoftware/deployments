@@ -55,20 +55,20 @@ func NewImagesModel(
 func (i *ImagesModel) CreateImage(
 	imageFile *os.File,
 	metaConstructor *images.SoftwareImageMetaConstructor,
-	metaYoctoConstructor *images.SoftwareImageMetaYoctoConstructor) (string, error) {
+	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
 
-	if metaConstructor == nil || metaYoctoConstructor == nil {
+	if metaConstructor == nil || metaArtifactConstructor == nil {
 		return "", ErrModelMissingInputMetadata
 	}
 
 	if err := metaConstructor.Validate(); err != nil {
 		return "", ErrModelInvalidMetadata
 	}
-	if err := metaYoctoConstructor.Validate(); err != nil {
+	if err := metaArtifactConstructor.Validate(); err != nil {
 		return "", ErrModelInvalidMetadata
 	}
 
-	image := images.NewSoftwareImage(metaConstructor, metaYoctoConstructor)
+	image := images.NewSoftwareImage(metaConstructor, metaArtifactConstructor)
 
 	if err := i.imagesStorage.Insert(image); err != nil {
 		return "", errors.Wrap(err, "Fail to store the metadata")
