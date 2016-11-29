@@ -29,9 +29,9 @@ const (
 	// Keys are corelated to field names in SoftwareImageMeta
 	// and SoftwareImageMetaArtifact structures
 	// Need to be kept in sync with that structure filed names
-	StorageKeySoftwareImageDeviceType = "meta_yocto.device_type"
-	StorageKeySoftwareImageName       = "meta.name"
-	StorageKeySoftwareImageId         = "_id"
+	StorageKeySoftwareImageDeviceTypes = "meta_yocto.device_types_compatible"
+	StorageKeySoftwareImageName        = "meta.name"
+	StorageKeySoftwareImageId          = "_id"
 )
 
 // Indexes
@@ -67,7 +67,7 @@ func (i *SoftwareImagesStorage) IndexStorage() error {
 	defer session.Close()
 
 	uniqueNameVersionIndex := mgo.Index{
-		Key:    []string{StorageKeySoftwareImageName, StorageKeySoftwareImageDeviceType},
+		Key:    []string{StorageKeySoftwareImageName, StorageKeySoftwareImageDeviceTypes},
 		Unique: true,
 		Name:   IndexUniqeNameAndDeviceTypeStr,
 		// Build index upfront - make sure this index is allways on.
@@ -134,8 +134,8 @@ func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string
 
 	// equal to device type & software version (application name + version)
 	query := bson.M{
-		StorageKeySoftwareImageDeviceType: deviceType,
-		StorageKeySoftwareImageName:       name,
+		StorageKeySoftwareImageDeviceTypes: deviceType,
+		StorageKeySoftwareImageName:        name,
 	}
 
 	session := i.session.Copy()
