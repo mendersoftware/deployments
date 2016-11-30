@@ -15,7 +15,6 @@
 package controller
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -331,7 +330,7 @@ func (s *SoftwareImagesController) handleImage(
 	return tmpfile, meta, http.StatusOK, nil
 }
 
-func getArtifactInfo(info *metadata.Info) *images.ArtifactInfo {
+func getArtifactInfo(info metadata.Info) *images.ArtifactInfo {
 	return &images.ArtifactInfo{
 		Format:  info.Format,
 		Version: uint(info.Version),
@@ -358,45 +357,19 @@ func getUpdateFiles(maxImageSize int64, uFiles map[string]parser.UpdateFile) ([]
 func (s *SoftwareImagesController) getMetaFromArchive(
 	r *io.Reader, maxImageSize int64) (*images.SoftwareImageMetaArtifactConstructor, error) {
 	metaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+
 	aReader := areader.NewReader(*r)
 	defer aReader.Close()
-	rp := &parser.RootfsParser{}
-	aReader.Register(rp)
 
-	info, err := aReader.ReadInfo()
+	data, err := aReader.Read()
 	if err != nil {
-		return nil, errors.Wrap(err, "info error")
+		return nil, errors.Wrap(err, "reading artifact error")
 	}
-	metaArtifact.Info = getArtifactInfo(info)
-
-	hInfo, err := aReader.ReadHeaderInfo()
-	if err != nil {
-		return nil, errors.Wrap(err, "header info error")
-	}
-
+	metaArtifact.Info = getArtifactInfo(aReader.GetInfo())
 	metaArtifact.DeviceTypesCompatible = aReader.GetCompatibleDevices()
 	metaArtifact.ArtifactName = aReader.GetArtifactName()
 
-	for cnt, update := range hInfo.Updates {
-		if update.Type == "rootfs-image" {
-			rp := &parser.RootfsParser{}
-			aReader.PushWorker(rp, fmt.Sprintf("%04d", cnt))
-		} else {
-			gp := &parser.GenericParser{}
-			aReader.PushWorker(gp, fmt.Sprintf("%04d", cnt))
-		}
-	}
-
-	_, err = aReader.ReadHeader()
-	if err != nil {
-		return nil, errors.Wrap(err, "header error")
-	}
-
-	w, err := aReader.ReadData()
-	if err != nil {
-		return nil, errors.Wrap(err, "read data error")
-	}
-	for _, p := range w {
+	for _, p := range data {
 		uFiles, err := getUpdateFiles(maxImageSize, p.GetUpdateFiles())
 		if err != nil {
 			return nil, errors.Wrap(err, "Cannot get update files:")
