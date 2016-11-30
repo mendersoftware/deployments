@@ -392,7 +392,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputModelID:     "1234",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("info error: reader: error reading archive: unexpected EOF")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("reading artifact error: reader: error reading archive: unexpected EOF")),
 			},
 		},
 		{
