@@ -113,14 +113,14 @@ func NewImagesResourceRoutes(controller *imagesController.SoftwareImagesControll
 	}
 
 	return []*rest.Route{
-		rest.Post("/api/0.0.1/images", controller.NewImage),
-		rest.Get("/api/0.0.1/images", controller.ListImages),
+		rest.Post("/api/0.0.1/artifacts", controller.NewImage),
+		rest.Get("/api/0.0.1/artifacts", controller.ListImages),
 
-		rest.Get("/api/0.0.1/images/:id", controller.GetImage),
-		rest.Delete("/api/0.0.1/images/:id", controller.DeleteImage),
-		rest.Put("/api/0.0.1/images/:id", controller.EditImage),
+		rest.Get("/api/0.0.1/artifacts/:id", controller.GetImage),
+		rest.Delete("/api/0.0.1/artifacts/:id", controller.DeleteImage),
+		rest.Put("/api/0.0.1/artifacts/:id", controller.EditImage),
 
-		rest.Get("/api/0.0.1/images/:id/download", controller.DownloadLink),
+		rest.Get("/api/0.0.1/artifacts/:id/download", controller.DownloadLink),
 	}
 }
 

@@ -84,7 +84,7 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 	// For the rest of the requests expected Content-Type is 'application/json'.
 	api.Use(&rest.IfMiddleware{
 		Condition: func(r *rest.Request) bool {
-			if r.URL.Path == "/api/0.0.1/images" && r.Method == http.MethodPost {
+			if r.URL.Path == "/api/0.0.1/artifacts" && r.Method == http.MethodPost {
 				return true
 			} else {
 				return false
