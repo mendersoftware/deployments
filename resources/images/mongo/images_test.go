@@ -149,3 +149,89 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 	}
 
 }
+
+func TestIsArtifactUnique(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestIsArtifactUnique in short mode.")
+	}
+
+	//image dataset - common for all cases
+	inputImgs := []interface{}{
+		&images.SoftwareImage{
+			Id: "1",
+			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+				Name:        "App1 v1.0",
+				Description: "description",
+			},
+
+			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
+				ArtifactName:          "app1-v1.0",
+				DeviceTypesCompatible: []string{"foo", "bar"},
+				Updates:               []images.Update{},
+			},
+		},
+	}
+
+	//setup db - common for all cases
+	db.Wipe()
+	session := db.Session()
+	defer session.Close()
+
+	coll := session.DB(DatabaseName).C(CollectionImages)
+	assert.NoError(t, coll.Insert(inputImgs...))
+
+	testCases := map[string]struct {
+		InputArtifactName string
+		InputDevTypes     []string
+
+		OutputIsUnique bool
+		OutputError    error
+	}{
+		"artifact unique - unique name": {
+			InputArtifactName: "app1-v2.0",
+			InputDevTypes:     []string{"foo", "bar"},
+
+			OutputIsUnique: true,
+			OutputError:    nil,
+		},
+		"artifact unique - unique platform": {
+			InputArtifactName: "app1-v1.0",
+			InputDevTypes:     []string{"baz"},
+
+			OutputIsUnique: true,
+			OutputError:    nil,
+		},
+		"artifact not unique": {
+			InputArtifactName: "app1-v1.0",
+			InputDevTypes:     []string{"foo", "baz"},
+
+			OutputIsUnique: false,
+			OutputError:    nil,
+		},
+		"empty artifact name": {
+			InputDevTypes: []string{"baz", "bah"},
+
+			OutputError: model.ErrSoftwareImagesStorageInvalidArtifactName,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Logf("testing case %s", name)
+		var res []images.SoftwareImage
+		err := coll.Find(nil).All(&res)
+		t.Logf("DEBUG inserted imgs %v", res)
+
+		store := NewSoftwareImagesStorage(session)
+
+		isUnique, err := store.IsArtifactUnique(tc.InputArtifactName, tc.InputDevTypes)
+		t.Logf("DEBUG is artifact unique: %v", isUnique)
+
+		if tc.OutputError != nil {
+			assert.EqualError(t, err, tc.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+			assert.Equal(t, tc.OutputIsUnique, isUnique)
+		}
+	}
+
+}
