@@ -22,10 +22,11 @@ import (
 
 // Common errors for interface SoftwareImagesStorage
 var (
-	ErrSoftwareImagesStorageInvalidID         = errors.New("Invalid id")
-	ErrSoftwareImagesStorageInvalidName       = errors.New("Invalid name")
-	ErrSoftwareImagesStorageInvalidDeviceType = errors.New("Invalid device type")
-	ErrSoftwareImagesStorageInvalidImage      = errors.New("Invalid image")
+	ErrSoftwareImagesStorageInvalidID           = errors.New("Invalid id")
+	ErrSoftwareImagesStorageInvalidArtifactName = errors.New("Invalid artifact name")
+	ErrSoftwareImagesStorageInvalidName         = errors.New("Invalid name")
+	ErrSoftwareImagesStorageInvalidDeviceType   = errors.New("Invalid device type")
+	ErrSoftwareImagesStorageInvalidImage        = errors.New("Invalid image")
 )
 
 // SoftwareImagesStorage allow to store and manage image.SoftwareImages
@@ -34,6 +35,7 @@ type SoftwareImagesStorage interface {
 	Update(image *images.SoftwareImage) (bool, error)
 	Insert(image *images.SoftwareImage) error
 	FindByID(id string) (*images.SoftwareImage, error)
+	IsArtifactUnique(artifactName string, deviceTypesCompatible []string) (bool, error)
 	Delete(id string) error
 	FindAll() ([]*images.SoftwareImage, error)
 }

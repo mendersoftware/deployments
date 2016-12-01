@@ -29,9 +29,10 @@ const (
 	// Keys are corelated to field names in SoftwareImageMeta
 	// and SoftwareImageMetaArtifact structures
 	// Need to be kept in sync with that structure filed names
-	StorageKeySoftwareImageDeviceTypes = "meta_yocto.device_types_compatible"
-	StorageKeySoftwareImageName        = "meta.name"
-	StorageKeySoftwareImageId          = "_id"
+	StorageKeySoftwareImageDeviceTypes  = "meta_artifact.device_types_compatible"
+	StorageKeySoftwareImageArtifactName = "meta_artifact.artifact_name"
+	StorageKeySoftwareImageName         = "meta.name"
+	StorageKeySoftwareImageId           = "_id"
 )
 
 // Indexes
@@ -189,6 +190,42 @@ func (i *SoftwareImagesStorage) FindByID(id string) (*images.SoftwareImage, erro
 	}
 
 	return image, nil
+}
+
+// IsArtifactUnique checks if there is no artifact with the same artifactName
+// supporting one of the device types from deviceTypesCompatible list.
+// Returns true, nil if artifact is unique;
+// false, nil if artifact is not unique;
+// false, error in case of error.
+func (i *SoftwareImagesStorage) IsArtifactUnique(artifactName string, deviceTypesCompatible []string) (bool, error) {
+
+	if govalidator.IsNull(artifactName) {
+		return false, model.ErrSoftwareImagesStorageInvalidArtifactName
+	}
+
+	session := i.session.Copy()
+	defer session.Close()
+
+	query := bson.M{
+		"$and": []bson.M{
+			bson.M{
+				StorageKeySoftwareImageArtifactName: artifactName,
+			},
+			bson.M{
+				StorageKeySoftwareImageDeviceTypes: bson.M{"$in": deviceTypesCompatible},
+			},
+		},
+	}
+
+	var image *images.SoftwareImage
+	if err := session.DB(DatabaseName).C(CollectionImages).Find(query).One(&image); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return true, nil
+		}
+		return false, err
+	}
+
+	return false, nil
 }
 
 // Delete image specified by ID
