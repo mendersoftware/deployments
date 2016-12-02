@@ -85,10 +85,10 @@ type Update struct {
 // Information provided with YOCTO image
 type SoftwareImageMetaArtifactConstructor struct {
 	// artifact_name from artifact file
-	ArtifactName string `json:"artifact_name" valid:"length(1|4096),required"`
+	ArtifactName string `json:"artifact_name" bson:"artifact_name" valid:"length(1|4096),required"`
 
-	// Compatible device model for the application
-	DeviceTypesCompatible []string `json:"device_types_compatible" bson:"device_types_compatible" valid:"required"`
+	// Compatible device types for the application
+	DeviceTypesCompatible []string `json:"device_types_compatible" bson:"device_types_compatible" valid:"length(1|4096),required"`
 
 	// Artifact version info
 	Info *ArtifactInfo `json:"info" valid:"required"`
@@ -113,7 +113,7 @@ type SoftwareImage struct {
 	SoftwareImageMetaConstructor `bson:"meta"`
 
 	// Field set provided with yocto image
-	SoftwareImageMetaArtifactConstructor `bson:"meta_yocto"`
+	SoftwareImageMetaArtifactConstructor `bson:"meta_artifact"`
 
 	// Image ID
 	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`

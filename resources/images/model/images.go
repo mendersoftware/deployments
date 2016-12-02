@@ -26,6 +26,7 @@ import (
 var (
 	ErrModelMissingInputMetadata     = errors.New("Missing input metadata")
 	ErrModelInvalidMetadata          = errors.New("Metadata invalid")
+	ErrModelArtifactNotUnique        = errors.New("Artifact not unique")
 	ErrModelImageInActiveDeployment  = errors.New("Image is used in active deployment and cannot be removed")
 	ErrModelImageUsedInAnyDeployment = errors.New("Image have been already used in deployment")
 )
@@ -66,6 +67,14 @@ func (i *ImagesModel) CreateImage(
 	}
 	if err := metaArtifactConstructor.Validate(); err != nil {
 		return "", ErrModelInvalidMetadata
+	}
+	isArtifactUnique, err := i.imagesStorage.IsArtifactUnique(
+		metaArtifactConstructor.ArtifactName, metaArtifactConstructor.DeviceTypesCompatible)
+	if err != nil {
+		return "", errors.Wrap(err, "Fail to check if artifact is unique")
+	}
+	if !isArtifactUnique {
+		return "", ErrModelArtifactNotUnique
 	}
 
 	image := images.NewSoftwareImage(metaConstructor, metaArtifactConstructor)

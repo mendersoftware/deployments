@@ -43,17 +43,19 @@ func TestCreateImageMissingFields(t *testing.T) {
 }
 
 type FakeImageStorage struct {
-	insertError      error
-	findByIdError    error
-	findByIdImage    *images.SoftwareImage
-	deleteError      error
-	findAllImages    []*images.SoftwareImage
-	findAllError     error
-	imageExists      bool
-	imageEsistsError error
-	update           bool
-	updateError      error
-	putFileError     error
+	insertError           error
+	findByIdError         error
+	findByIdImage         *images.SoftwareImage
+	deleteError           error
+	findAllImages         []*images.SoftwareImage
+	findAllError          error
+	imageExists           bool
+	imageEsistsError      error
+	update                bool
+	updateError           error
+	putFileError          error
+	isArtifactUnique      bool
+	isArtifactUniqueError error
 }
 
 func (fis *FakeImageStorage) Exists(id string) (bool, error) {
@@ -78,6 +80,10 @@ func (fis *FakeImageStorage) Delete(id string) error {
 
 func (fis *FakeImageStorage) FindAll() ([]*images.SoftwareImage, error) {
 	return fis.findAllImages, fis.findAllError
+}
+
+func (fis *FakeImageStorage) IsArtifactUnique(artifactName string, deviceTypesCompatible []string) (bool, error) {
+	return fis.isArtifactUnique, fis.isArtifactUniqueError
 }
 
 func createValidImageMeta() *images.SoftwareImageMetaConstructor {
@@ -144,6 +150,7 @@ func TestCreateImagePutFileError(t *testing.T) {
 func TestCreateImageCreateOK(t *testing.T) {
 	fakeIS := new(FakeImageStorage)
 	fakeIS.insertError = nil
+	fakeIS.isArtifactUnique = true
 	fakeFS := new(FakeFileStorage)
 
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
