@@ -3,7 +3,7 @@ info:
   title: Deployments
   version: '0.1'
   description: |
-    An API for deployments and firmware images management.
+    An API for deployments and artifacts management.
     Intended for use by the web GUI.
 
 host: 'docker.mender.io:8080'
@@ -77,10 +77,10 @@ paths:
     post:
       summary: Create a deployment
       description: |
-        Deploy software to specified devices. Image is auto assigned to the
-        device from all available images based on artifact name and device type.
-        Devices for which there are no compatible images to be installed are
-        considered finished successfully as well as receive status of `noimage`.
+        Deploy software to specified devices. Artifact is auto assigned to the
+        device from all available artifacts based on artifact name and device type.
+        Devices for which there are no compatible artifacts to be installed are
+        considered finished successfully as well as receive status of `noartifact`.
 
       parameters:
         - name: deployment
@@ -198,7 +198,7 @@ paths:
               downloading: 1
               installing: 2
               rebooting: 3
-              noimage: 0
+              noartifact: 0
               already-installed: 0
               aborted: 0
           schema:
@@ -266,11 +266,11 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
-  /images:
+  /artifacts:
     get:
-      summary: List known firmware images
+      summary: List known artifacts
       description: |
-        Returns a collection of all firmware images.
+        Returns a collection of all artifacts.
       produces:
         - application/json
       responses:
@@ -297,15 +297,15 @@ paths:
           schema:
             type: array
             items:
-              $ref: "#/definitions/Image"
+              $ref: "#/definitions/Artifact"
 
         500:
           $ref: "#/responses/InternalServerError"
 
     post:
-      summary: Create a firmware image
+      summary: Create an artifact
       description: |
-        Creates firmware image. Mulitpart request with meta and image.
+        Creates artifact. Mulitpart request with meta and artifact.
       consumes:
         - multipart/form-data
       parameters:
@@ -317,34 +317,34 @@ paths:
           in: formData
           required: false
           type: string
-        - name: firmware
+        - name: artifact
           in: formData
-          description: Firmware image. It has to be the last part of request.
+          description: Artifact. It has to be the last part of request.
           required: true
           type: file
       produces:
         - application/json
       responses:
         201:
-          description: Image created.
+          description: Artifact uploaded.
           headers:
             Location:
-              description: URL of the newly created image.
+              description: URL of the newly uploaded artifact.
               type: string
         400:
           $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
 
-  /images/{id}:
+  /artifacts/{id}:
     get:
-      summary: Get the details of a selected firmware image
+      summary: Get the details of a selected artifact
       description: |
-        Returns the details of a selected firmware image.
+        Returns the details of a selected artifact.
       parameters:
         - name: id
           in: path
-          description: Image identifier.
+          description: Artifact identifier.
           required: true
           type: string
       produces:
@@ -371,32 +371,32 @@ paths:
                   date: 2016-03-11T13:03:17.063+0000
               metadata: {}
           schema:
-            $ref: "#/definitions/Image"
+            $ref: "#/definitions/Artifact"
         404:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
 
     put:
-      summary: Update name and description of a selected firmware image
+      summary: Update name and description of a selected artifact
       description: |
-        Edit image name and description. Image is not allowed to be edited if it was used
+        Edit artifact name and description. Artifact is not allowed to be edited if it was used
         in any deployment.
       parameters:
         - name: id
           in: path
-          description: Image identifier.
+          description: Artifact identifier.
           required: true
           type: string
-        - name: image
+        - name: artifact
           in: body
           schema:
-            $ref: "#/definitions/ImageUpdate"
+            $ref: "#/definitions/ArtifactUpdate"
       produces:
         - application/json
       responses:
         204:
-          description: The image metadata updated successfully.
+          description: The artifact metadata updated successfully.
         400:
           $ref: "#/responses/InvalidRequestError"
         404:
@@ -405,41 +405,38 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     delete:
-      summary: Delete the firmware image
+      summary: Delete the artifact
       description: |
-        Deletes the firmware image from file and images storage. Deployments
+        Deletes the artifact from file and artifacts storage. Deployments
         in progress can not be deleted until deployment finishes.
       produces:
         - application/json
       parameters:
         - name: id
           in: path
-          description: Image identifier.
+          description: Artifact identifier.
           required: true
           type: string
       responses:
         204:
-          description: The image deleted successfully.
+          description: The artifact deleted successfully.
         404:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
 
-  /images/{id}/download:
+  /artifacts/{id}/download:
     get:
-      summary: Get the download link of a selected firmware image
+      summary: Get the download link of a selected artifact
       description: |
-        Generates signed URL for downloading image file. URI can be used only
+        Generates signed URL for downloading artifact file. URI can be used only
         with GET HTTP method. Link supports such HTTP headers: 'Range',
         'If-Modified-Since', 'If-Unmodified-Since' It is valid for specified
         period of time.
-
-        To be able to receive download link, image file have to be uploaded
-        first.
       parameters:
         - name: id
           in: path
-          description: Image identifier.
+          description: Artifact identifier.
           required: true
           type: string
         - name: expire
@@ -455,7 +452,7 @@ paths:
         200:
           description: Successful response.
           schema:
-            $ref: "#/definitions/ImageLink"
+            $ref: "#/definitions/ArtifactLink"
         400:
           $ref: "#/responses/InvalidRequestError"
         404:
@@ -556,9 +553,9 @@ definitions:
       failure:
         type: integer
         description: Number of failed deployments.
-      noimage:
+      noartifact:
         type: integer
-        description: Do not have appropriate image for device type.
+        description: Do not have appropriate artifact for device type.
       already-installed:
         type: integer
         description: Number of devices unaffected by upgrade, since they are already running the specified software version.
@@ -572,7 +569,7 @@ definitions:
       - installing
       - rebooting
       - failure
-      - noimage
+      - noartifact
       - already-installed
       - aborted
     example:
@@ -583,7 +580,7 @@ definitions:
         downloading: 1
         installing: 2
         rebooting: 3
-        noimage: 0
+        noartifact: 0
         already-installed: 0
         aborted: 0
   Device:
@@ -602,7 +599,7 @@ definitions:
           - pending
           - success
           - failure
-          - noimage
+          - noartifact
       created:
         type: string
         format: date-time
@@ -624,8 +621,8 @@ definitions:
           created: 2016-02-11T13:03:17.063493443Z
           device_type: Raspberry Pi 3
           log: false
-  ImageUpdate:
-    description: Firmware image information update.
+  ArtifactUpdate:
+    description: Artifact information update.
     type: object
     properties:
       name:
@@ -636,7 +633,7 @@ definitions:
       - name
       - description
     example:
-      name: Image name
+      name: Artifact name
       description: Some description
   ArtifactTypeInfo:
       description: |
@@ -685,8 +682,8 @@ definitions:
           type: string
         version:
           type: integer
-  Image:
-    description: Detailed firmware image.
+  Artifact:
+    description: Detailed artifact.
     type: object
     properties:
       name:
@@ -706,7 +703,7 @@ definitions:
         type: string
         format: date-time
         description: |
-            Represents creation / last edition of any of the image properties.
+            Represents creation / last edition of any of the artifact properties.
       info:
         $ref: "#/definitions/ArtifactInfo"
       updates:
@@ -738,8 +735,8 @@ definitions:
             size: 123
             date: 2016-03-11T13:03:17.063+0000
         metadata: {}
-  ImageLink:
-    description: URL for firmare image download.
+  ArtifactLink:
+    description: URL for artifact file download.
     type: object
     properties:
       uri:
@@ -752,5 +749,5 @@ definitions:
       - expire
     example:
       application/json:
-        uri: http://mender.io/image.tar.gz
+        uri: http://mender.io/artifact.tar.gz.mender
         expire: 2016-10-29T10:45:34Z
