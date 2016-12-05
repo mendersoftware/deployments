@@ -41,7 +41,7 @@ func TestInventoryGetDeviceType(t *testing.T) {
 		"not found device": {
 			InID: "lala",
 
-			OutErr: errors.New("device_type inventory attibute not found"),
+			OutErr: errors.New("device_type inventory attribute not found"),
 		},
 		"remote error": {
 			InID:         "lala",
@@ -51,18 +51,18 @@ func TestInventoryGetDeviceType(t *testing.T) {
 		"not found attribute": {
 			InID:      "lala",
 			GetDevice: &integration.Device{},
-			OutErr:    errors.New("device_type inventory attibute not found"),
+			OutErr:    errors.New("device_type inventory attribute not found"),
 		},
 		"unexpected type": {
 			InID: "lala",
 			GetDevice: &integration.Device{
-				Attributes: []*integration.Attibute{{Name: AttibuteNameDeviceType, Value: 123}}},
+				Attributes: []*integration.Attribute{{Name: AttributeNameDeviceType, Value: 123}}},
 			OutErr: errors.New("device type value is not string type"),
 		},
 		"found": {
 			InID: "lala",
 			GetDevice: &integration.Device{
-				Attributes: []*integration.Attibute{{Name: AttibuteNameDeviceType, Value: "BBB"}}},
+				Attributes: []*integration.Attribute{{Name: AttributeNameDeviceType, Value: "BBB"}}},
 			OutType: "BBB",
 		},
 	}

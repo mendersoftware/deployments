@@ -119,7 +119,7 @@ func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(imageID s
 	return true, nil
 }
 
-// FindOldestDeploymentForDeviceIDWithStatuses find oldest deplyoment matching device id and one of specified statuses.
+// FindOldestDeploymentForDeviceIDWithStatuses find oldest deployment matching device id and one of specified statuses.
 func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*deployments.DeviceDeployment, error) {
 
 	// Verify ID formatting

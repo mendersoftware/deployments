@@ -94,14 +94,14 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 			InputID: "ID:1234",
 			InputExistAssignedImageWithIDAndStatusesError: errors.New("Storage error"),
 
-			OutputError: errors.New("Checking if image is used by active deplyoment: Storage error"),
+			OutputError: errors.New("Checking if image is used by active deployment: Storage error"),
 		},
 		{
 			InputID: "ID:1234",
 			InputExistAssignedImageWithIDAndStatusesError: errors.New("Storage error"),
 			InputExistAssignedImageWithIDAndStatusesFound: true,
 
-			OutputError: errors.New("Checking if image is used by active deplyoment: Storage error"),
+			OutputError: errors.New("Checking if image is used by active deployment: Storage error"),
 		},
 		{
 			InputID: "ID:1234",
@@ -385,7 +385,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			},
 			InputGenerateError: errors.New("generation error"),
 
-			OutputError: errors.New("Prepring deplyoment for device: generation error"),
+			OutputError: errors.New("Preparing deployment for device: generation error"),
 		},
 		{
 			InputConstructor: &deployments.DeploymentConstructor{
@@ -396,7 +396,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			InputGenerateDeviceDeployment:     &deployments.DeviceDeployment{},
 			InputDeploymentStorageInsertError: errors.New("insert error"),
 
-			OutputError: errors.New("Storing deplyoment data: insert error"),
+			OutputError: errors.New("Storing deployment data: insert error"),
 		},
 		{
 			InputConstructor: &deployments.DeploymentConstructor{
@@ -987,7 +987,7 @@ func TestDeploymentModelLookupDeployment(t *testing.T) {
 			MockError:   errors.New("bad bad bad"),
 			OutputError: errors.New("searching for deployments: bad bad bad"),
 		},
-		"found deplyoments": {
+		"found deployments": {
 			MockDeployments:   []*deployments.Deployment{&deployments.Deployment{Id: StringToPointer("lala")}},
 			OutputDeployments: []*deployments.Deployment{&deployments.Deployment{Id: StringToPointer("lala")}},
 		},
@@ -1036,7 +1036,7 @@ func TestDeploymentModelIsDeploymentFinished(t *testing.T) {
 			MockError:         errors.New("bad bad bad"),
 			OutputError:       errors.New("Searching for unfinished deployment by ID: bad bad bad"),
 		},
-		"found unfinished deplyoment": {
+		"found unfinished deployment": {
 			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
 			MockDeployment:    &deployments.Deployment{Id: StringToPointer("f826484e-1157-4109-af21-304e6d711561")},
 			OutputValue:       true,

@@ -65,8 +65,8 @@ func TestGetDeviceInventory(t *testing.T) {
 			Body: &Device{
 				ID:      "lalala",
 				Updated: time.Unix(10, 10),
-				Attributes: []*Attibute{
-					&Attibute{
+				Attributes: []*Attribute{
+					&Attribute{
 						Name:        "sialalala",
 						Description: "lala",
 						Value:       "something",
@@ -77,8 +77,8 @@ func TestGetDeviceInventory(t *testing.T) {
 			Device: &Device{
 				ID:      "lalala",
 				Updated: time.Unix(10, 10),
-				Attributes: []*Attibute{
-					&Attibute{
+				Attributes: []*Attribute{
+					&Attribute{
 						Name:        "sialalala",
 						Description: "lala",
 						Value:       "something",

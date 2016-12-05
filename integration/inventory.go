@@ -31,7 +31,7 @@ const (
 	DevicesInventory string = "/api/0.1.0/devices/%s"
 )
 
-type Attibute struct {
+type Attribute struct {
 	Name        string      `json:"name" valid:"length(1|4096),required"`
 	Description string      `json:"description" valid:"optional"`
 	Value       interface{} `json:"value" valid:"-"`
@@ -40,7 +40,7 @@ type Attibute struct {
 type Device struct {
 	ID         DeviceID    `json:"id" valid:"required"`
 	Updated    time.Time   `json:"updated_ts" valid:"required"`
-	Attributes []*Attibute `json:"Attributes" valid:"optional"`
+	Attributes []*Attribute `json:"Attributes" valid:"optional"`
 }
 
 func (d *Device) Validate() error {

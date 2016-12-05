@@ -87,7 +87,7 @@ func TestDeploymentStorageDelete(t *testing.T) {
 
 	testCases := []struct {
 		InputID                    string
-		InputDeplyomentsCollection []interface{}
+		InputDeploymentsCollection []interface{}
 
 		OutputError error
 	}{
@@ -101,7 +101,7 @@ func TestDeploymentStorageDelete(t *testing.T) {
 		},
 		{
 			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
-			InputDeplyomentsCollection: []interface{}{
+			InputDeploymentsCollection: []interface{}{
 				deployments.Deployment{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
@@ -124,8 +124,8 @@ func TestDeploymentStorageDelete(t *testing.T) {
 		store := NewDeploymentsStorage(session)
 
 		dep := session.DB(DatabaseName).C(CollectionDeployments)
-		if testCase.InputDeplyomentsCollection != nil {
-			assert.NoError(t, dep.Insert(testCase.InputDeplyomentsCollection...))
+		if testCase.InputDeploymentsCollection != nil {
+			assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
 		}
 
 		err := store.Delete(testCase.InputID)
@@ -153,7 +153,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 
 	testCases := []struct {
 		InputID                    string
-		InputDeplyomentsCollection []interface{}
+		InputDeploymentsCollection []interface{}
 
 		OutputError      error
 		OutputDeployment *deployments.Deployment
@@ -169,7 +169,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		},
 		{
 			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
-			InputDeplyomentsCollection: []interface{}{
+			InputDeploymentsCollection: []interface{}{
 				&deployments.Deployment{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
@@ -192,7 +192,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		},
 		{
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeplyomentsCollection: []interface{}{
+			InputDeploymentsCollection: []interface{}{
 				&deployments.Deployment{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
@@ -264,8 +264,8 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		store := NewDeploymentsStorage(session)
 
 		dep := session.DB(DatabaseName).C(CollectionDeployments)
-		if testCase.InputDeplyomentsCollection != nil {
-			assert.NoError(t, dep.Insert(testCase.InputDeplyomentsCollection...))
+		if testCase.InputDeploymentsCollection != nil {
+			assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
 		}
 
 		deployment, err := store.FindByID(testCase.InputID)
@@ -292,7 +292,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 
 	testCases := map[string]struct {
 		InputID                    string
-		InputDeplyomentsCollection []interface{}
+		InputDeploymentsCollection []interface{}
 
 		OutputError      error
 		OutputDeployment *deployments.Deployment
@@ -308,7 +308,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 		},
 		"no deployments with given ID": {
 			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
-			InputDeplyomentsCollection: []interface{}{
+			InputDeploymentsCollection: []interface{}{
 				&deployments.Deployment{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
@@ -333,7 +333,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 		},
 		"all correct": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeplyomentsCollection: []interface{}{
+			InputDeploymentsCollection: []interface{}{
 				&deployments.Deployment{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
@@ -399,7 +399,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 		},
 		"deployment already finished": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeplyomentsCollection: []interface{}{
+			InputDeploymentsCollection: []interface{}{
 				&deployments.Deployment{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
@@ -434,8 +434,8 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 		store := NewDeploymentsStorage(session)
 
 		dep := session.DB(DatabaseName).C(CollectionDeployments)
-		if testCase.InputDeplyomentsCollection != nil {
-			assert.NoError(t, dep.Insert(testCase.InputDeplyomentsCollection...))
+		if testCase.InputDeploymentsCollection != nil {
+			assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
 		}
 
 		deployment, err := store.FindUnfinishedByID(testCase.InputID)
@@ -788,7 +788,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 	testCases := []struct {
 		InputName                  string
 		InputStatus                deployments.StatusQuery
-		InputDeplyomentsCollection []*deployments.Deployment
+		InputDeploymentsCollection []*deployments.Deployment
 
 		OutputError error
 		OutputID    []string
@@ -799,7 +799,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			InputName: "foobar-no-match",
-			InputDeplyomentsCollection: []*deployments.Deployment{
+			InputDeploymentsCollection: []*deployments.Deployment{
 				&deployments.Deployment{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
@@ -812,7 +812,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			InputName:                  "NYC",
-			InputDeplyomentsCollection: someDeployments,
+			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
 				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
@@ -821,7 +821,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			InputName:                  "NYC foo",
-			InputDeplyomentsCollection: someDeployments,
+			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
 				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
@@ -833,7 +833,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			InputName:                  "bar",
-			InputDeplyomentsCollection: someDeployments,
+			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
 				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
@@ -844,7 +844,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		{
 			InputName:                  "bar",
 			InputStatus:                deployments.StatusQueryInProgress,
-			InputDeplyomentsCollection: someDeployments,
+			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
 				"3fe15222-0a41-401f-8f5e-582aba2a002d",
@@ -853,7 +853,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		{
 			InputName:                  "bar",
 			InputStatus:                deployments.StatusQueryFinished,
-			InputDeplyomentsCollection: someDeployments,
+			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
 				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
@@ -862,7 +862,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			InputStatus:                deployments.StatusQueryInProgress,
-			InputDeplyomentsCollection: someDeployments,
+			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
 				"3fe15222-0a41-401f-8f5e-582aba2a002d",
@@ -871,7 +871,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			InputStatus:                deployments.StatusQueryPending,
-			InputDeplyomentsCollection: someDeployments,
+			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
 				"3fe15222-1234-401f-8f5e-582aba2a002f",
@@ -879,7 +879,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			InputStatus:                deployments.StatusQueryFinished,
-			InputDeplyomentsCollection: someDeployments,
+			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
 				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
@@ -895,7 +895,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputName: "",
 			// any status
 			InputStatus:                deployments.StatusQueryAny,
-			InputDeplyomentsCollection: someDeployments,
+			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
 				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
@@ -922,7 +922,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		session := db.Session()
 		store := NewDeploymentsStorage(session)
 
-		for _, d := range testCase.InputDeplyomentsCollection {
+		for _, d := range testCase.InputDeploymentsCollection {
 			if d.Created == nil {
 				now := time.Now()
 				d.Created = &now

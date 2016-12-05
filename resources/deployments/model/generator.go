@@ -19,7 +19,7 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
-// Generate deplyoment for device based on group deployment information.
+// Generate deployment for device based on group deployment information.
 type Generator interface {
 	Generate(ctx context.Context, deviceID string, deployment *deployments.Deployment) (*deployments.DeviceDeployment, error)
 }
