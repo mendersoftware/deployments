@@ -48,7 +48,7 @@ type DeviceDeployment struct {
 	// Device id
 	DeviceId *string `json:"id" valid:"required"`
 
-	// Deplyoment id
+	// Deployment id
 	DeploymentId *string `json:"-" valid:"uuidv4,required"`
 
 	// ID

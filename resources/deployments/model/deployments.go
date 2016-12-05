@@ -80,7 +80,7 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *de
 
 		deviceDeployment, err := d.deviceDeploymentGenerator.Generate(ctx, id, deployment)
 		if err != nil {
-			return "", errors.Wrap(err, "Prepring deplyoment for device")
+			return "", errors.Wrap(err, "Preparing deployment for device")
 		}
 
 		// // Check how many devices are not going to be deployed
@@ -96,7 +96,7 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *de
 	deployment.Stats[deployments.DeviceDeploymentStatusPending] = len(constructor.Devices) - unassigned
 
 	if err := d.deploymentsStorage.Insert(deployment); err != nil {
-		return "", errors.Wrap(err, "Storing deplyoment data")
+		return "", errors.Wrap(err, "Storing deployment data")
 	}
 
 	if err := d.deviceDeploymentsStorage.InsertMany(deviceDeployments...); err != nil {
@@ -110,7 +110,7 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *de
 	return *deployment.Id, nil
 }
 
-// IsDeploymentFinished checks if there is unfinished deplyoment with given ID
+// IsDeploymentFinished checks if there is unfinished deployment with given ID
 func (d *DeploymentsModel) IsDeploymentFinished(deploymentID string) (bool, error) {
 
 	deployment, err := d.deploymentsStorage.FindUnfinishedByID(deploymentID)
@@ -124,7 +124,7 @@ func (d *DeploymentsModel) IsDeploymentFinished(deploymentID string) (bool, erro
 	return true, nil
 }
 
-// GetDeployment fetches deplyoment by ID
+// GetDeployment fetches deployment by ID
 func (d *DeploymentsModel) GetDeployment(deploymentID string) (*deployments.Deployment, error) {
 
 	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
@@ -141,7 +141,7 @@ func (d *DeploymentsModel) ImageUsedInActiveDeployment(imageID string) (bool, er
 
 	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageID, deployments.ActiveDeploymentStatuses()...)
 	if err != nil {
-		return false, errors.Wrap(err, "Checking if image is used by active deplyoment")
+		return false, errors.Wrap(err, "Checking if image is used by active deployment")
 	}
 
 	return found, nil

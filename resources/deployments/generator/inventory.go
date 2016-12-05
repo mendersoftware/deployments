@@ -16,14 +16,15 @@ package generator
 
 import (
 	"context"
+
 	"github.com/mendersoftware/deployments/integration"
 	"github.com/pkg/errors"
 )
 
-// Attibute keys
+// Attribute keys
 const (
 	// Reported by devices
-	AttibuteNameDeviceType string = "device_type"
+	AttributeNameDeviceType string = "device_type"
 )
 
 type APIClient interface {
@@ -48,7 +49,7 @@ func (i *Inventory) GetDeviceType(ctx context.Context, deviceID string) (string,
 
 	if device != nil {
 		for _, attribute := range device.Attributes {
-			if attribute.Name == AttibuteNameDeviceType {
+			if attribute.Name == AttributeNameDeviceType {
 				strVal, stringType := attribute.Value.(string)
 				if !stringType {
 					return "", errors.New("device type value is not string type")
@@ -58,5 +59,5 @@ func (i *Inventory) GetDeviceType(ctx context.Context, deviceID string) (string,
 		}
 	}
 
-	return "", errors.New(AttibuteNameDeviceType + " inventory attibute not found")
+	return "", errors.New(AttributeNameDeviceType + " inventory attribute not found")
 }
