@@ -84,7 +84,7 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 
 			OutputDeviceDeplyment: &deployments.DeviceDeployment{
 				Created:    TimeToPointer(time.Now()),
-				Status:     StringToPointer(deployments.DeviceDeploymentStatusNoImage),
+				Status:     StringToPointer(deployments.DeviceDeploymentStatusNoArtifact),
 				DeviceId:   StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
 				DeviceType: StringToPointer("BBB"),
 			},

@@ -438,7 +438,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
 			InputGenerateDeviceDeployment: &deployments.DeviceDeployment{
-				Status: StringToPointer(deployments.DeviceDeploymentStatusNoImage),
+				Status: StringToPointer(deployments.DeviceDeploymentStatusNoArtifact),
 			},
 
 			OutputBody: true,

@@ -128,7 +128,7 @@ func TestDeviceDeploymentValidate(t *testing.T) {
 func TestDeviceDeploymentStats(t *testing.T) {
 	ds := NewDeviceDeploymentStats()
 	must := []string{
-		DeviceDeploymentStatusNoImage,
+		DeviceDeploymentStatusNoArtifact,
 		DeviceDeploymentStatusFailure,
 		DeviceDeploymentStatusSuccess,
 		DeviceDeploymentStatusPending,
@@ -148,7 +148,7 @@ func TestDeviceDeploymentIsFinished(t *testing.T) {
 		status   string
 		finished bool
 	}{
-		{DeviceDeploymentStatusNoImage, true},
+		{DeviceDeploymentStatusNoArtifact, true},
 		{DeviceDeploymentStatusFailure, true},
 		{DeviceDeploymentStatusSuccess, true},
 		{DeviceDeploymentStatusAlreadyInst, true},
