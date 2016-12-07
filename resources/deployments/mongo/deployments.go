@@ -291,7 +291,7 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 						buildStatusKey(deployments.DeviceDeploymentStatusFailure): eq0,
 					},
 					bson.M{
-						buildStatusKey(deployments.DeviceDeploymentStatusNoImage): eq0,
+						buildStatusKey(deployments.DeviceDeploymentStatusNoArtifact): eq0,
 					},
 					bson.M{
 						buildStatusKey(deployments.DeviceDeploymentStatusPending): gt0,
@@ -301,7 +301,7 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 		}
 	case deployments.StatusQueryFinished:
 		{
-			// finished, success, noimage, already-installed counters are non 0, all other counters are 0
+			// finished, success, noartifact, already-installed counters are non 0, all other counters are 0
 			stq = bson.M{
 				"$and": []bson.M{
 					bson.M{
@@ -329,7 +329,7 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 								buildStatusKey(deployments.DeviceDeploymentStatusFailure): gt0,
 							},
 							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusNoImage): gt0,
+								buildStatusKey(deployments.DeviceDeploymentStatusNoArtifact): gt0,
 							},
 							bson.M{
 								buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): gt0,
