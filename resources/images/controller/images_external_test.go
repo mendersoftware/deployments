@@ -292,13 +292,13 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain firmware part: EOF")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain artifact: EOF")),
 			},
 		},
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName:   "firmware",
+					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 				},
 			},
@@ -311,7 +311,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName:   "firmware",
+					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   []byte{0},
 				},
@@ -340,7 +340,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain firmware part: EOF")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain artifact: EOF")),
 			},
 		},
 		{
@@ -358,7 +358,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 					FieldValue: "yi",
 				},
 				Part{
-					FieldName:  "firmware",
+					FieldName:  "artifact",
 					FieldValue: "ff",
 				},
 			},
@@ -383,7 +383,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 					FieldValue: "yi",
 				},
 				Part{
-					FieldName:   "firmware",
+					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   []byte{0},
 				},
@@ -402,7 +402,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 					FieldValue: "n",
 				},
 				Part{
-					FieldName:   "firmware",
+					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,
 				},
@@ -422,7 +422,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 					FieldValue: "n",
 				},
 				Part{
-					FieldName:   "firmware",
+					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,
 				},
@@ -468,7 +468,7 @@ func MakeMultipartRequest(method string, urlStr string, contentType string, payl
 		if part.ContentType == "" && part.ImageData == nil {
 			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"")
 		} else {
-			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"; filename=\"firmware-213.tar.gz\"")
+			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"; filename=\"artifact-213.tar.gz\"")
 		}
 		part_writer, err := body_writer.CreatePart(mh)
 		if nil != err {

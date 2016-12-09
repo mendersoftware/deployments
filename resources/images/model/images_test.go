@@ -104,7 +104,7 @@ func createValidImageMetaArtifact() *images.SoftwareImageMetaArtifactConstructor
 
 func createValidImageFile() *os.File {
 	someData := []byte{115, 111, 109, 101, 10, 11}
-	tmpfile, _ := ioutil.TempFile("", "firmware-")
+	tmpfile, _ := ioutil.TempFile("", "artifact-")
 	tmpfile.Write(someData)
 	return tmpfile
 }
