@@ -276,7 +276,7 @@ func (s *SoftwareImagesController) handleMeta(mr *multipart.Reader, maxMetaSize 
 	for {
 		p, err := mr.NextPart()
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "Request does not contain firmware part")
+			return nil, nil, errors.Wrap(err, "Request does not contain artifact")
 		}
 		switch p.FormName() {
 		case "name":
@@ -291,7 +291,7 @@ func (s *SoftwareImagesController) handleMeta(mr *multipart.Reader, maxMetaSize 
 				return nil, nil, err
 			}
 			constructor.Description = *desc
-		case "firmware":
+		case "artifact":
 			if err := constructor.Validate(); err != nil {
 				return nil, nil, errors.Wrap(err, "Validating metadata")
 			}
@@ -310,7 +310,7 @@ func (s *SoftwareImagesController) handleImage(
 		return nil, nil, http.StatusBadRequest, errors.New("Last part should be an image")
 	}
 
-	tmpfile, err := ioutil.TempFile("", "firmware-")
+	tmpfile, err := ioutil.TempFile("", "artifact-")
 	if err != nil {
 		return nil, nil, http.StatusInternalServerError, err
 	}

@@ -30,7 +30,7 @@ const (
 	DeviceDeploymentStatusPending     = "pending"
 	DeviceDeploymentStatusSuccess     = "success"
 	DeviceDeploymentStatusFailure     = "failure"
-	DeviceDeploymentStatusNoImage     = "noimage"
+	DeviceDeploymentStatusNoArtifact  = "noartifact"
 	DeviceDeploymentStatusAlreadyInst = "already-installed"
 	DeviceDeploymentStatusAborted     = "aborted"
 )
@@ -91,7 +91,7 @@ type Stats map[string]int
 
 func NewDeviceDeploymentStats() Stats {
 	statuses := []string{
-		DeviceDeploymentStatusNoImage,
+		DeviceDeploymentStatusNoArtifact,
 		DeviceDeploymentStatusFailure,
 		DeviceDeploymentStatusSuccess,
 		DeviceDeploymentStatusPending,
@@ -114,7 +114,7 @@ func NewDeviceDeploymentStats() Stats {
 
 func IsDeviceDeploymentStatusFinished(status string) bool {
 	if status == DeviceDeploymentStatusFailure || status == DeviceDeploymentStatusSuccess ||
-		status == DeviceDeploymentStatusNoImage || status == DeviceDeploymentStatusAlreadyInst ||
+		status == DeviceDeploymentStatusNoArtifact || status == DeviceDeploymentStatusAlreadyInst ||
 		status == DeviceDeploymentStatusAborted {
 		return true
 	}

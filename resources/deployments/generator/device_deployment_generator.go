@@ -64,9 +64,9 @@ func (d *ImageBasedDeviceDeployment) Generate(ctx context.Context, deviceID stri
 	deviceDeployment.Image = image
 	deviceDeployment.Created = deployment.Created
 
-	// If not having appropriate image, set noimage status
+	// If not having appropriate image, set noartifact status
 	if deviceDeployment.Image == nil {
-		status := deployments.DeviceDeploymentStatusNoImage
+		status := deployments.DeviceDeploymentStatusNoArtifact
 		deviceDeployment.Status = &status
 		now := time.Now()
 		deviceDeployment.Finished = &now

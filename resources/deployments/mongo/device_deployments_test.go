@@ -360,7 +360,7 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 				deployments.DeviceDeploymentStatusRebooting:   1,
 				deployments.DeviceDeploymentStatusDownloading: 1,
 				deployments.DeviceDeploymentStatusInstalling:  0,
-				deployments.DeviceDeploymentStatusNoImage:     0,
+				deployments.DeviceDeploymentStatusNoArtifact:  0,
 				deployments.DeviceDeploymentStatusAlreadyInst: 0,
 				deployments.DeviceDeploymentStatusAborted:     0,
 			},

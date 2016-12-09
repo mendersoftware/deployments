@@ -179,7 +179,7 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 		DeviceDeploymentStatusPending:     3,
 		DeviceDeploymentStatusSuccess:     4,
 		DeviceDeploymentStatusFailure:     5,
-		DeviceDeploymentStatusNoImage:     6,
+		DeviceDeploymentStatusNoArtifact:  6,
 		DeviceDeploymentStatusDownloading: 7,
 		DeviceDeploymentStatusAlreadyInst: 8,
 		DeviceDeploymentStatusAborted:     0,
@@ -229,7 +229,7 @@ func TestDeploymentIs(t *testing.T) {
 	finished := []string{
 		DeviceDeploymentStatusSuccess,
 		DeviceDeploymentStatusFailure,
-		DeviceDeploymentStatusNoImage,
+		DeviceDeploymentStatusNoArtifact,
 		DeviceDeploymentStatusAlreadyInst,
 		DeviceDeploymentStatusAborted,
 	}
@@ -261,9 +261,9 @@ func TestDeploymentGetStatus(t *testing.T) {
 		Stats        map[string]int
 		OutputStatus string
 	}{
-		"Single NoImage": {
+		"Single NoArtifact": {
 			Stats: map[string]int{
-				DeviceDeploymentStatusNoImage: 1,
+				DeviceDeploymentStatusNoArtifact: 1,
 			},
 			OutputStatus: "finished",
 		},
@@ -273,17 +273,17 @@ func TestDeploymentGetStatus(t *testing.T) {
 			},
 			OutputStatus: "finished",
 		},
-		"Success + NoImage": {
+		"Success + NoArtifact": {
 			Stats: map[string]int{
-				DeviceDeploymentStatusSuccess: 1,
-				DeviceDeploymentStatusNoImage: 1,
+				DeviceDeploymentStatusSuccess:    1,
+				DeviceDeploymentStatusNoArtifact: 1,
 			},
 			OutputStatus: "finished",
 		},
-		"Failed + NoImage": {
+		"Failed + NoArtifact": {
 			Stats: map[string]int{
-				DeviceDeploymentStatusFailure: 1,
-				DeviceDeploymentStatusNoImage: 1,
+				DeviceDeploymentStatusFailure:    1,
+				DeviceDeploymentStatusNoArtifact: 1,
 			},
 			OutputStatus: "finished",
 		},
@@ -301,10 +301,10 @@ func TestDeploymentGetStatus(t *testing.T) {
 			},
 			OutputStatus: "aborted",
 		},
-		"Rebooting + NoImage": {
+		"Rebooting + NoArtifact": {
 			Stats: map[string]int{
-				DeviceDeploymentStatusRebooting: 1,
-				DeviceDeploymentStatusNoImage:   1,
+				DeviceDeploymentStatusRebooting:  1,
+				DeviceDeploymentStatusNoArtifact: 1,
 			},
 			OutputStatus: "inprogress",
 		},

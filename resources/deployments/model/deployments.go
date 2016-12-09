@@ -59,7 +59,7 @@ func NewDeploymentModel(config DeploymentsModelConfig) *DeploymentsModel {
 
 // CreateDeployment precomputes new deplyomet and schedules it for devices.
 // Automatically assigns matching images to target device types.
-// In case no image is available for target device, noimage status is set.
+// In case no image is available for target device, noartifact status is set.
 // TODO: check if specified devices are bootstrapped (when have a way to do this)
 func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *deployments.DeploymentConstructor) (string, error) {
 
@@ -84,7 +84,7 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *de
 		}
 
 		// // Check how many devices are not going to be deployed
-		if deviceDeployment.Status != nil && *(deviceDeployment.Status) == deployments.DeviceDeploymentStatusNoImage {
+		if deviceDeployment.Status != nil && *(deviceDeployment.Status) == deployments.DeviceDeploymentStatusNoArtifact {
 			unassigned++
 		}
 
@@ -92,7 +92,7 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *de
 	}
 
 	// Set initial statistics cache values
-	deployment.Stats[deployments.DeviceDeploymentStatusNoImage] = unassigned
+	deployment.Stats[deployments.DeviceDeploymentStatusNoArtifact] = unassigned
 	deployment.Stats[deployments.DeviceDeploymentStatusPending] = len(constructor.Devices) - unassigned
 
 	if err := d.deploymentsStorage.Insert(deployment); err != nil {
