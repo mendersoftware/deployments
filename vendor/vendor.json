@@ -1655,36 +1655,6 @@
 			"revisionTime": "2015-12-07T23:31:27Z"
 		},
 		{
-			"checksumSHA1": "do/gf7nG9AHBY4FpZVdqUfiSfRw=",
-			"path": "github.com/mendersoftware/artifacts/archiver",
-			"revision": "310e0697cbfef008c0ccd412bfdf8a3d5ecad855",
-			"revisionTime": "2016-11-28T14:15:38Z"
-		},
-		{
-			"checksumSHA1": "5QJIq/Cd7IkMS/4Q29QZ+wfgXrk=",
-			"path": "github.com/mendersoftware/artifacts/metadata",
-			"revision": "310e0697cbfef008c0ccd412bfdf8a3d5ecad855",
-			"revisionTime": "2016-11-28T14:15:38Z"
-		},
-		{
-			"checksumSHA1": "GMBN02kkwhXHBEs/+4COdZXYKmY=",
-			"path": "github.com/mendersoftware/artifacts/parser",
-			"revision": "310e0697cbfef008c0ccd412bfdf8a3d5ecad855",
-			"revisionTime": "2016-11-28T14:15:38Z"
-		},
-		{
-			"checksumSHA1": "fV1ciaFBFE5x8d9OURBnk092dmY=",
-			"path": "github.com/mendersoftware/artifacts/reader",
-			"revision": "310e0697cbfef008c0ccd412bfdf8a3d5ecad855",
-			"revisionTime": "2016-11-28T14:15:38Z"
-		},
-		{
-			"checksumSHA1": "sqOD0ObmRWNxS7N6Lr8j6sC2T0I=",
-			"path": "github.com/mendersoftware/artifacts/writer",
-			"revision": "310e0697cbfef008c0ccd412bfdf8a3d5ecad855",
-			"revisionTime": "2016-11-28T14:15:38Z"
-		},
-		{
 			"checksumSHA1": "GOko5OZ77grcn5fdijEzjQt8x8w=",
 			"path": "github.com/mendersoftware/go-lib-micro",
 			"revision": "a3f1d56d8ed2d7f72292af96f05fb41cdf0f78bb",
@@ -1713,6 +1683,42 @@
 			"path": "github.com/mendersoftware/go-lib-micro/requestlog",
 			"revision": "a3f1d56d8ed2d7f72292af96f05fb41cdf0f78bb",
 			"revisionTime": "2016-10-21T10:51:34Z"
+		},
+		{
+			"checksumSHA1": "P9Oklqj7hHq9jTTmelTzIXVcLcY=",
+			"path": "github.com/mendersoftware/mender-artifact/archiver",
+			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
+			"revisionTime": "2016-12-16T11:15:47Z"
+		},
+		{
+			"checksumSHA1": "JWcv+3EZjQNpEgDw8SbqMMvlGwY=",
+			"path": "github.com/mendersoftware/mender-artifact/metadata",
+			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
+			"revisionTime": "2016-12-16T11:15:47Z"
+		},
+		{
+			"checksumSHA1": "89FjQneks8kwY3cU/Quxkyr3oZU=",
+			"path": "github.com/mendersoftware/mender-artifact/parser",
+			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
+			"revisionTime": "2016-12-16T11:15:47Z"
+		},
+		{
+			"checksumSHA1": "C98bn8t7GmD7d/gU5libTrHPm/s=",
+			"path": "github.com/mendersoftware/mender-artifact/reader",
+			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
+			"revisionTime": "2016-12-16T11:15:47Z"
+		},
+		{
+			"checksumSHA1": "G/feLabBpzcgoL0mkRTTYREtpkI=",
+			"path": "github.com/mendersoftware/mender-artifact/test_utils",
+			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
+			"revisionTime": "2016-12-16T11:15:47Z"
+		},
+		{
+			"checksumSHA1": "6t6ZvsWuu+TZKrnofDtZGTmqKP8=",
+			"path": "github.com/mendersoftware/mender-artifact/writer",
+			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
+			"revisionTime": "2016-12-16T11:15:47Z"
 		},
 		{
 			"checksumSHA1": "i38FeB/pqmU7xcluq/0LHjIwDY8=",
