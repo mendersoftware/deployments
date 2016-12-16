@@ -23,14 +23,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	ErrModelMissingInputMetadata     = errors.New("Missing input metadata")
-	ErrModelInvalidMetadata          = errors.New("Metadata invalid")
-	ErrModelArtifactNotUnique        = errors.New("Artifact not unique")
-	ErrModelImageInActiveDeployment  = errors.New("Image is used in active deployment and cannot be removed")
-	ErrModelImageUsedInAnyDeployment = errors.New("Image have been already used in deployment")
-)
-
 const (
 	ImageContentType = "application/vnd.mender-artifact"
 )
@@ -59,14 +51,14 @@ func (i *ImagesModel) CreateImage(
 	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
 
 	if metaConstructor == nil || metaArtifactConstructor == nil {
-		return "", ErrModelMissingInputMetadata
+		return "", controller.ErrModelMissingInputMetadata
 	}
 
 	if err := metaConstructor.Validate(); err != nil {
-		return "", ErrModelInvalidMetadata
+		return "", controller.ErrModelInvalidMetadata
 	}
 	if err := metaArtifactConstructor.Validate(); err != nil {
-		return "", ErrModelInvalidMetadata
+		return "", controller.ErrModelInvalidMetadata
 	}
 	isArtifactUnique, err := i.imagesStorage.IsArtifactUnique(
 		metaArtifactConstructor.ArtifactName, metaArtifactConstructor.DeviceTypesCompatible)
@@ -74,7 +66,7 @@ func (i *ImagesModel) CreateImage(
 		return "", errors.Wrap(err, "Fail to check if artifact is unique")
 	}
 	if !isArtifactUnique {
-		return "", ErrModelArtifactNotUnique
+		return "", controller.ErrModelArtifactNotUnique
 	}
 
 	image := images.NewSoftwareImage(metaConstructor, metaArtifactConstructor)
@@ -130,7 +122,7 @@ func (i *ImagesModel) DeleteImage(imageID string) error {
 
 	// Image is in use, not allowed to delete
 	if inUse {
-		return ErrModelImageInActiveDeployment
+		return controller.ErrModelImageInActiveDeployment
 	}
 
 	// Delete image file (call to external service)
@@ -175,7 +167,7 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 	}
 
 	if found {
-		return false, ErrModelImageUsedInAnyDeployment
+		return false, controller.ErrModelImageUsedInAnyDeployment
 	}
 
 	foundImage, err := i.imagesStorage.FindByID(imageID)

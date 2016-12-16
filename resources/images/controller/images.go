@@ -259,13 +259,17 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	defer imageFile.Close()
 
 	imgId, err := s.model.CreateImage(imageFile, metaConstructor, metaArtifactConstructor)
-	if err != nil {
-		// TODO: check if this is bad request or internal error
+	switch err {
+	default:
 		s.view.RenderInternalError(w, r, err, l)
-		return
+	case nil:
+		s.view.RenderSuccessPost(w, r, imgId)
+	case ErrModelArtifactNotUnique:
+		s.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
+	case ErrModelMissingInputMetadata, ErrModelInvalidMetadata:
+		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
 	}
 
-	s.view.RenderSuccessPost(w, r, imgId)
 	return
 }
 
