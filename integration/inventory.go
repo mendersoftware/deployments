@@ -38,8 +38,8 @@ type Attribute struct {
 }
 
 type Device struct {
-	ID         DeviceID    `json:"id" valid:"required"`
-	Updated    time.Time   `json:"updated_ts" valid:"required"`
+	ID         DeviceID     `json:"id" valid:"required"`
+	Updated    time.Time    `json:"updated_ts" valid:"required"`
 	Attributes []*Attribute `json:"Attributes" valid:"optional"`
 }
 
