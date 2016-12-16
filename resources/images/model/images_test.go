@@ -23,11 +23,12 @@ import (
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/controller"
 )
 
 func TestCreateImageEmptyConstructor(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
-	if _, err := iModel.CreateImage(nil, nil, nil); err != ErrModelMissingInputMetadata {
+	if _, err := iModel.CreateImage(nil, nil, nil); err != controller.ErrModelMissingInputMetadata {
 		t.FailNow()
 	}
 }
@@ -277,7 +278,7 @@ func TestDeleteImage(t *testing.T) {
 
 	fakeChecker.usedInActiveDeploymentsErr = nil
 	fakeChecker.isUsedInActiveDeployment = true
-	if err := iModel.DeleteImage(""); err != ErrModelImageInActiveDeployment {
+	if err := iModel.DeleteImage(""); err != controller.ErrModelImageInActiveDeployment {
 		t.FailNow()
 	}
 
@@ -360,7 +361,7 @@ func TestEditImage(t *testing.T) {
 	// image used in deployments
 	fakeChecker.usedInDeploymentsErr = nil
 	fakeChecker.isUsedInDeployment = true
-	if _, err := iModel.EditImage("", imageMeta); err != ErrModelImageUsedInAnyDeployment {
+	if _, err := iModel.EditImage("", imageMeta); err != controller.ErrModelImageUsedInAnyDeployment {
 		t.FailNow()
 	}
 

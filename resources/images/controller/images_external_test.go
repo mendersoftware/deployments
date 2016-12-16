@@ -429,6 +429,26 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			},
 			InputContentType: "multipart/form-data",
 			InputModelID:     "1234",
+			InputModelError:  ErrModelArtifactNotUnique,
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusUnprocessableEntity,
+				OutputBodyObject: h.ErrorToErrStruct(ErrModelArtifactNotUnique),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					FieldName:  "name",
+					FieldValue: "n",
+				},
+				Part{
+					FieldName:   "artifact",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			InputContentType: "multipart/form-data",
+			InputModelID:     "1234",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusCreated,
 				OutputBodyObject: nil,
