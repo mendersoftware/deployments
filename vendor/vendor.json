@@ -21,22 +21,22 @@
 			"revisionTime": "2016-02-12T11:24:02Z"
 		},
 		{
-			"checksumSHA1": "rmUgKwM4NUf6bpMGDt1EeZs+kmk=",
+			"checksumSHA1": "/Fq5jtSZk7ShUvTASDWPs5sioGo=",
 			"path": "github.com/ant0ine/go-json-rest/rest",
-			"revision": "2af9d0034afcd83101abb1945f2a65ddbd563719",
-			"revisionTime": "2015-06-17T05:25:36Z"
+			"revision": "ce4b71cdf7ba29ef443d704bd923f5bbf281ee30",
+			"revisionTime": "2016-12-01T03:48:30Z"
 		},
 		{
-			"checksumSHA1": "yle8HdrKn06YVn6X9KFFmeHUo6M=",
+			"checksumSHA1": "pQK3w5+gQZlqj1QXnhFTCB642oM=",
 			"path": "github.com/ant0ine/go-json-rest/rest/test",
-			"revision": "2af9d0034afcd83101abb1945f2a65ddbd563719",
-			"revisionTime": "2015-06-17T05:25:36Z"
+			"revision": "ce4b71cdf7ba29ef443d704bd923f5bbf281ee30",
+			"revisionTime": "2016-12-01T03:48:30Z"
 		},
 		{
 			"checksumSHA1": "sXuwczp4nGdlq20zJoGHmA8IYPg=",
 			"path": "github.com/ant0ine/go-json-rest/rest/trie",
-			"revision": "2af9d0034afcd83101abb1945f2a65ddbd563719",
-			"revisionTime": "2015-06-17T05:25:36Z"
+			"revision": "ce4b71cdf7ba29ef443d704bd923f5bbf281ee30",
+			"revisionTime": "2016-12-01T03:48:30Z"
 		},
 		{
 			"checksumSHA1": "CDOphCxF7dup+hBBVRpFeQhM9Jw=",
