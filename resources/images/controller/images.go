@@ -26,11 +26,11 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/artifacts/metadata"
-	"github.com/mendersoftware/artifacts/parser"
-	"github.com/mendersoftware/artifacts/reader"
 	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
+	"github.com/mendersoftware/mender-artifact/metadata"
+	"github.com/mendersoftware/mender-artifact/parser"
+	"github.com/mendersoftware/mender-artifact/reader"
 	"github.com/pkg/errors"
 )
 
