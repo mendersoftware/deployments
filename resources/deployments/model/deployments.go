@@ -68,7 +68,6 @@ func (d *DeploymentsModel) CreateDeployment(constructor *deployments.DeploymentC
 	deployment := deployments.NewDeploymentFromConstructor(constructor)
 
 	// Generate deployment for each specified device.
-	unassigned := 0
 	deviceDeployments := make([]*deployments.DeviceDeployment, 0, len(constructor.Devices))
 	for _, id := range constructor.Devices {
 
@@ -77,17 +76,8 @@ func (d *DeploymentsModel) CreateDeployment(constructor *deployments.DeploymentC
 			return "", errors.Wrap(err, "Prepring deplyoment for device")
 		}
 
-		// // Check how many devices are not going to be deployed
-		if deviceDeployment.Status != nil && *(deviceDeployment.Status) == deployments.DeviceDeploymentStatusNoImage {
-			unassigned++
-		}
-
 		deviceDeployments = append(deviceDeployments, deviceDeployment)
 	}
-
-	// Set initial statistics cache values
-	deployment.Stats[deployments.DeviceDeploymentStatusNoImage] = unassigned
-	deployment.Stats[deployments.DeviceDeploymentStatusPending] = len(constructor.Devices) - unassigned
 
 	if err := d.deploymentsStorage.Insert(deployment); err != nil {
 		return "", errors.Wrap(err, "Storing deplyoment data")

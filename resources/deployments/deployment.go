@@ -97,7 +97,9 @@ func NewDeploymentFromConstructor(constructor *DeploymentConstructor) *Deploymen
 
 	deployment := NewDeployment()
 	deployment.DeploymentConstructor = constructor
-
+	if constructor != nil && constructor.Devices != nil {
+		deployment.Stats[DeviceDeploymentStatusPending] = len(constructor.Devices)
+	}
 	return deployment
 }
 

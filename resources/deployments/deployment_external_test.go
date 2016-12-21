@@ -135,12 +135,6 @@ func TestDeploymentValidate(t *testing.T) {
 			InputDevices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
 			IsValid:           true,
 		},
-		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDevices:      []string{},
-			IsValid:           false,
-		},
 	}
 
 	for _, test := range testCases {

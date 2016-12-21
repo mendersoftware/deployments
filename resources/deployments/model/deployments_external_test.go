@@ -347,18 +347,6 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 
 			OutputBody: true,
 		},
-		{
-			InputConstructor: &deployments.DeploymentConstructor{
-				Name:         StringToPointer("NYC Production"),
-				ArtifactName: StringToPointer("App 123"),
-				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
-			},
-			InputGenerateDeviceDeployment: &deployments.DeviceDeployment{
-				Status: StringToPointer(deployments.DeviceDeploymentStatusNoImage),
-			},
-
-			OutputBody: true,
-		},
 	}
 
 	for _, testCase := range testCases {
