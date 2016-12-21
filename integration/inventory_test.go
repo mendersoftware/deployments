@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -64,8 +65,8 @@ func TestGetDeviceInventory(t *testing.T) {
 			Body: &Device{
 				ID:      "lalala",
 				Updated: time.Unix(10, 10),
-				Attributes: []*Attibute{
-					&Attibute{
+				Attributes: []*Attribute{
+					&Attribute{
 						Name:        "sialalala",
 						Description: "lala",
 						Value:       "something",
@@ -76,8 +77,8 @@ func TestGetDeviceInventory(t *testing.T) {
 			Device: &Device{
 				ID:      "lalala",
 				Updated: time.Unix(10, 10),
-				Attributes: []*Attibute{
-					&Attibute{
+				Attributes: []*Attribute{
+					&Attribute{
 						Name:        "sialalala",
 						Description: "lala",
 						Value:       "something",
@@ -106,7 +107,7 @@ func TestGetDeviceInventory(t *testing.T) {
 		api, err := NewMenderAPI(ts.URL)
 		assert.NoError(t, err, "api client init")
 
-		device, err := api.GetDeviceInventory(DeviceID("whatever"))
+		device, err := api.GetDeviceInventory(context.TODO(), DeviceID("whatever"))
 
 		if test.Err != nil {
 			assert.EqualError(t, err, test.Err.Error())

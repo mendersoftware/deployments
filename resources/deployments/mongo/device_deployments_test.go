@@ -21,7 +21,6 @@ import (
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
-	// . "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -218,6 +217,98 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 	}
 }
 
+func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("skipping TestUpdateDeviceDeploymentLogAvailability in short mode.")
+	}
+
+	testCases := []struct {
+		InputDeviceID         string
+		InputDeploymentID     string
+		InputLog              bool
+		InputDeviceDeployment []*deployments.DeviceDeployment
+
+		OutputError error
+	}{
+		{
+			// null deployment ID
+			InputDeviceID: "234",
+			OutputError:   ErrStorageInvalidID,
+		},
+		{
+			// null device ID
+			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			OutputError:       ErrStorageInvalidID,
+		},
+		{
+			// no deployment/device with this ID
+			InputDeviceID:     "345",
+			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			InputLog:          true,
+			OutputError:       errors.New("not found"),
+		},
+		{
+			InputDeviceID:     "456",
+			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			InputLog:          true,
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+			},
+			OutputError: nil,
+		},
+		{
+			InputDeviceID:     "456",
+			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			InputLog:          false,
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+			},
+			OutputError: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing case %s %s %t %v",
+			testCase.InputDeviceID, testCase.InputDeploymentID,
+			testCase.InputLog, testCase.OutputError)
+
+		// Make sure we start test with empty database
+		db.Wipe()
+
+		session := db.Session()
+		store := NewDeviceDeploymentsStorage(session)
+
+		// deployments are created with status DeviceDeploymentStatusPending
+		err := store.InsertMany(testCase.InputDeviceDeployment...)
+		assert.NoError(t, err)
+
+		err = store.UpdateDeviceDeploymentLogAvailability(
+			testCase.InputDeviceID, testCase.InputDeploymentID, testCase.InputLog)
+
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+
+		if testCase.InputDeviceDeployment != nil {
+			var deployment *deployments.DeviceDeployment
+			query := bson.M{
+				StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceID,
+				StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
+			}
+			err := session.DB(DatabaseName).C(CollectionDevices).
+				Find(query).One(&deployment)
+			assert.NoError(t, err)
+		}
+
+		// Need to close all sessions to be able to call wipe at next test case
+		session.Close()
+	}
+}
+
 func newDeviceDeploymentWithStatus(deviceID string, deploymentID string, status string) *deployments.DeviceDeployment {
 	d := deployments.NewDeviceDeployment(deviceID, deploymentID)
 	d.Status = &status
@@ -269,7 +360,9 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 				deployments.DeviceDeploymentStatusRebooting:   1,
 				deployments.DeviceDeploymentStatusDownloading: 1,
 				deployments.DeviceDeploymentStatusInstalling:  0,
-				deployments.DeviceDeploymentStatusNoImage:     0,
+				deployments.DeviceDeploymentStatusNoArtifact:  0,
+				deployments.DeviceDeploymentStatusAlreadyInst: 0,
+				deployments.DeviceDeploymentStatusAborted:     0,
 			},
 		},
 	}
@@ -285,7 +378,6 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 		session := db.Session()
 		store := NewDeviceDeploymentsStorage(session)
 
-		// deployments are created with status DeviceDeploymentStatusPending
 		err := store.InsertMany(testCase.InputDeviceDeployment...)
 		assert.NoError(t, err)
 
@@ -431,4 +523,131 @@ func TestHasDeploymentForDevice(t *testing.T) {
 	}
 
 	session.Close()
+}
+
+func TestGetDeviceDeploymentStatus(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping GetDeviceDeploymentStatus in short mode.")
+	}
+
+	input := []*deployments.DeviceDeployment{
+		deployments.NewDeviceDeployment("device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+		deployments.NewDeviceDeployment("device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+		deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+	}
+
+	// setup db - once for all cases
+	db.Wipe()
+
+	session := db.Session()
+	store := NewDeviceDeploymentsStorage(session)
+
+	err := store.InsertMany(input...)
+	assert.NoError(t, err)
+
+	testCases := map[string]struct {
+		deviceID     string
+		deploymentID string
+
+		status string
+	}{
+		"device deployment exists": {
+			deviceID:     "device0001",
+			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			status:       "pending",
+		},
+		"deployment not exists": {
+			deviceID:     "device0003",
+			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+			status:       "",
+		},
+		"no deployment for device": {
+			deviceID:     "device0004",
+			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",
+			status:       "",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Logf("test case: %s %v %v %v", name, tc.deviceID, tc.deploymentID, tc.status)
+
+		status, err := store.GetDeviceDeploymentStatus(tc.deploymentID, tc.deviceID)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.status, status)
+	}
+
+	session.Close()
+}
+
+func TestAbortDeviceDeployments(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("skipping TestAbortDeviceDeployments in short mode.")
+	}
+
+	testCases := map[string]struct {
+		InputDeploymentID     string
+		InputDeviceDeployment []*deployments.DeviceDeployment
+
+		OutputError error
+	}{
+		"null deployment id": {
+			OutputError: ErrStorageInvalidID,
+		},
+		"all correct": {
+			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+				deployments.NewDeviceDeployment("567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+			},
+			OutputError: nil,
+		},
+	}
+
+	for name, testCase := range testCases {
+
+		t.Logf("testing case %s", name)
+
+		// Make sure we start test with empty database
+		db.Wipe()
+
+		session := db.Session()
+		store := NewDeviceDeploymentsStorage(session)
+
+		err := store.InsertMany(testCase.InputDeviceDeployment...)
+		assert.NoError(t, err)
+
+		err = store.AbortDeviceDeployments(testCase.InputDeploymentID)
+
+		if testCase.OutputError != nil {
+			assert.EqualError(t, err, testCase.OutputError.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+
+		if testCase.InputDeviceDeployment != nil {
+			// these checks only make sense if there are any deployments in database
+			var deploymentList []deployments.DeviceDeployment
+			dep := session.DB(DatabaseName).C(CollectionDevices)
+			query := bson.M{
+				StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
+			}
+			err := dep.Find(query).All(&deploymentList)
+			assert.NoError(t, err)
+
+			if testCase.OutputError != nil {
+				for _, deployment := range deploymentList {
+					// status must be unchanged in case of errors
+					assert.Equal(t, deployments.DeviceDeploymentStatusPending, *deployment.Status)
+				}
+			} else {
+				for _, deployment := range deploymentList {
+					assert.Equal(t, deployments.DeviceDeploymentStatusAborted, *deployment.Status)
+				}
+			}
+		}
+
+		// Need to close all sessions to be able to call wipe at next test case
+		session.Close()
+	}
 }

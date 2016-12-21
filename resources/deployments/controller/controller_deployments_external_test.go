@@ -18,6 +18,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
@@ -29,7 +31,10 @@ import (
 	. "github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/resources/deployments/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/deployments/view"
+	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
+	"github.com/mendersoftware/go-lib-micro/requestid"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/stretchr/testify/assert"
 
 	h "github.com/mendersoftware/deployments/utils/testing"
@@ -44,17 +49,49 @@ func makeDeviceAuthHeader(claim string) string {
 		base64.StdEncoding.EncodeToString([]byte(claim)))
 }
 
+func makeApi(router rest.App) *rest.Api {
+	api := rest.NewApi()
+	api.Use(
+		&requestlog.RequestLogMiddleware{
+			BaseLogger: &logrus.Logger{Out: ioutil.Discard},
+		},
+		&requestid.RequestIdMiddleware{},
+	)
+	api.SetApp(router)
+	return api
+}
+
 func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 	t.Parallel()
+
+	image := images.NewSoftwareImage(
+		&images.SoftwareImageMetaConstructor{
+			Name:        "foo-image",
+			Description: "foo-image-desc",
+		},
+		&images.SoftwareImageMetaArtifactConstructor{
+			ArtifactName: "artifact-name",
+			DeviceTypesCompatible: []string{
+				"hammer",
+			},
+		})
 
 	testCases := []struct {
 		h.JSONResponseParams
 
 		InputID string
+		Params  url.Values
 
 		InputModelDeploymentInstructions *deployments.DeploymentInstructions
 		InputModelError                  error
+
+		InputModelUpdateStatusDeviceID     string
+		InputModelUpdateStatusDeploymentId string
+		InputModelUpdateStatusStatus       string
+		InputModelUpdateStatusError        error
+
+		InputModelCurrentDeployment deployments.InstalledDeviceDeployment
 
 		Headers map[string]string
 	}{
@@ -74,7 +111,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			InputModelError: errors.New("model error"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-1"}`),
@@ -91,10 +128,45 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		},
 		{
 			InputID: "device-id-3",
-			InputModelDeploymentInstructions: deployments.NewDeploymentInstructions("", nil, nil),
+			InputModelDeploymentInstructions: &deployments.DeploymentInstructions{
+				ID: "foo-1",
+				Artifact: deployments.ArtifactDeploymentInstructions{
+					ArtifactName:          image.ArtifactName,
+					Source:                images.Link{},
+					DeviceTypesCompatible: image.DeviceTypesCompatible,
+				},
+			},
+
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusOK,
-				OutputBodyObject: deployments.NewDeploymentInstructions("", nil, nil),
+				OutputStatus: http.StatusOK,
+				OutputBodyObject: &deployments.DeploymentInstructions{
+					ID: "foo-1",
+					Artifact: deployments.ArtifactDeploymentInstructions{
+						ArtifactName:          image.ArtifactName,
+						Source:                images.Link{},
+						DeviceTypesCompatible: image.DeviceTypesCompatible,
+					},
+				},
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
+			},
+		},
+		{
+			InputID: "device-id-3",
+			InputModelDeploymentInstructions: nil,
+
+			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
+				Artifact:   "artifact-name",
+				DeviceType: "hammer",
+			},
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusNoContent,
+			},
+			Params: url.Values{
+				GetDeploymentForDeviceQueryArtifact:   []string{"artifact-name"},
+				GetDeploymentForDeviceQueryDeviceType: []string{"hammer"},
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
@@ -102,25 +174,28 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for tidx, testCase := range testCases {
 
-		t.Logf("testing input ID: %v", testCase.InputID)
+		t.Logf("testing input ID: %v tc: %d", testCase.InputID, tidx)
 		deploymentModel := new(mocks.DeploymentsModel)
-		deploymentModel.On("GetDeploymentForDevice", testCase.InputID).
+		deploymentModel.On("GetDeploymentForDeviceWithCurrent", testCase.InputID,
+			testCase.InputModelCurrentDeployment).
 			Return(testCase.InputModelDeploymentInstructions, testCase.InputModelError)
 
 		router, err := rest.MakeRouter(
 			rest.Get("/r/update",
-				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeploymentForDevice))
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).GetDeploymentForDevice))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
-		req := test.MakeSimpleRequest("GET", "http://localhost/r/update", nil)
+		vals := testCase.Params.Encode()
+		req := test.MakeSimpleRequest("GET", "http://localhost/r/update?"+vals, nil)
 		for k, v := range testCase.Headers {
 			req.Header.Set(k, v)
 		}
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
@@ -151,7 +226,7 @@ func TestControllerGetDeployment(t *testing.T) {
 			InputModelError: errors.New("model error"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 		},
 		{
@@ -193,11 +268,11 @@ func TestControllerGetDeployment(t *testing.T) {
 				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeployment))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("GET", "http://localhost/r/"+testCase.InputID, nil))
+		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+testCase.InputID, nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
@@ -238,7 +313,7 @@ func TestControllerPostDeployment(t *testing.T) {
 			InputModelError: errors.New("model error"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 		},
 		{
@@ -268,11 +343,11 @@ func TestControllerPostDeployment(t *testing.T) {
 				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).PostDeployment))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject))
+		req := test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
@@ -351,10 +426,41 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
+			},
+		},
+		{
+			// aborted -> installing, forbidden
+			InputBodyObject:        &report{Status: "installing"},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-2",
+			InputModelStatus:       "installing",
+			InputModelError:        ErrDeploymentAborted,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusConflict,
+				OutputBodyObject: h.ErrorToErrStruct(ErrDeploymentAborted),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
+			},
+		},
+		{
+			// change to aborted forbidden
+			InputBodyObject:        &report{Status: "aborted"},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceID:     "device-id-2",
+			InputModelStatus:       "aborted",
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(ErrBadStatus),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
 			},
 		},
 	}
@@ -377,14 +483,14 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 					new(view.DeploymentsView)).PutDeploymentStatusForDevice))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
 			testCase.InputBodyObject)
 		for k, v := range testCase.Headers {
 			req.Header.Set(k, v)
 		}
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
@@ -416,7 +522,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("storage issue")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 		},
 		{
@@ -428,7 +534,9 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 				deployments.DeviceDeploymentStatusRebooting:   3,
 				deployments.DeviceDeploymentStatusInstalling:  1,
 				deployments.DeviceDeploymentStatusPending:     2,
-				deployments.DeviceDeploymentStatusNoImage:     0,
+				deployments.DeviceDeploymentStatusNoArtifact:  0,
+				deployments.DeviceDeploymentStatusAlreadyInst: 0,
+				deployments.DeviceDeploymentStatusAborted:     0,
 			},
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -440,7 +548,9 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 					deployments.DeviceDeploymentStatusRebooting:   3,
 					deployments.DeviceDeploymentStatusInstalling:  1,
 					deployments.DeviceDeploymentStatusPending:     2,
-					deployments.DeviceDeploymentStatusNoImage:     0,
+					deployments.DeviceDeploymentStatusNoArtifact:  0,
+					deployments.DeviceDeploymentStatusAlreadyInst: 0,
+					deployments.DeviceDeploymentStatusAborted:     0,
 				},
 			},
 		},
@@ -461,11 +571,11 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
 			nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
@@ -520,7 +630,7 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 		"unknown model error": {
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Internal error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 			deploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			modelStatuses: nil,
@@ -541,11 +651,11 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil))
+		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
 	}
@@ -668,8 +778,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		u := url.URL{
 			Scheme: "http",
@@ -684,6 +793,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 		u.RawQuery = q.Encode()
 		t.Logf("query: %s", u.String())
 		req := test.MakeSimpleRequest("GET", u.String(), nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
@@ -859,7 +969,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
@@ -903,14 +1013,14 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 					new(view.DeploymentsView)).PutDeploymentLogForDevice))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		req := test.MakeSimpleRequest("PUT", "http://localhost/r/"+testCase.InputModelDeploymentID,
 			testCase.InputBodyObject)
 		for k, v := range testCase.Headers {
 			req.Header.Set(k, v)
 		}
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
@@ -977,7 +1087,7 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 			InputModelMessages:     messages,
 
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusNoContent,
+				OutputStatus:     http.StatusOK,
 				OutputBodyObject: nil,
 			},
 			Body: `2006-01-02 22:04:05 +0000 UTC notice: foo
@@ -995,7 +1105,7 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("model error")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
 			},
 		},
 		{
@@ -1003,12 +1113,12 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 			InputModelDeploymentLog: nil,
 			InputModelDeploymentID:  "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:      "device-id-5",
-			InputModelError:         ErrModelDeploymentNotFound,
+			InputModelError:         nil,
 			InputModelMessages:      messages,
 
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment not found")),
+				OutputStatus:     http.StatusNotFound,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Resource not found")),
 			},
 		},
 	}
@@ -1030,14 +1140,14 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 					new(view.DeploymentsView)).GetDeploymentLogForDevice))
 		assert.NoError(t, err)
 
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := makeApi(router)
 
 		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+
 			testCase.InputModelDeploymentID+"/"+testCase.InputModelDeviceID,
 			nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
 		recorded := test.RunRequest(t, api.MakeHandler(), req)
-		if testCase.InputModelError != nil {
+		if testCase.JSONResponseParams.OutputStatus != http.StatusOK {
 			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 		} else {
 			assert.Equal(t, testCase.Body, recorded.Recorder.Body.String())
@@ -1045,5 +1155,118 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 			assert.Equal(t, "text/plain", recorded.Recorder.HeaderMap.Get("Content-Type"))
 			t.Logf("content:\n%s", recorded.Recorder.Body)
 		}
+	}
+}
+
+func TestControllerAbortDeployment(t *testing.T) {
+
+	t.Parallel()
+
+	type report struct {
+		Status string `json:"status"`
+	}
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputBodyObject interface{}
+
+		InputModelDeploymentID              string
+		InputModelStatus                    string
+		InputModelDeploymentFinishedFlag    bool
+		InputModelIsDeploymentFinishedError error
+		InputModelError                     error
+	}{
+		{
+			// empty body
+			InputBodyObject: nil,
+
+			InputModelDeploymentID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputModelStatus:                 "none",
+			InputModelDeploymentFinishedFlag: false,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("JSON payload is empty")),
+			},
+		},
+		{
+			// wrong status
+			InputBodyObject:                  &report{Status: "finished"},
+			InputModelDeploymentID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputModelStatus:                 "finished",
+			InputModelDeploymentFinishedFlag: false,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Unexpected deployment status")),
+			},
+		},
+		{
+			// deployment finished already
+			InputBodyObject:                  &report{Status: "aborted"},
+			InputModelDeploymentID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputModelStatus:                 "aborted",
+			InputModelDeploymentFinishedFlag: true,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusUnprocessableEntity,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Deployment already finished")),
+			},
+		},
+		{
+			// checking if deploymen was finished error
+			InputBodyObject:                     &report{Status: "aborted"},
+			InputModelDeploymentID:              "f826484e-1157-4109-af21-304e6d711560",
+			InputModelStatus:                    "aborted",
+			InputModelDeploymentFinishedFlag:    true,
+			InputModelIsDeploymentFinishedError: errors.New("IsDeploymentFinished error"),
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
+			},
+		},
+		{
+			// all correct
+			InputBodyObject:                  &report{Status: "aborted"},
+			InputModelDeploymentID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputModelStatus:                 "aborted",
+			InputModelDeploymentFinishedFlag: false,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusNoContent,
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+
+		t.Logf("testing %s %s %t %v %v",
+			testCase.InputModelDeploymentID, testCase.InputModelStatus,
+			testCase.InputModelDeploymentFinishedFlag, testCase.InputModelIsDeploymentFinishedError,
+			testCase.InputModelError)
+		deploymentModel := new(mocks.DeploymentsModel)
+
+		deploymentModel.On("AbortDeployment", testCase.InputModelDeploymentID).
+			Return(testCase.InputModelError)
+
+		deploymentModel.On("IsDeploymentFinished", testCase.InputModelDeploymentID).
+			Return(testCase.InputModelDeploymentFinishedFlag, testCase.InputModelIsDeploymentFinishedError)
+
+		router, err := rest.MakeRouter(
+			rest.Post("/r/:id",
+				NewDeploymentsController(deploymentModel,
+					new(view.DeploymentsView)).AbortDeployment))
+		assert.NoError(t, err)
+
+		api := makeApi(router)
+
+		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
+			testCase.InputBodyObject)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
 }

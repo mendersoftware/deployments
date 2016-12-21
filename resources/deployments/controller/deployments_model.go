@@ -15,25 +15,30 @@
 package controller
 
 import (
+	"context"
 	"errors"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 // Errors
 var (
-	ErrModelMissingInput       = errors.New("Missing input deplyoment data")
+	ErrModelMissingInput       = errors.New("Missing input deployment data")
 	ErrModelInvalidDeviceID    = errors.New("Invalid device ID")
 	ErrModelDeploymentNotFound = errors.New("Deployment not found")
 	ErrModelInternal           = errors.New("Internal error")
 	ErrStorageInvalidLog       = errors.New("Invalid deployment log")
+	ErrDeploymentAborted       = errors.New("Deployment aborted")
 )
 
 // Domain model for deployment
 type DeploymentsModel interface {
-	CreateDeployment(constructor *deployments.DeploymentConstructor) (string, error)
+	CreateDeployment(ctx context.Context, constructor *deployments.DeploymentConstructor) (string, error)
 	GetDeployment(deploymentID string) (*deployments.Deployment, error)
+	IsDeploymentFinished(deploymentID string) (bool, error)
+	AbortDeployment(deploymentID string) error
 	GetDeploymentStats(deploymentID string) (deployments.Stats, error)
-	GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error)
+	GetDeploymentForDeviceWithCurrent(deviceID string, current deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error)
 	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)
 	UpdateDeviceDeploymentStatus(deploymentID string, deviceID string, status string) error
 	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)

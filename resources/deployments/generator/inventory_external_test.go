@@ -15,6 +15,7 @@
 package generator_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -40,7 +41,7 @@ func TestInventoryGetDeviceType(t *testing.T) {
 		"not found device": {
 			InID: "lala",
 
-			OutErr: errors.New("device_type inventory attibute not found"),
+			OutErr: errors.New("device_type inventory attribute not found"),
 		},
 		"remote error": {
 			InID:         "lala",
@@ -50,18 +51,18 @@ func TestInventoryGetDeviceType(t *testing.T) {
 		"not found attribute": {
 			InID:      "lala",
 			GetDevice: &integration.Device{},
-			OutErr:    errors.New("device_type inventory attibute not found"),
+			OutErr:    errors.New("device_type inventory attribute not found"),
 		},
 		"unexpected type": {
 			InID: "lala",
 			GetDevice: &integration.Device{
-				Attributes: []*integration.Attibute{{Name: AttibuteNameDeviceType, Value: 123}}},
+				Attributes: []*integration.Attribute{{Name: AttributeNameDeviceType, Value: 123}}},
 			OutErr: errors.New("device type value is not string type"),
 		},
 		"found": {
 			InID: "lala",
 			GetDevice: &integration.Device{
-				Attributes: []*integration.Attibute{{Name: AttibuteNameDeviceType, Value: "BBB"}}},
+				Attributes: []*integration.Attribute{{Name: AttributeNameDeviceType, Value: "BBB"}}},
 			OutType: "BBB",
 		},
 	}
@@ -71,13 +72,13 @@ func TestInventoryGetDeviceType(t *testing.T) {
 		t.Logf("Case: %s\n", name)
 
 		api := new(mocks.APIClient)
-		api.On("GetDeviceInventory", mock.AnythingOfType("integration.DeviceID")).
+		api.On("GetDeviceInventory", mock.AnythingOfType("*context.emptyCtx"), mock.AnythingOfType("integration.DeviceID")).
 			Return(test.GetDevice, test.GetDeviceErr)
 
 		inv := NewInventory(api)
 		assert.NotNil(t, inv)
 
-		devType, err := inv.GetDeviceType(test.InID)
+		devType, err := inv.GetDeviceType(context.TODO(), test.InID)
 
 		if test.OutErr != nil {
 			assert.EqualError(t, err, test.OutErr.Error())

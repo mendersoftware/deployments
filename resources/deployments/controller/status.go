@@ -55,6 +55,7 @@ func (s *statusReport) UnmarshalJSON(raw []byte) error {
 		deployments.DeviceDeploymentStatusRebooting,
 		deployments.DeviceDeploymentStatusSuccess,
 		deployments.DeviceDeploymentStatusFailure,
+		deployments.DeviceDeploymentStatusAlreadyInst,
 	}
 
 	if !containsString(temp.Status, valid) {

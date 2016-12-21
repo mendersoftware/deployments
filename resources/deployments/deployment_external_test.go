@@ -179,8 +179,10 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 		DeviceDeploymentStatusPending:     3,
 		DeviceDeploymentStatusSuccess:     4,
 		DeviceDeploymentStatusFailure:     5,
-		DeviceDeploymentStatusNoImage:     6,
+		DeviceDeploymentStatusNoArtifact:  6,
 		DeviceDeploymentStatusDownloading: 7,
+		DeviceDeploymentStatusAlreadyInst: 8,
+		DeviceDeploymentStatusAborted:     0,
 	}
 
 	j, err := dep.MarshalJSON()
@@ -227,7 +229,9 @@ func TestDeploymentIs(t *testing.T) {
 	finished := []string{
 		DeviceDeploymentStatusSuccess,
 		DeviceDeploymentStatusFailure,
-		DeviceDeploymentStatusNoImage,
+		DeviceDeploymentStatusNoArtifact,
+		DeviceDeploymentStatusAlreadyInst,
+		DeviceDeploymentStatusAborted,
 	}
 	for _, as := range finished {
 		t.Logf("checking finished deployment stat %s", as)
@@ -249,4 +253,94 @@ func TestDeploymentIs(t *testing.T) {
 		assert.False(t, d.IsInProgress())
 		assert.True(t, d.IsPending())
 	}
+}
+
+func TestDeploymentGetStatus(t *testing.T) {
+
+	tests := map[string]struct {
+		Stats        map[string]int
+		OutputStatus string
+	}{
+		"Single NoArtifact": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusNoArtifact: 1,
+			},
+			OutputStatus: "finished",
+		},
+		"Single Success": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusSuccess: 1,
+			},
+			OutputStatus: "finished",
+		},
+		"Success + NoArtifact": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusSuccess:    1,
+				DeviceDeploymentStatusNoArtifact: 1,
+			},
+			OutputStatus: "finished",
+		},
+		"Failed + NoArtifact": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusFailure:    1,
+				DeviceDeploymentStatusNoArtifact: 1,
+			},
+			OutputStatus: "finished",
+		},
+		"Failed + AlreadyInst": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusFailure:     1,
+				DeviceDeploymentStatusAlreadyInst: 1,
+			},
+			OutputStatus: "finished",
+		},
+		"Failed + Aborted": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusFailure: 1,
+				DeviceDeploymentStatusAborted: 1,
+			},
+			OutputStatus: "aborted",
+		},
+		"Rebooting + NoArtifact": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusRebooting:  1,
+				DeviceDeploymentStatusNoArtifact: 1,
+			},
+			OutputStatus: "inprogress",
+		},
+		"Rebooting + Installing": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusRebooting:  1,
+				DeviceDeploymentStatusInstalling: 1,
+			},
+			OutputStatus: "inprogress",
+		},
+		"Rebooting + Pending": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusRebooting: 1,
+				DeviceDeploymentStatusPending:   1,
+			},
+			OutputStatus: "inprogress",
+		},
+		"Pending": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusPending: 1,
+			},
+			OutputStatus: "pending",
+		},
+		"Empty": {
+			OutputStatus: "finished",
+		},
+	}
+
+	for name, test := range tests {
+
+		t.Log(name)
+
+		dep := NewDeployment()
+		dep.Stats = test.Stats
+
+		assert.Equal(t, test.OutputStatus, dep.GetStatus())
+	}
+
 }

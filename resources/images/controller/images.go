@@ -27,6 +27,10 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
+	"github.com/mendersoftware/mender-artifact/metadata"
+	"github.com/mendersoftware/mender-artifact/parser"
+	"github.com/mendersoftware/mender-artifact/reader"
 	"github.com/pkg/errors"
 )
 
@@ -56,22 +60,23 @@ func NewSoftwareImagesController(model ImagesModel, view RESTView) *SoftwareImag
 }
 
 func (s *SoftwareImagesController) GetImage(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r.Env)
 
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		s.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
 	image, err := s.model.GetImage(id)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
 	if image == nil {
-		s.view.RenderErrorNotFound(w)
+		s.view.RenderErrorNotFound(w, r, l)
 		return
 	}
 
@@ -79,10 +84,11 @@ func (s *SoftwareImagesController) GetImage(w rest.ResponseWriter, r *rest.Reque
 }
 
 func (s *SoftwareImagesController) ListImages(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r.Env)
 
 	list, err := s.model.ListImages(r.PathParams)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
@@ -90,28 +96,29 @@ func (s *SoftwareImagesController) ListImages(w rest.ResponseWriter, r *rest.Req
 }
 
 func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r.Env)
 
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		s.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
 	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusBadRequest)
+		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
 	link, err := s.model.DownloadLink(id, expire)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
 	if link == nil {
-		s.view.RenderErrorNotFound(w)
+		s.view.RenderErrorNotFound(w, r, l)
 		return
 	}
 
@@ -158,20 +165,21 @@ func (s *SoftwareImagesController) validExpire(expire string) bool {
 }
 
 func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r.Env)
 
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		s.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
 	if err := s.model.DeleteImage(id); err != nil {
 		if err == ErrImageMetaNotFound {
-			s.view.RenderErrorNotFound(w)
+			s.view.RenderErrorNotFound(w, r, l)
 			return
 		}
-		s.view.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
@@ -179,28 +187,29 @@ func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Re
 }
 
 func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r.Env)
 
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUIDv4(id) {
-		s.view.RenderError(w, ErrIDNotUUIDv4, http.StatusBadRequest)
+		s.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
-	constructor, err := s.getSoftwareImageConstructorFromBody(r)
+	constructor, err := s.getSoftwareImageMetaConstructorFromBody(r)
 	if err != nil {
-		s.view.RenderError(w, errors.Wrap(err, "Validating request body"), http.StatusBadRequest)
+		s.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
 		return
 	}
 
 	found, err := s.model.EditImage(id, constructor)
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusInternalServerError)
+		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
 	if !found {
-		s.view.RenderErrorNotFound(w)
+		s.view.RenderErrorNotFound(w, r, l)
 		return
 	}
 
@@ -212,6 +221,7 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 // First part should contain Metadata file. This file should be of type "application/json".
 // Second part should contain Image file. This part should be of type "application/octet-strem".
 func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r.Env)
 
 	// limits just for safety;
 	const (
@@ -224,73 +234,68 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	// parse content type and params according to RFC 1521
 	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		s.view.RenderError(w, err, http.StatusBadRequest)
+		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
 	mr := multipart.NewReader(r.Body, params["boundary"])
 
-	constructor, imagePart, err := s.handleMeta(mr, DefaultMaxMetaSize)
+	metaConstructor, imagePart, err := s.handleMeta(mr, DefaultMaxMetaSize)
 	if err != nil || imagePart == nil {
-		s.view.RenderError(w, err, http.StatusBadRequest)
+		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
-	imageFile, status, err := s.handleImage(imagePart, DefaultMaxImageSize)
+	imageFile, metaArtifactConstructor, status, err := s.handleImage(imagePart, DefaultMaxImageSize)
 	if err != nil {
-		s.view.RenderError(w, err, status)
+		if status == http.StatusInternalServerError {
+			s.view.RenderInternalError(w, r, err, l)
+		} else {
+			s.view.RenderError(w, r, err, status, l)
+		}
 		return
 	}
 	defer os.Remove(imageFile.Name())
 	defer imageFile.Close()
 
-	imgId, err := s.model.CreateImage(imageFile, constructor)
-	if err != nil {
-		// TODO: check if this is bad request or internal error
-		s.view.RenderError(w, err, http.StatusInternalServerError)
-		return
+	imgId, err := s.model.CreateImage(imageFile, metaConstructor, metaArtifactConstructor)
+	switch err {
+	default:
+		s.view.RenderInternalError(w, r, err, l)
+	case nil:
+		s.view.RenderSuccessPost(w, r, imgId)
+	case ErrModelArtifactNotUnique:
+		s.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
+	case ErrModelMissingInputMetadata, ErrModelInvalidMetadata:
+		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
 	}
 
-	s.view.RenderSuccessPost(w, r, imgId)
 	return
 }
 
 // Meta part of multipart meta/image request handler.
-// Parses meta body, returns image constructor, success code and nil on success.
-func (s *SoftwareImagesController) handleMeta(mr *multipart.Reader, maxMetaSize int64) (*images.SoftwareImageConstructor, *multipart.Part, error) {
-	constructor := &images.SoftwareImageConstructor{}
+// Parses meta body, returns image meta constructor, reader to image part of the multipart message and nil on success.
+func (s *SoftwareImagesController) handleMeta(mr *multipart.Reader, maxMetaSize int64) (*images.SoftwareImageMetaConstructor, *multipart.Part, error) {
+	constructor := &images.SoftwareImageMetaConstructor{}
 	for {
 		p, err := mr.NextPart()
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "Request does not contain firmware part")
+			return nil, nil, errors.Wrap(err, "Request does not contain artifact")
 		}
 		switch p.FormName() {
 		case "name":
-			constructor.Name, err = s.getFormFieldValue(p, maxMetaSize)
+			name, err := s.getFormFieldValue(p, maxMetaSize)
 			if err != nil {
 				return nil, nil, err
 			}
-		case "yocto_id":
-			constructor.YoctoId, err = s.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, nil, err
-			}
-		case "device_type":
-			constructor.DeviceType, err = s.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, nil, err
-			}
-		case "checksum":
-			constructor.Checksum, err = s.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, nil, err
-			}
+			constructor.Name = *name
 		case "description":
-			constructor.Description, err = s.getFormFieldValue(p, maxMetaSize)
+			desc, err := s.getFormFieldValue(p, maxMetaSize)
 			if err != nil {
 				return nil, nil, err
 			}
-		case "firmware":
+			constructor.Description = *desc
+		case "artifact":
 			if err := constructor.Validate(); err != nil {
 				return nil, nil, errors.Wrap(err, "Validating metadata")
 			}
@@ -301,42 +306,107 @@ func (s *SoftwareImagesController) handleMeta(mr *multipart.Reader, maxMetaSize 
 
 // Image part of multipart meta/image request handler.
 // Saves uploaded image in temporary file.
-// Returns temporary file name, success code and nil on success.
-func (s *SoftwareImagesController) handleImage(p *multipart.Part, maxImageSize int64) (*os.File, int, error) {
+// Returns temporary file, image metadata, success code and nil on success.
+func (s *SoftwareImagesController) handleImage(
+	p *multipart.Part, maxImageSize int64) (*os.File, *images.SoftwareImageMetaArtifactConstructor, int, error) {
 	// HTML form can't set specific content-type, it's automatic, if not empty - it's a file
 	if p.Header.Get("Content-Type") == "" {
-		return nil, http.StatusBadRequest, errors.New("Last part should be an image")
+		return nil, nil, http.StatusBadRequest, errors.New("Last part should be an image")
 	}
-	tmpfile, err := ioutil.TempFile("", "firmware-")
+
+	tmpfile, err := ioutil.TempFile("", "artifact-")
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, nil, http.StatusInternalServerError, err
 	}
 
-	n, err := io.CopyN(tmpfile, p, maxImageSize+1)
-	if err != nil && err != io.EOF {
-		return nil, http.StatusBadRequest, errors.Wrap(err, "Request body invalid")
-	}
-	if n == maxImageSize+1 {
-		return nil, http.StatusBadRequest, errors.New("Image file too large")
+	lr := io.LimitReader(p, maxImageSize)
+	tee := io.TeeReader(lr, tmpfile)
+	meta, err := s.getMetaFromArchive(&tee, maxImageSize)
+	if err != nil {
+		return nil, nil, http.StatusBadRequest, err
 	}
 
-	return tmpfile, http.StatusOK, nil
+	_, err = io.Copy(ioutil.Discard, tee)
+	if err != nil {
+		return nil, nil, http.StatusInternalServerError, err
+	}
+
+	return tmpfile, meta, http.StatusOK, nil
+}
+
+func getArtifactInfo(info metadata.Info) *images.ArtifactInfo {
+	return &images.ArtifactInfo{
+		Format:  info.Format,
+		Version: uint(info.Version),
+	}
+}
+
+func getUpdateFiles(maxImageSize int64, uFiles map[string]parser.UpdateFile) ([]images.UpdateFile, error) {
+	var files []images.UpdateFile
+	for _, u := range uFiles {
+		if u.Size > maxImageSize {
+			return nil, errors.New("Image too large")
+		}
+		files = append(files, images.UpdateFile{
+			Name:      u.Name,
+			Size:      u.Size,
+			Signature: string(u.Signature),
+			Date:      &u.Date,
+			Checksum:  string(u.Checksum),
+		})
+	}
+	return files, nil
+}
+
+func (s *SoftwareImagesController) getMetaFromArchive(
+	r *io.Reader, maxImageSize int64) (*images.SoftwareImageMetaArtifactConstructor, error) {
+	metaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+
+	aReader := areader.NewReader(*r)
+	defer aReader.Close()
+
+	data, err := aReader.Read()
+	if err != nil {
+		return nil, errors.Wrap(err, "reading artifact error")
+	}
+	metaArtifact.Info = getArtifactInfo(aReader.GetInfo())
+	metaArtifact.DeviceTypesCompatible = aReader.GetCompatibleDevices()
+	metaArtifact.ArtifactName = aReader.GetArtifactName()
+
+	for _, p := range data {
+		uFiles, err := getUpdateFiles(maxImageSize, p.GetUpdateFiles())
+		if err != nil {
+			return nil, errors.Wrap(err, "Cannot get update files:")
+		}
+
+		metaArtifact.Updates = append(
+			metaArtifact.Updates,
+			images.Update{
+				TypeInfo: images.ArtifactUpdateTypeInfo{
+					Type: p.GetUpdateType().Type,
+				},
+				MetaData: p.GetMetadata(),
+				Files:    uFiles,
+			})
+	}
+
+	return metaArtifact, nil
 }
 
 func (s *SoftwareImagesController) getFormFieldValue(p *multipart.Part, maxMetaSize int64) (*string, error) {
 	metaReader := io.LimitReader(p, maxMetaSize)
 	bytes, err := ioutil.ReadAll(metaReader)
 	if err != nil && err != io.EOF {
-		return nil, errors.Wrap(err, "Failed to obtain value for " + p.FormName())
+		return nil, errors.Wrap(err, "Failed to obtain value for "+p.FormName())
 	}
 
 	strValue := string(bytes)
 	return &strValue, nil
 }
 
-func (s SoftwareImagesController) getSoftwareImageConstructorFromBody(r *rest.Request) (*images.SoftwareImageConstructor, error) {
+func (s SoftwareImagesController) getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*images.SoftwareImageMetaConstructor, error) {
 
-	var constructor *images.SoftwareImageConstructor
+	var constructor *images.SoftwareImageMetaConstructor
 
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err

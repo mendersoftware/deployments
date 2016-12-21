@@ -15,6 +15,7 @@
 package mocks
 
 import (
+	"context"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/stretchr/testify/mock"
 )
@@ -25,12 +26,12 @@ type Generator struct {
 }
 
 // Generate provides a mock function with given fields: deviceID, deployment
-func (_m *Generator) Generate(deviceID string, deployment *deployments.Deployment) (*deployments.DeviceDeployment, error) {
-	ret := _m.Called(deviceID, deployment)
+func (_m *Generator) Generate(ctx context.Context, deviceID string, deployment *deployments.Deployment) (*deployments.DeviceDeployment, error) {
+	ret := _m.Called(ctx, deviceID, deployment)
 
 	var r0 *deployments.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(string, *deployments.Deployment) *deployments.DeviceDeployment); ok {
-		r0 = rf(deviceID, deployment)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *deployments.Deployment) *deployments.DeviceDeployment); ok {
+		r0 = rf(ctx, deviceID, deployment)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*deployments.DeviceDeployment)
@@ -38,8 +39,8 @@ func (_m *Generator) Generate(deviceID string, deployment *deployments.Deploymen
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, *deployments.Deployment) error); ok {
-		r1 = rf(deviceID, deployment)
+	if rf, ok := ret.Get(1).(func(context.Context, string, *deployments.Deployment) error); ok {
+		r1 = rf(ctx, deviceID, deployment)
 	} else {
 		r1 = ret.Error(1)
 	}

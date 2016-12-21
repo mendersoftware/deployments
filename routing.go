@@ -33,7 +33,7 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-func SetupS3(c config.ConfigReader) imagesModel.FileStorage {
+func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
 
 	bucket := c.GetString(SettingAweS3Bucket)
 	region := c.GetString(SettingAwsS3Region)
@@ -61,7 +61,10 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	dbSession.SetSafe(&mgo.Safe{})
 
 	// Storage Layer
-	fileStorage := SetupS3(c)
+	fileStorage, err := SetupS3(c)
+	if err != nil {
+		return nil, err
+	}
 	deploymentsStorage := deploymentsMongo.NewDeploymentsStorage(dbSession)
 	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
 	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
@@ -75,17 +78,18 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 		return nil, errors.Wrap(err, "init inventory client")
 	}
 
-	// Domian Models
-	deploymentModel := deploymentsModel.NewDeploymentModel(
-		deploymentsStorage,
-		generator.NewImageBasedDeviceDeployment(
+	// Domain Models
+	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{
+		DeploymentsStorage:          deploymentsStorage,
+		DeviceDeploymentsStorage:    deviceDeploymentsStorage,
+		DeviceDeploymentLogsStorage: deviceDeploymentLogsStorage,
+		ImageLinker:                 fileStorage,
+		DeviceDeploymentGenerator: generator.NewImageBasedDeviceDeployment(
 			imagesStorage,
 			generator.NewInventory(inventory),
 		),
-		deviceDeploymentsStorage,
-		deviceDeploymentLogsStorage,
-		fileStorage,
-	)
+		ImageContentType: imagesModel.ImageContentType,
+	})
 
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
 
@@ -109,14 +113,14 @@ func NewImagesResourceRoutes(controller *imagesController.SoftwareImagesControll
 	}
 
 	return []*rest.Route{
-		rest.Post("/api/0.0.1/images", controller.NewImage),
-		rest.Get("/api/0.0.1/images", controller.ListImages),
+		rest.Post("/api/0.0.1/artifacts", controller.NewImage),
+		rest.Get("/api/0.0.1/artifacts", controller.ListImages),
 
-		rest.Get("/api/0.0.1/images/:id", controller.GetImage),
-		rest.Delete("/api/0.0.1/images/:id", controller.DeleteImage),
-		rest.Put("/api/0.0.1/images/:id", controller.EditImage),
+		rest.Get("/api/0.0.1/artifacts/:id", controller.GetImage),
+		rest.Delete("/api/0.0.1/artifacts/:id", controller.DeleteImage),
+		rest.Put("/api/0.0.1/artifacts/:id", controller.EditImage),
 
-		rest.Get("/api/0.0.1/images/:id/download", controller.DownloadLink),
+		rest.Get("/api/0.0.1/artifacts/:id/download", controller.DownloadLink),
 	}
 }
 
@@ -133,9 +137,10 @@ func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsC
 		rest.Get("/api/0.0.1/deployments", controller.LookupDeployment),
 		rest.Get("/api/0.0.1/deployments/:id", controller.GetDeployment),
 		rest.Get("/api/0.0.1/deployments/:id/statistics", controller.GetDeploymentStats),
+		rest.Put("/api/0.0.1/deployments/:id/status", controller.AbortDeployment),
 
 		// Devices
-		rest.Get("/api/0.0.1/device/update", controller.GetDeploymentForDevice),
+		rest.Get("/api/0.0.1/device/deployments/next", controller.GetDeploymentForDevice),
 		rest.Put("/api/0.0.1/device/deployments/:id/status",
 			controller.PutDeploymentStatusForDevice),
 		rest.Get("/api/0.0.1/deployments/:id/devices",

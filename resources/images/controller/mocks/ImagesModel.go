@@ -28,19 +28,23 @@ type ImagesModel struct {
 }
 
 // CreateImage provides a mock function with given fields: constructorData
-func (_m *ImagesModel) CreateImage(imageFile *os.File, constructorData *images.SoftwareImageConstructor) (string, error) {
-	ret := _m.Called(imageFile, constructorData)
+func (_m *ImagesModel) CreateImage(
+	imageFile *os.File,
+	metaConstructor *images.SoftwareImageMetaConstructor,
+	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
+
+	ret := _m.Called(imageFile, metaConstructor, metaArtifactConstructor)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(*os.File, *images.SoftwareImageConstructor) string); ok {
-		r0 = rf(imageFile, constructorData)
+	if rf, ok := ret.Get(0).(func(*os.File, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaArtifactConstructor) string); ok {
+		r0 = rf(imageFile, metaConstructor, metaArtifactConstructor)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*os.File, *images.SoftwareImageConstructor) error); ok {
-		r1 = rf(imageFile, constructorData)
+	if rf, ok := ret.Get(1).(func(*os.File, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaArtifactConstructor) error); ok {
+		r1 = rf(imageFile, metaConstructor, metaArtifactConstructor)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -86,18 +90,18 @@ func (_m *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*imag
 }
 
 // EditImage provides a mock function with given fields: id, constructorData
-func (_m *ImagesModel) EditImage(id string, constructorData *images.SoftwareImageConstructor) (bool, error) {
+func (_m *ImagesModel) EditImage(id string, constructorData *images.SoftwareImageMetaConstructor) (bool, error) {
 	ret := _m.Called(id, constructorData)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, *images.SoftwareImageConstructor) bool); ok {
+	if rf, ok := ret.Get(0).(func(string, *images.SoftwareImageMetaConstructor) bool); ok {
 		r0 = rf(id, constructorData)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, *images.SoftwareImageConstructor) error); ok {
+	if rf, ok := ret.Get(1).(func(string, *images.SoftwareImageMetaConstructor) error); ok {
 		r1 = rf(id, constructorData)
 	} else {
 		r1 = ret.Error(1)

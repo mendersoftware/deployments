@@ -160,6 +160,55 @@ func (d *DeploymentsStorage) FindByID(id string) (*deployments.Deployment, error
 	return deployment, nil
 }
 
+func (d *DeploymentsStorage) FindUnfinishedByID(id string) (*deployments.Deployment, error) {
+
+	if govalidator.IsNull(id) {
+		return nil, ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	var deployment *deployments.Deployment
+	filter := bson.M{
+		"_id": id,
+		StorageKeyDeploymentFinished: time.Time{},
+	}
+	if err := session.DB(DatabaseName).C(CollectionDeployments).
+		Find(filter).One(&deployment); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return deployment, nil
+}
+
+func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(id string, stats deployments.Stats) error {
+	if govalidator.IsNull(id) {
+		return ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+	now := time.Now()
+
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeploymentStats:    stats,
+			StorageKeyDeploymentFinished: &now,
+		},
+	}
+
+	err := session.DB(DatabaseName).C(CollectionDeployments).UpdateId(id, update)
+	if err == mgo.ErrNotFound {
+		return ErrStorageInvalidID
+	}
+
+	return err
+}
+
 func (d *DeploymentsStorage) UpdateStats(id string, state_from, state_to string) error {
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
@@ -233,10 +282,16 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 						buildStatusKey(deployments.DeviceDeploymentStatusSuccess): eq0,
 					},
 					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): eq0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusAborted): eq0,
+					},
+					bson.M{
 						buildStatusKey(deployments.DeviceDeploymentStatusFailure): eq0,
 					},
 					bson.M{
-						buildStatusKey(deployments.DeviceDeploymentStatusNoImage): eq0,
+						buildStatusKey(deployments.DeviceDeploymentStatusNoArtifact): eq0,
 					},
 					bson.M{
 						buildStatusKey(deployments.DeviceDeploymentStatusPending): gt0,
@@ -246,7 +301,7 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 		}
 	case deployments.StatusQueryFinished:
 		{
-			// finished, success, noimage counters are non 0, all other counters are 0
+			// finished, success, noartifact, already-installed counters are non 0, all other counters are 0
 			stq = bson.M{
 				"$and": []bson.M{
 					bson.M{
@@ -274,7 +329,13 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 								buildStatusKey(deployments.DeviceDeploymentStatusFailure): gt0,
 							},
 							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusNoImage): gt0,
+								buildStatusKey(deployments.DeviceDeploymentStatusNoArtifact): gt0,
+							},
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): gt0,
+							},
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusAborted): gt0,
 							},
 						},
 					},

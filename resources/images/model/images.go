@@ -23,11 +23,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	ErrModelMissingInputMetadata     = errors.New("Missing input metadata")
-	ErrModelInvalidMetadata          = errors.New("Metadata invalid")
-	ErrModelImageInActiveDeployment  = errors.New("Image is used in active deployment and cannot be removed")
-	ErrModelImageUsedInAnyDeployment = errors.New("Image have been already used in deployment")
+const (
+	ImageContentType = "application/vnd.mender-artifact"
 )
 
 type ImagesModel struct {
@@ -48,28 +45,42 @@ func NewImagesModel(
 	}
 }
 
-func (i *ImagesModel) CreateImage(imageFile *os.File, constructor *images.SoftwareImageConstructor) (string, error) {
+func (i *ImagesModel) CreateImage(
+	imageFile *os.File,
+	metaConstructor *images.SoftwareImageMetaConstructor,
+	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
 
-	if constructor == nil {
-		return "", ErrModelMissingInputMetadata
+	if metaConstructor == nil || metaArtifactConstructor == nil {
+		return "", controller.ErrModelMissingInputMetadata
 	}
 
-	if err := constructor.Validate(); err != nil {
-		return "", ErrModelInvalidMetadata
+	if err := metaConstructor.Validate(); err != nil {
+		return "", controller.ErrModelInvalidMetadata
+	}
+	if err := metaArtifactConstructor.Validate(); err != nil {
+		return "", controller.ErrModelInvalidMetadata
+	}
+	isArtifactUnique, err := i.imagesStorage.IsArtifactUnique(
+		metaArtifactConstructor.ArtifactName, metaArtifactConstructor.DeviceTypesCompatible)
+	if err != nil {
+		return "", errors.Wrap(err, "Fail to check if artifact is unique")
+	}
+	if !isArtifactUnique {
+		return "", controller.ErrModelArtifactNotUnique
 	}
 
-	image := images.NewSoftwareImageFromConstructor(constructor)
+	image := images.NewSoftwareImage(metaConstructor, metaArtifactConstructor)
 
 	if err := i.imagesStorage.Insert(image); err != nil {
 		return "", errors.Wrap(err, "Fail to store the metadata")
 	}
 
-	if err := i.fileStorage.PutFile(*image.Id, imageFile); err != nil {
-		i.imagesStorage.Delete(*image.Id)
+	if err := i.fileStorage.PutFile(image.Id, imageFile, ImageContentType); err != nil {
+		i.imagesStorage.Delete(image.Id)
 		return "", errors.Wrap(err, "Fail to store the image")
 	}
 
-	return *image.Id, nil
+	return image.Id, nil
 }
 
 // GetImage allows to fetch image obeject with specified id
@@ -111,7 +122,7 @@ func (i *ImagesModel) DeleteImage(imageID string) error {
 
 	// Image is in use, not allowed to delete
 	if inUse {
-		return ErrModelImageInActiveDeployment
+		return controller.ErrModelImageInActiveDeployment
 	}
 
 	// Delete image file (call to external service)
@@ -144,7 +155,7 @@ func (i *ImagesModel) ListImages(filters map[string]string) ([]*images.SoftwareI
 }
 
 // EditObject allows editing only if image have not been used yet in any deployment.
-func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImageConstructor) (bool, error) {
+func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImageMetaConstructor) (bool, error) {
 
 	if err := constructor.Validate(); err != nil {
 		return false, errors.Wrap(err, "Validating image metadata")
@@ -156,7 +167,7 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 	}
 
 	if found {
-		return false, ErrModelImageUsedInAnyDeployment
+		return false, controller.ErrModelImageUsedInAnyDeployment
 	}
 
 	foundImage, err := i.imagesStorage.FindByID(imageID)
@@ -168,7 +179,6 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 		return false, nil
 	}
 
-	foundImage.SoftwareImageConstructor = constructor
 	foundImage.SetModified(time.Now())
 
 	_, err = i.imagesStorage.Update(foundImage)
@@ -201,7 +211,7 @@ func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*image
 		return nil, nil
 	}
 
-	link, err := i.fileStorage.GetRequest(imageID, expire)
+	link, err := i.fileStorage.GetRequest(imageID, expire, ImageContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
 	}
