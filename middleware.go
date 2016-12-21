@@ -15,15 +15,14 @@
 package main
 
 import (
-	// Make it clear that this is distinct from the mender logging.
-	golog "log"
-
 	"mime"
 	"net/http"
-	"os"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/go-lib-micro/accesslog"
+	"github.com/mendersoftware/go-lib-micro/requestid"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
 )
 
 const (
@@ -46,7 +45,8 @@ const (
 var DefaultDevStack = []rest.Middleware{
 
 	// logging
-	&rest.AccessLogApacheMiddleware{},
+	&requestlog.RequestLogMiddleware{},
+	&accesslog.AccessLogMiddleware{Format: accesslog.SimpleLogFormat},
 	&rest.TimerMiddleware{},
 	&rest.RecorderMiddleware{},
 
@@ -57,15 +57,14 @@ var DefaultDevStack = []rest.Middleware{
 
 	// json pretty print
 	&rest.JsonIndentMiddleware{},
+	&requestid.RequestIdMiddleware{},
 }
 
 var DefaultProdStack = []rest.Middleware{
 
 	// logging
-	&rest.AccessLogJsonMiddleware{
-		// No prefix or other fields, entire output is JSON encoded and could break it.
-		Logger: golog.New(os.Stdout, "", 0),
-	},
+	&requestlog.RequestLogMiddleware{},
+	&accesslog.AccessLogMiddleware{Format: accesslog.SimpleLogFormat},
 	&rest.TimerMiddleware{},
 	&rest.RecorderMiddleware{},
 
@@ -74,6 +73,7 @@ var DefaultProdStack = []rest.Middleware{
 
 	// response compression
 	&rest.GzipMiddleware{},
+	&requestid.RequestIdMiddleware{},
 }
 
 func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
@@ -84,7 +84,7 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 	// For the rest of the requests expected Content-Type is 'application/json'.
 	api.Use(&rest.IfMiddleware{
 		Condition: func(r *rest.Request) bool {
-			if r.URL.Path == "/api/0.0.1/images" && r.Method == http.MethodPost {
+			if r.URL.Path == "/api/0.0.1/artifacts" && r.Method == http.MethodPost {
 				return true
 			} else {
 				return false

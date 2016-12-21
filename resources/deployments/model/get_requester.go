@@ -22,5 +22,5 @@ import (
 
 // Responsible for providing GET method requests to requested artifact
 type GetRequester interface {
-	GetRequest(objectId string, duration time.Duration) (*images.Link, error)
+	GetRequest(objectId string, duration time.Duration, responseContentType string) (*images.Link, error)
 }

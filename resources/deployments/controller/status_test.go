@@ -25,7 +25,7 @@ import (
 func TestStatusUnmarshal(t *testing.T) {
 	var report statusReport
 
-	err := json.Unmarshal([]byte(`{"status": "bad"}`), &report)
+	err := json.Unmarshal([]byte(`{"status": "aborted"}`), &report)
 	assert.EqualError(t, ErrBadStatus, err.Error())
 
 	err = json.Unmarshal([]byte(`"status": "bad"}`), &report)

@@ -1,39 +1,46 @@
 swagger: '2.0'
 info:
-  title: Deployments Service Integration API
+  title: Deployments
   version: '0.1'
   description: |
-    ### Common information about all exposed API endpoints.
+    An API for deployments and artifacts management.
+    Intended for use by the web GUI.
 
-    CORS and none-CORS requests are supported. Details [wikipedia](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing#Simple_example).
-
-    Allows `Location` header exposure.
-host: 'localhost:8080'
+host: 'docker.mender.io:8080'
 basePath: '/api/integrations/0.1/deployments'
+schemes:
+  - https
+
 responses:
   NotFoundError: # 404
-    description: Not Found
+    description: Not Found.
     schema:
-      $ref: "#/definitions/SimpleError"
+      $ref: "#/definitions/Error"
   InternalServerError: # 500
-    description: Internal Server Error
+    description: Internal Server Error.
     schema:
-      $ref: "#/definitions/SimpleError"
+      $ref: "#/definitions/Error"
   InvalidRequestError: # 400
-    description: Invalid Request
+    description: Invalid Request.
     schema:
-      $ref: "#/definitions/SimpleError"
+      $ref: "#/definitions/Error"
+  UnprocessableEntityError: # 422
+    description: Unprocessable Entity.
+    schema:
+      $ref: "#/definitions/Error"
 
 paths:
   /deployments:
     get:
-      summary: Find deployments
+      summary: Find all deployments
       description: |
-        Lookup deployments in the system, including active and history.
+        Returns a filtered collection of deployments in the system,
+        including active and historical. If both 'status' and 'query' are
+        not specified, all devices are listed.
       parameters:
         - name: status
           in: query
-          description: Deployment status
+          description: Deployment status filter.
           required: false
           type: string
           enum:
@@ -42,14 +49,14 @@ paths:
             - pending
         - name: search
           in: query
-          description: Deployment name or description
+          description: Deployment name or description filter.
           required: false
           type: string
       produces:
         - application/json
       responses:
         200:
-          description: OK
+          description: Successful response.
           examples:
             application/json:
               - created: 2016-02-11T13:03:17.063493443Z
@@ -61,92 +68,57 @@ paths:
           schema:
             type: array
             items:
-              type: object
-              properties:
-                created:
-                  type: string
-                  format: date-time
-                name:
-                  type: string
-                artifact_name:
-                  type: string
-                id:
-                  type: string
-                finished:
-                  type: string
-                  format: date-time
-                status:
-                  type: string
-                  enum:
-                    - inprogress
-                    - pending
-                    - finished
-              required:
-                - created
-                - name
-                - artifact_name
-                - id
-                - status
+              $ref: '#/definitions/Deployment'
         400:
           $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
 
     post:
-      summary: Create deployment
+      summary: Create a deployment
       description: |
-        Deploy software to specified devices. Image is auto assigned to the
-        device from all available images based on artifact name and device type.
-
-        NOTE: Because of lack of inventory system, service assumes hardcoded
-        device type for each device: "TestDevice"
+        Deploy software to specified devices. Artifact is auto assigned to the
+        device from all available artifacts based on artifact name and device type.
+        Devices for which there are no compatible artifacts to be installed are
+        considered finished successfully as well as receive status of `noartifact`.
 
       parameters:
-        - name: Body
+        - name: deployment
           in: body
+          description: New deployment that needs to be created.
+          required: true
           schema:
-            type: object
-            properties:
-              name:
-                type: string
-              artifact_name:
-                type: string
-              devices:
-                type: array
-                items:
-                  type: string
-            required:
-              - name
-              - artifact_name
-              - devices
+            $ref: "#/definitions/NewDeployment"
       produces:
         - application/json
       responses:
         201:
-          description: Created
+          description: New deployment created.
           headers:
             Location:
-              description: URL of newly created deployment
+              description: URL of the newly created deployment.
               type: string
         400:
           $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
 
-  '/deployments/{id}':
+  /deployments/{id}:
     get:
-      summary: Deployment details
+      summary: Get the details of a selected deployment
+      description: |
+        Returns the details of a particular deployment.
       parameters:
         - name: id
           in: path
-          description: Deployment identifier
+          description: Deployment identifier.
           required: true
           type: string
       produces:
         - application/json
       responses:
         200:
-          description: OK
+          description: Successful response.
           examples:
             application/json:
               created: 2016-02-11T13:03:17.063493443Z
@@ -155,55 +127,58 @@ paths:
               id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
               finished: 2016-03-11T13:03:17.063493443Z
           schema:
-            type: object
-            properties:
-              created:
-                type: string
-                format: date-time
-              name:
-                type: string
-              artifact_name:
-                type: string
-              id:
-                type: string
-              finished:
-                type: string
-                format: date-time
-            required:
-              - created
-              - name
-              - artifact_name
-              - id
+            $ref: "#/definitions/Deployment"
         404:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
 
-    delete:
-      summary: Cancel deployment
+  /deployments/{deployment_id}/status:
+    put:
+      summary: Abort the deployment
       description: |
-        Cancels a deployment
-        TODO: to be implemented
-
+        Aborts the deployment that is pending or in progress. For devices included in this deployment it means that:
+        - Devices that have completed the deployment (i.e. reported final status) are not affected by the abort, and their original status is kept in the deployment report.
+        - Devices that do not yet know about the deployment at time of abort will not start the deployment.
+        - Devices that are in the middle of the deployment at time of abort will finish its deployment normally, but they will not be able to change its deployment status so they will perform rollback.
       parameters:
-        - name: id
+        - name: deployment_id
           in: path
-          description: Deployment identifier
+          description: Deployment identifier.
           required: true
           type: string
+        - name: Status
+          in: body
+          description: Deployment status.
+          required: true
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum:
+                - aborted
+            required:
+              - status
       produces:
         - application/json
       responses:
         204:
-          description: Deployment canceled
+            description: Status updated successfully.
+        400:
+            $ref: "#/responses/InvalidRequestError"
         404:
-          $ref: "#/responses/NotFoundError"
+            $ref: "#/responses/NotFoundError"
+        422:
+            $ref: "#/responses/UnprocessableEntityError"
         500:
-          $ref: "#/responses/InternalServerError"
+            $ref: "#/responses/InternalServerError"
 
-  '/deployments/{deployment_id}/statistics':
+  /deployments/{deployment_id}/statistics:
     get:
-      summary: Deployment statistics
+      summary: Get the statistics of a selected deployment
+      description: |
+        Returns the statistics of a selected deployment statuses.
       parameters:
         - name: deployment_id
           in: path
@@ -223,53 +198,25 @@ paths:
               downloading: 1
               installing: 2
               rebooting: 3
-              noimage: 0
+              noartifact: 0
+              already-installed: 0
+              aborted: 0
           schema:
-            type: object
-            properties:
-              success:
-                type: integer
-                description: Number of successful deployments
-              pending:
-                type: integer
-                description: Number of pending deployments
-              downloading:
-                type: integer
-                description: Number of deployments being downloaded
-              rebooting:
-                type: integer
-                description: Number of deployments devices are rebooting into
-              installing:
-                type: integer
-                description: Number of deployments devices being installed
-              failure:
-                type: integer
-                description: Number of failed deployments
-              noimage:
-                type: integer
-                description: Do not have apropriate image for device type
-            required:
-              - success
-              - pending
-              - downloading
-              - installing
-              - rebooting
-              - failure
-              - noimage
+            $ref: "#/definitions/DeploymentStatistics"
         404:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
 
-  '/deployments/{deployment_id}/devices':
+  /deployments/{deployment_id}/devices:
     get:
       summary: List devices of a deployment
       description: |
-        List deployment status for each assigned device
+        Returns a collection of a selected deployment's status for each assigned device.
       parameters:
         - name: deployment_id
           in: path
-          description: Deployment identifier
+          description: Deployment identifier.
           required: true
           type: string
       produces:
@@ -282,74 +229,48 @@ paths:
               - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
                 finished: 2016-03-11T13:03:17.063493443Z
                 status: pending
-                started: 2016-02-11T13:03:17.063493443Z
+                created: 2016-02-11T13:03:17.063493443Z
                 device_type: Raspberry Pi 3
-                artifact_id: 60a0c91e6-7dec-11d0-a765-f81d4faebf6
           schema:
             type: array
             items:
-              type: object
-              properties:
-                id:
-                  type: string
-                  description: device ID
-                finished:
-                  type: string
-                  format: date-time
-                status:
-                  type: string
-                  enum:
-                    - inprogress
-                    - pending
-                    - success
-                    - failure
-                    - noimage
-                started:
-                  type: string
-                  format: date-time
-                device_type:
-                  type: string
-                artifact_id:
-                  type: string
-              required:
-                - id
-                - status
-                - device_type
+              $ref: "#/definitions/Device"
         404:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
 
-  '/deployments/{deployment_id}/devices/{device_id}/log':
+  /deployments/{deployment_id}/devices/{device_id}/log:
     get:
-      summary: Download deployment log
+      summary: Get the log of a selected device's deployment
       description: |
-        Device log collected during deployment.
+        Returns the log of a selected device, collected during a particular deployment.
       parameters:
         - name: deployment_id
           in: path
-          description: Deployment identifier
+          description: Deployment identifier.
           required: true
           type: string
         - name: device_id
           in: path
-          description: Device identifier
+          description: Device identifier.
           required: true
           type: string
       produces:
-        - application/json
         - text/plain
       responses:
         200:
-          description: Device log as text
+          description: Successful response.
         404:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
 
-  /images:
+  /artifacts:
     get:
-      summary: List firmware images
+      summary: List known artifacts
+      description: |
+        Returns a collection of all artifacts.
       produces:
         - application/json
       responses:
@@ -359,25 +280,32 @@ paths:
             application/json:
               - name: MySecretApp v2
                 description: Johns Monday test build
-                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                device_type: Beagle Bone
+                artifact_name: core-image-full-cmdline-20160330201408
+                device_types_compatible: [Beagle Bone]
                 id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-                verified: false
-                modified: 2016-03-11T13:03:17.063493443Z
-                yocto_id: core-image-full-cmdline-20160330201408
+                modified: "2016-03-11T13:03:17.063493443Z"
+                info:
+                    type_info:
+                        type: rootfs
+                files:
+                  - name: rootfs-image-1
+                    checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                    signature: "12344"
+                    size: 123
+                    date: 2016-03-11T13:03:17.063+0000
+                metadata: {}
           schema:
             type: array
             items:
-              $ref: "#/definitions/Image"
+              $ref: "#/definitions/Artifact"
 
         500:
           $ref: "#/responses/InternalServerError"
 
     post:
-      summary: Create firmware image
+      summary: Create an artifact
       description: |
-        Create firmware image. Mulitpart request with meta and image.
-        Image part (named firmware) has to be the last one.
+        Creates artifact. Mulitpart request with meta and artifact.
       consumes:
         - multipart/form-data
       parameters:
@@ -385,81 +313,90 @@ paths:
           in: formData
           required: true
           type: string
-        - name: yocto_id
-          in: formData
-          required: true
-          type: string
-        - name: device_type
-          in: formData
-          required: true
-          type: string
-        - name: checksum
-          in: formData
-          required: false
-          type: string
         - name: description
           in: formData
           required: false
           type: string
-        - name: firmware
+        - name: artifact
           in: formData
+          description: Artifact. It has to be the last part of request.
           required: true
           type: file
       produces:
         - application/json
       responses:
         201:
-          description: Image created
+          description: Artifact uploaded.
           headers:
             Location:
-              description: URL of newly created image
+              description: URL of the newly uploaded artifact.
               type: string
         400:
           $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
 
-  '/images/{id}':
+  /artifacts/{id}:
     get:
-      summary: Firmare image details
+      summary: Get the details of a selected artifact
+      description: |
+        Returns the details of a selected artifact.
       parameters:
         - name: id
           in: path
-          description: Image ID
+          description: Artifact identifier.
           required: true
           type: string
       produces:
         - application/json
       responses:
         200:
-          description: OK
+          description: Successful response.
+          examples:
+            application/json:
+              name: MySecretApp v2
+              description: Johns Monday test build
+              artifact_name: core-image-full-cmdline-20160330201408
+              device_types_compatible: [Beagle Bone]
+              id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+              modified: "2016-03-11T13:03:17.063493443Z"
+              info:
+                  type_info:
+                      type: rootfs
+              files:
+                - name: rootfs-image-1
+                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                  signature: "12344"
+                  size: 123
+                  date: 2016-03-11T13:03:17.063+0000
+              metadata: {}
           schema:
-            $ref: "#/definitions/Image"
+            $ref: "#/definitions/Artifact"
         404:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
 
     put:
-      summary: Update firmware image
+      summary: Update name and description of a selected artifact
       description: |
-        Edit image information. Image is not allowed to be edited if it was used
+        Edit artifact name and description. Artifact is not allowed to be edited if it was used
         in any deployment.
       parameters:
         - name: id
           in: path
-          description: Image ID
+          description: Artifact identifier.
           required: true
           type: string
-        - name: image
+        - name: artifact
           in: body
           schema:
-            $ref: "#/definitions/ImageUpdate"
+            $ref: "#/definitions/ArtifactUpdate"
       produces:
         - application/json
       responses:
         204:
-          description: No Content
+          description: The artifact metadata updated successfully.
         400:
           $ref: "#/responses/InvalidRequestError"
         404:
@@ -468,44 +405,44 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     delete:
-      summary: Remove firmware image
+      summary: Delete the artifact
+      description: |
+        Deletes the artifact from file and artifacts storage. Deployments
+        in progress can not be deleted until deployment finishes.
       produces:
         - application/json
       parameters:
         - name: id
           in: path
-          description: Image ID
+          description: Artifact identifier.
           required: true
           type: string
       responses:
         204:
-          description: No Content
+          description: The artifact deleted successfully.
         404:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
 
-  '/images/{id}/download':
+  /artifacts/{id}/download:
     get:
-      summary: Generate download link
+      summary: Get the download link of a selected artifact
       description: |
-        Generate signed URL for downloading image file. URI can be used only
-        with GET HTTP method. Link supports such HTTP headers: `Range`,
-        `If-Modified-Since`, `If-Unmodified-Since` It is valid for specified
+        Generates signed URL for downloading artifact file. URI can be used only
+        with GET HTTP method. Link supports such HTTP headers: 'Range',
+        'If-Modified-Since', 'If-Unmodified-Since' It is valid for specified
         period of time.
-
-        To be able to recieve download link, image file have to be uploaded
-        first.
       parameters:
         - name: id
           in: path
-          description: Image ID
+          description: Artifact identifier.
           required: true
           type: string
         - name: expire
           in: query
           description: |
-            Link validity length in minutes. Min 1 minute, max 10080 (1 week)
+            Link validity length in minutes. Min 1 minute, max 10080 (1 week).
           required: false
           type: integer
           default: 60
@@ -513,86 +450,293 @@ paths:
         - application/json
       responses:
         200:
-          description: OK
+          description: Successful response.
           schema:
-            $ref: "#/definitions/ImageLink"
+            $ref: "#/definitions/ArtifactLink"
         400:
-          description: Bad Request
-          examples:
-            application/json:
-              error: Detailed error message
-          schema:
-            $ref: "#/definitions/SimpleError"
+          $ref: "#/responses/InvalidRequestError"
         404:
-          description: Not Found
-          examples:
-            application/json:
-              error: Detailed error message
-          schema:
-            $ref: "#/definitions/SimpleError"
+          $ref: "#/responses/NotFoundError"
         500:
-          description: Internal Server Error
-          examples:
-            application/json:
-              error: Detailed error message
-          schema:
-            $ref: "#/definitions/SimpleError"
+          $ref: "#/responses/InternalServerError"
 
 definitions:
-  SimpleError:
-    description: Simple error descriptor
+  Error:
+    description: Error descriptor.
     type: object
     properties:
       error:
-        description: Description of error
+        description: Description of the error.
         type: string
-  ImageBase:
-    description: Base firmware image
+      request_id:
+        description: Request ID (same as in X-MEN-RequestID header).
+        type: string
+    example:
+      application/json:
+          error: "failed to decode device group data: JSON payload is empty"
+          request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+  NewDeployment:
+    type: object
+    properties:
+      name:
+        type: string
+      artifact_name:
+        type: string
+      devices:
+        type: array
+        items:
+          type: string
+          description: An array of devices' identifiers.
+    required:
+      - name
+      - artifact_name
+      - devices
+    example:
+      application/json:
+        - name: production
+          artifact_name: Application 0.0.1
+          devices:
+            - 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+  Deployment:
+    type: object
+    properties:
+      created:
+        type: string
+        format: date-time
+      name:
+        type: string
+      artifact_name:
+        type: string
+      id:
+        type: string
+      finished:
+        type: string
+        format: date-time
+      status:
+        type: string
+        enum:
+          - inprogress
+          - pending
+          - finished
+    required:
+      - created
+      - name
+      - artifact_name
+      - id
+      - status
+    example:
+      application/json:
+        created: 2016-02-11T13:03:17.063493443Z
+        status: finished
+        name: production
+        artifact_name: Application 0.0.1
+        id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+        finished: 2016-03-11T13:03:17.063493443Z
+  DeploymentStatistics:
+    type: object
+    properties:
+      success:
+        type: integer
+        description: Number of successful deployments.
+      pending:
+        type: integer
+        description: Number of pending deployments.
+      downloading:
+        type: integer
+        description: Number of deployments being downloaded.
+      rebooting:
+        type: integer
+        description: Number of deployments devices are rebooting into.
+      installing:
+        type: integer
+        description: Number of deployments devices being installed.
+      failure:
+        type: integer
+        description: Number of failed deployments.
+      noartifact:
+        type: integer
+        description: Do not have appropriate artifact for device type.
+      already-installed:
+        type: integer
+        description: Number of devices unaffected by upgrade, since they are already running the specified software version.
+      aborted:
+        type: integer
+        description: Number of deployments aborted by user.
+    required:
+      - success
+      - pending
+      - downloading
+      - installing
+      - rebooting
+      - failure
+      - noartifact
+      - already-installed
+      - aborted
+    example:
+      application/json:
+        success: 3
+        pending: 1
+        failure: 0
+        downloading: 1
+        installing: 2
+        rebooting: 3
+        noartifact: 0
+        already-installed: 0
+        aborted: 0
+  Device:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Device identifier.
+      finished:
+        type: string
+        format: date-time
+      status:
+        type: string
+        enum:
+          - inprogress
+          - pending
+          - success
+          - failure
+          - noartifact
+      created:
+        type: string
+        format: date-time
+      device_type:
+        type: string
+      log:
+        type: boolean
+        description: Availability of the device's deployment log.
+    required:
+      - id
+      - status
+      - device_type
+      - log
+    example:
+      application/json:
+        - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+          finished: 2016-03-11T13:03:17.063493443Z
+          status: pending
+          created: 2016-02-11T13:03:17.063493443Z
+          device_type: Raspberry Pi 3
+          log: false
+  ArtifactUpdate:
+    description: Artifact information update.
     type: object
     properties:
       name:
         type: string
       description:
         type: string
-      checksum:
-        type: string
-      device_type:
-        type: string
     required:
       - name
       - description
-      - device_type
-      - checksum
-  ImageUpdate:
-    description: Firmware image information update
-    allOf:
-      - $ref: "#/definitions/ImageBase"
-    required:
-      - name
-      - description
-      - device_type
-  Image:
-    description: Detailed firmware image
+    example:
+      name: Artifact name
+      description: Some description
+  ArtifactTypeInfo:
+      description: |
+          Information about update type.
+      type: object
+      properties:
+        type:
+          type: string
+  UpdateFile:
+      description: |
+          Information about particular update file.
+      type: object
+      properties:
+        name:
+          type: string
+        checksum:
+          type: string
+        signature:
+          type: string
+        size:
+          type: integer
+        date:
+          type: string
+          format: date-time
+  Update:
+      description: |
+          Single updated to be applied.
+      type: object
+      properties:
+        type_info:
+          $ref: "#/definitions/ArtifactTypeInfo"
+        files:
+          type: array
+          items:
+            $ref: "#/definitions/UpdateFile"
+        meta_data:
+          type: object
+          description: |
+              meta_data is an object of unknown structure as this is dependent of update type (also custom defined by user)
+  ArtifactInfo:
+      description: |
+          Information about artifact format and version.
+      type: object
+      properties:
+        format:
+          type: string
+        version:
+          type: integer
+  Artifact:
+    description: Detailed artifact.
     type: object
-    allOf:
-      - $ref: "#/definitions/ImageBase"
-      - type: object
-        properties:
-          id:
-            type: string
-          verified:
-            type: boolean
-          modified:
-            type: string
-            format: date-time
-            description: |
-              Represents creation / last edition of any of the image properties
-        required:
-          - id
-          - verified
-          - modified
-  ImageLink:
-    description: URL for firmare image download
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      artifact_name:
+        type: string
+      device_types_compatible:
+        type: array
+        items:
+          type: string
+          description: An array of compatible device types.
+      id:
+        type: string
+      modified:
+        type: string
+        format: date-time
+        description: |
+            Represents creation / last edition of any of the artifact properties.
+      info:
+        $ref: "#/definitions/ArtifactInfo"
+      updates:
+        type: array
+        items:
+          $ref: "#/definitions/Update"
+    required:
+      - name
+      - description
+      - artifact_name
+      - device_types_compatible
+      - id
+      - modified
+    example:
+      application/json:
+        name: MySecretApp v2
+        description: Johns Monday test build
+        artifact_name: core-image-full-cmdline-20160330201408
+        device_types_compatible: [Beagle Bone]
+        id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+        modified: "2016-03-11T13:03:17.063493443Z"
+        info:
+            type_info:
+                type: rootfs
+        files:
+          - name: rootfs-image-1
+            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+            signature: "12344"
+            size: 123
+            date: 2016-03-11T13:03:17.063+0000
+        metadata: {}
+  ArtifactLink:
+    description: URL for artifact file download.
     type: object
     properties:
       uri:
@@ -603,3 +747,7 @@ definitions:
     required:
       - uri
       - expire
+    example:
+      application/json:
+        uri: http://mender.io/artifact.tar.gz.mender
+        expire: 2016-10-29T10:45:34Z

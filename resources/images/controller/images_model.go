@@ -24,7 +24,12 @@ import (
 
 // Errors expected from interface
 var (
-	ErrImageMetaNotFound = errors.New("Image metadata is not found")
+	ErrImageMetaNotFound             = errors.New("Image metadata is not found")
+	ErrModelMissingInputMetadata     = errors.New("Missing input metadata")
+	ErrModelInvalidMetadata          = errors.New("Metadata invalid")
+	ErrModelArtifactNotUnique        = errors.New("Artifact not unique")
+	ErrModelImageInActiveDeployment  = errors.New("Image is used in active deployment and cannot be removed")
+	ErrModelImageUsedInAnyDeployment = errors.New("Image have been already used in deployment")
 )
 
 type ImagesModel interface {
@@ -32,6 +37,9 @@ type ImagesModel interface {
 	DownloadLink(imageID string, expire time.Duration) (*images.Link, error)
 	GetImage(id string) (*images.SoftwareImage, error)
 	DeleteImage(imageID string) error
-	CreateImage(imageFile *os.File, constructorData *images.SoftwareImageConstructor) (string, error)
-	EditImage(id string, constructorData *images.SoftwareImageConstructor) (bool, error)
+	CreateImage(
+		imageFile *os.File,
+		metaConstructor *images.SoftwareImageMetaConstructor,
+		metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error)
+	EditImage(id string, constructorData *images.SoftwareImageMetaConstructor) (bool, error)
 }

@@ -15,6 +15,7 @@
 package mocks
 
 import (
+	"context"
 	"github.com/mendersoftware/deployments/integration"
 	"github.com/stretchr/testify/mock"
 )
@@ -25,12 +26,12 @@ type APIClient struct {
 }
 
 // GetDeviceInventory provides a mock function with given fields: device
-func (_m *APIClient) GetDeviceInventory(device integration.DeviceID) (*integration.Device, error) {
-	ret := _m.Called(device)
+func (_m *APIClient) GetDeviceInventory(ctx context.Context, device integration.DeviceID) (*integration.Device, error) {
+	ret := _m.Called(ctx, device)
 
 	var r0 *integration.Device
-	if rf, ok := ret.Get(0).(func(integration.DeviceID) *integration.Device); ok {
-		r0 = rf(device)
+	if rf, ok := ret.Get(0).(func(context.Context, integration.DeviceID) *integration.Device); ok {
+		r0 = rf(ctx, device)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*integration.Device)
@@ -38,8 +39,8 @@ func (_m *APIClient) GetDeviceInventory(device integration.DeviceID) (*integrati
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(integration.DeviceID) error); ok {
-		r1 = rf(device)
+	if rf, ok := ret.Get(1).(func(context.Context, integration.DeviceID) error); ok {
+		r1 = rf(ctx, device)
 	} else {
 		r1 = ret.Error(1)
 	}

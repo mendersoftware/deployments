@@ -30,7 +30,9 @@ const (
 	DeviceDeploymentStatusPending     = "pending"
 	DeviceDeploymentStatusSuccess     = "success"
 	DeviceDeploymentStatusFailure     = "failure"
-	DeviceDeploymentStatusNoImage     = "noimage"
+	DeviceDeploymentStatusNoArtifact  = "noartifact"
+	DeviceDeploymentStatusAlreadyInst = "already-installed"
+	DeviceDeploymentStatusAborted     = "aborted"
 )
 
 type DeviceDeployment struct {
@@ -46,7 +48,7 @@ type DeviceDeployment struct {
 	// Device id
 	DeviceId *string `json:"id" valid:"required"`
 
-	// Deplyoment id
+	// Deployment id
 	DeploymentId *string `json:"-" valid:"uuidv4,required"`
 
 	// ID
@@ -57,6 +59,9 @@ type DeviceDeployment struct {
 
 	// Target device type
 	DeviceType *string `json:"device_type,omitempty" valid:"-"`
+
+	// Presence of deployment log
+	IsLogAvailable bool `json:"log" valid:"-"`
 }
 
 func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
@@ -66,11 +71,12 @@ func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
 	id := uuid.NewV4().String()
 
 	return &DeviceDeployment{
-		Status:       &initStatus,
-		DeviceId:     &deviceId,
-		DeploymentId: &deploymentId,
-		Id:           &id,
-		Created:      &now,
+		Status:         &initStatus,
+		DeviceId:       &deviceId,
+		DeploymentId:   &deploymentId,
+		Id:             &id,
+		Created:        &now,
+		IsLogAvailable: false,
 	}
 }
 
@@ -85,13 +91,15 @@ type Stats map[string]int
 
 func NewDeviceDeploymentStats() Stats {
 	statuses := []string{
-		DeviceDeploymentStatusNoImage,
+		DeviceDeploymentStatusNoArtifact,
 		DeviceDeploymentStatusFailure,
 		DeviceDeploymentStatusSuccess,
 		DeviceDeploymentStatusPending,
 		DeviceDeploymentStatusRebooting,
 		DeviceDeploymentStatusInstalling,
 		DeviceDeploymentStatusDownloading,
+		DeviceDeploymentStatusAlreadyInst,
+		DeviceDeploymentStatusAborted,
 	}
 
 	s := make(Stats)
@@ -106,8 +114,26 @@ func NewDeviceDeploymentStats() Stats {
 
 func IsDeviceDeploymentStatusFinished(status string) bool {
 	if status == DeviceDeploymentStatusFailure || status == DeviceDeploymentStatusSuccess ||
-		status == DeviceDeploymentStatusNoImage {
+		status == DeviceDeploymentStatusNoArtifact || status == DeviceDeploymentStatusAlreadyInst ||
+		status == DeviceDeploymentStatusAborted {
 		return true
 	}
 	return false
+}
+
+// ActiveDeploymentStatuses lists statuses that represent deployment in active state (not finished).
+func ActiveDeploymentStatuses() []string {
+	return []string{
+		DeviceDeploymentStatusPending,
+		DeviceDeploymentStatusDownloading,
+		DeviceDeploymentStatusInstalling,
+		DeviceDeploymentStatusRebooting,
+	}
+}
+
+// InstalledDeviceDeployment describes a deployment currently installed on the
+// device, usually reported by a device
+type InstalledDeviceDeployment struct {
+	Artifact   string
+	DeviceType string
 }

@@ -19,12 +19,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
 	"os"
+	"path"
 	"testing"
 	"time"
+
+	"github.com/Sirupsen/logrus"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
@@ -34,6 +38,11 @@ import (
 	"github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/mendersoftware/deployments/utils/pointers"
 	h "github.com/mendersoftware/deployments/utils/testing"
+	"github.com/mendersoftware/go-lib-micro/requestid"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
+	"github.com/mendersoftware/mender-artifact/parser"
+	atutils "github.com/mendersoftware/mender-artifact/test_utils"
+	"github.com/mendersoftware/mender-artifact/writer"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -78,11 +87,14 @@ func (fim *fakeImageModeler) DeleteImage(imageID string) error {
 	return fim.deleteError
 }
 
-func (fim *fakeImageModeler) CreateImage(imageFile *os.File, constructorData *images.SoftwareImageConstructor) (string, error) {
+func (fim *fakeImageModeler) CreateImage(
+	imageFile *os.File,
+	metaConstructor *images.SoftwareImageMetaConstructor,
+	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
 	return "", nil
 }
 
-func (fim *fakeImageModeler) EditImage(id string, constructorData *images.SoftwareImageConstructor) (bool, error) {
+func (fim *fakeImageModeler) EditImage(id string, metaConstructor *images.SoftwareImageMetaConstructor) (bool, error) {
 	return fim.editImage, fim.editError
 }
 
@@ -91,6 +103,12 @@ type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.
 func setUpRestTest(route string, routeType routerTypeHandler, handler func(w rest.ResponseWriter, r *rest.Request)) *rest.Api {
 	router, _ := rest.MakeRouter(routeType(route, handler))
 	api := rest.NewApi()
+	api.Use(
+		&requestlog.RequestLogMiddleware{
+			BaseLogger: &logrus.Logger{Out: ioutil.Discard},
+		},
+		&requestid.RequestIdMiddleware{},
+	)
 	api.SetApp(router)
 
 	return api
@@ -120,8 +138,9 @@ func TestControllerGetImage(t *testing.T) {
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	// have image, get OK
-	image := images.NewSoftwareImageConstructor()
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
+	imageMeta := images.NewSoftwareImageMetaConstructor()
+	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 	imagesModel.getImageError = nil
 	imagesModel.getImage = constructorImage
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -149,8 +168,9 @@ func TestControllerListImages(t *testing.T) {
 
 	//getting list OK
 	imagesModel.listImagesError = nil
-	image := images.NewSoftwareImageConstructor()
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
+	imageMeta := images.NewSoftwareImageMetaConstructor()
+	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 	imagesModel.imagesList = append(imagesModel.imagesList, constructorImage)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images", nil))
@@ -164,8 +184,9 @@ func TestControllerDeleteImage(t *testing.T) {
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Delete, controller.DeleteImage)
 
-	image := images.NewSoftwareImageConstructor()
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
+	imageMeta := images.NewSoftwareImageMetaConstructor()
+	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 
 	// wrong id
 	recorded := test.RunRequest(t, api.MakeHandler(),
@@ -229,16 +250,27 @@ func TestControllerEditImage(t *testing.T) {
 
 	// correct id; correct payload; have image
 	imagesModel.editImage = true
-	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
-			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
+
+	req := test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
+		map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"})
+	req.Header.Add(requestid.RequestIdHeader, "test")
+	recorded = test.RunRequest(t, api.MakeHandler(), req)
 	recorded.CodeIs(http.StatusNoContent)
 	recorded.BodyIs("")
 }
 
-// TODO test mulitpart upload
 func TestSoftwareImagesControllerNewImage(t *testing.T) {
 	t.Parallel()
+
+	// create temp dir
+	td, _ := ioutil.TempDir("", "mender-install-update-")
+	defer os.RemoveAll(td)
+	// make a fake update artifact
+	upath, err := makeFakeUpdate(t, path.Join(td, "update-root"), true)
+	// open archive file
+	imageBody, err := ioutil.ReadFile(upath)
+	assert.NoError(t, err)
+	assert.NotNil(t, imageBody)
 
 	testCases := []struct {
 		h.JSONResponseParams
@@ -261,26 +293,26 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain firmware part: EOF")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain artifact: EOF")),
 			},
 		},
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName: "firmware",
+					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 				},
 			},
 			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating metadata: YoctoId: non zero value required;Name: non zero value required;DeviceType: non zero value required;")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating metadata: Name: non zero value required;")),
 			},
 		},
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName: "firmware",
+					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   []byte{0},
 				},
@@ -288,46 +320,46 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating metadata: YoctoId: non zero value required;Name: non zero value required;DeviceType: non zero value required;")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating metadata: Name: non zero value required;")),
 			},
 		},
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName: "name",
+					FieldName:  "name",
 					FieldValue: "n",
 				},
 				Part{
-					FieldName: "device_type",
+					FieldName:  "device_type",
 					FieldValue: "dt",
 				},
 				Part{
-					FieldName: "yocto_id",
+					FieldName:  "yocto_id",
 					FieldValue: "yi",
 				},
 			},
 			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain firmware part: EOF")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Request does not contain artifact: EOF")),
 			},
 		},
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName: "name",
+					FieldName:  "name",
 					FieldValue: "n",
 				},
 				Part{
-					FieldName: "device_type",
+					FieldName:  "device_type",
 					FieldValue: "dt",
 				},
 				Part{
-					FieldName: "yocto_id",
+					FieldName:  "yocto_id",
 					FieldValue: "yi",
 				},
 				Part{
-					FieldName: "firmware",
+					FieldName:  "artifact",
 					FieldValue: "ff",
 				},
 			},
@@ -340,49 +372,80 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName: "name",
+					FieldName:  "name",
 					FieldValue: "n",
 				},
 				Part{
-					FieldName: "device_type",
+					FieldName:  "device_type",
 					FieldValue: "dt",
 				},
 				Part{
-					FieldName: "yocto_id",
+					FieldName:  "yocto_id",
 					FieldValue: "yi",
 				},
 				Part{
-					FieldName: "firmware",
+					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   []byte{0},
 				},
 			},
 			InputContentType: "multipart/form-data",
 			InputModelID:     "1234",
-			InputModelError:  errors.New("create image error"),
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("create image error")),
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("reading artifact error: reader: error reading archive: unexpected EOF")),
 			},
 		},
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName: "name",
+					FieldName:  "name",
 					FieldValue: "n",
 				},
 				Part{
-					FieldName: "device_type",
-					FieldValue: "dt",
-				},
-				Part{
-					FieldName: "yocto_id",
-					FieldValue: "yi",
-				},
-				Part{
-					FieldName: "firmware",
+					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
-					ImageData:   []byte{0},
+					ImageData:   imageBody,
+				},
+			},
+			InputContentType: "multipart/mixed",
+			InputModelID:     "1234",
+			InputModelError:  errors.New("create image error"),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					FieldName:  "name",
+					FieldValue: "n",
+				},
+				Part{
+					FieldName:   "artifact",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			InputContentType: "multipart/form-data",
+			InputModelID:     "1234",
+			InputModelError:  ErrModelArtifactNotUnique,
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusUnprocessableEntity,
+				OutputBodyObject: h.ErrorToErrStruct(ErrModelArtifactNotUnique),
+			},
+		},
+		{
+			InputBodyObject: []Part{
+				Part{
+					FieldName:  "name",
+					FieldValue: "n",
+				},
+				Part{
+					FieldName:   "artifact",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
 				},
 			},
 			InputContentType: "multipart/form-data",
@@ -399,19 +462,18 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 
 		model := new(mocks.ImagesModel)
 
-		model.On("CreateImage", mock.AnythingOfType("*os.File"), mock.AnythingOfType("*images.SoftwareImageConstructor")).
+		model.On(
+			"CreateImage",
+			mock.AnythingOfType("*os.File"),
+			mock.AnythingOfType("*images.SoftwareImageMetaConstructor"),
+			mock.AnythingOfType("*images.SoftwareImageMetaArtifactConstructor")).
 			Return(testCase.InputModelID, testCase.InputModelError)
 
-		router, err := rest.MakeRouter(
-			rest.Post("/r",
-				NewSoftwareImagesController(model, new(view.RESTView)).NewImage))
-		assert.NoError(t, err)
+		api := setUpRestTest("/r", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).NewImage)
 
-		api := rest.NewApi()
-		api.SetApp(router)
-
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject))
+		req := MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}
@@ -427,7 +489,7 @@ func MakeMultipartRequest(method string, urlStr string, contentType string, payl
 		if part.ContentType == "" && part.ImageData == nil {
 			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"")
 		} else {
-			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"; filename=\"firmware-213.tar.gz\"")
+			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"; filename=\"artifact-213.tar.gz\"")
 		}
 		part_writer, err := body_writer.CreatePart(mh)
 		if nil != err {
@@ -452,6 +514,38 @@ func MakeMultipartRequest(method string, urlStr string, contentType string, payl
 	}
 
 	return r
+}
+
+func makeFakeUpdate(t *testing.T, root string, valid bool) (string, error) {
+
+	var dirStructOK = []atutils.TestDirEntry{
+		{Path: "0000", IsDir: true},
+		{Path: "0000/data", IsDir: true},
+		{Path: "0000/data/update.ext4", Content: []byte("first update"), IsDir: false},
+		{Path: "0000/type-info", Content: []byte(`{"type": "rootfs-image"}`), IsDir: false},
+		{Path: "0000/meta-data", Content: []byte(`{"DeviceType": "vexpress-qemu", "ImageID": "core-image-minimal-201608110900"}`), IsDir: false},
+		{Path: "0000/signatures", IsDir: true},
+		{Path: "0000/signatures/update.sig", IsDir: false},
+		{Path: "0000/scripts", IsDir: true},
+		{Path: "0000/scripts/pre", IsDir: true},
+		{Path: "0000/scripts/pre/0000_install.sh", Content: []byte("run me!"), IsDir: false},
+		{Path: "0000/scripts/post", IsDir: true},
+		{Path: "0000/scripts/check", IsDir: true},
+	}
+
+	err := atutils.MakeFakeUpdateDir(root, dirStructOK)
+	assert.NoError(t, err)
+
+	aw := awriter.NewWriter("mender", 1, []string{"vexpress"}, "mender-1.0")
+
+	rp := &parser.RootfsParser{}
+	aw.Register(rp)
+
+	upath := path.Join(root, "update.tar")
+	err = aw.Write(root, upath)
+	assert.NoError(t, err)
+
+	return upath, nil
 }
 
 func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
@@ -503,7 +597,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 			InputModelError:  errors.New("file service down"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`file service down`)),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`internal error`)),
 			},
 		},
 		{
@@ -511,7 +605,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 			InputModelError: errors.New("file service down"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`file service down`)),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`internal error`)),
 			},
 		},
 		// no file found
@@ -539,23 +633,18 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 		model.On("DownloadLink", testCase.InputID, mock.AnythingOfType("time.Duration")).
 			Return(testCase.InputModelLink, testCase.InputModelError)
 
-		router, err := rest.MakeRouter(
-			rest.Post("/:id",
-				NewSoftwareImagesController(model, new(view.RESTView)).DownloadLink))
-		assert.NoError(t, err)
-
-		api := rest.NewApi()
-		api.SetApp(router)
+		api := setUpRestTest("/:id", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).DownloadLink)
 
 		var expire string
 		if testCase.InputParamExpire != nil {
 			expire = "?expire=" + *testCase.InputParamExpire
 		}
 
-		recorded := test.RunRequest(t, api.MakeHandler(),
-			test.MakeSimpleRequest("POST",
-				fmt.Sprintf("http://localhost/%s%s", testCase.InputID, expire),
-				nil))
+		req := test.MakeSimpleRequest("POST",
+			fmt.Sprintf("http://localhost/%s%s", testCase.InputID, expire),
+			nil)
+		req.Header.Add(requestid.RequestIdHeader, "test")
+		recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 	}

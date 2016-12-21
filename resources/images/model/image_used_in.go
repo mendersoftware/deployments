@@ -14,7 +14,7 @@
 
 package model
 
-// Allows to check of image is used in different deplyoment status groups
+// Allows to check of image is used in different deployment status groups
 type ImageUsedIn interface {
 	ImageUsedInActiveDeployment(imageId string) (bool, error)
 	ImageUsedInDeployment(imageId string) (bool, error)

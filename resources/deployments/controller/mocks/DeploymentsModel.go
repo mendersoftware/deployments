@@ -15,6 +15,7 @@
 package mocks
 
 import (
+	"context"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/stretchr/testify/mock"
 )
@@ -25,19 +26,19 @@ type DeploymentsModel struct {
 }
 
 // CreateDeployment provides a mock function with given fields: constructor
-func (_m *DeploymentsModel) CreateDeployment(constructor *deployments.DeploymentConstructor) (string, error) {
+func (_m *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *deployments.DeploymentConstructor) (string, error) {
 	ret := _m.Called(constructor)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(*deployments.DeploymentConstructor) string); ok {
-		r0 = rf(constructor)
+	if rf, ok := ret.Get(0).(func(context.Context, *deployments.DeploymentConstructor) string); ok {
+		r0 = rf(ctx, constructor)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*deployments.DeploymentConstructor) error); ok {
-		r1 = rf(constructor)
+	if rf, ok := ret.Get(1).(func(context.Context, *deployments.DeploymentConstructor) error); ok {
+		r1 = rf(ctx, constructor)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -69,8 +70,10 @@ func (_m *DeploymentsModel) GetDeployment(deploymentID string) (*deployments.Dep
 }
 
 // GetDeploymentForDevice provides a mock function with given fields: deviceID
-func (_m *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error) {
-	ret := _m.Called(deviceID)
+func (_m *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
+	installed deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error) {
+
+	ret := _m.Called(deviceID, installed)
 
 	var r0 *deployments.DeploymentInstructions
 	if rf, ok := ret.Get(0).(func(string) *deployments.DeploymentInstructions); ok {
@@ -131,4 +134,14 @@ func (_m *DeploymentsModel) GetDeviceDeploymentLog(deviceID, deploymentID string
 
 	ret := _m.Called(deviceID, deploymentID)
 	return ret.Get(0).(*deployments.DeploymentLog), ret.Error(1)
+}
+
+func (_m *DeploymentsModel) AbortDeployment(deploymentID string) error {
+	ret := _m.Called(deploymentID)
+	return ret.Error(0)
+}
+
+func (_m *DeploymentsModel) IsDeploymentFinished(deploymentID string) (bool, error) {
+	ret := _m.Called(deploymentID)
+	return ret.Bool(0), ret.Error(1)
 }

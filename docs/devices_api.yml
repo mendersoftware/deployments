@@ -1,113 +1,104 @@
 swagger: '2.0'
 info:
-  title: Deployments Service Device API
+  title: Deployments
   version: '0.1'
   description: |
-    ### Device endpoints and Authorization
+    An API for device firmware deployments. Intended for use by devices.
 
-    Incoming requests must set `Authorization` header and include device token
-    obtained from the API. The header shall look like this:
+    Devices can get new updates and send information about current deployment status.
 
-    ```
-    Authorization: Bearer <token>
-    # example
-    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ
-    ```
-host: 'localhost:8080'
+host: 'docker.mender.io:8080'
 basePath: '/api/devices/0.1/deployments'
+schemes:
+  - https
+
 responses:
   NotFoundError: # 404
-    description: Not Found
+    description: Not Found.
     schema:
-      $ref: "#/definitions/SimpleError"
+      $ref: "#/definitions/Error"
   InternalServerError: # 500
-    description: Internal Server Error
+    description: Internal Server Error.
     schema:
-      $ref: "#/definitions/SimpleError"
+      $ref: "#/definitions/Error"
   InvalidRequestError: # 400
-    description: Invalid Request
+    description: Invalid Request.
     schema:
-      $ref: "#/definitions/SimpleError"
+      $ref: "#/definitions/Error"
 
 paths:
-  '/device/update':
+  /device/deployments/next:
     get:
-      summary: List next update to be installed on the device
+      summary: Get a next update
+      description: |
+        Returns a next update to be installed on the device.
       parameters:
         - name: Authorization
           in: header
-          description: Device ID
           required: true
           type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the Device Authentication Service.
+        - name: artifact_name
+          in: query
+          required: false
+          type: string
+          description: currently installed artifact
+        - name: device_type
+          in: query
+          required: false
+          type: string
+          description: Device type of device
       produces:
         - application/json
       responses:
         200:
-          description: OK
+          description: Successful response.
           examples:
             application/json:
-              image:
-                uri: 'https://aws.my_update_bucket.com/yocto_image123'
-                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                id: f81d4fae-7dec-11d0-a765-00a0c91e6bf6
-                expire: 2016-03-11T13:03:17.063493443Z
-                yocto_id: core-image-full-cmdline-20160330201408
               id: w81s4fae-7dec-11d0-a765-00a0c91e6bf6
+              artifact:
+                artifact_name: my-app-0.1
+                source:
+                  uri: 'https://aws.my_update_bucket.com/image_123'
+                  expire: 2016-03-11T13:03:17.063493443Z
+                device_types_compatible:
+                  - rspi
+                  - rspi2
+                  - rspi0
           schema:
-            type: object
-            properties:
-              id:
-                type: string
-              image:
-                type: object
-                properties:
-                  uri:
-                    type: string
-                  checksum:
-                    type: string
-                  id:
-                    type: string
-                  expire:
-                    type: string
-                    format: date-time
-                  yocto_id:
-                    type: string
-                required:
-                  - uri
-                  - id
-                  - yocto_id
-            required:
-              - image
-              - id
+            $ref: "#/definitions/DeploymentInstructions"
         204:
-          description: No updates for device
+          description: No updates for device.
         404:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
 
-  '/device/deployments/{id}/status':
+  /device/deployments/{id}/status:
     put:
-      summary: Update device deployment status
+      summary: Update the device deployment status
       description: |
-        Update the status of a deployment on a particular device. Final status
+        Updates the status of a deployment on a particular device. Final status
         of the deployment is required to be set to indicate the success or failure
-        of the installation process. Reporting of intermediate steps such as installing,
-        downloading, rebooting is optional.
+        of the installation process. The status can not be changed when deployment
+        status is set to aborted. Reporting of intermediate steps such as
+        installing, downloading, rebooting is optional.
       parameters:
         - name: id
           in: path
-          description: Deployment identifier
+          description: Deployment identifier.
           required: true
           type: string
         - name: Authorization
           in: header
-          description: Device ID
           required: true
           type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the Device Authentication Service.
         - name: Status
           in: body
-          description: Deployment status
+          description: Deployment status.
           required: true
           schema:
             type: object
@@ -120,66 +111,51 @@ paths:
                   - rebooting
                   - success
                   - failure
+                  - already-installed
             required:
               - status
       produces:
         - application/json
       responses:
         204:
-          description: Status updated
+          description: Status updated successfully.
         400:
           $ref: "#/responses/InvalidRequestError"
         404:
           $ref: "#/responses/NotFoundError"
+        409:
+          description: Status already set to aborted.
         500:
           $ref: "#/responses/InternalServerError"
 
-  '/device/deployments/{id}/log':
+  /device/deployments/{id}/log:
     put:
-      summary: Upload device deployment log
+      summary: Upload the device deployment log
       description: |
-        Set deployment log. Messages are split by line in the payload.
+        Set the log of a selected deployment. Messages are split by line in the payload.
       parameters:
         - name: id
           in: path
-          description: Deployment identifier
+          description: Deployment identifier.
           required: true
           type: string
         - name: Authorization
           in: header
-          description: Device ID
           required: true
           type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the Device Authentication Service.
         - name: Log
           in: body
           description: Deployment log
           required: true
           schema:
-            type: object
-            properties:
-              messages:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    timestamp:
-                      type: string
-                      format: date-time
-                    level:
-                      type: string
-                    message:
-                      type: string
-                  required:
-                    - timestamp
-                    - level
-                    - message
-            required:
-              - messages
+            $ref: "#/definitions/DeploymentLog"
       produces:
         - application/json
       responses:
         204:
-          description: Deployment log uploaded
+          description: The deployment log uploaded successfully.
         400:
           $ref: "#/responses/InvalidRequestError"
         404:
@@ -188,10 +164,93 @@ paths:
           $ref: "#/responses/InternalServerError"
 
 definitions:
-  SimpleError:
-    description: Simple error descriptor
+  Error:
+    description: Error descriptor.
     type: object
     properties:
       error:
-        description: Description of error
+        description: Description of the error.
         type: string
+      request_id:
+        description: Request ID (same as in X-MEN-RequestID header).
+        type: string
+    example:
+      application/json:
+          error: "failed to decode device group data: JSON payload is empty"
+          request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+  DeploymentInstructions:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Deployment ID (device unique)
+      artifact:
+        type: object
+        properties:
+          source:
+            type: object
+            properties:
+              uri:
+                type: string
+                format: url
+                description: URL to fetch the artifact from
+              expire:
+                type: string
+                format: date-time
+                description: URL expiration time
+          device_types_compatible:
+            type: array
+            description: Compatible device types
+            items:
+              type: string
+          artifact_name:
+            type: string
+        required:
+          - source
+          - device_types_compatible
+          - artifact_name
+    required:
+      - id
+      - artifact
+    example:
+      application/json:
+        id: w81s4fae-7dec-11d0-a765-00a0c91e6bf6
+        artifact:
+          artifact_name: my-app-0.1
+          source:
+            uri: 'https://aws.my_update_bucket.com/image_123'
+            expire: 2016-03-11T13:03:17.063493443Z
+          device_types_compatible:
+            - rspi
+            - rspi2
+            - rspi0
+  DeploymentLog:
+    type: object
+    properties:
+      messages:
+        type: array
+        items:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            level:
+              type: string
+            message:
+              type: string
+          required:
+            - timestamp
+            - level
+            - message
+    required:
+      - messages
+    example:
+      application/json:
+        messages:
+          - timestamp: 2016-03-11T13:03:17.063493443Z
+            level: INFO
+            message: OK
+          - timestamp: 2016-03-11T13:03:18.023765782Z
+            level: DEBUG
+            message: successfully updated.

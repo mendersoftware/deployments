@@ -97,9 +97,7 @@ func NewDeploymentFromConstructor(constructor *DeploymentConstructor) *Deploymen
 
 	deployment := NewDeployment()
 	deployment.DeploymentConstructor = constructor
-	if constructor != nil && constructor.Devices != nil {
-		deployment.Stats[DeviceDeploymentStatusPending] = len(constructor.Devices)
-	}
+
 	return deployment
 }
 
@@ -146,6 +144,15 @@ func (d *Deployment) IsInProgress() bool {
 	return false
 }
 
+func (d *Deployment) IsAborted() bool {
+	// check if there are pending devices
+	if d.Stats[DeviceDeploymentStatusAborted] != 0 {
+		return true
+	}
+
+	return false
+}
+
 func (d *Deployment) IsFinished() bool {
 	// check if there are downloading/rebooting/installing devices
 	if d.IsInProgress() {
@@ -173,7 +180,9 @@ func (d *Deployment) IsPending() bool {
 }
 
 func (d *Deployment) GetStatus() string {
-	if d.IsInProgress() {
+	if d.IsAborted() {
+		return "aborted"
+	} else if d.IsInProgress() {
 		return "inprogress"
 	} else if d.IsFinished() {
 		return "finished"
@@ -189,6 +198,7 @@ const (
 	StatusQueryPending
 	StatusQueryInProgress
 	StatusQueryFinished
+	StatusQueryAborted
 )
 
 // Deployment lookup query

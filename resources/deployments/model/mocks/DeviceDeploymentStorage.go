@@ -90,6 +90,12 @@ func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(deviceID string,
 	return ret.Get(0).(string), ret.Error(1)
 }
 
+func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentLogAvailability(deviceID string, deploymentID string, log bool) error {
+	ret := _m.Called(deviceID, deploymentID, log)
+
+	return ret.Error(0)
+}
+
 func (_m *DeviceDeploymentStorage) AggregateDeviceDeploymentByStatus(deploymentID string) (deployments.Stats, error) {
 	ret := _m.Called(deploymentID)
 
@@ -106,4 +112,16 @@ func (_m *DeviceDeploymentStorage) HasDeploymentForDevice(deploymentID string, d
 	ret := _m.Called(deploymentID, deviceID)
 
 	return ret.Bool(0), ret.Error(1)
+}
+
+func (_m *DeviceDeploymentStorage) GetDeviceDeploymentStatus(deploymentID string, deviceID string) (string, error) {
+	ret := _m.Called(deploymentID, deviceID)
+
+	return ret.Get(0).(string), ret.Error(1)
+}
+
+func (_m *DeviceDeploymentStorage) AbortDeviceDeployments(deploymentID string) error {
+	ret := _m.Called(deploymentID)
+
+	return ret.Error(0)
 }

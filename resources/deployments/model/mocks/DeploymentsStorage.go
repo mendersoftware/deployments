@@ -89,8 +89,36 @@ func (_m *DeploymentsStorage) UpdateStats(id string, state_from, state_to string
 	return ret.Error(0)
 }
 
+func (_m *DeploymentsStorage) UpdateStatsAndFinishDeployment(id string, stats deployments.Stats) error {
+	ret := _m.Called(id, stats)
+
+	return ret.Error(0)
+}
+
 func (_m *DeploymentsStorage) Finish(id string, when time.Time) error {
 	ret := _m.Called(id, when)
 
 	return ret.Error(0)
+}
+
+func (_m *DeploymentsStorage) FindUnfinishedByID(id string) (*deployments.Deployment, error) {
+	ret := _m.Called(id)
+
+	var r0 *deployments.Deployment
+	if rf, ok := ret.Get(0).(func(string) *deployments.Deployment); ok {
+		r0 = rf(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*deployments.Deployment)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }

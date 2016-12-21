@@ -23,11 +23,12 @@ import (
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/controller"
 )
 
 func TestCreateImageEmptyConstructor(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
-	if _, err := iModel.CreateImage(nil, nil); err != ErrModelMissingInputMetadata {
+	if _, err := iModel.CreateImage(nil, nil, nil); err != controller.ErrModelMissingInputMetadata {
 		t.FailNow()
 	}
 }
@@ -35,24 +36,27 @@ func TestCreateImageEmptyConstructor(t *testing.T) {
 func TestCreateImageMissingFields(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
 
-	image := images.NewSoftwareImageConstructor()
-	if _, err := iModel.CreateImage(nil, image); err == nil {
+	imageMeta := images.NewSoftwareImageMetaConstructor()
+	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+	if _, err := iModel.CreateImage(nil, imageMeta, imageMetaArtifact); err == nil {
 		t.FailNow()
 	}
 }
 
 type FakeImageStorage struct {
-	insertError      error
-	findByIdError    error
-	findByIdImage    *images.SoftwareImage
-	deleteError      error
-	findAllImages    []*images.SoftwareImage
-	findAllError     error
-	imageExists      bool
-	imageEsistsError error
-	update           bool
-	updateError      error
-	putFileError     error
+	insertError           error
+	findByIdError         error
+	findByIdImage         *images.SoftwareImage
+	deleteError           error
+	findAllImages         []*images.SoftwareImage
+	findAllError          error
+	imageExists           bool
+	imageEsistsError      error
+	update                bool
+	updateError           error
+	putFileError          error
+	isArtifactUnique      bool
+	isArtifactUniqueError error
 }
 
 func (fis *FakeImageStorage) Exists(id string) (bool, error) {
@@ -79,20 +83,35 @@ func (fis *FakeImageStorage) FindAll() ([]*images.SoftwareImage, error) {
 	return fis.findAllImages, fis.findAllError
 }
 
-func createValidImage() *images.SoftwareImageConstructor {
-	image := images.NewSoftwareImageConstructor()
+func (fis *FakeImageStorage) IsArtifactUnique(artifactName string, deviceTypesCompatible []string) (bool, error) {
+	return fis.isArtifactUnique, fis.isArtifactUniqueError
+}
+
+func createValidImageMeta() *images.SoftwareImageMetaConstructor {
+	imageMeta := images.NewSoftwareImageMetaConstructor()
 	required := "required"
 
-	image.YoctoId = &required
-	image.Name = &required
-	image.DeviceType = &required
+	imageMeta.Name = required
 
-	return image
+	return imageMeta
+}
+
+func createValidImageMetaArtifact() *images.SoftwareImageMetaArtifactConstructor {
+	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+	required := "required"
+
+	imageMetaArtifact.DeviceTypesCompatible = []string{"required"}
+	imageMetaArtifact.ArtifactName = required
+	imageMetaArtifact.Info = &images.ArtifactInfo{
+		Format:  required,
+		Version: 1,
+	}
+	return imageMetaArtifact
 }
 
 func createValidImageFile() *os.File {
 	someData := []byte{115, 111, 109, 101, 10, 11}
-	tmpfile, _ := ioutil.TempFile("", "firmware-")
+	tmpfile, _ := ioutil.TempFile("", "artifact-")
 	tmpfile.Write(someData)
 	return tmpfile
 }
@@ -102,9 +121,10 @@ func TestCreateImageInsertError(t *testing.T) {
 	fakeIS.insertError = errors.New("insert error")
 
 	iModel := NewImagesModel(nil, nil, fakeIS)
-	image := createValidImage()
+	imageMeta := createValidImageMeta()
+	imageMetaArtifact := createValidImageMetaArtifact()
 
-	if _, err := iModel.CreateImage(nil, image); err == nil {
+	if _, err := iModel.CreateImage(nil, imageMeta, imageMetaArtifact); err == nil {
 		t.FailNow()
 	}
 }
@@ -117,12 +137,13 @@ func TestCreateImagePutFileError(t *testing.T) {
 
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
-	image := createValidImage()
+	imageMeta := createValidImageMeta()
+	imageMetaArtifact := createValidImageMetaArtifact()
 	file := createValidImageFile()
 	defer os.Remove(file.Name())
 	defer file.Close()
 
-	if _, err := iModel.CreateImage(file, image); err == nil {
+	if _, err := iModel.CreateImage(file, imageMeta, imageMetaArtifact); err == nil {
 		t.FailNow()
 	}
 }
@@ -130,16 +151,18 @@ func TestCreateImagePutFileError(t *testing.T) {
 func TestCreateImageCreateOK(t *testing.T) {
 	fakeIS := new(FakeImageStorage)
 	fakeIS.insertError = nil
+	fakeIS.isArtifactUnique = true
 	fakeFS := new(FakeFileStorage)
 
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
-	image := createValidImage()
+	imageMeta := createValidImageMeta()
+	imageMetaArtifact := createValidImageMetaArtifact()
 	file := createValidImageFile()
 	defer os.Remove(file.Name())
 	defer file.Close()
 
-	if _, err := iModel.CreateImage(file, image); err != nil {
+	if _, err := iModel.CreateImage(file, imageMeta, imageMetaArtifact); err != nil {
 		t.FailNow()
 	}
 }
@@ -193,17 +216,18 @@ func (ffs *FakeFileStorage) PutRequest(objectId string, duration time.Duration) 
 	return ffs.putReq, ffs.putError
 }
 
-func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration) (*images.Link, error) {
+func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration, responseContentType string) (*images.Link, error) {
 	return ffs.getReq, ffs.getError
 }
 
-func (fis *FakeFileStorage) PutFile(id string, img *os.File) error {
+func (fis *FakeFileStorage) PutFile(id string, img *os.File, contentType string) error {
 	return fis.putFileError
 }
 
 func TestGetImageOK(t *testing.T) {
-	image := createValidImage()
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
+	imageMeta := createValidImageMeta()
+	imageMetaArtifact := createValidImageMetaArtifact()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -234,8 +258,9 @@ func (fus *FakeUseChecker) ImageUsedInDeployment(imageId string) (bool, error) {
 }
 
 func TestDeleteImage(t *testing.T) {
-	image := createValidImage()
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
+	imageMeta := createValidImageMeta()
+	imageMetaArtifact := createValidImageMetaArtifact()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 
 	fakeFS := new(FakeFileStorage)
 	fakeChecker := new(FakeUseChecker)
@@ -253,7 +278,7 @@ func TestDeleteImage(t *testing.T) {
 
 	fakeChecker.usedInActiveDeploymentsErr = nil
 	fakeChecker.isUsedInActiveDeployment = true
-	if err := iModel.DeleteImage(""); err != ErrModelImageInActiveDeployment {
+	if err := iModel.DeleteImage(""); err != controller.ErrModelImageInActiveDeployment {
 		t.FailNow()
 	}
 
@@ -306,8 +331,9 @@ func TestListImages(t *testing.T) {
 	}
 
 	//have some valid image
-	image := createValidImage()
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
+	imageMeta := createValidImageMeta()
+	imageMetaArtifact := createValidImageMetaArtifact()
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -319,7 +345,8 @@ func TestListImages(t *testing.T) {
 }
 
 func TestEditImage(t *testing.T) {
-	image := createValidImage()
+	imageMeta := createValidImageMeta()
+	imageMetaArtifact := createValidImageMetaArtifact()
 
 	fakeChecker := new(FakeUseChecker)
 	fakeIS := new(FakeImageStorage)
@@ -327,42 +354,42 @@ func TestEditImage(t *testing.T) {
 
 	// error checking if image is used in deployments
 	fakeChecker.usedInDeploymentsErr = errors.New("error")
-	if _, err := iModel.EditImage("", image); err == nil {
+	if _, err := iModel.EditImage("", imageMeta); err == nil {
 		t.FailNow()
 	}
 
 	// image used in deployments
 	fakeChecker.usedInDeploymentsErr = nil
 	fakeChecker.isUsedInDeployment = true
-	if _, err := iModel.EditImage("", image); err != ErrModelImageUsedInAnyDeployment {
+	if _, err := iModel.EditImage("", imageMeta); err != controller.ErrModelImageUsedInAnyDeployment {
 		t.FailNow()
 	}
 
 	// not used in deployments; finding error
 	fakeChecker.isUsedInDeployment = false
 	fakeIS.findByIdError = errors.New("error")
-	if _, err := iModel.EditImage("", image); err == nil {
+	if _, err := iModel.EditImage("", imageMeta); err == nil {
 		t.FailNow()
 	}
 
 	// not used in deployments; cannot find image
 	fakeIS.findByIdError = nil
 	fakeIS.findByIdImage = nil
-	if image, err := iModel.EditImage("", image); err != nil || image == true {
+	if imageMeta, err := iModel.EditImage("", imageMeta); err != nil || imageMeta == true {
 		t.FailNow()
 	}
 
 	// image does not exists
-	constructorImage := images.NewSoftwareImageFromConstructor(image)
+	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
 	fakeIS.findByIdImage = constructorImage
 	fakeIS.updateError = errors.New("error")
-	if _, err := iModel.EditImage("", image); err == nil {
+	if _, err := iModel.EditImage("", imageMeta); err == nil {
 		t.FailNow()
 	}
 
 	// update OK
 	fakeIS.updateError = nil
-	if image, err := iModel.EditImage("", image); err != nil || !image {
+	if imageMeta, err := iModel.EditImage("", imageMeta); err != nil || !imageMeta {
 		t.FailNow()
 	}
 }

@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -30,8 +31,9 @@ import (
 )
 
 const (
-	ExpireMaxLimit = 7 * 24 * time.Hour
-	ExpireMinLimit = 1 * time.Minute
+	ExpireMaxLimit                 = 7 * 24 * time.Hour
+	ExpireMinLimit                 = 1 * time.Minute
+	ErrCodeBucketAlreadyOwnedByYou = "BucketAlreadyOwnedByYou"
 )
 
 // SimpleStorageService - AWS S3 client.
@@ -44,7 +46,7 @@ type SimpleStorageService struct {
 
 // NewSimpleStorageServiceStatic create new S3 client model.
 // AWS authentication keys are automatically reloaded from env variables.
-func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string) *SimpleStorageService {
+func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string) (*SimpleStorageService, error) {
 
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
@@ -54,25 +56,57 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 		config = config.WithDisableSSL(sslDisabled).WithEndpoint(uri)
 	}
 
+	config.S3ForcePathStyle = aws.Bool(true)
 	sess := session.New(config)
 
-	return &SimpleStorageService{
-		client: s3.New(sess),
-		bucket: bucket,
+	client := s3.New(sess)
+
+	// minio requires explicit bucket creation
+	cparams := &s3.CreateBucketInput{
+		Bucket: aws.String(bucket), // Required
 	}
+
+	_, err := client.CreateBucket(cparams)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
+				return nil, err
+			}
+		}
+	}
+
+	return &SimpleStorageService{
+		client: client,
+		bucket: bucket,
+	}, nil
 }
 
 // NewSimpleStorageServiceDefaults create new S3 client model.
 // Use default authentication provides which looks at env variables,
 // Aws profile file and ec2 iam role
-func NewSimpleStorageServiceDefaults(bucket, region string) *SimpleStorageService {
+func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageService, error) {
 
 	sess := session.New(aws.NewConfig().WithRegion(region))
+	client := s3.New(sess)
+
+	// minio requires explicit bucket creation
+	cparams := &s3.CreateBucketInput{
+		Bucket: aws.String(bucket), // Required
+	}
+
+	_, err := client.CreateBucket(cparams)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
+				return nil, err
+			}
+		}
+	}
 
 	return &SimpleStorageService{
-		client: s3.New(sess),
+		client: client,
 		bucket: bucket,
-	}
+	}, nil
 }
 
 // Delete removes delected file from storage.
@@ -129,21 +163,20 @@ func (s *SimpleStorageService) Exists(objectID string) (bool, error) {
 }
 
 // Puts object into AWS S3
-func (s *SimpleStorageService) PutFile(objectID string, image *os.File) error {
+func (s *SimpleStorageService) PutFile(objectID string, image *os.File, contentType string) error {
 
-	fi, err := image.Stat()
-	if err != nil {
-		return err
-	}
 	params := &s3.PutObjectInput{
-		Body:          image,
-		Bucket:        aws.String(s.bucket),
-		Key:           aws.String(objectID),
-		ContentLength: aws.Int64(fi.Size()),
+		Body:   image,
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(objectID),
+	}
+
+	if contentType != "" {
+		params.ContentType = &contentType
 	}
 
 	// Ignore out object?
-	_, err = s.client.PutObject(params)
+	_, err := s.client.PutObject(params)
 	return err
 }
 
@@ -172,7 +205,7 @@ func (s *SimpleStorageService) PutRequest(objectID string, duration time.Duratio
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
-func (s *SimpleStorageService) GetRequest(objectID string, duration time.Duration) (*images.Link, error) {
+func (s *SimpleStorageService) GetRequest(objectID string, duration time.Duration, responseContentType string) (*images.Link, error) {
 
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
@@ -181,6 +214,10 @@ func (s *SimpleStorageService) GetRequest(objectID string, duration time.Duratio
 	params := &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(objectID),
+	}
+
+	if responseContentType != "" {
+		params.ResponseContentType = &responseContentType
 	}
 
 	// Ignore out object

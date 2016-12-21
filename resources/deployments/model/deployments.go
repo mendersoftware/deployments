@@ -15,6 +15,7 @@
 package model
 
 import (
+	"context"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
@@ -33,29 +34,34 @@ type DeploymentsModel struct {
 	deviceDeploymentLogsStorage DeviceDeploymentLogsStorage
 	imageLinker                 GetRequester
 	deviceDeploymentGenerator   Generator
+	imageContentType            string
 }
 
-func NewDeploymentModel(
-	deploymentsStorage DeploymentsStorage,
-	deviceDeploymentGenerator Generator,
-	deviceDeploymentsStorage DeviceDeploymentStorage,
-	deviceDeploymentLogsStorage DeviceDeploymentLogsStorage,
-	imageLinker GetRequester,
-) *DeploymentsModel {
+type DeploymentsModelConfig struct {
+	DeploymentsStorage          DeploymentsStorage
+	DeviceDeploymentsStorage    DeviceDeploymentStorage
+	DeviceDeploymentLogsStorage DeviceDeploymentLogsStorage
+	ImageLinker                 GetRequester
+	DeviceDeploymentGenerator   Generator
+	ImageContentType            string
+}
+
+func NewDeploymentModel(config DeploymentsModelConfig) *DeploymentsModel {
 	return &DeploymentsModel{
-		deploymentsStorage:          deploymentsStorage,
-		deviceDeploymentsStorage:    deviceDeploymentsStorage,
-		deviceDeploymentLogsStorage: deviceDeploymentLogsStorage,
-		imageLinker:                 imageLinker,
-		deviceDeploymentGenerator:   deviceDeploymentGenerator,
+		deploymentsStorage:          config.DeploymentsStorage,
+		deviceDeploymentsStorage:    config.DeviceDeploymentsStorage,
+		deviceDeploymentLogsStorage: config.DeviceDeploymentLogsStorage,
+		imageLinker:                 config.ImageLinker,
+		deviceDeploymentGenerator:   config.DeviceDeploymentGenerator,
+		imageContentType:            config.ImageContentType,
 	}
 }
 
 // CreateDeployment precomputes new deplyomet and schedules it for devices.
 // Automatically assigns matching images to target device types.
-// In case no image is available for target device, noimage status is set.
+// In case no image is available for target device, noartifact status is set.
 // TODO: check if specified devices are bootstrapped (when have a way to do this)
-func (d *DeploymentsModel) CreateDeployment(constructor *deployments.DeploymentConstructor) (string, error) {
+func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *deployments.DeploymentConstructor) (string, error) {
 
 	if constructor == nil {
 		return "", controller.ErrModelMissingInput
@@ -68,19 +74,29 @@ func (d *DeploymentsModel) CreateDeployment(constructor *deployments.DeploymentC
 	deployment := deployments.NewDeploymentFromConstructor(constructor)
 
 	// Generate deployment for each specified device.
+	unassigned := 0
 	deviceDeployments := make([]*deployments.DeviceDeployment, 0, len(constructor.Devices))
 	for _, id := range constructor.Devices {
 
-		deviceDeployment, err := d.deviceDeploymentGenerator.Generate(id, deployment)
+		deviceDeployment, err := d.deviceDeploymentGenerator.Generate(ctx, id, deployment)
 		if err != nil {
-			return "", errors.Wrap(err, "Prepring deplyoment for device")
+			return "", errors.Wrap(err, "Preparing deployment for device")
+		}
+
+		// // Check how many devices are not going to be deployed
+		if deviceDeployment.Status != nil && *(deviceDeployment.Status) == deployments.DeviceDeploymentStatusNoArtifact {
+			unassigned++
 		}
 
 		deviceDeployments = append(deviceDeployments, deviceDeployment)
 	}
 
+	// Set initial statistics cache values
+	deployment.Stats[deployments.DeviceDeploymentStatusNoArtifact] = unassigned
+	deployment.Stats[deployments.DeviceDeploymentStatusPending] = len(constructor.Devices) - unassigned
+
 	if err := d.deploymentsStorage.Insert(deployment); err != nil {
-		return "", errors.Wrap(err, "Storing deplyoment data")
+		return "", errors.Wrap(err, "Storing deployment data")
 	}
 
 	if err := d.deviceDeploymentsStorage.InsertMany(deviceDeployments...); err != nil {
@@ -94,7 +110,21 @@ func (d *DeploymentsModel) CreateDeployment(constructor *deployments.DeploymentC
 	return *deployment.Id, nil
 }
 
-// GetDeployment fetches deplyoment by ID
+// IsDeploymentFinished checks if there is unfinished deployment with given ID
+func (d *DeploymentsModel) IsDeploymentFinished(deploymentID string) (bool, error) {
+
+	deployment, err := d.deploymentsStorage.FindUnfinishedByID(deploymentID)
+	if err != nil {
+		return false, errors.Wrap(err, "Searching for unfinished deployment by ID")
+	}
+	if deployment == nil {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// GetDeployment fetches deployment by ID
 func (d *DeploymentsModel) GetDeployment(deploymentID string) (*deployments.Deployment, error) {
 
 	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
@@ -109,9 +139,9 @@ func (d *DeploymentsModel) GetDeployment(deploymentID string) (*deployments.Depl
 // Image is considered to be in use if it's participating in at lest one non success/error deployment.
 func (d *DeploymentsModel) ImageUsedInActiveDeployment(imageID string) (bool, error) {
 
-	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageID, d.ActiveDeploymentStatuses()...)
+	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageID, deployments.ActiveDeploymentStatuses()...)
 	if err != nil {
-		return false, errors.Wrap(err, "Checking if image is used by active deplyoment")
+		return false, errors.Wrap(err, "Checking if image is used by active deployment")
 	}
 
 	return found, nil
@@ -129,11 +159,12 @@ func (d *DeploymentsModel) ImageUsedInDeployment(imageID string) (bool, error) {
 	return found, nil
 }
 
-// GetDeploymentForDevice returns deployment for the device: currenclty still in progress or next to install.
-// nil in case of nothing deploy for device.
-func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployments.DeploymentInstructions, error) {
+// GetDeploymentForDeviceWithCurrent returns deployment for the device
+func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
+	installed deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error) {
 
-	deployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(deviceID, d.ActiveDeploymentStatuses()...)
+	deployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(deviceID,
+		deployments.ActiveDeploymentStatuses()...)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for oldest active deployment for the device")
@@ -143,22 +174,35 @@ func (d *DeploymentsModel) GetDeploymentForDevice(deviceID string) (*deployments
 		return nil, nil
 	}
 
-	link, err := d.imageLinker.GetRequest(*deployment.Image.Id, DefaultUpdateDownloadLinkExpire)
+	if installed.Artifact != "" && deployment.Image.ArtifactName == installed.Artifact {
+		// pretend there is no deployment for this device, but update
+		// its status to already installed first
+
+		if err := d.UpdateDeviceDeploymentStatus(*deployment.DeploymentId, deviceID,
+			deployments.DeviceDeploymentStatusAlreadyInst); err != nil {
+
+			return nil, errors.Wrap(err, "Failed to update deployment status")
+		}
+
+		return nil, nil
+	}
+
+	link, err := d.imageLinker.GetRequest(deployment.Image.Id,
+		DefaultUpdateDownloadLinkExpire, d.imageContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}
 
-	return deployments.NewDeploymentInstructions(*deployment.DeploymentId, link, deployment.Image), nil
-}
-
-// ActiveDeploymentStatuses lists statuses that represent deployment in active state (not finished).
-func (d *DeploymentsModel) ActiveDeploymentStatuses() []string {
-	return []string{
-		deployments.DeviceDeploymentStatusPending,
-		deployments.DeviceDeploymentStatusDownloading,
-		deployments.DeviceDeploymentStatusInstalling,
-		deployments.DeviceDeploymentStatusRebooting,
+	instructions := &deployments.DeploymentInstructions{
+		ID: *deployment.DeploymentId,
+		Artifact: deployments.ArtifactDeploymentInstructions{
+			ArtifactName:          deployment.Image.ArtifactName,
+			Source:                *link,
+			DeviceTypesCompatible: deployment.Image.DeviceTypesCompatible,
+		},
 	}
+
+	return instructions, nil
 }
 
 // UpdateDeviceDeploymentStatus will update the deployment status for device of
@@ -172,14 +216,21 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 		finishTime = &now
 	}
 
+	currentStatus, err := d.deviceDeploymentsStorage.GetDeviceDeploymentStatus(deploymentID, deviceID)
+	if err != nil {
+		return err
+	}
+	if currentStatus == deployments.DeviceDeploymentStatusAborted {
+		return controller.ErrDeploymentAborted
+	}
+
 	old, err := d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(deviceID, deploymentID,
 		status, finishTime)
-
 	if err != nil {
 		return err
 	}
 
-	if err := d.deploymentsStorage.UpdateStats(deploymentID, old, status); err != nil {
+	if err = d.deploymentsStorage.UpdateStats(deploymentID, old, status); err != nil {
 		return err
 	}
 
@@ -190,6 +241,8 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 	}
 
 	if deployment.IsFinished() {
+		// TODO: Make this part of UpdateStats() call as currently we are doing two
+		// write operations on DB - as well as it's saver to keep them in single transaction.
 		if err := d.deploymentsStorage.Finish(deploymentID, time.Now()); err != nil {
 			return errors.Wrap(err, "failed to mark deployment as finished")
 		}
@@ -268,7 +321,11 @@ func (d *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
 		}
 	}
 
-	return d.deviceDeploymentLogsStorage.SaveDeviceDeploymentLog(dlog)
+	if err := d.deviceDeploymentLogsStorage.SaveDeviceDeploymentLog(dlog); err != nil {
+		return err
+	}
+
+	return d.deviceDeploymentsStorage.UpdateDeviceDeploymentLogAvailability(deviceID, deploymentID, true)
 }
 
 func (d *DeploymentsModel) GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
@@ -278,4 +335,22 @@ func (d *DeploymentsModel) GetDeviceDeploymentLog(deviceID, deploymentID string)
 
 func (d *DeploymentsModel) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
 	return d.deviceDeploymentsStorage.HasDeploymentForDevice(deploymentID, deviceID)
+}
+
+// AbortDeployment aborts deployment for devices and updates deployment stats
+func (d *DeploymentsModel) AbortDeployment(deploymentID string) error {
+
+	if err := d.deviceDeploymentsStorage.AbortDeviceDeployments(deploymentID); err != nil {
+		return err
+	}
+
+	stats, err := d.deviceDeploymentsStorage.AggregateDeviceDeploymentByStatus(deploymentID)
+	if err != nil {
+		return err
+	}
+
+	// Update deployment stats and finish deployment (set finished timestamp to current time)
+	// Aborted deployment is considered to be finished even if some devices are
+	// still processing this deployment.
+	return d.deploymentsStorage.UpdateStatsAndFinishDeployment(deploymentID, stats)
 }

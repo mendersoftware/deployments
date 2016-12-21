@@ -15,6 +15,7 @@
 package generator_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -83,7 +84,7 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 
 			OutputDeviceDeplyment: &deployments.DeviceDeployment{
 				Created:    TimeToPointer(time.Now()),
-				Status:     StringToPointer(deployments.DeviceDeploymentStatusNoImage),
+				Status:     StringToPointer(deployments.DeviceDeploymentStatusNoArtifact),
 				DeviceId:   StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
 				DeviceType: StringToPointer("BBB"),
 			},
@@ -116,11 +117,11 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 			Return(testCase.InputImageByNameAndDeviceType, testCase.InputImageByNameAndDeviceTypeError)
 
 		inventory := new(mocks.GetDeviceTyper)
-		inventory.On("GetDeviceType", mock.AnythingOfType("string")).
+		inventory.On("GetDeviceType", mock.AnythingOfType("*context.emptyCtx"), mock.AnythingOfType("string")).
 			Return(testCase.InputGetDeviceType, testCase.InputGetDeviceTypeError)
 
 		deviceDeployment, err := NewImageBasedDeviceDeployment(images, inventory).
-			Generate(testCase.InputID, testCase.InputDeployment)
+			Generate(context.Background(), testCase.InputID, testCase.InputDeployment)
 
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())

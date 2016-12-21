@@ -46,8 +46,12 @@ go build
 
 ## Configuration
 
-The service is configured by providing configuration file (supports JSON, TOML, YAML and HCL formatting).
+The service can be configured by:
+* providing configuration file (supports JSON, TOML, YAML and HCL formatting).
 The default configuration file is provided to be downloaded from [config.yaml](https://github.com/mendersoftware/deployments/blob/master/config.yaml).
+* setting environment variables. The service will check for a environment variable
+with a name matching the key uppercased and prefixed with DEPLOYMENTS_.
+Eg. for "listen" the variable name is "DEPLOYMENTS_LISTEN".
 
 Application requirements:
 * Access to AWS S3 bucket, keys can be configured in several ways, documented in the configuration file.

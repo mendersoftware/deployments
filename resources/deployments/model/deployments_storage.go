@@ -25,7 +25,9 @@ type DeploymentsStorage interface {
 	Insert(deployment *deployments.Deployment) error
 	Delete(id string) error
 	FindByID(id string) (*deployments.Deployment, error)
+	FindUnfinishedByID(id string) (*deployments.Deployment, error)
 	UpdateStats(id string, state_from, state_to string) error
+	UpdateStatsAndFinishDeployment(id string, stats deployments.Stats) error
 	Find(query deployments.Query) ([]*deployments.Deployment, error)
 	Finish(id string, when time.Time) error
 }

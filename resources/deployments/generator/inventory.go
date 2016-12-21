@@ -15,18 +15,20 @@
 package generator
 
 import (
+	"context"
+
 	"github.com/mendersoftware/deployments/integration"
 	"github.com/pkg/errors"
 )
 
-// Attibute keys
+// Attribute keys
 const (
 	// Reported by devices
-	AttibuteNameDeviceType string = "device_type"
+	AttributeNameDeviceType string = "device_type"
 )
 
 type APIClient interface {
-	GetDeviceInventory(device integration.DeviceID) (*integration.Device, error)
+	GetDeviceInventory(ctx context.Context, device integration.DeviceID) (*integration.Device, error)
 }
 
 type Inventory struct {
@@ -39,15 +41,15 @@ func NewInventory(client APIClient) *Inventory {
 
 // GetDeviceType returns device type for device of specified ID.
 // In case of device type attribute is not available for this device.
-func (i *Inventory) GetDeviceType(deviceID string) (string, error) {
-	device, err := i.api.GetDeviceInventory(integration.DeviceID(deviceID))
+func (i *Inventory) GetDeviceType(ctx context.Context, deviceID string) (string, error) {
+	device, err := i.api.GetDeviceInventory(ctx, integration.DeviceID(deviceID))
 	if err != nil {
 		return "", errors.Wrap(err, "fetching inventory data for device")
 	}
 
 	if device != nil {
 		for _, attribute := range device.Attributes {
-			if attribute.Name == AttibuteNameDeviceType {
+			if attribute.Name == AttributeNameDeviceType {
 				strVal, stringType := attribute.Value.(string)
 				if !stringType {
 					return "", errors.New("device type value is not string type")
@@ -57,5 +59,5 @@ func (i *Inventory) GetDeviceType(deviceID string) (string, error) {
 		}
 	}
 
-	return "", errors.New(AttibuteNameDeviceType + " inventory attibute not found")
+	return "", errors.New(AttributeNameDeviceType + " inventory attribute not found")
 }
