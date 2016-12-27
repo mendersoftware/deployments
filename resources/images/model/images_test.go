@@ -15,7 +15,9 @@
 package model
 
 import (
+	"bufio"
 	"errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -54,7 +56,7 @@ type FakeImageStorage struct {
 	imageEsistsError      error
 	update                bool
 	updateError           error
-	putFileError          error
+	uploadArtifactError   error
 	isArtifactUnique      bool
 	isArtifactUniqueError error
 }
@@ -129,21 +131,22 @@ func TestCreateImageInsertError(t *testing.T) {
 	}
 }
 
-func TestCreateImagePutFileError(t *testing.T) {
+func TestCreateImageArtifactUploadError(t *testing.T) {
 	fakeIS := new(FakeImageStorage)
 	fakeIS.insertError = nil
 	fakeFS := new(FakeFileStorage)
-	fakeFS.putFileError = errors.New("Cannot upload file")
+	fakeFS.uploadArtifactError = errors.New("Cannot upload artifact")
 
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaArtifact()
 	file := createValidImageFile()
+	artifactReader := bufio.NewReader(file)
 	defer os.Remove(file.Name())
 	defer file.Close()
 
-	if _, err := iModel.CreateImage(file, imageMeta, imageMetaArtifact); err == nil {
+	if _, err := iModel.CreateImage(artifactReader, imageMeta, imageMetaArtifact); err == nil {
 		t.FailNow()
 	}
 }
@@ -188,16 +191,16 @@ func TestGetImageFindByIDEmptyImage(t *testing.T) {
 }
 
 type FakeFileStorage struct {
-	lastModifiedTime  time.Time
-	lastModifiedError error
-	deleteError       error
-	imageExists       bool
-	imageEsistsError  error
-	putReq            *images.Link
-	putError          error
-	getReq            *images.Link
-	getError          error
-	putFileError      error
+	lastModifiedTime    time.Time
+	lastModifiedError   error
+	deleteError         error
+	imageExists         bool
+	imageEsistsError    error
+	putReq              *images.Link
+	putError            error
+	getReq              *images.Link
+	getError            error
+	uploadArtifactError error
 }
 
 func (ffs *FakeFileStorage) Delete(objectId string) error {
@@ -220,8 +223,8 @@ func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration, 
 	return ffs.getReq, ffs.getError
 }
 
-func (fis *FakeFileStorage) PutFile(id string, img *os.File, contentType string) error {
-	return fis.putFileError
+func (fis *FakeFileStorage) UploadArtifact(id string, img io.Reader, contentType string) error {
+	return fis.uploadArtifactError
 }
 
 func TestGetImageOK(t *testing.T) {

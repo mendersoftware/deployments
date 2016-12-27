@@ -15,7 +15,7 @@
 package mocks
 
 import (
-	"os"
+	"io"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -29,22 +29,22 @@ type ImagesModel struct {
 
 // CreateImage provides a mock function with given fields: constructorData
 func (_m *ImagesModel) CreateImage(
-	imageFile *os.File,
+	artifactReader io.Reader,
 	metaConstructor *images.SoftwareImageMetaConstructor,
 	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
 
-	ret := _m.Called(imageFile, metaConstructor, metaArtifactConstructor)
+	ret := _m.Called(artifactReader, metaConstructor, metaArtifactConstructor)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(*os.File, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaArtifactConstructor) string); ok {
-		r0 = rf(imageFile, metaConstructor, metaArtifactConstructor)
+	if rf, ok := ret.Get(0).(func(io.Reader, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaArtifactConstructor) string); ok {
+		r0 = rf(artifactReader, metaConstructor, metaArtifactConstructor)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*os.File, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaArtifactConstructor) error); ok {
-		r1 = rf(imageFile, metaConstructor, metaArtifactConstructor)
+	if rf, ok := ret.Get(1).(func(io.Reader, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaArtifactConstructor) error); ok {
+		r1 = rf(artifactReader, metaConstructor, metaArtifactConstructor)
 	} else {
 		r1 = ret.Error(1)
 	}
