@@ -15,7 +15,7 @@
 package model
 
 import (
-	"os"
+	"io"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -46,7 +46,7 @@ func NewImagesModel(
 }
 
 func (i *ImagesModel) CreateImage(
-	imageFile *os.File,
+	artifact io.Reader,
 	metaConstructor *images.SoftwareImageMetaConstructor,
 	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
 
@@ -75,7 +75,7 @@ func (i *ImagesModel) CreateImage(
 		return "", errors.Wrap(err, "Fail to store the metadata")
 	}
 
-	if err := i.fileStorage.PutFile(image.Id, imageFile, ImageContentType); err != nil {
+	if err := i.fileStorage.UploadArtifact(image.Id, artifact, ImageContentType); err != nil {
 		i.imagesStorage.Delete(image.Id)
 		return "", errors.Wrap(err, "Fail to store the image")
 	}

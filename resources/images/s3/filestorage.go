@@ -16,7 +16,7 @@ package s3
 
 import (
 	"fmt"
-	"os"
+	"io"
 	"strings"
 	"time"
 
@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/mendersoftware/deployments/resources/images/model"
 	"github.com/pkg/errors"
@@ -40,8 +41,9 @@ const (
 // Data layer for file storage.
 // Implements model.FileStorage interface
 type SimpleStorageService struct {
-	client *s3.S3
-	bucket string
+	client   *s3.S3
+	uploader *s3manager.Uploader
+	bucket   string
 }
 
 // NewSimpleStorageServiceStatic create new S3 client model.
@@ -58,6 +60,9 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 
 	config.S3ForcePathStyle = aws.Bool(true)
 	sess := session.New(config)
+
+	// Set up a new s3manager client
+	uploader := s3manager.NewUploader(sess)
 
 	client := s3.New(sess)
 
@@ -76,8 +81,9 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 	}
 
 	return &SimpleStorageService{
-		client: client,
-		bucket: bucket,
+		client:   client,
+		uploader: uploader,
+		bucket:   bucket,
 	}, nil
 }
 
@@ -162,11 +168,10 @@ func (s *SimpleStorageService) Exists(objectID string) (bool, error) {
 	return false, nil
 }
 
-// Puts object into AWS S3
-func (s *SimpleStorageService) PutFile(objectID string, image *os.File, contentType string) error {
-
-	params := &s3.PutObjectInput{
-		Body:   image,
+// Uploads artifact into file server (AWS S3 or minio)
+func (s *SimpleStorageService) UploadArtifact(objectID string, artifact io.Reader, contentType string) error {
+	params := &s3manager.UploadInput{
+		Body:   artifact,
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(objectID),
 	}
@@ -175,8 +180,7 @@ func (s *SimpleStorageService) PutFile(objectID string, image *os.File, contentT
 		params.ContentType = &contentType
 	}
 
-	// Ignore out object?
-	_, err := s.client.PutObject(params)
+	_, err := s.uploader.Upload(params)
 	return err
 }
 

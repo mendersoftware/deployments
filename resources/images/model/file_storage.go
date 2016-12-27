@@ -16,7 +16,7 @@ package model
 
 import (
 	"errors"
-	"os"
+	"io"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -34,5 +34,5 @@ type FileStorage interface {
 	LastModified(objectId string) (time.Time, error)
 	PutRequest(objectId string, duration time.Duration) (*images.Link, error)
 	GetRequest(objectId string, duration time.Duration, responseContentType string) (*images.Link, error)
-	PutFile(objectId string, image *os.File, contentType string) error
+	UploadArtifact(objectId string, artifact io.Reader, contentType string) error
 }
