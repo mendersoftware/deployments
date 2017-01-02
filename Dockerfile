@@ -8,6 +8,7 @@ RUN mkdir /etc/deployments
 
 COPY ./config.yaml /etc/deployments/
 
-ENTRYPOINT ["/usr/bin/deployments", "-config", "/etc/deployments/config.yaml"]
+ENTRYPOINT ["/entrypoint.sh"]
 
+COPY ./entrypoint.sh /entrypoint.sh
 COPY ./deployments /usr/bin/
