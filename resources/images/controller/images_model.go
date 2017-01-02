@@ -16,7 +16,7 @@ package controller
 
 import (
 	"errors"
-	"os"
+	"io"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -38,7 +38,7 @@ type ImagesModel interface {
 	GetImage(id string) (*images.SoftwareImage, error)
 	DeleteImage(imageID string) error
 	CreateImage(
-		imageFile *os.File,
+		artifact io.Reader,
 		metaConstructor *images.SoftwareImageMetaConstructor,
 		metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error)
 	EditImage(id string, constructorData *images.SoftwareImageMetaConstructor) (bool, error)

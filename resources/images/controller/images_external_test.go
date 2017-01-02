@@ -88,7 +88,7 @@ func (fim *fakeImageModeler) DeleteImage(imageID string) error {
 }
 
 func (fim *fakeImageModeler) CreateImage(
-	imageFile *os.File,
+	artifact io.Reader,
 	metaConstructor *images.SoftwareImageMetaConstructor,
 	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
 	return "", nil
@@ -464,7 +464,10 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 
 		model.On(
 			"CreateImage",
-			mock.AnythingOfType("*os.File"),
+			mock.MatchedBy(func(ir interface{}) bool {
+				_, ok := ir.(io.Reader)
+				return ok
+			}),
 			mock.AnythingOfType("*images.SoftwareImageMetaConstructor"),
 			mock.AnythingOfType("*images.SoftwareImageMetaArtifactConstructor")).
 			Return(testCase.InputModelID, testCase.InputModelError)

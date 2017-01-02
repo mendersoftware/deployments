@@ -15,12 +15,13 @@
 package controller
 
 import (
+	"bufio"
+	"bytes"
 	"io"
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -246,7 +247,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 		return
 	}
 
-	imageFile, metaArtifactConstructor, status, err := s.handleImage(imagePart, DefaultMaxImageSize)
+	reader, metaArtifactConstructor, status, err := s.handleImage(imagePart, DefaultMaxImageSize)
 	if err != nil {
 		if status == http.StatusInternalServerError {
 			s.view.RenderInternalError(w, r, err, l)
@@ -255,10 +256,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 		}
 		return
 	}
-	defer os.Remove(imageFile.Name())
-	defer imageFile.Close()
-
-	imgId, err := s.model.CreateImage(imageFile, metaConstructor, metaArtifactConstructor)
+	imgId, err := s.model.CreateImage(reader, metaConstructor, metaArtifactConstructor)
 	switch err {
 	default:
 		s.view.RenderInternalError(w, r, err, l)
@@ -308,30 +306,26 @@ func (s *SoftwareImagesController) handleMeta(mr *multipart.Reader, maxMetaSize 
 // Saves uploaded image in temporary file.
 // Returns temporary file, image metadata, success code and nil on success.
 func (s *SoftwareImagesController) handleImage(
-	p *multipart.Part, maxImageSize int64) (*os.File, *images.SoftwareImageMetaArtifactConstructor, int, error) {
+	p *multipart.Part, maxImageSize int64) (io.Reader, *images.SoftwareImageMetaArtifactConstructor, int, error) {
 	// HTML form can't set specific content-type, it's automatic, if not empty - it's a file
 	if p.Header.Get("Content-Type") == "" {
 		return nil, nil, http.StatusBadRequest, errors.New("Last part should be an image")
 	}
-
-	tmpfile, err := ioutil.TempFile("", "artifact-")
-	if err != nil {
-		return nil, nil, http.StatusInternalServerError, err
-	}
+	var metaData bytes.Buffer
+	metaWriter := bufio.NewWriter(&metaData)
 
 	lr := io.LimitReader(p, maxImageSize)
-	tee := io.TeeReader(lr, tmpfile)
+	tee := io.TeeReader(lr, metaWriter)
+
 	meta, err := s.getMetaFromArchive(&tee, maxImageSize)
 	if err != nil {
 		return nil, nil, http.StatusBadRequest, err
 	}
+	metaWriter.Flush()
+	metaReader := bufio.NewReader(&metaData)
+	multiReader := io.MultiReader(metaReader, lr)
 
-	_, err = io.Copy(ioutil.Discard, tee)
-	if err != nil {
-		return nil, nil, http.StatusInternalServerError, err
-	}
-
-	return tmpfile, meta, http.StatusOK, nil
+	return multiReader, meta, http.StatusOK, nil
 }
 
 func getArtifactInfo(info metadata.Info) *images.ArtifactInfo {
