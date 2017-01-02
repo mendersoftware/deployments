@@ -4,9 +4,10 @@ RUN apk update && apk upgrade && \
      apk add ca-certificates && \
      rm -rf /var/cache/apk/*
 
-COPY ./deployments /usr/bin/
-
 RUN mkdir /etc/deployments
+
 COPY ./config.yaml /etc/deployments/
 
 ENTRYPOINT ["/usr/bin/deployments", "-config", "/etc/deployments/config.yaml"]
+
+COPY ./deployments /usr/bin/
