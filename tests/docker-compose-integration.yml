@@ -1,0 +1,5 @@
+version: '2'
+services:
+    mender-deployments:
+            # built/tagged locally and only used for testing
+            image: mendersoftware/deployments

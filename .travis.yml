@@ -17,6 +17,10 @@ addons:
         - mender-artifact-storage.localhost
 
 env:
+    matrix:
+        - JOB_TYPE=compile_and_basic_tests
+        - JOB_TYPE=compile_and_integration_tests
+
     global:
         # Should be encrypted or set as private travis variables (in travis settings):
         # AWS_ACCESS_KEY_ID
@@ -87,12 +91,12 @@ before_install:
     - sudo apt-get -qq update
     - sudo apt-get install -y mongodb-org
 
-    # Install swagger-cli
-    - sudo apt-get -qq update && sudo apt-get -qq install -y npm
+
+    - sudo apt-get -qq update && sudo apt-get -qq install -y npm e2tools
     - sudo npm install -g swagger-cli
 
-    # Install yaml python module
-    - pip install pyyaml
+
+    - pip2.7 install -U --user paramiko fabric PyYAML pytest requests
 
     # Get our own Swagger verifier
     - wget https://raw.githubusercontent.com/mendersoftware/autodocs/master/verify_docs.py
@@ -135,18 +139,29 @@ script:
     # Insert build information into compiled binary using ldflags
     - CGO_ENABLED=0 go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
 
-    # Start test environment
-    - bash ./tests/testenv.sh
-
-    # Only install acceptance testing dependencies after License checking is complete
-    - npm install validator chance jasmine-node frisby
-
-    # Run acceptance tests
-    # Acceptance tests temporarily disabled
-    # - jasmine-node ./tests/images/
-
     # Build docker image from docker file
     - sudo docker build -t $DOCKER_REPOSITORY .
+
+    # Clone integration repo. for api testing (purposely after license checking..)
+    - git clone https://github.com/mendersoftware/integration.git integration_new
+
+
+    # Move script to testing directory
+    - mv integration_new/extra/travis-testing/run-test-environment tests
+
+
+    # Run dependant microservices and the tests service itself
+    - if [[ "$JOB_TYPE" = compile_and_integration_tests* ]]; then
+        NO_CLEANUP=true TESTS_DIR=$PWD/tests ./tests/run-test-environment "integration" $PWD/integration_new ./tests/docker-compose-integration.yml &
+      fi
+
+    - if [ "$JOB_TYPE" = compile_and_integration_tests_fast ]; then
+        ( cd $PWD/integration_new/tests && bash run.sh fast );
+      fi
+
+    - if [ "$JOB_TYPE" = compile_and_integration_tests_slow ]; then
+        ( cd $PWD/integration_new/tests && bash run.sh slow );
+      fi
 
 after_success:
     # Integrate with https://codecov.io
