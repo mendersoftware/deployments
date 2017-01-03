@@ -9,7 +9,7 @@ services:
 
 # Golang version matrix
 go:
-    - 1.7
+    - 1.7.4
 
 addons:
     #Add alias to localhost, required for fakes3
