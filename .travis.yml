@@ -19,7 +19,8 @@ addons:
 env:
     matrix:
         - JOB_TYPE=compile_and_basic_tests
-        - JOB_TYPE=compile_and_integration_tests
+        - JOB_TYPE=compile_and_integration_tests_fast
+        - JOB_TYPE=compile_and_integration_tests_slow
 
     global:
         # Should be encrypted or set as private travis variables (in travis settings):
@@ -145,15 +146,8 @@ script:
     # Clone integration repo. for api testing (purposely after license checking..)
     - git clone https://github.com/mendersoftware/integration.git integration_new
 
-
     # Move script to testing directory
     - mv integration_new/extra/travis-testing/run-test-environment tests
-
-
-
-    # Move script to testing directory
-    - mv integration/extra/travis-testing/run-test-environment tests
-
 
     # Run dependant microservices and the tests service itself
     - if [[ "$JOB_TYPE" = compile_and_integration_tests* ]]; then
