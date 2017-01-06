@@ -141,7 +141,7 @@ script:
     - CGO_ENABLED=0 go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
 
     # Build docker image from docker file
-    - sudo docker build -t $DOCKER_REPOSITORY .
+    - sudo docker build -t $DOCKER_REPOSITORY:pr .
 
     # Clone integration repo. for api testing (purposely after license checking..)
     - git clone https://github.com/mendersoftware/integration.git integration_new
@@ -171,7 +171,7 @@ after_success:
 before_deploy:
     # Master is always lastest
     - if [ ! -z "$TRAVIS_TAG" ]; then export IMAGE_TAG=$TRAVIS_TAG; else export IMAGE_TAG=$TRAVIS_BRANCH; fi
-    - docker tag $DOCKER_REPOSITORY $DOCKER_REPOSITORY:$IMAGE_TAG
+    - docker tag $DOCKER_REPOSITORY:pr $DOCKER_REPOSITORY:$IMAGE_TAG
 
     # Upload image to docker registry only on PUSH
     - docker login --email=$DOCKER_HUB_EMAIL --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD
