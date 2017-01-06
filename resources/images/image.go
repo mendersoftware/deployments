@@ -22,9 +22,6 @@ import (
 
 // Informations provided by the user
 type SoftwareImageMetaConstructor struct {
-	// Application Name & Version
-	Name string `json:"name" bson:"name" valid:"length(1|4096),required"`
-
 	// Image description
 	Description string `json:"description,omitempty" valid:"length(1|4096),optional"`
 }
@@ -51,40 +48,10 @@ type ArtifactInfo struct {
 	Version uint `json:"version" valid:"required"`
 }
 
-// Type info structure
-type ArtifactUpdateTypeInfo struct {
-	Type string `json:"type" valid:"required"`
-}
-
-// Update file structure
-type UpdateFile struct {
-	// Image name
-	Name string `json:"name" valid:"required"`
-
-	// Image file checksum
-	Checksum string `json:"checksum" valid:"optional"`
-
-	// Image file signature
-	Signature string `json:"signature" valid:"optional"`
-
-	// Image size
-	Size int64 `json:"size" valid:"optional"`
-
-	// Date build
-	Date *time.Time `json:"date" valid:"optional"`
-}
-
-// Update structure
-type Update struct {
-	TypeInfo ArtifactUpdateTypeInfo `json:"type_info" valid:"required"`
-	Files    []UpdateFile           `json:"files"`
-	MetaData interface{}            `json:"meta_data" valid:"optional"` //TODO check this
-}
-
 // Information provided with YOCTO image
 type SoftwareImageMetaArtifactConstructor struct {
 	// artifact_name from artifact file
-	ArtifactName string `json:"artifact_name" bson:"artifact_name" valid:"length(1|4096),required"`
+	Name string `json:"name" bson:"name" valid:"length(1|4096),required"`
 
 	// Compatible device types for the application
 	DeviceTypesCompatible []string `json:"device_types_compatible" bson:"device_types_compatible" valid:"length(1|4096),required"`

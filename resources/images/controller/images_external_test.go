@@ -50,6 +50,7 @@ import (
 
 const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
 
+//TODO: replace with mocks subpackage usage
 type fakeImageModeler struct {
 	getImage          *images.SoftwareImage
 	getImageError     error
@@ -224,13 +225,6 @@ func TestControllerEditImage(t *testing.T) {
 		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusBadRequest)
 
-	// correct id; invalid payload
-	//image := NewSoftwareImageConstructor()
-	//constructorImage := NewSoftwareImageFromConstructor(image)
-	recorded = test.RunRequest(t, api.MakeHandler(),
-		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id, map[string]string{"image": "bad_image"}))
-	recorded.CodeIs(http.StatusBadRequest)
-
 	// correct id; correct payload; edit error
 	imagesModel.editError = errors.New("error")
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -295,41 +289,22 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 				Part{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
-				},
-			},
-			InputContentType: "multipart/form-data",
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Name: non zero value required;")),
-			},
-		},
-		{
-			InputBodyObject: []Part{
-				Part{
-					FieldName:   "artifact",
-					ContentType: "application/octet-stream",
 					ImageData:   []byte{0},
 				},
 			},
 			InputContentType: "multipart/form-data",
+			InputModelID:     "1234",
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Name: non zero value required;")),
+				OutputStatus:     http.StatusCreated,
+				OutputBodyObject: nil,
+				OutputHeaders:    map[string]string{"Location": "./r/1234"},
 			},
 		},
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName:  "name",
-					FieldValue: "n",
-				},
-				Part{
-					FieldName:  "device_type",
+					FieldName:  "description",
 					FieldValue: "dt",
-				},
-				Part{
-					FieldName:  "yocto_id",
-					FieldValue: "yi",
 				},
 			},
 			InputContentType: "multipart/form-data",
@@ -340,18 +315,6 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
-					FieldName:  "name",
-					FieldValue: "n",
-				},
-				Part{
-					FieldName:  "device_type",
-					FieldValue: "dt",
-				},
-				Part{
-					FieldName:  "yocto_id",
-					FieldValue: "yi",
-				},
 				Part{
 					FieldName:  "artifact",
 					FieldValue: "ff",
@@ -365,10 +328,6 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
-					FieldName:  "name",
-					FieldValue: "n",
-				},
 				Part{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
@@ -386,10 +345,6 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName:  "name",
-					FieldValue: "n",
-				},
-				Part{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,
@@ -406,10 +361,6 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		{
 			InputBodyObject: []Part{
 				Part{
-					FieldName:  "name",
-					FieldValue: "n",
-				},
-				Part{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,
@@ -425,26 +376,29 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
 
-		model := new(mocks.ImagesModel)
+		// Run each test case as individual subtest
+		t.Run(fmt.Sprintf("Test case number: %v", testCaseNumber+1), func(t *testing.T) {
+			model := new(mocks.ImagesModel)
 
-		model.On(
-			"CreateImage",
-			mock.AnythingOfType("*images.SoftwareImageMetaConstructor"),
-			mock.MatchedBy(func(ir interface{}) bool {
-				_, ok := ir.(io.Reader)
-				return ok
-			})).
-			Return(testCase.InputModelID, testCase.InputModelError)
+			model.On(
+				"CreateImage",
+				mock.AnythingOfType("*images.SoftwareImageMetaConstructor"),
+				mock.MatchedBy(func(ir interface{}) bool {
+					_, ok := ir.(io.Reader)
+					return ok
+				})).
+				Return(testCase.InputModelID, testCase.InputModelError)
 
-		api := setUpRestTest("/r", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).NewImage)
+			api := setUpRestTest("/r", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).NewImage)
 
-		req := MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject)
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
+			req := MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
 
-		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
 	}
 }
 

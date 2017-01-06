@@ -278,9 +278,8 @@ paths:
           description: OK
           examples:
             application/json:
-              - name: MySecretApp v2
+              - name: Application 1.0.0
                 description: Johns Monday test build
-                artifact_name: core-image-full-cmdline-20160330201408
                 device_types_compatible: [Beagle Bone]
                 id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
                 modified: "2016-03-11T13:03:17.063493443Z"
@@ -309,10 +308,6 @@ paths:
       consumes:
         - multipart/form-data
       parameters:
-        - name: name
-          in: formData
-          required: true
-          type: string
         - name: description
           in: formData
           required: false
@@ -354,9 +349,8 @@ paths:
           description: Successful response.
           examples:
             application/json:
-              name: MySecretApp v2
+              name: Application 1.0.0
               description: Johns Monday test build
-              artifact_name: core-image-full-cmdline-20160330201408
               device_types_compatible: [Beagle Bone]
               id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
               modified: "2016-03-11T13:03:17.063493443Z"
@@ -378,9 +372,9 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     put:
-      summary: Update name and description of a selected artifact
+      summary: Update description of a selected artifact
       description: |
-        Edit artifact name and description. Artifact is not allowed to be edited if it was used
+        Edit description. Artifact is not allowed to be edited if it was used
         in any deployment.
       parameters:
         - name: id
@@ -625,15 +619,9 @@ definitions:
     description: Artifact information update.
     type: object
     properties:
-      name:
-        type: string
       description:
         type: string
-    required:
-      - name
-      - description
     example:
-      name: Artifact name
       description: Some description
   ArtifactTypeInfo:
       description: |
@@ -690,8 +678,6 @@ definitions:
         type: string
       description:
         type: string
-      artifact_name:
-        type: string
       device_types_compatible:
         type: array
         items:
@@ -713,15 +699,13 @@ definitions:
     required:
       - name
       - description
-      - artifact_name
       - device_types_compatible
       - id
       - modified
     example:
       application/json:
-        name: MySecretApp v2
+        name: Application 1.0.0
         description: Johns Monday test build
-        artifact_name: core-image-full-cmdline-20160330201408
         device_types_compatible: [Beagle Bone]
         id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
         modified: "2016-03-11T13:03:17.063493443Z"

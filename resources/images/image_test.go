@@ -21,7 +21,7 @@ const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
 func TestValidateEmptyImageMeta(t *testing.T) {
 	image := NewSoftwareImageMetaConstructor()
 
-	if err := image.Validate(); err == nil {
+	if err := image.Validate(); err != nil {
 		t.FailNow()
 	}
 }
@@ -36,9 +36,6 @@ func TestValidateEmptyImageMetaArtifact(t *testing.T) {
 
 func TestValidateCorrectImageMeta(t *testing.T) {
 	image := NewSoftwareImageMetaConstructor()
-	required := "required"
-
-	image.Name = required
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()
@@ -49,7 +46,7 @@ func TestValidateCorrectImageMetaYocot(t *testing.T) {
 	image := NewSoftwareImageMetaArtifactConstructor()
 	required := "required"
 
-	image.ArtifactName = required
+	image.Name = required
 	image.DeviceTypesCompatible = []string{"required"}
 	image.Info = &ArtifactInfo{
 		Format:  required,
@@ -66,9 +63,8 @@ func TestValidateCorrectImage(t *testing.T) {
 	imageMeta := NewSoftwareImageMetaConstructor()
 	imageMetaArtifact := NewSoftwareImageMetaArtifactConstructor()
 
-	imageMetaArtifact.ArtifactName = required
+	imageMetaArtifact.Name = required
 	imageMetaArtifact.DeviceTypesCompatible = []string{"required"}
-	imageMeta.Name = required
 
 	image := NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
 

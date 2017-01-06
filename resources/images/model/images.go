@@ -143,7 +143,7 @@ func (i *ImagesModel) handleArtifact(
 	// artifact is considered to be unique if there is no artifact with the same name
 	// and supporing the same platform in the system
 	isArtifactUnique, err := i.imagesStorage.IsArtifactUnique(
-		metaArtifactConstructor.ArtifactName, metaArtifactConstructor.DeviceTypesCompatible)
+		metaArtifactConstructor.Name, metaArtifactConstructor.DeviceTypesCompatible)
 	if err != nil {
 		return "", errors.Wrap(err, "Fail to check if artifact is unique")
 	}
@@ -334,7 +334,7 @@ func getMetaFromArchive(
 	}
 	metaArtifact.Info = getArtifactInfo(aReader.GetInfo())
 	metaArtifact.DeviceTypesCompatible = aReader.GetCompatibleDevices()
-	metaArtifact.ArtifactName = aReader.GetArtifactName()
+	metaArtifact.Name = aReader.GetArtifactName()
 
 	for _, p := range data {
 		uFiles, err := getUpdateFiles(maxImageSize, p.GetUpdateFiles())

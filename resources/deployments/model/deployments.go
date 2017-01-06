@@ -174,7 +174,7 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
 		return nil, nil
 	}
 
-	if installed.Artifact != "" && deployment.Image.ArtifactName == installed.Artifact {
+	if installed.Artifact != "" && deployment.Image.Name == installed.Artifact {
 		// pretend there is no deployment for this device, but update
 		// its status to already installed first
 
@@ -196,7 +196,7 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
 	instructions := &deployments.DeploymentInstructions{
 		ID: *deployment.DeploymentId,
 		Artifact: deployments.ArtifactDeploymentInstructions{
-			ArtifactName:          deployment.Image.ArtifactName,
+			ArtifactName:          deployment.Image.Name,
 			Source:                *link,
 			DeviceTypesCompatible: deployment.Image.DeviceTypesCompatible,
 		},
