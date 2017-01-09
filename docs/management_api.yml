@@ -7,7 +7,7 @@ info:
     Intended for use by the web GUI.
 
 host: 'docker.mender.io:8080'
-basePath: '/api/integrations/0.1/deployments'
+basePath: '/api/management/0.1/deployments'
 schemes:
   - https
 
