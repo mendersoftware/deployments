@@ -61,6 +61,7 @@ func HandleConfigFile(filePath string) (config.ConfigReader, error) {
 	c.BindEnv(SettingAwsAuthKeyId, "AWS_ACCESS_KEY_ID")
 	c.BindEnv(SettingAwsAuthSecret, "AWS_SECRET_ACCESS_KEY")
 	c.BindEnv(SettingAwsAuthToken, "AWS_SESSION_TOKEN")
+	c.BindEnv(SettingAwsS3Region, "AWS_REGION")
 
 	// Enable setting also other conig values by environment variables
 	c.SetEnvPrefix("DEPLOYMENTS")
