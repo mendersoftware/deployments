@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/satori/go.uuid"
 )
 
 // Informations provided by the user
@@ -122,13 +121,13 @@ type SoftwareImage struct {
 	Modified *time.Time `json:"modified" valid:"_"`
 }
 
-// NewSoftwareImage create new software image object.
+// NewSoftwareImage creates new software image object.
 func NewSoftwareImage(
+	id string,
 	metaConstructor *SoftwareImageMetaConstructor,
 	metaArtifactConstructor *SoftwareImageMetaArtifactConstructor) *SoftwareImage {
 
 	now := time.Now()
-	id := uuid.NewV4().String()
 
 	return &SoftwareImage{
 		SoftwareImageMetaConstructor:         *metaConstructor,

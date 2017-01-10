@@ -16,11 +16,16 @@ package model
 
 import (
 	"io"
+	"io/ioutil"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/mendersoftware/deployments/resources/images/controller"
+	"github.com/mendersoftware/mender-artifact/metadata"
+	"github.com/mendersoftware/mender-artifact/parser"
+	"github.com/mendersoftware/mender-artifact/reader"
 	"github.com/pkg/errors"
+	"github.com/satori/go.uuid"
 )
 
 const (
@@ -45,21 +50,98 @@ func NewImagesModel(
 	}
 }
 
+// CreateImage parses artifact and uploads artifact file to the file storage - in parallel,
+// and creates image structure in the system.
+// Returns image ID and nil on success.
 func (i *ImagesModel) CreateImage(
-	artifact io.Reader,
 	metaConstructor *images.SoftwareImageMetaConstructor,
-	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
-
-	if metaConstructor == nil || metaArtifactConstructor == nil {
+	imageReader io.Reader) (string, error) {
+	if metaConstructor == nil {
 		return "", controller.ErrModelMissingInputMetadata
 	}
+	if imageReader == nil {
+		return "", controller.ErrModelMissingInputArtifact
+	}
+	artifactID, err := i.handleArtifact(metaConstructor, imageReader)
+	// try to remove artifact file from file storage on error
+	if err != nil {
+		if cleanupErr := i.fileStorage.Delete(artifactID); cleanupErr != nil {
+			return "", errors.Wrap(err, cleanupErr.Error())
+		}
+	}
+	return artifactID, err
+}
 
-	if err := metaConstructor.Validate(); err != nil {
+// handleArtifact parses artifact and uploads artifact file to the file storage - in parallel,
+// and creates image structure in the system.
+// Returns image ID, artifact file ID and nil on success.
+func (i *ImagesModel) handleArtifact(
+	metaConstructor *images.SoftwareImageMetaConstructor,
+	imageReader io.Reader) (string, error) {
+
+	// limit just for safety
+	// max image size - 10G
+	const MaxImageSize = 1024 * 1024 * 1024 * 10
+
+	// create pipe
+	pR, pW := io.Pipe()
+	// limit reader to max image size
+	lr := io.LimitReader(imageReader, MaxImageSize)
+	tee := io.TeeReader(lr, pW)
+
+	artifactID := uuid.NewV4().String()
+
+	ch := make(chan error)
+	// create goroutine for artifact upload
+	//
+	// reading from the pipe (which is done in UploadArtifact method) is a blocking operation
+	// and cannot be done in the same goroutine as writing to the pipe
+	//
+	// uploading and parsing artifact in the same process will cause in a deadlock!
+	go func() {
+		err := i.fileStorage.UploadArtifact(artifactID, pR, ImageContentType)
+		if err != nil {
+			pR.CloseWithError(err)
+		}
+		ch <- err
+	}()
+
+	// parse artifact
+	// artifact library reads all the data from the given reader
+	metaArtifactConstructor, err := getMetaFromArchive(&tee, MaxImageSize)
+	if err != nil {
+		pW.Close()
+		if uploadResponseErr := <-ch; uploadResponseErr != nil {
+			return "", controller.ErrModelArtifactUploadFailed
+		}
 		return "", controller.ErrModelInvalidMetadata
 	}
-	if err := metaArtifactConstructor.Validate(); err != nil {
+
+	// read the rest of the data,
+	// just in case the artifact library did not read all the data from the reader
+	_, err = io.Copy(ioutil.Discard, tee)
+	if err != nil {
+		pW.Close()
+		_ = <-ch
+		return "", err
+	}
+
+	// close the pipe
+	pW.Close()
+
+	// collect output from the goroutine
+	if uploadResponseErr := <-ch; uploadResponseErr != nil {
+		return "", uploadResponseErr
+	}
+
+	// validate artifact metadata
+	if err = metaArtifactConstructor.Validate(); err != nil {
 		return "", controller.ErrModelInvalidMetadata
 	}
+
+	// check if artifact is unique
+	// artifact is considered to be unique if there is no artifact with the same name
+	// and supporing the same platform in the system
 	isArtifactUnique, err := i.imagesStorage.IsArtifactUnique(
 		metaArtifactConstructor.ArtifactName, metaArtifactConstructor.DeviceTypesCompatible)
 	if err != nil {
@@ -69,18 +151,14 @@ func (i *ImagesModel) CreateImage(
 		return "", controller.ErrModelArtifactNotUnique
 	}
 
-	image := images.NewSoftwareImage(metaConstructor, metaArtifactConstructor)
+	image := images.NewSoftwareImage(artifactID, metaConstructor, metaArtifactConstructor)
 
-	if err := i.imagesStorage.Insert(image); err != nil {
+	// save image structure in the system
+	if err = i.imagesStorage.Insert(image); err != nil {
 		return "", errors.Wrap(err, "Fail to store the metadata")
 	}
 
-	if err := i.fileStorage.UploadArtifact(image.Id, artifact, ImageContentType); err != nil {
-		i.imagesStorage.Delete(image.Id)
-		return "", errors.Wrap(err, "Fail to store the image")
-	}
-
-	return image.Id, nil
+	return artifactID, nil
 }
 
 // GetImage allows to fetch image obeject with specified id
@@ -217,4 +295,63 @@ func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*image
 	}
 
 	return link, nil
+}
+
+func getArtifactInfo(info metadata.Info) *images.ArtifactInfo {
+	return &images.ArtifactInfo{
+		Format:  info.Format,
+		Version: uint(info.Version),
+	}
+}
+
+func getUpdateFiles(maxImageSize int64, uFiles map[string]parser.UpdateFile) ([]images.UpdateFile, error) {
+	var files []images.UpdateFile
+	for _, u := range uFiles {
+		if u.Size > maxImageSize {
+			return nil, errors.New("Image too large")
+		}
+		files = append(files, images.UpdateFile{
+			Name:      u.Name,
+			Size:      u.Size,
+			Signature: string(u.Signature),
+			Date:      &u.Date,
+			Checksum:  string(u.Checksum),
+		})
+	}
+	return files, nil
+}
+
+func getMetaFromArchive(
+	r *io.Reader, maxImageSize int64) (*images.SoftwareImageMetaArtifactConstructor, error) {
+	metaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+
+	aReader := areader.NewReader(*r)
+	defer aReader.Close()
+
+	data, err := aReader.Read()
+	if err != nil {
+		return nil, errors.Wrap(err, "reading artifact error")
+	}
+	metaArtifact.Info = getArtifactInfo(aReader.GetInfo())
+	metaArtifact.DeviceTypesCompatible = aReader.GetCompatibleDevices()
+	metaArtifact.ArtifactName = aReader.GetArtifactName()
+
+	for _, p := range data {
+		uFiles, err := getUpdateFiles(maxImageSize, p.GetUpdateFiles())
+		if err != nil {
+			return nil, errors.Wrap(err, "Cannot get update files:")
+		}
+
+		metaArtifact.Updates = append(
+			metaArtifact.Updates,
+			images.Update{
+				TypeInfo: images.ArtifactUpdateTypeInfo{
+					Type: p.GetUpdateType().Type,
+				},
+				MetaData: p.GetMetadata(),
+				Files:    uFiles,
+			})
+	}
+
+	return metaArtifact, nil
 }
