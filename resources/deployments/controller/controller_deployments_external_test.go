@@ -326,7 +326,7 @@ func TestControllerPostDeployment(t *testing.T) {
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusCreated,
 				OutputBodyObject: nil,
-				OutputHeaders:    map[string]string{"Location": "http://localhost/r/1234"},
+				OutputHeaders:    map[string]string{"Location": "./r/1234"},
 			},
 		},
 	}
