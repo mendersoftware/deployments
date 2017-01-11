@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/log"
@@ -38,7 +39,7 @@ type RESTView struct {
 }
 
 func (p *RESTView) RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string) {
-	w.Header().Add(HttpHeaderLocation, fmt.Sprintf("%s/%s", r.URL.String(), id))
+	w.Header().Add(HttpHeaderLocation, fmt.Sprintf("./%s/%s", strings.TrimLeft(r.URL.Path, "/api/0.0.1/"), id))
 	w.WriteHeader(http.StatusCreated)
 }
 
