@@ -15,22 +15,28 @@
 package model
 
 import (
-	"bufio"
 	"errors"
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/mendersoftware/deployments/resources/images/controller"
+	"github.com/mendersoftware/mender-artifact/parser"
+	atutils "github.com/mendersoftware/mender-artifact/test_utils"
+	"github.com/mendersoftware/mender-artifact/writer"
+	"github.com/stretchr/testify/assert"
 )
+
+const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
 
 func TestCreateImageEmptyConstructor(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
-	if _, err := iModel.CreateImage(nil, nil, nil); err != controller.ErrModelMissingInputMetadata {
+	if _, err := iModel.CreateImage(nil, nil); err != controller.ErrModelMissingInputMetadata {
 		t.FailNow()
 	}
 }
@@ -39,8 +45,7 @@ func TestCreateImageMissingFields(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
 
 	imageMeta := images.NewSoftwareImageMetaConstructor()
-	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
-	if _, err := iModel.CreateImage(nil, imageMeta, imageMetaArtifact); err == nil {
+	if _, err := iModel.CreateImage(imageMeta, nil); err == nil {
 		t.FailNow()
 	}
 }
@@ -111,22 +116,14 @@ func createValidImageMetaArtifact() *images.SoftwareImageMetaArtifactConstructor
 	return imageMetaArtifact
 }
 
-func createValidImageFile() *os.File {
-	someData := []byte{115, 111, 109, 101, 10, 11}
-	tmpfile, _ := ioutil.TempFile("", "artifact-")
-	tmpfile.Write(someData)
-	return tmpfile
-}
-
 func TestCreateImageInsertError(t *testing.T) {
 	fakeIS := new(FakeImageStorage)
 	fakeIS.insertError = errors.New("insert error")
 
 	iModel := NewImagesModel(nil, nil, fakeIS)
 	imageMeta := createValidImageMeta()
-	imageMetaArtifact := createValidImageMetaArtifact()
 
-	if _, err := iModel.CreateImage(nil, imageMeta, imageMetaArtifact); err == nil {
+	if _, err := iModel.CreateImage(imageMeta, nil); err == nil {
 		t.FailNow()
 	}
 }
@@ -140,13 +137,18 @@ func TestCreateImageArtifactUploadError(t *testing.T) {
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
 	imageMeta := createValidImageMeta()
-	imageMetaArtifact := createValidImageMetaArtifact()
-	file := createValidImageFile()
-	artifactReader := bufio.NewReader(file)
-	defer os.Remove(file.Name())
-	defer file.Close()
-
-	if _, err := iModel.CreateImage(artifactReader, imageMeta, imageMetaArtifact); err == nil {
+	td, _ := ioutil.TempDir("", "mender-install-update-")
+	defer os.RemoveAll(td)
+	upath, err := makeFakeUpdate(t, path.Join(td, "update-root"), true)
+	if err != nil {
+		t.FailNow()
+	}
+	f, err := os.Open(upath)
+	if err != nil {
+		t.FailNow()
+	}
+	defer f.Close()
+	if _, err := iModel.CreateImage(imageMeta, f); err == nil {
 		t.FailNow()
 	}
 }
@@ -160,12 +162,19 @@ func TestCreateImageCreateOK(t *testing.T) {
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
 	imageMeta := createValidImageMeta()
-	imageMetaArtifact := createValidImageMetaArtifact()
-	file := createValidImageFile()
-	defer os.Remove(file.Name())
-	defer file.Close()
+	td, _ := ioutil.TempDir("", "mender-install-update-")
+	defer os.RemoveAll(td)
+	upath, err := makeFakeUpdate(t, path.Join(td, "update-root"), true)
+	if err != nil {
+		t.FailNow()
+	}
+	f, err := os.Open(upath)
+	defer f.Close()
+	if err != nil {
+		t.FailNow()
+	}
 
-	if _, err := iModel.CreateImage(file, imageMeta, imageMetaArtifact); err != nil {
+	if _, err := iModel.CreateImage(imageMeta, f); err != nil {
 		t.FailNow()
 	}
 }
@@ -224,13 +233,16 @@ func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration, 
 }
 
 func (fis *FakeFileStorage) UploadArtifact(id string, img io.Reader, contentType string) error {
+	if _, err := io.Copy(ioutil.Discard, img); err != nil {
+		return err
+	}
 	return fis.uploadArtifactError
 }
 
 func TestGetImageOK(t *testing.T) {
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaArtifact()
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -263,7 +275,7 @@ func (fus *FakeUseChecker) ImageUsedInDeployment(imageId string) (bool, error) {
 func TestDeleteImage(t *testing.T) {
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaArtifact()
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
 
 	fakeFS := new(FakeFileStorage)
 	fakeChecker := new(FakeUseChecker)
@@ -336,7 +348,7 @@ func TestListImages(t *testing.T) {
 	//have some valid image
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaArtifact()
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -383,7 +395,7 @@ func TestEditImage(t *testing.T) {
 	}
 
 	// image does not exists
-	constructorImage := images.NewSoftwareImage(imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
 	fakeIS.findByIdImage = constructorImage
 	fakeIS.updateError = errors.New("error")
 	if _, err := iModel.EditImage("", imageMeta); err == nil {
@@ -440,4 +452,36 @@ func TestDownloadLink(t *testing.T) {
 	if err != nil || !reflect.DeepEqual(link, receivedLink) {
 		t.FailNow()
 	}
+}
+
+func makeFakeUpdate(t *testing.T, root string, valid bool) (string, error) {
+
+	var dirStructOK = []atutils.TestDirEntry{
+		{Path: "0000", IsDir: true},
+		{Path: "0000/data", IsDir: true},
+		{Path: "0000/data/update.ext4", Content: []byte("first update"), IsDir: false},
+		{Path: "0000/type-info", Content: []byte(`{"type": "rootfs-image"}`), IsDir: false},
+		{Path: "0000/meta-data", Content: []byte(`{"DeviceType": "vexpress-qemu", "ImageID": "core-image-minimal-201608110900"}`), IsDir: false},
+		{Path: "0000/signatures", IsDir: true},
+		{Path: "0000/signatures/update.sig", IsDir: false},
+		{Path: "0000/scripts", IsDir: true},
+		{Path: "0000/scripts/pre", IsDir: true},
+		{Path: "0000/scripts/pre/0000_install.sh", Content: []byte("run me!"), IsDir: false},
+		{Path: "0000/scripts/post", IsDir: true},
+		{Path: "0000/scripts/check", IsDir: true},
+	}
+
+	err := atutils.MakeFakeUpdateDir(root, dirStructOK)
+	assert.NoError(t, err)
+
+	aw := awriter.NewWriter("mender", 1, []string{"vexpress"}, "mender-1.0")
+
+	rp := &parser.RootfsParser{}
+	aw.Register(rp)
+
+	upath := path.Join(root, "update.tar")
+	err = aw.Write(root, upath)
+	assert.NoError(t, err)
+
+	return upath, nil
 }

@@ -30,6 +30,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+
 func TestDeploymentModelGetDeployment(t *testing.T) {
 
 	t.Parallel()
@@ -190,6 +192,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 	t.Parallel()
 
 	image := images.NewSoftwareImage(
+		validUUIDv4,
 		&images.SoftwareImageMetaConstructor{
 			Name: "foo",
 		},
@@ -230,6 +233,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			InputID: "ID:123",
 			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
 				Image: images.NewSoftwareImage(
+					validUUIDv4,
 					&images.SoftwareImageMetaConstructor{
 						Name: "foo",
 					},

@@ -16,6 +16,8 @@ package images
 
 import "testing"
 
+const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+
 func TestValidateEmptyImageMeta(t *testing.T) {
 	image := NewSoftwareImageMetaConstructor()
 
@@ -68,7 +70,7 @@ func TestValidateCorrectImage(t *testing.T) {
 	imageMetaArtifact.DeviceTypesCompatible = []string{"required"}
 	imageMeta.Name = required
 
-	image := NewSoftwareImage(imageMeta, imageMetaArtifact)
+	image := NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()
