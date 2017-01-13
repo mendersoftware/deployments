@@ -194,6 +194,11 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 		DeviceType: q.Get(GetDeploymentForDeviceQueryDeviceType),
 	}
 
+	if err := installed.Validate(); err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+
 	deployment, err := d.model.GetDeploymentForDeviceWithCurrent(idata.Subject, installed)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)

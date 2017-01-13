@@ -41,12 +41,12 @@ paths:
           description: Contains the JWT token issued by the Device Authentication Service.
         - name: artifact_name
           in: query
-          required: false
+          required: true
           type: string
           description: currently installed artifact
         - name: device_type
           in: query
-          required: false
+          required: true
           type: string
           description: Device type of device
       produces:
