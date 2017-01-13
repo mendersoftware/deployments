@@ -29,22 +29,21 @@ type ImagesModel struct {
 
 // CreateImage provides a mock function with given fields: constructorData
 func (_m *ImagesModel) CreateImage(
-	artifactReader io.Reader,
 	metaConstructor *images.SoftwareImageMetaConstructor,
-	metaArtifactConstructor *images.SoftwareImageMetaArtifactConstructor) (string, error) {
+	artifactReader io.Reader) (string, error) {
 
-	ret := _m.Called(artifactReader, metaConstructor, metaArtifactConstructor)
+	ret := _m.Called(metaConstructor, artifactReader)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(io.Reader, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaArtifactConstructor) string); ok {
-		r0 = rf(artifactReader, metaConstructor, metaArtifactConstructor)
+	if rf, ok := ret.Get(0).(func(*images.SoftwareImageMetaConstructor, io.Reader) string); ok {
+		r0 = rf(metaConstructor, artifactReader)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(io.Reader, *images.SoftwareImageMetaConstructor, *images.SoftwareImageMetaArtifactConstructor) error); ok {
-		r1 = rf(artifactReader, metaConstructor, metaArtifactConstructor)
+	if rf, ok := ret.Get(1).(func(*images.SoftwareImageMetaConstructor, io.Reader) error); ok {
+		r1 = rf(metaConstructor, artifactReader)
 	} else {
 		r1 = ret.Error(1)
 	}

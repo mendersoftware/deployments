@@ -17,6 +17,7 @@ package s3
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/mendersoftware/deployments/resources/images/model"
 	"github.com/pkg/errors"
@@ -41,9 +41,8 @@ const (
 // Data layer for file storage.
 // Implements model.FileStorage interface
 type SimpleStorageService struct {
-	client   *s3.S3
-	uploader *s3manager.Uploader
-	bucket   string
+	client *s3.S3
+	bucket string
 }
 
 // NewSimpleStorageServiceStatic create new S3 client model.
@@ -60,9 +59,6 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 
 	config.S3ForcePathStyle = aws.Bool(true)
 	sess := session.New(config)
-
-	// Set up a new s3manager client
-	uploader := s3manager.NewUploader(sess)
 
 	client := s3.New(sess)
 
@@ -81,9 +77,8 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 	}
 
 	return &SimpleStorageService{
-		client:   client,
-		uploader: uploader,
-		bucket:   bucket,
+		client: client,
+		bucket: bucket,
 	}, nil
 }
 
@@ -168,20 +163,40 @@ func (s *SimpleStorageService) Exists(objectID string) (bool, error) {
 	return false, nil
 }
 
-// Uploads artifact into file server (AWS S3 or minio)
+// UploadArtifact uploads given artifact into the file server (AWS S3 or minio)
+// using objectID as a key
 func (s *SimpleStorageService) UploadArtifact(objectID string, artifact io.Reader, contentType string) error {
-	params := &s3manager.UploadInput{
-		Body:   artifact,
+
+	params := &s3.PutObjectInput{
+		// Required
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(objectID),
 	}
 
-	if contentType != "" {
-		params.ContentType = &contentType
+	// Ignore out object
+	r, _ := s.client.PutObjectRequest(params)
+
+	// Presign request
+	uri, err := r.Presign(10 * time.Second)
+	if err != nil {
+		return err
 	}
 
-	_, err := s.uploader.Upload(params)
-	return err
+	client := &http.Client{}
+	request, err := http.NewRequest(http.MethodPut, uri, artifact)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", contentType)
+	resp, err := client.Do(request)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("Artifact upload failed: " + resp.Status)
+	}
+
+	return nil
 }
 
 // PutRequest duration is limited to 7 days (AWS limitation)

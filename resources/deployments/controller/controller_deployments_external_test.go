@@ -44,6 +44,8 @@ import (
 // 			they are more of integration test beween controller and view
 //			testing actuall HTTP endpoint input/reponse
 
+const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+
 func makeDeviceAuthHeader(claim string) string {
 	return fmt.Sprintf("Bearer foo.%s.bar",
 		base64.StdEncoding.EncodeToString([]byte(claim)))
@@ -66,6 +68,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 	t.Parallel()
 
 	image := images.NewSoftwareImage(
+		validUUIDv4,
 		&images.SoftwareImageMetaConstructor{
 			Name:        "foo-image",
 			Description: "foo-image-desc",
