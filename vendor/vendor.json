@@ -1687,38 +1687,38 @@
 		{
 			"checksumSHA1": "P9Oklqj7hHq9jTTmelTzIXVcLcY=",
 			"path": "github.com/mendersoftware/mender-artifact/archiver",
-			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
-			"revisionTime": "2016-12-16T11:15:47Z"
+			"revision": "e25628f77b73b0464703f0f4621a0b4c7420af26",
+			"revisionTime": "2017-01-16T14:17:20Z"
 		},
 		{
 			"checksumSHA1": "JWcv+3EZjQNpEgDw8SbqMMvlGwY=",
 			"path": "github.com/mendersoftware/mender-artifact/metadata",
-			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
-			"revisionTime": "2016-12-16T11:15:47Z"
+			"revision": "e25628f77b73b0464703f0f4621a0b4c7420af26",
+			"revisionTime": "2017-01-16T14:17:20Z"
 		},
 		{
 			"checksumSHA1": "89FjQneks8kwY3cU/Quxkyr3oZU=",
 			"path": "github.com/mendersoftware/mender-artifact/parser",
-			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
-			"revisionTime": "2016-12-16T11:15:47Z"
+			"revision": "e25628f77b73b0464703f0f4621a0b4c7420af26",
+			"revisionTime": "2017-01-16T14:17:20Z"
 		},
 		{
-			"checksumSHA1": "C98bn8t7GmD7d/gU5libTrHPm/s=",
+			"checksumSHA1": "QuXNYIjPMWQVFsBQW0cP1f7ixQo=",
 			"path": "github.com/mendersoftware/mender-artifact/reader",
-			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
-			"revisionTime": "2016-12-16T11:15:47Z"
+			"revision": "e25628f77b73b0464703f0f4621a0b4c7420af26",
+			"revisionTime": "2017-01-16T14:17:20Z"
 		},
 		{
 			"checksumSHA1": "G/feLabBpzcgoL0mkRTTYREtpkI=",
 			"path": "github.com/mendersoftware/mender-artifact/test_utils",
-			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
-			"revisionTime": "2016-12-16T11:15:47Z"
+			"revision": "e25628f77b73b0464703f0f4621a0b4c7420af26",
+			"revisionTime": "2017-01-16T14:17:20Z"
 		},
 		{
 			"checksumSHA1": "6t6ZvsWuu+TZKrnofDtZGTmqKP8=",
 			"path": "github.com/mendersoftware/mender-artifact/writer",
-			"revision": "7a232290a6e257df4ca21fadfc70e600aa853169",
-			"revisionTime": "2016-12-16T11:15:47Z"
+			"revision": "e25628f77b73b0464703f0f4621a0b4c7420af26",
+			"revisionTime": "2017-01-16T14:17:20Z"
 		},
 		{
 			"checksumSHA1": "i38FeB/pqmU7xcluq/0LHjIwDY8=",
