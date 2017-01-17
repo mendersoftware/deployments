@@ -119,6 +119,15 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-1"}`),
 			},
+
+			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
+				Artifact:   "artifact-name",
+				DeviceType: "hammer",
+			},
+			Params: url.Values{
+				GetDeploymentForDeviceQueryArtifact:   []string{"artifact-name"},
+				GetDeploymentForDeviceQueryDeviceType: []string{"hammer"},
+			},
 		},
 		{
 			InputID: "device-id-2",
@@ -127,6 +136,14 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
+			},
+			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
+				Artifact:   "artifact-name",
+				DeviceType: "hammer",
+			},
+			Params: url.Values{
+				GetDeploymentForDeviceQueryArtifact:   []string{"artifact-name"},
+				GetDeploymentForDeviceQueryDeviceType: []string{"hammer"},
 			},
 		},
 		{
@@ -154,6 +171,14 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
 			},
+			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
+				Artifact:   "artifact-name",
+				DeviceType: "hammer",
+			},
+			Params: url.Values{
+				GetDeploymentForDeviceQueryArtifact:   []string{"artifact-name"},
+				GetDeploymentForDeviceQueryDeviceType: []string{"hammer"},
+			},
 		},
 		{
 			InputID: "device-id-3",
@@ -173,6 +198,48 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
+			},
+		},
+		{
+			InputID: "device-id-4",
+			InputModelDeploymentInstructions: nil,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Artifact: non zero value required;")),
+			},
+			Params: url.Values{
+				GetDeploymentForDeviceQueryDeviceType: []string{"hammer"},
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-4"}`),
+			},
+		},
+		{
+			InputID: "device-id-5",
+			InputModelDeploymentInstructions: nil,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("DeviceType: non zero value required;")),
+			},
+			Params: url.Values{
+				GetDeploymentForDeviceQueryArtifact: []string{"artifact-name"},
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-5"}`),
+			},
+		},
+		{
+			InputID: "device-id-6",
+			InputModelDeploymentInstructions: nil,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Artifact: non zero value required;DeviceType: non zero value required;")),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-6"}`),
 			},
 		},
 	}

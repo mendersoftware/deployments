@@ -134,6 +134,11 @@ func ActiveDeploymentStatuses() []string {
 // InstalledDeviceDeployment describes a deployment currently installed on the
 // device, usually reported by a device
 type InstalledDeviceDeployment struct {
-	Artifact   string
-	DeviceType string
+	Artifact   string `valid:"required"`
+	DeviceType string `valid:"required"`
+}
+
+func (i *InstalledDeviceDeployment) Validate() error {
+	_, err := govalidator.ValidateStruct(i)
+	return err
 }
