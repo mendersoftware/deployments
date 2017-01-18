@@ -229,21 +229,21 @@ func TestControllerEditImage(t *testing.T) {
 	imagesModel.editError = errors.New("error")
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
-			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
+			map[string]string{"name": "myImage"}))
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	// correct id; correct payload; edit no image
 	imagesModel.editError = nil
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
-			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
+			map[string]string{"name": "myImage"}))
 	recorded.CodeIs(http.StatusNotFound)
 
 	// correct id; correct payload; have image
 	imagesModel.editImage = true
 
 	req := test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
-		map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"})
+		map[string]string{"name": "myImage"})
 	req.Header.Add(requestid.RequestIdHeader, "test")
 	recorded = test.RunRequest(t, api.MakeHandler(), req)
 	recorded.CodeIs(http.StatusNoContent)
