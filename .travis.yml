@@ -3,6 +3,11 @@ language: go
 # Forces travis to use VM insted container, required to be able to build containers.
 sudo: required
 
+cache:
+    pip: true
+    directories:
+        - node_modules
+
 services:
     - docker
     - mongodb
@@ -10,11 +15,6 @@ services:
 # Golang version matrix
 go:
     - 1.7.4
-
-addons:
-    #Add alias to localhost, required for fakes3
-    hosts:
-        - mender-artifact-storage.localhost
 
 env:
     matrix:
@@ -82,9 +82,6 @@ before_install:
 
     # Install cyclomatic dependency analysis tool
     - go get -u github.com/fzipp/gocyclo
-
-    # Install fakes3
-    - gem install fakes3
 
     # Install mongo 3.2
     - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
