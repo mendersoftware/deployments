@@ -95,12 +95,7 @@ func (fis *FakeImageStorage) IsArtifactUnique(artifactName string, deviceTypesCo
 }
 
 func createValidImageMeta() *images.SoftwareImageMetaConstructor {
-	imageMeta := images.NewSoftwareImageMetaConstructor()
-	required := "required"
-
-	imageMeta.Name = required
-
-	return imageMeta
+	return images.NewSoftwareImageMetaConstructor()
 }
 
 func createValidImageMetaArtifact() *images.SoftwareImageMetaArtifactConstructor {
@@ -108,7 +103,7 @@ func createValidImageMetaArtifact() *images.SoftwareImageMetaArtifactConstructor
 	required := "required"
 
 	imageMetaArtifact.DeviceTypesCompatible = []string{"required"}
-	imageMetaArtifact.ArtifactName = required
+	imageMetaArtifact.Name = required
 	imageMetaArtifact.Info = &images.ArtifactInfo{
 		Format:  required,
 		Version: 1,

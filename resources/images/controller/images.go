@@ -214,6 +214,21 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 	s.view.RenderSuccessPut(w)
 }
 
+func (s SoftwareImagesController) getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*images.SoftwareImageMetaConstructor, error) {
+
+	var constructor *images.SoftwareImageMetaConstructor
+
+	if err := r.DecodeJsonPayload(&constructor); err != nil {
+		return nil, err
+	}
+
+	if err := constructor.Validate(); err != nil {
+		return nil, err
+	}
+
+	return constructor, nil
+}
+
 // Multipart Image/Meta upload handler.
 // Request should be of type "multipart/form-data".
 // First part should contain Metadata file. This file should be of type "application/json".
@@ -266,12 +281,6 @@ func (s *SoftwareImagesController) parseMultipart(mr *multipart.Reader, maxMetaS
 			return nil, nil, errors.Wrap(err, "Request does not contain artifact")
 		}
 		switch p.FormName() {
-		case "name":
-			name, err := s.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, nil, err
-			}
-			constructor.Name = *name
 		case "description":
 			desc, err := s.getFormFieldValue(p, maxMetaSize)
 			if err != nil {
@@ -297,19 +306,4 @@ func (s *SoftwareImagesController) getFormFieldValue(p *multipart.Part, maxMetaS
 
 	strValue := string(bytes)
 	return &strValue, nil
-}
-
-func (s SoftwareImagesController) getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*images.SoftwareImageMetaConstructor, error) {
-
-	var constructor *images.SoftwareImageMetaConstructor
-
-	if err := r.DecodeJsonPayload(&constructor); err != nil {
-		return nil, err
-	}
-
-	if err := constructor.Validate(); err != nil {
-		return nil, err
-	}
-
-	return constructor, nil
 }

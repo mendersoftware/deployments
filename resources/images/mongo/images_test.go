@@ -15,11 +15,12 @@
 package mongo_test
 
 import (
+	"testing"
+
 	"github.com/mendersoftware/deployments/resources/images"
 	model "github.com/mendersoftware/deployments/resources/images/model"
 	. "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
@@ -32,12 +33,11 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 		&images.SoftwareImage{
 			Id: "1",
 			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
-				Name:        "App1 v1.0",
 				Description: "description",
 			},
 
 			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				ArtifactName:          "app1-v1.0",
+				Name: "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []images.Update{},
 			},
@@ -45,12 +45,11 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 		&images.SoftwareImage{
 			Id: "2",
 			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
-				Name:        "App2 v0.1",
 				Description: "description",
 			},
 
 			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				ArtifactName:          "app2-v0.1",
+				Name: "App2 v0.1",
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []images.Update{},
 			},
@@ -124,30 +123,27 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 	}
 
 	for name, tc := range testCases {
-		t.Logf("testing case %s", name)
-		var res []images.SoftwareImage
-		err := coll.Find(nil).All(&res)
-		t.Logf("DEBUG inserted imgs %v", res)
 
-		store := NewSoftwareImagesStorage(session)
+		// Run each test case as subtest
+		t.Run(name, func(t *testing.T) {
 
-		img, err := store.ImageByNameAndDeviceType(tc.InputImageName, tc.InputDevType)
-		t.Logf("DEBUG got img %v", img)
+			store := NewSoftwareImagesStorage(session)
+			img, err := store.ImageByNameAndDeviceType(tc.InputImageName, tc.InputDevType)
 
-		if tc.OutputError != nil {
-			assert.EqualError(t, err, tc.OutputError.Error())
-		} else {
-			assert.NoError(t, err)
-
-			if tc.OutputImage == nil {
-				assert.Nil(t, img)
+			if tc.OutputError != nil {
+				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
-				assert.NotNil(t, img)
-				assert.Equal(t, *tc.OutputImage, *img)
-			}
-		}
-	}
+				assert.NoError(t, err)
 
+				if tc.OutputImage == nil {
+					assert.Nil(t, img)
+				} else {
+					assert.NotNil(t, img)
+					assert.Equal(t, *tc.OutputImage, *img)
+				}
+			}
+		})
+	}
 }
 
 func TestIsArtifactUnique(t *testing.T) {
@@ -160,12 +156,11 @@ func TestIsArtifactUnique(t *testing.T) {
 		&images.SoftwareImage{
 			Id: "1",
 			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
-				Name:        "App1 v1.0",
 				Description: "description",
 			},
 
 			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				ArtifactName:          "app1-v1.0",
+				Name: "app1-v1.0",
 				DeviceTypesCompatible: []string{"foo", "bar"},
 				Updates:               []images.Update{},
 			},
@@ -216,22 +211,20 @@ func TestIsArtifactUnique(t *testing.T) {
 	}
 
 	for name, tc := range testCases {
-		t.Logf("testing case %s", name)
-		var res []images.SoftwareImage
-		err := coll.Find(nil).All(&res)
-		t.Logf("DEBUG inserted imgs %v", res)
 
-		store := NewSoftwareImagesStorage(session)
+		// Run test cases as subtests
+		t.Run(name, func(t *testing.T) {
 
-		isUnique, err := store.IsArtifactUnique(tc.InputArtifactName, tc.InputDevTypes)
-		t.Logf("DEBUG is artifact unique: %v", isUnique)
+			store := NewSoftwareImagesStorage(session)
+			isUnique, err := store.IsArtifactUnique(tc.InputArtifactName, tc.InputDevTypes)
 
-		if tc.OutputError != nil {
-			assert.EqualError(t, err, tc.OutputError.Error())
-		} else {
-			assert.NoError(t, err)
-			assert.Equal(t, tc.OutputIsUnique, isUnique)
-		}
+			if tc.OutputError != nil {
+				assert.EqualError(t, err, tc.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.OutputIsUnique, isUnique)
+			}
+		})
 	}
 
 }

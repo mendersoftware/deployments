@@ -20,6 +20,8 @@ import (
 	"testing"
 	"time"
 
+	"fmt"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/deployments/controller"
 	. "github.com/mendersoftware/deployments/resources/deployments/model"
@@ -118,7 +120,7 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
-				testCase.InputExistAssignedImageWithIDAndStatusesError)
+			testCase.InputExistAssignedImageWithIDAndStatusesError)
 
 		model := NewDeploymentModel(DeploymentsModelConfig{DeviceDeploymentsStorage: deviceDeploymentStorage})
 
@@ -172,7 +174,7 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 		deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
 			Return(testCase.InputImageUsedInDeploymentFound,
-				testCase.InputImageUsedInDeploymentError)
+			testCase.InputImageUsedInDeploymentError)
 
 		model := NewDeploymentModel(DeploymentsModelConfig{DeviceDeploymentsStorage: deviceDeploymentStorage})
 
@@ -193,11 +195,9 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 
 	image := images.NewSoftwareImage(
 		validUUIDv4,
-		&images.SoftwareImageMetaConstructor{
-			Name: "foo",
-		},
+		&images.SoftwareImageMetaConstructor{},
 		&images.SoftwareImageMetaArtifactConstructor{
-			ArtifactName: "foo-artifact",
+			Name: "foo-artifact",
 			DeviceTypesCompatible: []string{
 				"hammer",
 			},
@@ -234,11 +234,9 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
 				Image: images.NewSoftwareImage(
 					validUUIDv4,
-					&images.SoftwareImageMetaConstructor{
-						Name: "foo",
-					},
+					&images.SoftwareImageMetaConstructor{},
 					&images.SoftwareImageMetaArtifactConstructor{
-						ArtifactName: "foo-artifact",
+						Name: "foo-artifact",
 					}),
 				DeploymentId: StringToPointer("ID:678"),
 			},
@@ -257,7 +255,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			OutputDeploymentInstructions: &deployments.DeploymentInstructions{
 				ID: "ID:678",
 				Artifact: deployments.ArtifactDeploymentInstructions{
-					ArtifactName:          image.ArtifactName,
+					ArtifactName:          image.Name,
 					Source:                images.Link{},
 					DeviceTypesCompatible: image.DeviceTypesCompatible,
 				},
@@ -274,85 +272,92 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			InputGetRequestLink: &images.Link{},
 
 			InputInstalledDeployment: deployments.InstalledDeviceDeployment{
-				Artifact:   image.ArtifactName,
+				Artifact:   image.Name,
 				DeviceType: "hammer",
 			},
 		},
 	}
 
-	for tidx, testCase := range testCases {
-		t.Logf("test case %d", tidx)
+	for testCaseNumber, testCase := range testCases {
 
-		deploymentStorage := new(mocks.DeploymentsStorage)
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
-		deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses",
-			testCase.InputID, mock.AnythingOfType("[]string")).
-			Return(testCase.InputOlderstDeviceDeployment,
+			deploymentStorage := new(mocks.DeploymentsStorage)
+
+			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
+			deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses",
+				testCase.InputID, mock.AnythingOfType("[]string")).
+				Return(testCase.InputOlderstDeviceDeployment,
 				testCase.InputOlderstDeviceDeploymentError)
-		// if UpdateDeviceDeploymentStatus is ever called, the status
-		// will be already-installed
-		deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
-			mock.AnythingOfType("string"), mock.AnythingOfType("string"),
-			deployments.DeviceDeploymentStatusAlreadyInst, mock.AnythingOfType("*time.Time")).
-			Return("dontcare", nil)
-		deviceDeploymentStorage.On("GetDeviceDeploymentStatus",
-			mock.AnythingOfType("string"), mock.AnythingOfType("string")).
-			Return("dontcare", nil)
 
-		imageLinker := new(mocks.GetRequester)
-		if testCase.InputOlderstDeviceDeployment != nil {
-			// Notice: force GetRequest to expect image id returned
-			// by FindOldestDeploymentForDeviceIDWithStatuses Just
-			// as implementation does, if this changes test will
-			// break by panic ;)
-			imageLinker.On("GetRequest", testCase.InputOlderstDeviceDeployment.Image.Id,
-				DefaultUpdateDownloadLinkExpire).
-				Return(testCase.InputGetRequestLink, testCase.InputGetRequestError)
+			// if UpdateDeviceDeploymentStatus is ever called, the status
+			// will be already-installed
 
-			// if deployment is found to be already installed (i.e.
-			// case when current installation artifact is the same
-			// as device deployment one), deployment will have its
-			// statistics updated
-			deploymentStorage.On("UpdateStats",
-				*testCase.InputOlderstDeviceDeployment.DeploymentId,
-				mock.AnythingOfType("string"),
-				deployments.DeviceDeploymentStatusAlreadyInst).
-				Return(nil)
-			deploymentStorage.On("FindByID",
-				*testCase.InputOlderstDeviceDeployment.DeploymentId).
-				Return(&deployments.Deployment{
+			deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
+				mock.AnythingOfType("string"), mock.AnythingOfType("string"),
+				deployments.DeviceDeploymentStatusAlreadyInst, mock.AnythingOfType("*time.Time")).
+				Return("dontcare", nil)
+			deviceDeploymentStorage.On("GetDeviceDeploymentStatus",
+				mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+				Return("dontcare", nil)
+
+			imageLinker := new(mocks.GetRequester)
+			if testCase.InputOlderstDeviceDeployment != nil {
+
+				// Notice: force GetRequest to expect image id returned
+				// by FindOldestDeploymentForDeviceIDWithStatuses Just
+				// as implementation does, if this changes test will
+				// break by panic ;)
+				imageLinker.On("GetRequest", testCase.InputOlderstDeviceDeployment.Image.Id,
+					DefaultUpdateDownloadLinkExpire).
+					Return(testCase.InputGetRequestLink, testCase.InputGetRequestError)
+
+				// if deployment is found to be already installed (i.e.
+				// case when current installation artifact is the same
+				// as device deployment one), deployment will have its
+				// statistics updated
+				deploymentStorage.On("UpdateStats",
+					*testCase.InputOlderstDeviceDeployment.DeploymentId,
+					mock.AnythingOfType("string"),
+					deployments.DeviceDeploymentStatusAlreadyInst).
+					Return(nil)
+
+				deploymentStorage.On("FindByID",
+					*testCase.InputOlderstDeviceDeployment.DeploymentId).
+					Return(&deployments.Deployment{
 					Id:    testCase.InputOlderstDeviceDeployment.DeploymentId,
 					Stats: deployments.NewDeviceDeploymentStats(),
 				}, nil)
-			// if deployment is found to be finished, we need to
-			// mock another call
-			deploymentStorage.On("Finish",
-				*testCase.InputOlderstDeviceDeployment.DeploymentId,
-				mock.AnythingOfType("time.Time")).
-				Return(nil)
-		}
 
-		model := NewDeploymentModel(DeploymentsModelConfig{
-			DeviceDeploymentsStorage: deviceDeploymentStorage,
-			DeploymentsStorage:       deploymentStorage,
-			ImageLinker:              imageLinker,
-		})
-
-		out, err := model.GetDeploymentForDeviceWithCurrent(testCase.InputID,
-			testCase.InputInstalledDeployment)
-		if testCase.OutputError != nil {
-			assert.EqualError(t, err, testCase.OutputError.Error())
-			assert.Nil(t, out)
-		} else {
-			assert.NoError(t, err)
-			if testCase.OutputDeploymentInstructions != nil {
-				assert.NotNil(t, out)
-				assert.EqualValues(t, testCase.OutputDeploymentInstructions, out)
-			} else {
-				assert.Nil(t, out)
+				// if deployment is found to be finished, we need to
+				// mock another call
+				deploymentStorage.On("Finish",
+					*testCase.InputOlderstDeviceDeployment.DeploymentId,
+					mock.AnythingOfType("time.Time")).
+					Return(nil)
 			}
-		}
+
+			model := NewDeploymentModel(DeploymentsModelConfig{
+				DeviceDeploymentsStorage: deviceDeploymentStorage,
+				DeploymentsStorage:       deploymentStorage,
+				ImageLinker:              imageLinker,
+			})
+
+			out, err := model.GetDeploymentForDeviceWithCurrent(testCase.InputID,
+				testCase.InputInstalledDeployment)
+			if testCase.OutputError != nil {
+				assert.EqualError(t, err, testCase.OutputError.Error())
+				assert.Nil(t, out)
+			} else {
+				assert.NoError(t, err)
+				if testCase.OutputDeploymentInstructions != nil {
+					assert.NotNil(t, out)
+					assert.EqualValues(t, testCase.OutputDeploymentInstructions, out)
+				} else {
+					assert.Nil(t, out)
+				}
+			}
+		})
 	}
 
 }

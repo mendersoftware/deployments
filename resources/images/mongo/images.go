@@ -29,10 +29,9 @@ const (
 	// Keys are corelated to field names in SoftwareImageMeta
 	// and SoftwareImageMetaArtifact structures
 	// Need to be kept in sync with that structure filed names
-	StorageKeySoftwareImageDeviceTypes  = "meta_artifact.device_types_compatible"
-	StorageKeySoftwareImageArtifactName = "meta_artifact.artifact_name"
-	StorageKeySoftwareImageName         = "meta.name"
-	StorageKeySoftwareImageId           = "_id"
+	StorageKeySoftwareImageDeviceTypes = "meta_artifact.device_types_compatible"
+	StorageKeySoftwareImageName        = "meta_artifact.name"
+	StorageKeySoftwareImageId          = "_id"
 )
 
 // Indexes
@@ -209,7 +208,7 @@ func (i *SoftwareImagesStorage) IsArtifactUnique(artifactName string, deviceType
 	query := bson.M{
 		"$and": []bson.M{
 			bson.M{
-				StorageKeySoftwareImageArtifactName: artifactName,
+				StorageKeySoftwareImageName: artifactName,
 			},
 			bson.M{
 				StorageKeySoftwareImageDeviceTypes: bson.M{"$in": deviceTypesCompatible},

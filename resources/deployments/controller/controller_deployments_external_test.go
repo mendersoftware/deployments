@@ -18,12 +18,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/Sirupsen/logrus"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
@@ -70,11 +71,10 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 	image := images.NewSoftwareImage(
 		validUUIDv4,
 		&images.SoftwareImageMetaConstructor{
-			Name:        "foo-image",
 			Description: "foo-image-desc",
 		},
 		&images.SoftwareImageMetaArtifactConstructor{
-			ArtifactName: "artifact-name",
+			Name: "artifact-name",
 			DeviceTypesCompatible: []string{
 				"hammer",
 			},
@@ -151,7 +151,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			InputModelDeploymentInstructions: &deployments.DeploymentInstructions{
 				ID: "foo-1",
 				Artifact: deployments.ArtifactDeploymentInstructions{
-					ArtifactName:          image.ArtifactName,
+					ArtifactName:          image.Name,
 					Source:                images.Link{},
 					DeviceTypesCompatible: image.DeviceTypesCompatible,
 				},
@@ -162,7 +162,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 				OutputBodyObject: &deployments.DeploymentInstructions{
 					ID: "foo-1",
 					Artifact: deployments.ArtifactDeploymentInstructions{
-						ArtifactName:          image.ArtifactName,
+						ArtifactName:          image.Name,
 						Source:                images.Link{},
 						DeviceTypesCompatible: image.DeviceTypesCompatible,
 					},
@@ -244,31 +244,33 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		},
 	}
 
-	for tidx, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
 
-		t.Logf("testing input ID: %v tc: %d", testCase.InputID, tidx)
-		deploymentModel := new(mocks.DeploymentsModel)
-		deploymentModel.On("GetDeploymentForDeviceWithCurrent", testCase.InputID,
-			testCase.InputModelCurrentDeployment).
-			Return(testCase.InputModelDeploymentInstructions, testCase.InputModelError)
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		router, err := rest.MakeRouter(
-			rest.Get("/r/update",
-				NewDeploymentsController(deploymentModel,
-					new(view.DeploymentsView)).GetDeploymentForDevice))
-		assert.NoError(t, err)
+			deploymentModel := new(mocks.DeploymentsModel)
+			deploymentModel.On("GetDeploymentForDeviceWithCurrent", testCase.InputID,
+				testCase.InputModelCurrentDeployment).
+				Return(testCase.InputModelDeploymentInstructions, testCase.InputModelError)
 
-		api := makeApi(router)
+			router, err := rest.MakeRouter(
+				rest.Get("/r/update",
+					NewDeploymentsController(deploymentModel,
+						new(view.DeploymentsView)).GetDeploymentForDevice))
+			assert.NoError(t, err)
 
-		vals := testCase.Params.Encode()
-		req := test.MakeSimpleRequest("GET", "http://localhost/r/update?"+vals, nil)
-		for k, v := range testCase.Headers {
-			req.Header.Set(k, v)
-		}
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
+			api := makeApi(router)
 
-		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+			vals := testCase.Params.Encode()
+			req := test.MakeSimpleRequest("GET", "http://localhost/r/update?"+vals, nil)
+			for k, v := range testCase.Headers {
+				req.Header.Set(k, v)
+			}
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
 	}
 }
 
@@ -326,25 +328,27 @@ func TestControllerGetDeployment(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Logf("testing %v", testCase.InputID)
+	for testCaseNumber, testCase := range testCases {
 
-		deploymentModel := new(mocks.DeploymentsModel)
-		deploymentModel.On("GetDeployment", testCase.InputID).
-			Return(testCase.InputModelDeployment, testCase.InputModelError)
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		router, err := rest.MakeRouter(
-			rest.Get("/r/:id",
-				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeployment))
-		assert.NoError(t, err)
+			deploymentModel := new(mocks.DeploymentsModel)
+			deploymentModel.On("GetDeployment", testCase.InputID).
+				Return(testCase.InputModelDeployment, testCase.InputModelError)
 
-		api := makeApi(router)
+			router, err := rest.MakeRouter(
+				rest.Get("/r/:id",
+					NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeployment))
+			assert.NoError(t, err)
 
-		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+testCase.InputID, nil)
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
+			api := makeApi(router)
 
-		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+			req := test.MakeSimpleRequest("GET", "http://localhost/r/"+testCase.InputID, nil)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
 	}
 }
 
@@ -401,25 +405,28 @@ func TestControllerPostDeployment(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
 
-		deploymentModel := new(mocks.DeploymentsModel)
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		deploymentModel.On("CreateDeployment", testCase.InputBodyObject).
-			Return(testCase.InputModelID, testCase.InputModelError)
+			deploymentModel := new(mocks.DeploymentsModel)
 
-		router, err := rest.MakeRouter(
-			rest.Post("/r",
-				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).PostDeployment))
-		assert.NoError(t, err)
+			deploymentModel.On("CreateDeployment", testCase.InputBodyObject).
+				Return(testCase.InputModelID, testCase.InputModelError)
 
-		api := makeApi(router)
+			router, err := rest.MakeRouter(
+				rest.Post("/r",
+					NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).PostDeployment))
+			assert.NoError(t, err)
 
-		req := test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject)
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
+			api := makeApi(router)
 
-		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+			req := test.MakeSimpleRequest("POST", "http://localhost/r", testCase.InputBodyObject)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
 	}
 }
 
@@ -535,35 +542,35 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
 
-		t.Logf("testing %s %s %s %v",
-			testCase.InputModelDeploymentID, testCase.InputModelDeviceID,
-			testCase.InputModelStatus, testCase.InputModelError)
-		deploymentModel := new(mocks.DeploymentsModel)
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		deploymentModel.On("UpdateDeviceDeploymentStatus",
-			testCase.InputModelDeploymentID,
-			testCase.InputModelDeviceID, testCase.InputModelStatus).
-			Return(testCase.InputModelError)
+			deploymentModel := new(mocks.DeploymentsModel)
 
-		router, err := rest.MakeRouter(
-			rest.Post("/r/:id",
-				NewDeploymentsController(deploymentModel,
-					new(view.DeploymentsView)).PutDeploymentStatusForDevice))
-		assert.NoError(t, err)
+			deploymentModel.On("UpdateDeviceDeploymentStatus",
+				testCase.InputModelDeploymentID,
+				testCase.InputModelDeviceID, testCase.InputModelStatus).
+				Return(testCase.InputModelError)
 
-		api := makeApi(router)
+			router, err := rest.MakeRouter(
+				rest.Post("/r/:id",
+					NewDeploymentsController(deploymentModel,
+						new(view.DeploymentsView)).PutDeploymentStatusForDevice))
+			assert.NoError(t, err)
 
-		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
-			testCase.InputBodyObject)
-		for k, v := range testCase.Headers {
-			req.Header.Set(k, v)
-		}
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
+			api := makeApi(router)
 
-		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+			req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
+				testCase.InputBodyObject)
+			for k, v := range testCase.Headers {
+				req.Header.Set(k, v)
+			}
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
 	}
 }
 
@@ -626,29 +633,31 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
 
-		t.Logf("testing %s %v", testCase.InputModelDeploymentID, testCase.InputModelError)
-		deploymentModel := new(mocks.DeploymentsModel)
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		deploymentModel.On("GetDeploymentStats", testCase.InputModelDeploymentID).
-			Return(testCase.InputModelStats, testCase.InputModelError)
+			deploymentModel := new(mocks.DeploymentsModel)
 
-		router, err := rest.MakeRouter(
-			rest.Post("/r/:id",
-				NewDeploymentsController(deploymentModel,
-					new(view.DeploymentsView)).GetDeploymentStats))
+			deploymentModel.On("GetDeploymentStats", testCase.InputModelDeploymentID).
+				Return(testCase.InputModelStats, testCase.InputModelError)
 
-		assert.NoError(t, err)
+			router, err := rest.MakeRouter(
+				rest.Post("/r/:id",
+					NewDeploymentsController(deploymentModel,
+						new(view.DeploymentsView)).GetDeploymentStats))
 
-		api := makeApi(router)
+			assert.NoError(t, err)
 
-		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
-			nil)
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
+			api := makeApi(router)
 
-		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+			req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
+				nil)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
 	}
 }
 
@@ -708,26 +717,28 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 		},
 	}
 
-	for id, tc := range testCases {
-		t.Logf("test case: %s", id)
+	for caseName, tc := range testCases {
 
-		deploymentModel := new(mocks.DeploymentsModel)
-		deploymentModel.On("GetDeviceStatusesForDeployment", tc.deploymentID).
-			Return(tc.modelStatuses, tc.modelErr)
+		t.Run(caseName, func(t *testing.T) {
 
-		router, err := rest.MakeRouter(
-			rest.Get("/r/:id",
-				NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeviceStatusesForDeployment))
+			deploymentModel := new(mocks.DeploymentsModel)
+			deploymentModel.On("GetDeviceStatusesForDeployment", tc.deploymentID).
+				Return(tc.modelStatuses, tc.modelErr)
 
-		assert.NoError(t, err)
+			router, err := rest.MakeRouter(
+				rest.Get("/r/:id",
+					NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeviceStatusesForDeployment))
 
-		api := makeApi(router)
+			assert.NoError(t, err)
 
-		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil)
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
+			api := makeApi(router)
 
-		h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
+			req := test.MakeSimpleRequest("GET", "http://localhost/r/"+tc.deploymentID, nil)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
+		})
 	}
 }
 
@@ -833,40 +844,41 @@ func TestControllerLookupDeployment(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
 
-		t.Logf("testing %+v %s", testCase.InputModelQuery, testCase.InputModelError)
-		deploymentModel := new(mocks.DeploymentsModel)
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		deploymentModel.On("LookupDeployment", testCase.InputModelQuery).
-			Return(testCase.InputModelDeployments, testCase.InputModelError)
+			deploymentModel := new(mocks.DeploymentsModel)
 
-		router, err := rest.MakeRouter(
-			rest.Get("/r",
-				NewDeploymentsController(deploymentModel,
-					new(view.DeploymentsView)).LookupDeployment))
+			deploymentModel.On("LookupDeployment", testCase.InputModelQuery).
+				Return(testCase.InputModelDeployments, testCase.InputModelError)
 
-		assert.NoError(t, err)
+			router, err := rest.MakeRouter(
+				rest.Get("/r",
+					NewDeploymentsController(deploymentModel,
+						new(view.DeploymentsView)).LookupDeployment))
 
-		api := makeApi(router)
+			assert.NoError(t, err)
 
-		u := url.URL{
-			Scheme: "http",
-			Host:   "localhost",
-			Path:   "/r",
-		}
-		q := u.Query()
-		q.Set("search", testCase.InputModelQuery.SearchText)
-		if testCase.SearchStatus != "" {
-			q.Set("status", testCase.SearchStatus)
-		}
-		u.RawQuery = q.Encode()
-		t.Logf("query: %s", u.String())
-		req := test.MakeSimpleRequest("GET", u.String(), nil)
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
+			api := makeApi(router)
 
-		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+			u := url.URL{
+				Scheme: "http",
+				Host:   "localhost",
+				Path:   "/r",
+			}
+			q := u.Query()
+			q.Set("search", testCase.InputModelQuery.SearchText)
+			if testCase.SearchStatus != "" {
+				q.Set("status", testCase.SearchStatus)
+			}
+			u.RawQuery = q.Encode()
+			req := test.MakeSimpleRequest("GET", u.String(), nil)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
 	}
 }
 
@@ -939,16 +951,19 @@ func TestParseLookupQuery(t *testing.T) {
 			},
 		},
 	}
-	for _, tc := range testCases {
-		t.Logf("testing: %v", tc.vals)
 
-		q, err := ParseLookupQuery(tc.vals)
-		if tc.err != nil {
-			assert.Error(t, err)
-			assert.EqualError(t, tc.err, err.Error())
-		} else {
-			assert.Equal(t, tc.query, q)
-		}
+	for testCaseNumber, tc := range testCases {
+
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
+
+			q, err := ParseLookupQuery(tc.vals)
+			if tc.err != nil {
+				assert.Error(t, err)
+				assert.EqualError(t, tc.err, err.Error())
+			} else {
+				assert.Equal(t, tc.query, q)
+			}
+		})
 	}
 }
 
@@ -969,6 +984,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 			Level:     "notice",
 		},
 	}
+
 	testCases := []struct {
 		h.JSONResponseParams
 		InputBodyObject interface{}
@@ -1065,35 +1081,36 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Logf("testing %s %s %v %v",
-			testCase.InputModelDeploymentID, testCase.InputModelDeviceID,
-			testCase.InputBodyObject, testCase.InputModelError)
-		deploymentModel := new(mocks.DeploymentsModel)
+	for testCaseNumber, testCase := range testCases {
 
-		deploymentModel.On("SaveDeviceDeploymentLog",
-			testCase.InputModelDeviceID,
-			testCase.InputModelDeploymentID,
-			testCase.InputModelMessages).
-			Return(testCase.InputModelError)
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		router, err := rest.MakeRouter(
-			rest.Put("/r/:id",
-				NewDeploymentsController(deploymentModel,
-					new(view.DeploymentsView)).PutDeploymentLogForDevice))
-		assert.NoError(t, err)
+			deploymentModel := new(mocks.DeploymentsModel)
 
-		api := makeApi(router)
+			deploymentModel.On("SaveDeviceDeploymentLog",
+				testCase.InputModelDeviceID,
+				testCase.InputModelDeploymentID,
+				testCase.InputModelMessages).
+				Return(testCase.InputModelError)
 
-		req := test.MakeSimpleRequest("PUT", "http://localhost/r/"+testCase.InputModelDeploymentID,
-			testCase.InputBodyObject)
-		for k, v := range testCase.Headers {
-			req.Header.Set(k, v)
-		}
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
+			router, err := rest.MakeRouter(
+				rest.Put("/r/:id",
+					NewDeploymentsController(deploymentModel,
+						new(view.DeploymentsView)).PutDeploymentLogForDevice))
+			assert.NoError(t, err)
 
-		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+			api := makeApi(router)
+
+			req := test.MakeSimpleRequest("PUT", "http://localhost/r/"+testCase.InputModelDeploymentID,
+				testCase.InputBodyObject)
+			for k, v := range testCase.Headers {
+				req.Header.Set(k, v)
+			}
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
 	}
 }
 
@@ -1193,38 +1210,37 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Logf("testing %s %s %v",
-			testCase.InputModelDeploymentID, testCase.InputModelDeviceID,
-			testCase.InputModelError)
-		deploymentModel := new(mocks.DeploymentsModel)
+	for testCaseNumber, testCase := range testCases {
 
-		deploymentModel.On("GetDeviceDeploymentLog",
-			testCase.InputModelDeviceID,
-			testCase.InputModelDeploymentID).
-			Return(testCase.InputModelDeploymentLog, testCase.InputModelError)
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
+			deploymentModel := new(mocks.DeploymentsModel)
 
-		router, err := rest.MakeRouter(
-			rest.Get("/r/:id/:devid",
-				NewDeploymentsController(deploymentModel,
-					new(view.DeploymentsView)).GetDeploymentLogForDevice))
-		assert.NoError(t, err)
+			deploymentModel.On("GetDeviceDeploymentLog",
+				testCase.InputModelDeviceID,
+				testCase.InputModelDeploymentID).
+				Return(testCase.InputModelDeploymentLog, testCase.InputModelError)
 
-		api := makeApi(router)
+			router, err := rest.MakeRouter(
+				rest.Get("/r/:id/:devid",
+					NewDeploymentsController(deploymentModel,
+						new(view.DeploymentsView)).GetDeploymentLogForDevice))
+			assert.NoError(t, err)
 
-		req := test.MakeSimpleRequest("GET", "http://localhost/r/"+
-			testCase.InputModelDeploymentID+"/"+testCase.InputModelDeviceID,
-			nil)
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
-		if testCase.JSONResponseParams.OutputStatus != http.StatusOK {
-			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
-		} else {
-			assert.Equal(t, testCase.Body, recorded.Recorder.Body.String())
-			assert.Equal(t, http.StatusOK, recorded.Recorder.Code)
-			assert.Equal(t, "text/plain", recorded.Recorder.HeaderMap.Get("Content-Type"))
-			t.Logf("content:\n%s", recorded.Recorder.Body)
-		}
+			api := makeApi(router)
+
+			req := test.MakeSimpleRequest("GET", "http://localhost/r/"+
+				testCase.InputModelDeploymentID+"/"+testCase.InputModelDeviceID,
+				nil)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			if testCase.JSONResponseParams.OutputStatus != http.StatusOK {
+				h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+			} else {
+				assert.Equal(t, testCase.Body, recorded.Recorder.Body.String())
+				assert.Equal(t, http.StatusOK, recorded.Recorder.Code)
+				assert.Equal(t, "text/plain", recorded.Recorder.HeaderMap.Get("Content-Type"))
+			}
+		})
 	}
 }
 
@@ -1310,33 +1326,32 @@ func TestControllerAbortDeployment(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
 
-		t.Logf("testing %s %s %t %v %v",
-			testCase.InputModelDeploymentID, testCase.InputModelStatus,
-			testCase.InputModelDeploymentFinishedFlag, testCase.InputModelIsDeploymentFinishedError,
-			testCase.InputModelError)
-		deploymentModel := new(mocks.DeploymentsModel)
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		deploymentModel.On("AbortDeployment", testCase.InputModelDeploymentID).
-			Return(testCase.InputModelError)
+			deploymentModel := new(mocks.DeploymentsModel)
 
-		deploymentModel.On("IsDeploymentFinished", testCase.InputModelDeploymentID).
-			Return(testCase.InputModelDeploymentFinishedFlag, testCase.InputModelIsDeploymentFinishedError)
+			deploymentModel.On("AbortDeployment", testCase.InputModelDeploymentID).
+				Return(testCase.InputModelError)
 
-		router, err := rest.MakeRouter(
-			rest.Post("/r/:id",
-				NewDeploymentsController(deploymentModel,
-					new(view.DeploymentsView)).AbortDeployment))
-		assert.NoError(t, err)
+			deploymentModel.On("IsDeploymentFinished", testCase.InputModelDeploymentID).
+				Return(testCase.InputModelDeploymentFinishedFlag, testCase.InputModelIsDeploymentFinishedError)
 
-		api := makeApi(router)
+			router, err := rest.MakeRouter(
+				rest.Post("/r/:id",
+					NewDeploymentsController(deploymentModel,
+						new(view.DeploymentsView)).AbortDeployment))
+			assert.NoError(t, err)
 
-		req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
-			testCase.InputBodyObject)
-		req.Header.Add(requestid.RequestIdHeader, "test")
-		recorded := test.RunRequest(t, api.MakeHandler(), req)
+			api := makeApi(router)
 
-		h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+			req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
+				testCase.InputBodyObject)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
 	}
 }
