@@ -3,10 +3,6 @@
 bbb303820971c294a9a8e5eba5affcf1379036e877ea61c11cbf9400b2949483  COPYING
 bbb303820971c294a9a8e5eba5affcf1379036e877ea61c11cbf9400b2949483  LICENSE
 bbb303820971c294a9a8e5eba5affcf1379036e877ea61c11cbf9400b2949483  vendor/github.com/mendersoftware/mendertesting/LICENSE
-3591f687e2d6f49c83b1ec69577e8110afbde80be5ec81791bd86d2838ccd3de  vendor/github.com/mendersoftware/scopestack/LICENSE
-bbb303820971c294a9a8e5eba5affcf1379036e877ea61c11cbf9400b2949483  vendor/github.com/mendersoftware/scopestack/COPYING
-03cfaf331a260694d06227a589cdd2b5fcfab474697b72e250736696c313655a  vendor/github.com/jmespath/go-jmespath/LICENSE
-73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68  vendor/github.com/go-ini/ini/LICENSE
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  vendor/github.com/aws/aws-sdk-go/LICENSE.txt
 b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1  vendor/github.com/mendersoftware/mender-artifact/LICENSE
 03cfaf331a260694d06227a589cdd2b5fcfab474697b72e250736696c313655a  vendor/github.com/aws/aws-sdk-go/vendor/github.com/jmespath/go-jmespath/LICENSE
@@ -38,8 +34,6 @@ d5ecab1f944eb45c5c89dbd749819af7b8a74a018065695baf535c962ded39f0  vendor/github.
 402f39eed8a1851385d0703999aa9f23d067c2ea3e15c63c074e389cbf8f8f8f  vendor/github.com/stretchr/testify/LICENSE
 3525392c6db3b804af76980b2c560ee9ec1abdadd907d76a26091df7c78f3a25  vendor/github.com/davecgh/go-spew/LICENSE
 012d0f6caf604aedba723982c0d8a28f664ecd957de5131bc22c87a0d36b7115  vendor/github.com/asaskevich/govalidator/LICENSE
-e5bd7b71eabe2e7232cdea558cca3538ab1313051cc88fc619497667c7e4455c  vendor/github.com/gucumber/gucumber/LICENSE.txt
-33f4a76e53ebad417d8c473e38bcba3f614c9b488cab7b730a1470bb47a972ab  vendor/github.com/shiena/ansicolor/LICENSE
 #
 # Basically MIT (but with a "colorful" language!)
 7637386b5f81e8a719ca336233149005e5fa28b5e6054ea7b67de49355b0ad40  vendor/github.com/BurntSushi/toml/COPYING
