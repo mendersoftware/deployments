@@ -91,7 +91,7 @@ func HandleConfigFile(filePath string) (config.ConfigReader, error) {
 func SetDefaultConfigs(config *viper.Viper) {
 	config.SetDefault(SettingListen, SettingListenDefault)
 	config.SetDefault(SettingAwsS3Region, SettingAwsS3RegionDefault)
-	config.SetDefault(SettingAweS3Bucket, SettingAwsS3BucketDefault)
+	config.SetDefault(SettingAwsS3Bucket, SettingAwsS3BucketDefault)
 	config.SetDefault(SettingMongo, SettingMongoDefault)
 	config.SetDefault(SettingGateway, SettingGatewayDefault)
 }
