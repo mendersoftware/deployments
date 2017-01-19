@@ -77,7 +77,12 @@ var DefaultProdStack = []rest.Middleware{
 }
 
 func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
-	api.Use(DefaultDevStack...)
+	mwtype := c.GetString(SettingMiddleware)
+	if mwtype == EnvDev {
+		api.Use(DefaultDevStack...)
+	} else {
+		api.Use(DefaultProdStack...)
+	}
 
 	// Verifies the request Content-Type header if the content is non-null.
 	// For the POST /api/0.0.1/images request expected Content-Type is 'multipart/form-data'.
