@@ -53,16 +53,17 @@ func NewImagesModel(
 // CreateImage parses artifact and uploads artifact file to the file storage - in parallel,
 // and creates image structure in the system.
 // Returns image ID and nil on success.
-func (i *ImagesModel) CreateImage(
-	metaConstructor *images.SoftwareImageMetaConstructor,
-	imageReader io.Reader) (string, error) {
-	if metaConstructor == nil {
+func (i *ImagesModel) CreateImage(multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
+	if multipartUploadMsg == nil {
+		return "", controller.ErrModelMultipartUploadMsgMalformed
+	}
+	if multipartUploadMsg.MetaConstructor == nil {
 		return "", controller.ErrModelMissingInputMetadata
 	}
-	if imageReader == nil {
+	if multipartUploadMsg.ArtifactReader == nil {
 		return "", controller.ErrModelMissingInputArtifact
 	}
-	artifactID, err := i.handleArtifact(metaConstructor, imageReader)
+	artifactID, err := i.handleArtifact(multipartUploadMsg)
 	// try to remove artifact file from file storage on error
 	if err != nil {
 		if cleanupErr := i.fileStorage.Delete(artifactID); cleanupErr != nil {
@@ -76,8 +77,7 @@ func (i *ImagesModel) CreateImage(
 // and creates image structure in the system.
 // Returns image ID, artifact file ID and nil on success.
 func (i *ImagesModel) handleArtifact(
-	metaConstructor *images.SoftwareImageMetaConstructor,
-	imageReader io.Reader) (string, error) {
+	multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
 
 	// limit just for safety
 	// max image size - 10G
@@ -86,7 +86,7 @@ func (i *ImagesModel) handleArtifact(
 	// create pipe
 	pR, pW := io.Pipe()
 	// limit reader to max image size
-	lr := io.LimitReader(imageReader, MaxImageSize)
+	lr := io.LimitReader(multipartUploadMsg.ArtifactReader, MaxImageSize)
 	tee := io.TeeReader(lr, pW)
 
 	artifactID := uuid.NewV4().String()
@@ -99,7 +99,8 @@ func (i *ImagesModel) handleArtifact(
 	//
 	// uploading and parsing artifact in the same process will cause in a deadlock!
 	go func() {
-		err := i.fileStorage.UploadArtifact(artifactID, pR, ImageContentType)
+		err := i.fileStorage.UploadArtifact(
+			artifactID, multipartUploadMsg.ArtifactSize, pR, ArtifactContentType)
 		if err != nil {
 			pR.CloseWithError(err)
 		}
@@ -151,7 +152,8 @@ func (i *ImagesModel) handleArtifact(
 		return "", controller.ErrModelArtifactNotUnique
 	}
 
-	image := images.NewSoftwareImage(artifactID, metaConstructor, metaArtifactConstructor)
+	image := images.NewSoftwareImage(
+		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor)
 
 	// save image structure in the system
 	if err = i.imagesStorage.Insert(image); err != nil {
