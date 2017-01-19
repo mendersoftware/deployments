@@ -15,10 +15,10 @@
 package mocks
 
 import (
-	"io"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/controller"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -29,21 +29,20 @@ type ImagesModel struct {
 
 // CreateImage provides a mock function with given fields: constructorData
 func (_m *ImagesModel) CreateImage(
-	metaConstructor *images.SoftwareImageMetaConstructor,
-	artifactReader io.Reader) (string, error) {
+	multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
 
-	ret := _m.Called(metaConstructor, artifactReader)
+	ret := _m.Called(multipartUploadMsg)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(*images.SoftwareImageMetaConstructor, io.Reader) string); ok {
-		r0 = rf(metaConstructor, artifactReader)
+	if rf, ok := ret.Get(0).(func(*controller.MultipartUploadMsg) string); ok {
+		r0 = rf(multipartUploadMsg)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*images.SoftwareImageMetaConstructor, io.Reader) error); ok {
-		r1 = rf(metaConstructor, artifactReader)
+	if rf, ok := ret.Get(1).(func(*controller.MultipartUploadMsg) error); ok {
+		r1 = rf(multipartUploadMsg)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -34,18 +34,27 @@ import (
 
 const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
 
-func TestCreateImageEmptyConstructor(t *testing.T) {
+func TestCreateImageEmptyMessage(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
-	if _, err := iModel.CreateImage(nil, nil); err != controller.ErrModelMissingInputMetadata {
+	if _, err := iModel.CreateImage(nil); err != controller.ErrModelMultipartUploadMsgMalformed {
+		t.FailNow()
+	}
+}
+func TestCreateImageEmptyMetaConstructor(t *testing.T) {
+	iModel := NewImagesModel(nil, nil, nil)
+	multipartUploadMessage := &controller.MultipartUploadMsg{}
+	if _, err := iModel.CreateImage(multipartUploadMessage); err != controller.ErrModelMissingInputMetadata {
 		t.FailNow()
 	}
 }
 
 func TestCreateImageMissingFields(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
+	multipartUploadMessage := &controller.MultipartUploadMsg{
+		MetaConstructor: images.NewSoftwareImageMetaConstructor(),
+	}
 
-	imageMeta := images.NewSoftwareImageMetaConstructor()
-	if _, err := iModel.CreateImage(imageMeta, nil); err == nil {
+	if _, err := iModel.CreateImage(multipartUploadMessage); err == nil {
 		t.FailNow()
 	}
 }
@@ -116,9 +125,11 @@ func TestCreateImageInsertError(t *testing.T) {
 	fakeIS.insertError = errors.New("insert error")
 
 	iModel := NewImagesModel(nil, nil, fakeIS)
-	imageMeta := createValidImageMeta()
+	multipartUploadMessage := &controller.MultipartUploadMsg{
+		MetaConstructor: createValidImageMeta(),
+	}
 
-	if _, err := iModel.CreateImage(imageMeta, nil); err == nil {
+	if _, err := iModel.CreateImage(multipartUploadMessage); err == nil {
 		t.FailNow()
 	}
 }
@@ -131,7 +142,6 @@ func TestCreateImageArtifactUploadError(t *testing.T) {
 
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
-	imageMeta := createValidImageMeta()
 	td, _ := ioutil.TempDir("", "mender-install-update-")
 	defer os.RemoveAll(td)
 	upath, err := makeFakeUpdate(t, path.Join(td, "update-root"), true)
@@ -143,7 +153,16 @@ func TestCreateImageArtifactUploadError(t *testing.T) {
 		t.FailNow()
 	}
 	defer f.Close()
-	if _, err := iModel.CreateImage(imageMeta, f); err == nil {
+	fileStat, err := f.Stat()
+	if err != nil {
+		t.FailNow()
+	}
+	multipartUploadMessage := &controller.MultipartUploadMsg{
+		MetaConstructor: createValidImageMeta(),
+		ArtifactSize:    fileStat.Size(),
+		ArtifactReader:  f,
+	}
+	if _, err := iModel.CreateImage(multipartUploadMessage); err == nil {
 		t.FailNow()
 	}
 }
@@ -156,7 +175,6 @@ func TestCreateImageCreateOK(t *testing.T) {
 
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
 
-	imageMeta := createValidImageMeta()
 	td, _ := ioutil.TempDir("", "mender-install-update-")
 	defer os.RemoveAll(td)
 	upath, err := makeFakeUpdate(t, path.Join(td, "update-root"), true)
@@ -168,8 +186,17 @@ func TestCreateImageCreateOK(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
+	fileStat, err := f.Stat()
+	if err != nil {
+		t.FailNow()
+	}
+	multipartUploadMessage := &controller.MultipartUploadMsg{
+		MetaConstructor: createValidImageMeta(),
+		ArtifactSize:    fileStat.Size(),
+		ArtifactReader:  f,
+	}
 
-	if _, err := iModel.CreateImage(imageMeta, f); err != nil {
+	if _, err := iModel.CreateImage(multipartUploadMessage); err != nil {
 		t.FailNow()
 	}
 }
@@ -227,7 +254,7 @@ func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration, 
 	return ffs.getReq, ffs.getError
 }
 
-func (fis *FakeFileStorage) UploadArtifact(id string, img io.Reader, contentType string) error {
+func (fis *FakeFileStorage) UploadArtifact(id string, size int64, img io.Reader, contentType string) error {
 	if _, err := io.Copy(ioutil.Discard, img); err != nil {
 		return err
 	}
