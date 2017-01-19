@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	ImageContentType = "application/vnd.mender-artifact"
+	ArtifactContentType = "application/vnd.mender-artifact"
 )
 
 type ImagesModel struct {
@@ -289,7 +289,7 @@ func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*image
 		return nil, nil
 	}
 
-	link, err := i.fileStorage.GetRequest(imageID, expire, ImageContentType)
+	link, err := i.fileStorage.GetRequest(imageID, expire, ArtifactContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
 	}

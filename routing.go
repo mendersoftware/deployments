@@ -88,7 +88,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 			imagesStorage,
 			generator.NewInventory(inventory),
 		),
-		ImageContentType: imagesModel.ImageContentType,
+		ImageContentType: imagesModel.ArtifactContentType,
 	})
 
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
