@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/log"
 
@@ -53,6 +54,9 @@ func main() {
 func HandleConfigFile(filePath string) (config.ConfigReader, error) {
 
 	c := viper.New()
+
+	// map settings such as foo.bar and foo-bar to FOO_BAR environment keys
+	c.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 	// Enable setting also other conig values by environment variables
 	c.SetEnvPrefix("DEPLOYMENTS")
