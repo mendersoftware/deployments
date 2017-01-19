@@ -99,7 +99,7 @@ before_install:
     # Get our own Swagger verifier
     - wget https://raw.githubusercontent.com/mendersoftware/autodocs/master/verify_docs.py
 
-
+install: true
 
 before_script:
     # Print build info that binary is compiled with.
