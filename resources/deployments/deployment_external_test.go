@@ -331,6 +331,22 @@ func TestDeploymentGetStatus(t *testing.T) {
 		"Empty": {
 			OutputStatus: "finished",
 		},
+		//verify we count 'already-installed' towards 'inprogress'
+		"pending + already-installed": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusPending:     1,
+				DeviceDeploymentStatusAlreadyInst: 1,
+			},
+			OutputStatus: "inprogress",
+		},
+		//verify we count 'already-installed' towards 'finished'
+		"already-installed + finished": {
+			Stats: map[string]int{
+				DeviceDeploymentStatusPending:     0,
+				DeviceDeploymentStatusAlreadyInst: 1,
+			},
+			OutputStatus: "finished",
+		},
 	}
 
 	for name, test := range tests {
