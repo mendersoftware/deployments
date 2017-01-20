@@ -272,7 +272,9 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	case ErrModelArtifactNotUnique:
 		l.Error(err.Error())
 		s.view.RenderError(w, r, cause, http.StatusUnprocessableEntity, l)
-	case ErrModelMissingInputMetadata, ErrModelMissingInputArtifact, ErrModelInvalidMetadata:
+	case ErrModelMissingInputMetadata, ErrModelMissingInputArtifact,
+		ErrModelInvalidMetadata, ErrModelMultipartUploadMsgMalformed,
+		ErrModelArtifactFileTooLarge:
 		l.Error(err.Error())
 		s.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 	}

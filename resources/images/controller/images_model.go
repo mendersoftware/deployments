@@ -29,6 +29,7 @@ var (
 	ErrModelMissingInputArtifact        = errors.New("Missing input artifact")
 	ErrModelInvalidMetadata             = errors.New("Metadata invalid")
 	ErrModelArtifactNotUnique           = errors.New("Artifact not unique")
+	ErrModelArtifactFileTooLarge        = errors.New("Artifact file too large")
 	ErrModelArtifactUploadFailed        = errors.New("Failed to upload the artifact")
 	ErrModelImageInActiveDeployment     = errors.New("Image is used in active deployment and cannot be removed")
 	ErrModelImageUsedInAnyDeployment    = errors.New("Image have been already used in deployment")

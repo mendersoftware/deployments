@@ -54,15 +54,20 @@ func NewImagesModel(
 // and creates image structure in the system.
 // Returns image ID and nil on success.
 func (i *ImagesModel) CreateImage(multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
-	if multipartUploadMsg == nil {
+	// maximum image size is 10G
+	const MaxImageSize = 1024 * 1024 * 1024 * 10
+
+	switch {
+	case multipartUploadMsg == nil:
 		return "", controller.ErrModelMultipartUploadMsgMalformed
-	}
-	if multipartUploadMsg.MetaConstructor == nil {
+	case multipartUploadMsg.MetaConstructor == nil:
 		return "", controller.ErrModelMissingInputMetadata
-	}
-	if multipartUploadMsg.ArtifactReader == nil {
+	case multipartUploadMsg.ArtifactReader == nil:
 		return "", controller.ErrModelMissingInputArtifact
+	case multipartUploadMsg.ArtifactSize > MaxImageSize:
+		return "", controller.ErrModelArtifactFileTooLarge
 	}
+
 	artifactID, err := i.handleArtifact(multipartUploadMsg)
 	// try to remove artifact file from file storage on error
 	if err != nil {
@@ -79,14 +84,11 @@ func (i *ImagesModel) CreateImage(multipartUploadMsg *controller.MultipartUpload
 func (i *ImagesModel) handleArtifact(
 	multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
 
-	// limit just for safety
-	// max image size - 10G
-	const MaxImageSize = 1024 * 1024 * 1024 * 10
-
 	// create pipe
 	pR, pW := io.Pipe()
-	// limit reader to max image size
-	lr := io.LimitReader(multipartUploadMsg.ArtifactReader, MaxImageSize)
+
+	// limit reader to the size provided with the upload message
+	lr := io.LimitReader(multipartUploadMsg.ArtifactReader, multipartUploadMsg.ArtifactSize)
 	tee := io.TeeReader(lr, pW)
 
 	artifactID := uuid.NewV4().String()
@@ -109,7 +111,7 @@ func (i *ImagesModel) handleArtifact(
 
 	// parse artifact
 	// artifact library reads all the data from the given reader
-	metaArtifactConstructor, err := getMetaFromArchive(&tee, MaxImageSize)
+	metaArtifactConstructor, err := getMetaFromArchive(&tee)
 	if err != nil {
 		pW.Close()
 		if uploadResponseErr := <-ch; uploadResponseErr != nil {
@@ -306,12 +308,9 @@ func getArtifactInfo(info metadata.Info) *images.ArtifactInfo {
 	}
 }
 
-func getUpdateFiles(maxImageSize int64, uFiles map[string]parser.UpdateFile) ([]images.UpdateFile, error) {
+func getUpdateFiles(uFiles map[string]parser.UpdateFile) ([]images.UpdateFile, error) {
 	var files []images.UpdateFile
 	for _, u := range uFiles {
-		if u.Size > maxImageSize {
-			return nil, errors.New("Image too large")
-		}
 		files = append(files, images.UpdateFile{
 			Name:      u.Name,
 			Size:      u.Size,
@@ -323,8 +322,7 @@ func getUpdateFiles(maxImageSize int64, uFiles map[string]parser.UpdateFile) ([]
 	return files, nil
 }
 
-func getMetaFromArchive(
-	r *io.Reader, maxImageSize int64) (*images.SoftwareImageMetaArtifactConstructor, error) {
+func getMetaFromArchive(r *io.Reader) (*images.SoftwareImageMetaArtifactConstructor, error) {
 	metaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
 
 	aReader := areader.NewReader(*r)
@@ -339,7 +337,7 @@ func getMetaFromArchive(
 	metaArtifact.Name = aReader.GetArtifactName()
 
 	for _, p := range data {
-		uFiles, err := getUpdateFiles(maxImageSize, p.GetUpdateFiles())
+		uFiles, err := getUpdateFiles(p.GetUpdateFiles())
 		if err != nil {
 			return nil, errors.Wrap(err, "Cannot get update files:")
 		}
