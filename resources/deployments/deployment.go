@@ -138,7 +138,13 @@ func (d *Deployment) IsInProgress() bool {
 		acount += d.Stats[s]
 	}
 
-	if acount != 0 {
+	if acount != 0 ||
+		(d.Stats[DeviceDeploymentStatusPending] > 0 &&
+			(d.Stats[DeviceDeploymentStatusAlreadyInst] > 0 ||
+				d.Stats[DeviceDeploymentStatusSuccess] > 0 ||
+				d.Stats[DeviceDeploymentStatusFailure] > 0 ||
+				d.Stats[DeviceDeploymentStatusNoArtifact] > 0 ||
+				d.Stats[DeviceDeploymentStatusAborted] > 0)) {
 		return true
 	}
 	return false
@@ -168,26 +174,31 @@ func (d *Deployment) IsFinished() bool {
 }
 
 func (d *Deployment) IsPending() bool {
-	if d.IsInProgress() {
-		return false
+	//pending > 0, evt else == 0
+	if d.Stats[DeviceDeploymentStatusPending] > 0 &&
+		d.Stats[DeviceDeploymentStatusDownloading] == 0 &&
+		d.Stats[DeviceDeploymentStatusInstalling] == 0 &&
+		d.Stats[DeviceDeploymentStatusRebooting] == 0 &&
+		d.Stats[DeviceDeploymentStatusSuccess] == 0 &&
+		d.Stats[DeviceDeploymentStatusAlreadyInst] == 0 &&
+		d.Stats[DeviceDeploymentStatusFailure] == 0 &&
+		d.Stats[DeviceDeploymentStatusNoArtifact] == 0 {
+
+		return true
 	}
 
-	if d.IsFinished() {
-		return false
-	}
-
-	return true
+	return false
 }
 
 func (d *Deployment) GetStatus() string {
 	if d.IsAborted() {
 		return "aborted"
-	} else if d.IsInProgress() {
-		return "inprogress"
+	} else if d.IsPending() {
+		return "pending"
 	} else if d.IsFinished() {
 		return "finished"
 	} else {
-		return "pending"
+		return "inprogress"
 	}
 }
 
