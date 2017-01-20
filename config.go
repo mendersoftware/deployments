@@ -45,6 +45,9 @@ const (
 
 	SettingGateway        = "mender-gateway"
 	SettingGatewayDefault = "localhost:9080"
+
+	SettingMiddleware        = "middleware"
+	SettingMiddlewareDefault = EnvProd
 )
 
 // ValidateAwsAuth validates configuration of SettingsAwsAuth section if provided.
