@@ -1,5 +1,6 @@
-            # API server listen address
-            # Defauls to: ":8080" which will listen on all avalable interfaces.
+# API server listen address
+# Defauls to: ":8080" which will listen on all avalable interfaces.
+# Env key: DEPLOYMENTS_LISTEN
 listen: :8080
 
     # HTTP Server middleware environment
@@ -13,117 +14,136 @@ listen: :8080
 # middleware: dev
 
 
-            # HTTPS configuration
-            # To enable listening using HTTPS protocol please uncomment and configure following section.
-            # All fields in https are required.
+# HTTPS configuration
+# To enable listening using HTTPS protocol please uncomment and configure following section.
+# All fields in https are required.
+# Env keys:
+# - DEPLOYMENTS_HTTPS_CERTIFICATE
+# - DEPLOYMENTS_HTTPS_KEY
 # https:
 #     certificate: /path/to/certificate
 #     key: /path/to/private_key
 
 
-            # Database configuration
-            # MongoDB is a required to run the service.
-            # Format: [mongodb://][user:pass@]host1[:port1][,host2[:port2],...][?options]
-            # Options:
-            #   connect=direct
-            #
-            #       Disables the automatic replica set server discovery logic, and
-            #       forces the use of servers provided only (even if secondaries).
-            #       Note that to talk to a secondary the consistency requirements
-            #       must be relaxed to Monotonic or Eventual via SetMode.
-            #
-            #   connect=replicaSet
-            #
-            #       Discover replica sets automatically. Default connection behavior.
-            #
-            #   replicaSet=<setname>
-            #
-            #       If specified will prevent the obtained session from communicating
-            #       with any server which is not part of a replica set with the given name.
-            #       The default is to communicate with any server specified or discovered
-            #       via the servers contacted.
-            #
-            #   authSource=<db>
-            #
-            #       Informs the database used to establish credentials and privileges
-            #       with a MongoDB server. Defaults to the database name provided via
-            #       the URL path, and "admin" if that's unset.
-            #
-            #   authMechanism=<mechanism>
-            #
-            #       Defines the protocol for credential negotiation. Defaults to "MONGODB-CR",
-            #       which is the default username/password challenge-response mechanism.
-            #
-            #   gssapiServiceName=<name>
-            #
-            #       Defines the service name to use when authenticating with the GSSAPI
-            #       mechanism. Defaults to "mongodb".
-            #
-            #   maxPoolSize=<limit>
-            #
-            #    Defines the per-server socket pool limit. Defaults to 4096.
-            #    See Session.SetPoolLimit for details.
-            #
-            # Defaults to: "mongo-deployments"
+# Database configuration
+# MongoDB is a required to run the service.
+# Format: [mongodb://][user:pass@]host1[:port1][,host2[:port2],...][?options]
+# Options:
+#   connect=direct
+#
+#       Disables the automatic replica set server discovery logic, and
+#       forces the use of servers provided only (even if secondaries).
+#       Note that to talk to a secondary the consistency requirements
+#       must be relaxed to Monotonic or Eventual via SetMode.
+#
+#   connect=replicaSet
+#
+#       Discover replica sets automatically. Default connection behavior.
+#
+#   replicaSet=<setname>
+#
+#       If specified will prevent the obtained session from communicating
+#       with any server which is not part of a replica set with the given name.
+#       The default is to communicate with any server specified or discovered
+#       via the servers contacted.
+#
+#   authSource=<db>
+#
+#       Informs the database used to establish credentials and privileges
+#       with a MongoDB server. Defaults to the database name provided via
+#       the URL path, and "admin" if that's unset.
+#
+#   authMechanism=<mechanism>
+#
+#       Defines the protocol for credential negotiation. Defaults to "MONGODB-CR",
+#       which is the default username/password challenge-response mechanism.
+#
+#   gssapiServiceName=<name>
+#
+#       Defines the service name to use when authenticating with the GSSAPI
+#       mechanism. Defaults to "mongodb".
+#
+#   maxPoolSize=<limit>
+#
+#    Defines the per-server socket pool limit. Defaults to 4096.
+#    See Session.SetPoolLimit for details.
+#
+# Defaults to: "mongo-deployments"
+# Env key: DEPLOYMENTS_MONGO_URL
 mongo-url: mongo-deployments
 
-        # Public API gateway address
-        # Defaults to: "http://mender-inventory:8080"
+# Public API gateway address
+# Defaults to: "http://mender-inventory:8080"
+# Env key: DEPLOYMENTS_MENDER_GATEWAY
 mender-gateway: "http://mender-inventory:8080"
 
 aws:
-        # AWS region for minio shoud be "us-east-1"
+    # AWS region for minio shoud be "us-east-1"
+    # Env key: DEPLOYMENTS_AWS_REGION
     region: us-east-1
 
 
-                # S3 bucket where the uploaded images will be stored and served from.
-                # Bucket is required to be created before running the service.
-                # Bucket should allow PUT/GET methods using CORS, example CORS conifg:
-                #     <CORSConfiguration>
-                #     <CORSRule>
-                #         <AllowedOrigin>*</AllowedOrigin>
-                #         <AllowedMethod>PUT</AllowedMethod>
-                #         <AllowedMethod>GET</AllowedMethod>
-                #         <MaxAgeSeconds>3000</MaxAgeSeconds>
-                #         <AllowedHeader>*</AllowedHeader>
-                #     </CORSRule>
-                #     </CORSConfiguration>
-                # Defaults to: "mender-artifact-storage"
+    # S3 bucket where the uploaded images will be stored and served from.
+    # Bucket is required to be created before running the service.
+    # Bucket should allow PUT/GET methods using CORS, example CORS conifg:
+    #     <CORSConfiguration>
+    #     <CORSRule>
+    #         <AllowedOrigin>*</AllowedOrigin>
+    #         <AllowedMethod>PUT</AllowedMethod>
+    #         <AllowedMethod>GET</AllowedMethod>
+    #         <MaxAgeSeconds>3000</MaxAgeSeconds>
+    #         <AllowedHeader>*</AllowedHeader>
+    #     </CORSRule>
+    #     </CORSConfiguration>
+    # Defaults to: "mender-artifact-storage"
+    # Env key: DEPLOYMENTS_AWS_BUCKET
     bucket: mender-artifact-storage
 
 
-                # Authentication credentials for AWS.
-                # AWS role requires READ/WRITE permissions for configured S3 bucket.
-                #
-                # AWS credentials can be provided with described below methods (checked in sequence):
-                #
-                # Environment variables:
-                # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
-                # If you're working with temporary security credentials,
-                # you can also keep the session token in AWS_SESSION_TOKEN.
-                #
-                # If you're testing with a fake s3 environment, you can specify the uri endpoint with: AWS_URI
-                #
-                # Credentials File:
-                # Instead of keeping credentials in environment variables,
-                # you can put credentials into a single file that's located in: ~/.aws/credentials
-                # An important point is that the default location for the credentials file is a user directory.
-                #
-                # The format for the credentials is the same for all the SDKs and the AWS CLI:
-                #
-                #     [default]
-                #     aws_access_key_id = ACCESS_KEY
-                #     aws_secret_access_key = SECRET_KEY
-                #     aws_session_token = TOKEN
-                #
-                # The aws_session_token value is needed only if you're including temporary security credentials in the file.
-                #
-                # Alternatively they can be provided directly using "auth" section.
-                #
-                # Token is optional, it is needed if working with temporaty credentials.
-                #
-                # In case when none of the credential retrieving methods are set, service will default to retrieving authentication
-                # credentials locally from AWS IAM which is prefered method then running the service in EC2
+    # S3 URI
+    # Defaults to: none (s3.amazonaws.com)
+    # Env key: DEPLOYMENTS_AWS_URI
+
+    # uri:
+
+    # Authentication credentials for AWS.
+    # AWS role requires READ/WRITE permissions for configured S3 bucket.
+    #
+    # AWS credentials can be provided with described below methods (checked in sequence):
+    #
+    # Environment variables:
+    # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
+    # If you're working with temporary security credentials,
+    # you can also keep the session token in AWS_SESSION_TOKEN.
+    #
+    # If you're testing with a fake s3 environment, you can specify the uri endpoint with: DEPLOYMENTS_AWS_URI
+    #
+    # Credentials File:
+    # Instead of keeping credentials in environment variables,
+    # you can put credentials into a single file that's located in: ~/.aws/credentials
+    # An important point is that the default location for the credentials file is a user directory.
+    #
+    # The format for the credentials is the same for all the SDKs and the AWS CLI:
+    #
+    #     [default]
+    #     aws_access_key_id = ACCESS_KEY
+    #     aws_secret_access_key = SECRET_KEY
+    #     aws_session_token = TOKEN
+    #
+    # The aws_session_token value is needed only if you're including temporary security credentials in the file.
+    #
+    # Alternatively they can be provided directly using "auth" section.
+    #
+    # Token is optional, it is needed if working with temporaty credentials.
+    #
+    # In case when none of the credential retrieving methods are set, service will default to retrieving authentication
+    # credentials locally from AWS IAM which is prefered method then running the service in EC2
+    #
+    # Env keys:
+    # - DEPLOYMENTS_AWS_AUTH_KEY
+    # - DEPLOYMENTS_AWS_AUTH_SECRET
+    # - DEPLOYMENTS_AWS_AUTH_TOKEN
+
     # auth:
     #     key: ACCESS_KEY
     #     secret: SECRET_KEY

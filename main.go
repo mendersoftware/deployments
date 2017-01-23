@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/log"
 
@@ -54,13 +55,8 @@ func HandleConfigFile(filePath string) (config.ConfigReader, error) {
 
 	c := viper.New()
 
-	//Allow AWS URI endpoint to be set by environment variable
-	c.BindEnv(SettingAwsURI, "AWS_URI")
-
-	//Allow aws keyid, aws token, aws secret to be read by viper
-	c.BindEnv(SettingAwsAuthKeyId, "AWS_ACCESS_KEY_ID")
-	c.BindEnv(SettingAwsAuthSecret, "AWS_SECRET_ACCESS_KEY")
-	c.BindEnv(SettingAwsAuthToken, "AWS_SESSION_TOKEN")
+	// map settings such as foo.bar and foo-bar to FOO_BAR environment keys
+	c.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 	// Enable setting also other conig values by environment variables
 	c.SetEnvPrefix("DEPLOYMENTS")
@@ -91,7 +87,7 @@ func HandleConfigFile(filePath string) (config.ConfigReader, error) {
 func SetDefaultConfigs(config *viper.Viper) {
 	config.SetDefault(SettingListen, SettingListenDefault)
 	config.SetDefault(SettingAwsS3Region, SettingAwsS3RegionDefault)
-	config.SetDefault(SettingAweS3Bucket, SettingAwsS3BucketDefault)
+	config.SetDefault(SettingAwsS3Bucket, SettingAwsS3BucketDefault)
 	config.SetDefault(SettingMongo, SettingMongoDefault)
 	config.SetDefault(SettingGateway, SettingGatewayDefault)
 }

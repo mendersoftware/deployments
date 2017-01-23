@@ -18,5 +18,6 @@ import "testing"
 import mt "github.com/mendersoftware/mendertesting"
 
 func TestLicenses(t *testing.T) {
+	mt.SetLicenseFileForDependency("vendor/github.com/pelletier/go-buffruneio/README.md")
 	mt.CheckLicenses(t)
 }

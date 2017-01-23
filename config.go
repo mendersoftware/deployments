@@ -31,7 +31,7 @@ const (
 	SettingsAws               = "aws"
 	SettingAwsS3Region        = SettingsAws + ".region"
 	SettingAwsS3RegionDefault = "us-east-1"
-	SettingAweS3Bucket        = SettingsAws + ".bucket"
+	SettingAwsS3Bucket        = SettingsAws + ".bucket"
 	SettingAwsS3BucketDefault = "mender-artifact-storage"
 	SettingAwsURI             = SettingsAws + ".uri"
 
