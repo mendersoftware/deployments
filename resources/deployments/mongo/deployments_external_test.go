@@ -783,6 +783,71 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusAborted: 1,
 			}),
 		},
+
+		//in progress deployment, with only pending and already-installed counters > 0
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("baz"),
+				ArtifactName: StringToPointer("asdf"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("12345678-0a41-401f-8f5e-582aba2a002d"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusPending:     1,
+				deployments.DeviceDeploymentStatusAlreadyInst: 1,
+			}),
+		},
+		//in progress deployment, with only pending and success counters > 0
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("baz"),
+				ArtifactName: StringToPointer("asdf"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("22345678-0a41-401f-8f5e-582aba2a002d"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusPending: 1,
+				deployments.DeviceDeploymentStatusSuccess: 1,
+			}),
+		},
+		//in progress deployment, with only pending and failure counters > 0
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("baz"),
+				ArtifactName: StringToPointer("asdf"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("32345678-0a41-401f-8f5e-582aba2a002d"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusPending: 1,
+				deployments.DeviceDeploymentStatusFailure: 1,
+			}),
+		},
+		//in progress deployment, with only pending and noartifact counters > 0
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("baz"),
+				ArtifactName: StringToPointer("asdf"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("42345678-0a41-401f-8f5e-582aba2a002d"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusPending:    1,
+				deployments.DeviceDeploymentStatusNoArtifact: 1,
+			}),
+		},
+		//finished deployment, with only already installed counter > 0
+		&deployments.Deployment{
+			DeploymentConstructor: &deployments.DeploymentConstructor{
+				Name:         StringToPointer("baz"),
+				ArtifactName: StringToPointer("asdf"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: StringToPointer("52345678-0a41-401f-8f5e-582aba2a002d"),
+			Stats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusAlreadyInst: 1,
+			}),
+		},
 	}
 
 	testCases := []struct {
@@ -867,6 +932,10 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			OutputID: []string{
 				"3fe15222-0a41-401f-8f5e-582aba2a002d",
 				"3fe15222-1234-401f-8f5e-582aba2a002e",
+				"12345678-0a41-401f-8f5e-582aba2a002d",
+				"22345678-0a41-401f-8f5e-582aba2a002d",
+				"32345678-0a41-401f-8f5e-582aba2a002d",
+				"42345678-0a41-401f-8f5e-582aba2a002d",
 			},
 		},
 		{
@@ -888,6 +957,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				"3fe15222-0a41-401f-8f5e-582aba2a002c",
 				"44dd8822-eeb1-44db-a18e-f4f5acc43796",
 				"3fe15222-1234-401f-8f5e-582aba2a002a",
+				"52345678-0a41-401f-8f5e-582aba2a002d",
 			},
 		},
 		{
@@ -907,6 +977,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				"3fe15222-1234-401f-8f5e-582aba2a002f",
 				"44dd8822-eeb1-44db-a18e-f4f5acc43796",
 				"3fe15222-1234-401f-8f5e-582aba2a002a",
+				"12345678-0a41-401f-8f5e-582aba2a002d",
+				"22345678-0a41-401f-8f5e-582aba2a002d",
+				"32345678-0a41-401f-8f5e-582aba2a002d",
+				"42345678-0a41-401f-8f5e-582aba2a002d",
+				"52345678-0a41-401f-8f5e-582aba2a002d",
 			},
 		},
 	}
