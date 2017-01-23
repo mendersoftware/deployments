@@ -249,7 +249,8 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 	switch status {
 	case deployments.StatusQueryInProgress:
 		{
-			// downloading, installing or rebooting are non 0
+			// downloading, installing or rebooting are non 0, or
+			// already-installed/success/failure/noimage >0 and pending > 0
 			stq = bson.M{
 				"$or": []bson.M{
 					bson.M{
@@ -261,9 +262,33 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 					bson.M{
 						buildStatusKey(deployments.DeviceDeploymentStatusRebooting): gt0,
 					},
+					bson.M{
+						"$and": []bson.M{
+							bson.M{
+								buildStatusKey(deployments.DeviceDeploymentStatusPending): gt0,
+							},
+							bson.M{
+								"$or": []bson.M{
+									bson.M{
+										buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): gt0,
+									},
+									bson.M{
+										buildStatusKey(deployments.DeviceDeploymentStatusSuccess): gt0,
+									},
+									bson.M{
+										buildStatusKey(deployments.DeviceDeploymentStatusFailure): gt0,
+									},
+									bson.M{
+										buildStatusKey(deployments.DeviceDeploymentStatusNoArtifact): gt0,
+									},
+								},
+							},
+						},
+					},
 				},
 			}
 		}
+
 	case deployments.StatusQueryPending:
 		{
 			// all status counters, except for pending, are 0
