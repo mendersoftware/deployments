@@ -308,6 +308,11 @@ paths:
       consumes:
         - multipart/form-data
       parameters:
+        - name: size
+          in: formData
+          description: Size of the artifact file in megabytes.
+          required: true
+          type: long
         - name: description
           in: formData
           required: false

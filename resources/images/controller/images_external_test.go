@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -87,8 +88,7 @@ func (fim *fakeImageModeler) DeleteImage(imageID string) error {
 }
 
 func (fim *fakeImageModeler) CreateImage(
-	metaConstructor *images.SoftwareImageMetaConstructor,
-	artifact io.Reader) (string, error) {
+	multipartUploadMessge *MultipartUploadMsg) (string, error) {
 	return "", nil
 }
 
@@ -229,21 +229,21 @@ func TestControllerEditImage(t *testing.T) {
 	imagesModel.editError = errors.New("error")
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
-			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
+			map[string]string{"name": "myImage"}))
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	// correct id; correct payload; edit no image
 	imagesModel.editError = nil
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
-			map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"}))
+			map[string]string{"name": "myImage"}))
 	recorded.CodeIs(http.StatusNotFound)
 
 	// correct id; correct payload; have image
 	imagesModel.editImage = true
 
 	req := test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
-		map[string]string{"yocto_id": "1234-1234", "name": "myImage", "device_type": "myDevice"})
+		map[string]string{"name": "myImage"})
 	req.Header.Add(requestid.RequestIdHeader, "test")
 	recorded = test.RunRequest(t, api.MakeHandler(), req)
 	recorded.CodeIs(http.StatusNoContent)
@@ -287,6 +287,10 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		{
 			InputBodyObject: []Part{
 				Part{
+					FieldName:  "size",
+					FieldValue: "1",
+				},
+				Part{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   []byte{0},
@@ -316,6 +320,10 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		{
 			InputBodyObject: []Part{
 				Part{
+					FieldName:  "size",
+					FieldValue: "123",
+				},
+				Part{
 					FieldName:  "artifact",
 					FieldValue: "ff",
 				},
@@ -323,11 +331,15 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("The last part of the multipart/form-data message should be an image.")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("The last part of the multipart/form-data message should be an artifact.")),
 			},
 		},
 		{
 			InputBodyObject: []Part{
+				Part{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
 				Part{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
@@ -345,6 +357,10 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		{
 			InputBodyObject: []Part{
 				Part{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
+				Part{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,
@@ -360,6 +376,10 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
+				Part{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
 				Part{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
@@ -382,13 +402,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		t.Run(fmt.Sprintf("Test case number: %v", testCaseNumber+1), func(t *testing.T) {
 			model := new(mocks.ImagesModel)
 
-			model.On(
-				"CreateImage",
-				mock.AnythingOfType("*images.SoftwareImageMetaConstructor"),
-				mock.MatchedBy(func(ir interface{}) bool {
-					_, ok := ir.(io.Reader)
-					return ok
-				})).
+			model.On("CreateImage", mock.AnythingOfType("*controller.MultipartUploadMsg")).
 				Return(testCase.InputModelID, testCase.InputModelError)
 
 			api := setUpRestTest("/r", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).NewImage)
@@ -443,6 +457,7 @@ func createValidImageFile() *os.File {
 	someData := []byte{115, 111, 109, 101, 10, 11}
 	tmpfile, _ := ioutil.TempFile("", "artifact-")
 	tmpfile.Write(someData)
+	tmpfile.Seek(0, 0)
 	return tmpfile
 }
 

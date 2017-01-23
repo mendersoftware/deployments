@@ -16,7 +16,6 @@ package controller
 
 import (
 	"errors"
-	"io"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -24,14 +23,16 @@ import (
 
 // Errors expected from interface
 var (
-	ErrImageMetaNotFound             = errors.New("Image metadata is not found")
-	ErrModelMissingInputMetadata     = errors.New("Missing input metadata")
-	ErrModelMissingInputArtifact     = errors.New("Missing input artifact")
-	ErrModelInvalidMetadata          = errors.New("Metadata invalid")
-	ErrModelArtifactNotUnique        = errors.New("Artifact not unique")
-	ErrModelArtifactUploadFailed     = errors.New("Failed to upload the artifact")
-	ErrModelImageInActiveDeployment  = errors.New("Image is used in active deployment and cannot be removed")
-	ErrModelImageUsedInAnyDeployment = errors.New("Image have been already used in deployment")
+	ErrImageMetaNotFound                = errors.New("Image metadata is not found")
+	ErrModelMultipartUploadMsgMalformed = errors.New("Multipart upload message malformed")
+	ErrModelMissingInputMetadata        = errors.New("Missing input metadata")
+	ErrModelMissingInputArtifact        = errors.New("Missing input artifact")
+	ErrModelInvalidMetadata             = errors.New("Metadata invalid")
+	ErrModelArtifactNotUnique           = errors.New("Artifact not unique")
+	ErrModelArtifactFileTooLarge        = errors.New("Artifact file too large")
+	ErrModelArtifactUploadFailed        = errors.New("Failed to upload the artifact")
+	ErrModelImageInActiveDeployment     = errors.New("Image is used in active deployment and cannot be removed")
+	ErrModelImageUsedInAnyDeployment    = errors.New("Image have been already used in deployment")
 )
 
 type ImagesModel interface {
@@ -39,8 +40,6 @@ type ImagesModel interface {
 	DownloadLink(imageID string, expire time.Duration) (*images.Link, error)
 	GetImage(id string) (*images.SoftwareImage, error)
 	DeleteImage(imageID string) error
-	CreateImage(
-		metaConstructor *images.SoftwareImageMetaConstructor,
-		image io.Reader) (string, error)
+	CreateImage(multipartUploadMsg *MultipartUploadMsg) (string, error)
 	EditImage(id string, constructorData *images.SoftwareImageMetaConstructor) (bool, error)
 }

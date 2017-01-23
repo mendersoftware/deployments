@@ -50,6 +50,17 @@ type SoftwareImagesController struct {
 	model ImagesModel
 }
 
+// MultipartUploadMsg is a structure with fields extracted from the mulitpart/form-data form
+// send in the artifact upload request
+type MultipartUploadMsg struct {
+	// user metadata constructor
+	MetaConstructor *images.SoftwareImageMetaConstructor
+	// size of the artifact file
+	ArtifactSize int64
+	// reader pointing to the beginning of the artifact data
+	ArtifactReader io.Reader
+}
+
 func NewSoftwareImagesController(model ImagesModel, view RESTView) *SoftwareImagesController {
 	return &SoftwareImagesController{
 		model: model,
@@ -245,54 +256,74 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 
 	mr := multipart.NewReader(r.Body, params["boundary"])
 	// parse multipart message
-	metaConstructor, imagePart, err := s.parseMultipart(mr, DefaultMaxMetaSize)
+	multipartUploadMsg, err := s.parseMultipart(mr, DefaultMaxMetaSize)
 	if err != nil {
 		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
-	// valide metadata provided by the user
-	if err := metaConstructor.Validate(); err != nil {
-		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
-		return
-	}
 
-	imgID, err := s.model.CreateImage(metaConstructor, imagePart)
-	switch err {
+	imgID, err := s.model.CreateImage(multipartUploadMsg)
+	cause := errors.Cause(err)
+	switch cause {
 	default:
 		s.view.RenderInternalError(w, r, err, l)
 	case nil:
 		s.view.RenderSuccessPost(w, r, imgID)
 	case ErrModelArtifactNotUnique:
-		s.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
-	case ErrModelMissingInputMetadata, ErrModelMissingInputArtifact, ErrModelInvalidMetadata:
-		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		l.Error(err.Error())
+		s.view.RenderError(w, r, cause, http.StatusUnprocessableEntity, l)
+	case ErrModelMissingInputMetadata, ErrModelMissingInputArtifact,
+		ErrModelInvalidMetadata, ErrModelMultipartUploadMsgMalformed,
+		ErrModelArtifactFileTooLarge:
+		l.Error(err.Error())
+		s.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 	}
 
 	return
 }
 
 // parseMultipart parses multipart/form-data message.
-// Returns image meta constructor, reader to image part of the multipart message and nil on success.
-func (s *SoftwareImagesController) parseMultipart(mr *multipart.Reader, maxMetaSize int64) (*images.SoftwareImageMetaConstructor, io.Reader, error) {
-	constructor := &images.SoftwareImageMetaConstructor{}
+func (s *SoftwareImagesController) parseMultipart(mr *multipart.Reader, maxMetaSize int64) (*MultipartUploadMsg, error) {
+	multipartUploadMsg := &MultipartUploadMsg{
+		MetaConstructor: &images.SoftwareImageMetaConstructor{},
+	}
 	for {
 		p, err := mr.NextPart()
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "Request does not contain artifact")
+			return nil, errors.Wrap(err, "Request does not contain artifact")
 		}
 		switch p.FormName() {
+		case "size":
+			size, err := s.getFormFieldValue(p, maxMetaSize)
+			if err != nil {
+				return nil, err
+			}
+			multipartUploadMsg.ArtifactSize, err = strconv.ParseInt(*size, 10, 64)
+			if err != nil {
+				return nil, err
+			}
 		case "description":
 			desc, err := s.getFormFieldValue(p, maxMetaSize)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
-			constructor.Description = *desc
+			multipartUploadMsg.MetaConstructor.Description = *desc
 		case "artifact":
+			// valide metadata provided by the user and the image size
+			if err := multipartUploadMsg.MetaConstructor.Validate(); err != nil {
+				return nil, err
+			}
+			// artifact size part should be provided before artifact part
+			// artifact size value should be greater then 0
+			if multipartUploadMsg.ArtifactSize <= 0 {
+				return nil, errors.New("No size provided before the artifact part of the message or the size value is wrong.")
+			}
 			// HTML form can't set specific content-type, it's automatic, if not empty - it's a file
 			if p.Header.Get("Content-Type") == "" {
-				return nil, nil, errors.New("The last part of the multipart/form-data message should be an image.")
+				return nil, errors.New("The last part of the multipart/form-data message should be an artifact.")
 			}
-			return constructor, p, nil
+			multipartUploadMsg.ArtifactReader = p
+			return multipartUploadMsg, nil
 		}
 	}
 }

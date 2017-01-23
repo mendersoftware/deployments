@@ -165,7 +165,7 @@ func (s *SimpleStorageService) Exists(objectID string) (bool, error) {
 
 // UploadArtifact uploads given artifact into the file server (AWS S3 or minio)
 // using objectID as a key
-func (s *SimpleStorageService) UploadArtifact(objectID string, artifact io.Reader, contentType string) error {
+func (s *SimpleStorageService) UploadArtifact(objectID string, size int64, artifact io.Reader, contentType string) error {
 
 	params := &s3.PutObjectInput{
 		// Required
@@ -188,6 +188,7 @@ func (s *SimpleStorageService) UploadArtifact(objectID string, artifact io.Reade
 		return err
 	}
 	request.Header.Set("Content-Type", contentType)
+	request.ContentLength = size
 	resp, err := client.Do(request)
 	if err != nil {
 		return err
