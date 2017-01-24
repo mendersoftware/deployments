@@ -188,9 +188,7 @@ func (d *Deployment) IsPending() bool {
 }
 
 func (d *Deployment) GetStatus() string {
-	if d.IsAborted() {
-		return "aborted"
-	} else if d.IsPending() {
+	if d.IsPending() {
 		return "pending"
 	} else if d.IsFinished() {
 		return "finished"

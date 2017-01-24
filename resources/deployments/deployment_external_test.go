@@ -299,7 +299,7 @@ func TestDeploymentGetStatus(t *testing.T) {
 				DeviceDeploymentStatusFailure: 1,
 				DeviceDeploymentStatusAborted: 1,
 			},
-			OutputStatus: "aborted",
+			OutputStatus: "finished",
 		},
 		"Rebooting + NoArtifact": {
 			Stats: map[string]int{
