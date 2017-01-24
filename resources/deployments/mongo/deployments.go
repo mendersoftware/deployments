@@ -330,39 +330,16 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 			stq = bson.M{
 				"$and": []bson.M{
 					bson.M{
-						"$and": []bson.M{
-							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusDownloading): eq0,
-							},
-							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusInstalling): eq0,
-							},
-							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusRebooting): eq0,
-							},
-							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusPending): eq0,
-							},
-						},
+						buildStatusKey(deployments.DeviceDeploymentStatusDownloading): eq0,
 					},
 					bson.M{
-						"$or": []bson.M{
-							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusSuccess): gt0,
-							},
-							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusFailure): gt0,
-							},
-							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusNoArtifact): gt0,
-							},
-							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): gt0,
-							},
-							bson.M{
-								buildStatusKey(deployments.DeviceDeploymentStatusAborted): gt0,
-							},
-						},
+						buildStatusKey(deployments.DeviceDeploymentStatusInstalling): eq0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusRebooting): eq0,
+					},
+					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusPending): eq0,
 					},
 				},
 			}
