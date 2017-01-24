@@ -160,17 +160,14 @@ func (d *Deployment) IsAborted() bool {
 }
 
 func (d *Deployment) IsFinished() bool {
-	// check if there are downloading/rebooting/installing devices
-	if d.IsInProgress() {
-		return false
+	if d.Stats[DeviceDeploymentStatusPending] == 0 &&
+		d.Stats[DeviceDeploymentStatusDownloading] == 0 &&
+		d.Stats[DeviceDeploymentStatusInstalling] == 0 &&
+		d.Stats[DeviceDeploymentStatusRebooting] == 0 {
+		return true
 	}
 
-	// check if there are pending devices
-	if d.Stats[DeviceDeploymentStatusPending] != 0 {
-		return false
-	}
-
-	return true
+	return false
 }
 
 func (d *Deployment) IsPending() bool {
