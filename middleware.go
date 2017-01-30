@@ -21,6 +21,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/go-lib-micro/accesslog"
+	"github.com/mendersoftware/go-lib-micro/customheader"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 )
@@ -77,6 +78,12 @@ var DefaultProdStack = []rest.Middleware{
 }
 
 func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
+
+	api.Use(&customheader.CustomHeaderMiddleware{
+		HeaderName:  "X-DEPLOYMENTS-VERSION",
+		HeaderValue: CreateVersionString(),
+	})
+
 	mwtype := c.GetString(SettingMiddleware)
 	if mwtype == EnvDev {
 		api.Use(DefaultDevStack...)
