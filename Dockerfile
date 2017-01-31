@@ -6,6 +6,8 @@ RUN apk update && apk upgrade && \
 
 RUN mkdir /etc/deployments
 
+EXPOSE 8080
+
 COPY ./config.yaml /etc/deployments/
 
 ENTRYPOINT ["/entrypoint.sh"]
