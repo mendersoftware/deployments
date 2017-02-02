@@ -38,6 +38,12 @@ paths:
         including active and historical. If both 'status' and 'query' are
         not specified, all devices are listed.
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: status
           in: query
           description: Deployment status filter.
@@ -83,6 +89,12 @@ paths:
         considered finished successfully as well as receive status of `noartifact`.
 
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: deployment
           in: body
           description: New deployment that needs to be created.
@@ -109,6 +121,12 @@ paths:
       description: |
         Returns the details of a particular deployment.
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Deployment identifier.
@@ -142,6 +160,12 @@ paths:
         - Devices that do not yet know about the deployment at time of abort will not start the deployment.
         - Devices that are in the middle of the deployment at time of abort will finish its deployment normally, but they will not be able to change its deployment status so they will perform rollback.
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: deployment_id
           in: path
           description: Deployment identifier.
@@ -180,6 +204,12 @@ paths:
       description: |
         Returns the statistics of a selected deployment statuses.
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: deployment_id
           in: path
           description: Deployment identifier
@@ -214,6 +244,12 @@ paths:
       description: |
         Returns a collection of a selected deployment's status for each assigned device.
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: deployment_id
           in: path
           description: Deployment identifier.
@@ -246,6 +282,12 @@ paths:
       description: |
         Returns the log of a selected device, collected during a particular deployment.
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: deployment_id
           in: path
           description: Deployment identifier.
@@ -308,6 +350,12 @@ paths:
       consumes:
         - multipart/form-data
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: size
           in: formData
           description: Size of the artifact file in megabytes.
@@ -342,6 +390,12 @@ paths:
       description: |
         Returns the details of a selected artifact.
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Artifact identifier.
@@ -382,6 +436,12 @@ paths:
         Edit description. Artifact is not allowed to be edited if it was used
         in any deployment.
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Artifact identifier.
@@ -411,6 +471,12 @@ paths:
       produces:
         - application/json
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Artifact identifier.
@@ -433,6 +499,12 @@ paths:
         'If-Modified-Since', 'If-Unmodified-Since' It is valid for specified
         period of time.
       parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Artifact identifier.
