@@ -261,12 +261,6 @@
 			"revisionTime": "2016-10-12T22:22:00Z"
 		},
 		{
-			"checksumSHA1": "H0s7iZn2nk/fq52QaaTeW+gSGgA=",
-			"path": "github.com/aws/aws-sdk-go/private/signer/v4",
-			"revision": "999b1591218c36d5050d1ba7266eba956e65965f",
-			"revisionTime": "2015-12-08T20:45:36Z"
-		},
-		{
 			"checksumSHA1": "01b4hmyUzoReoOyEDylDinWBSdA=",
 			"path": "github.com/aws/aws-sdk-go/private/util",
 			"revision": "afb8bf514d9344600dcb0f45e364d2b628b6c6d3",
@@ -377,6 +371,12 @@
 		{
 			"checksumSHA1": "TBy4BC8vdb8QenUOK253xKqZ4r8=",
 			"path": "github.com/mendersoftware/go-lib-micro/accesslog",
+			"revision": "5a7f06d87cc653f59e4cd6de15e711d7b795bb46",
+			"revisionTime": "2017-01-30T12:11:14Z"
+		},
+		{
+			"checksumSHA1": "5PDgQnNLCVPQR537rMBdiAPm5aM=",
+			"path": "github.com/mendersoftware/go-lib-micro/customheader",
 			"revision": "5a7f06d87cc653f59e4cd6de15e711d7b795bb46",
 			"revisionTime": "2017-01-30T12:11:14Z"
 		},

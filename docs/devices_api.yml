@@ -1,14 +1,14 @@
 swagger: '2.0'
 info:
   title: Deployments
-  version: '0.1'
+  version: '1'
   description: |
     An API for device firmware deployments. Intended for use by devices.
 
     Devices can get new updates and send information about current deployment status.
 
-host: 'docker.mender.io:8080'
-basePath: '/api/devices/0.1/deployments'
+host: 'docker.mender.io'
+basePath: '/api/devices/v1/deployments'
 schemes:
   - https
 

@@ -1,13 +1,13 @@
 swagger: '2.0'
 info:
   title: Deployments
-  version: '0.1'
+  version: '1'
   description: |
     An API for deployments and artifacts management.
     Intended for use by the web GUI.
 
-host: 'docker.mender.io:8080'
-basePath: '/api/management/0.1/deployments'
+host: 'docker.mender.io'
+basePath: '/api/management/v1/deployments'
 schemes:
   - https
 
