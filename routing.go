@@ -143,16 +143,16 @@ func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsC
 		rest.Get("/api/0.0.1/deployments/:id", controller.GetDeployment),
 		rest.Get("/api/0.0.1/deployments/:id/statistics", controller.GetDeploymentStats),
 		rest.Put("/api/0.0.1/deployments/:id/status", controller.AbortDeployment),
+		rest.Get("/api/0.0.1/deployments/:id/devices",
+			controller.GetDeviceStatusesForDeployment),
+		rest.Get("/api/0.0.1/deployments/:id/devices/:devid/log",
+			controller.GetDeploymentLogForDevice),
 
 		// Devices
 		rest.Get("/api/0.0.1/device/deployments/next", controller.GetDeploymentForDevice),
 		rest.Put("/api/0.0.1/device/deployments/:id/status",
 			controller.PutDeploymentStatusForDevice),
-		rest.Get("/api/0.0.1/deployments/:id/devices",
-			controller.GetDeviceStatusesForDeployment),
 		rest.Put("/api/0.0.1/device/deployments/:id/log",
 			controller.PutDeploymentLogForDevice),
-		rest.Get("/api/0.0.1/deployments/:id/devices/:devid/log",
-			controller.GetDeploymentLogForDevice),
 	}
 }
