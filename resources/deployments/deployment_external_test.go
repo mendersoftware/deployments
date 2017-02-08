@@ -15,6 +15,7 @@
 package deployments_test
 
 import (
+	"math/rand"
 	"testing"
 	"time"
 
@@ -359,4 +360,46 @@ func TestDeploymentGetStatus(t *testing.T) {
 		assert.Equal(t, test.OutputStatus, dep.GetStatus())
 	}
 
+}
+
+func TestFuzzyGetStatus(t *testing.T) {
+
+	rand := func(min int, max int) int {
+		rand.Seed(time.Now().UTC().UnixNano())
+		return min + rand.Intn(max-min)
+	}
+
+	max := 3
+
+	for i := 0; i < 1000; i++ {
+		dep := NewDeployment()
+		dep.Stats[DeviceDeploymentStatusDownloading] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusInstalling] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusRebooting] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusPending] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusSuccess] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusFailure] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusNoArtifact] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusAlreadyInst] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusAborted] = rand(0, max)
+
+		pending := 0
+		inprogress := 0
+		finished := 0
+
+		if dep.GetStatus() == "pending" {
+			pending++
+		}
+
+		if dep.GetStatus() == "finished" {
+			finished++
+		}
+
+		if dep.GetStatus() == "inprogress" {
+			inprogress++
+		}
+
+		exp_stats := pending + inprogress + finished
+		assert.Equal(t, 1, exp_stats, dep.Stats)
+	}
 }
