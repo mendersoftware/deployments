@@ -126,9 +126,6 @@ after_success:
     # Integrate with https://codecov.io
     - bash <(curl -s https://codecov.io/bash)
 
-    # Check if api docs have changed
-    - git show --stat ${TRAVIS_COMMIT_RANGE} | grep -E "docs/.+\.yml" && export API_DOCS_CHANGED=true
-
 before_deploy:
     # Master is always lastest
     - if [ ! -z "$TRAVIS_TAG" ]; then export IMAGE_TAG=$TRAVIS_TAG; else export IMAGE_TAG=$TRAVIS_BRANCH; fi
@@ -154,4 +151,3 @@ deploy:
         on:
             repo: $TRAVIS_REPO_SLUG
             all_branches: true
-            condition: $API_DOCS_CHANGED = true
