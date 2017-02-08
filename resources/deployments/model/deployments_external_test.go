@@ -555,6 +555,20 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputDevsStorageError: nil,
 		},
 		{
+			isFinished: false,
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("345"),
+				Stats: deployments.Stats{
+					deployments.DeviceDeploymentStatusSuccess: 1,
+				},
+			},
+			InputDeviceID: "345",
+			InputStatus:   "installing",
+			OldStatus:     "installing",
+
+			InputDevsStorageError: nil,
+		},
+		{
 			isFinished: true,
 			InputDeployment: &deployments.Deployment{
 				Id: StringToPointer("456"),

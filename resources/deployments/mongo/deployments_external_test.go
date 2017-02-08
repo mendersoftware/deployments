@@ -549,6 +549,60 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 			OutputError: ErrStorageInvalidID,
 			OutputStats: nil,
 		},
+		"no old state": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Stats: map[string]int{
+					deployments.DeviceDeploymentStatusDownloading: 1,
+					deployments.DeviceDeploymentStatusInstalling:  2,
+					deployments.DeviceDeploymentStatusRebooting:   3,
+					deployments.DeviceDeploymentStatusPending:     10,
+					deployments.DeviceDeploymentStatusSuccess:     15,
+					deployments.DeviceDeploymentStatusFailure:     4,
+					deployments.DeviceDeploymentStatusNoArtifact:  5,
+					deployments.DeviceDeploymentStatusAlreadyInst: 0,
+					deployments.DeviceDeploymentStatusAborted:     0,
+				},
+			},
+			InputStateFrom: "",
+			InputStateTo:   deployments.DeviceDeploymentStatusFailure,
+
+			OutputError: ErrStorageInvalidInput,
+			OutputStats: nil,
+		},
+		"install install": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Stats: map[string]int{
+					deployments.DeviceDeploymentStatusDownloading: 1,
+					deployments.DeviceDeploymentStatusInstalling:  2,
+					deployments.DeviceDeploymentStatusRebooting:   3,
+					deployments.DeviceDeploymentStatusPending:     10,
+					deployments.DeviceDeploymentStatusSuccess:     15,
+					deployments.DeviceDeploymentStatusFailure:     4,
+					deployments.DeviceDeploymentStatusNoArtifact:  5,
+					deployments.DeviceDeploymentStatusAlreadyInst: 0,
+					deployments.DeviceDeploymentStatusAborted:     0,
+				},
+			},
+			InputStateFrom: deployments.DeviceDeploymentStatusInstalling,
+			InputStateTo:   deployments.DeviceDeploymentStatusInstalling,
+
+			OutputError: nil,
+			OutputStats: map[string]int{
+				deployments.DeviceDeploymentStatusDownloading: 1,
+				deployments.DeviceDeploymentStatusInstalling:  2,
+				deployments.DeviceDeploymentStatusRebooting:   3,
+				deployments.DeviceDeploymentStatusPending:     10,
+				deployments.DeviceDeploymentStatusSuccess:     15,
+				deployments.DeviceDeploymentStatusFailure:     4,
+				deployments.DeviceDeploymentStatusNoArtifact:  5,
+				deployments.DeviceDeploymentStatusAlreadyInst: 0,
+				deployments.DeviceDeploymentStatusAborted:     0,
+			},
+		},
 	}
 
 	for id, tc := range testCases {
