@@ -37,6 +37,7 @@ var (
 	ErrStorageInvalidID                   = errors.New("Invalid id")
 	ErrDeploymentStorageInvalidQuery      = errors.New("Invalid query")
 	ErrDeploymentStorageCannotExecQuery   = errors.New("Cannot execute query")
+	ErrStorageInvalidInput                = errors.New("invalid input")
 )
 
 const (
@@ -212,6 +213,20 @@ func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(id string, stats dep
 func (d *DeploymentsStorage) UpdateStats(id string, state_from, state_to string) error {
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
+	}
+
+	if govalidator.IsNull(state_from) {
+		return ErrStorageInvalidInput
+	}
+
+	if govalidator.IsNull(state_to) {
+		return ErrStorageInvalidInput
+	}
+
+	// does not need any extra operations
+	// following query won't handle this case well and increase the state_to value
+	if state_from == state_to {
+		return nil
 	}
 
 	session := d.session.Copy()
