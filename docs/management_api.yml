@@ -360,7 +360,8 @@ paths:
           in: formData
           description: Size of the artifact file in megabytes.
           required: true
-          type: long
+          type: integer
+          format: long
         - name: description
           in: formData
           required: false
