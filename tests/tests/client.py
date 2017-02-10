@@ -25,7 +25,7 @@ API_URL = "http://%s/api/%s/" % \
            pytest.config.getoption("api"))
 
 
-class Client(object):
+class Client:
 
     config = {
         'also_return_response': True,
@@ -35,14 +35,16 @@ class Client(object):
         'use_models': True,
     }
 
+    logger_tag = 'client.Client'
+    spec_option = 'spec'
 
     def setup(self):
-        self.log = logging.getLogger("client.Client")
+        self.log = logging.getLogger(self.logger_tag)
         self.api_url = API_URL
         self.http_client = RequestsClient()
         self.http_client.session.verify = False
 
-        spec = pytest.config.getoption("spec")
+        spec = pytest.config.getoption(self.spec_option)
         self.client = SwaggerClient.from_spec(load_file(spec),
                                               config=self.config,
                                               http_client=self.http_client)
@@ -51,3 +53,8 @@ class Client(object):
     def make_api_url(self, path):
         return os.path.join(self.api_url,
                             path if not path.startswith("/") else path[1:])
+
+class DeviceClient(Client):
+
+    spec_option = 'device-spec'
+    logger_tag = 'client.DeviceClient'

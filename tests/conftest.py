@@ -19,7 +19,9 @@ def pytest_addoption(parser):
                      help="API version used in HTTP requests")
     parser.addoption("--host", action="store", default="localhost",
                      help="host running API")
-    parser.addoption("--spec", default="../docs/internal_api.yml")
+    parser.addoption("--spec", default="../docs/management_api.yml")
+    parser.addoption("--device-spec", default="../docs/devices_api.yml")
+
 
 def pytest_configure(config):
     lvl = logging.INFO
