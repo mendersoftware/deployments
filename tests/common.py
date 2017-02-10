@@ -18,10 +18,13 @@ import subprocess
 import logging
 import os
 import abc
+import random
+import string
+import json
 
 from hashlib import sha256
 from contextlib import contextmanager
-
+from base64 import urlsafe_b64encode
 
 class Artifact(metaclass=abc.ABCMeta):
     @abc.abstractproperty
@@ -116,3 +119,21 @@ def artifact_from_data(name='foo', data=None, devicetype='hammer'):
             # bring up temp mender artifact
             with artifact_from_mender_file(tmender.name) as fa:
                 yield fa
+
+
+class Device:
+    def __init__(self, device_type='hammer'):
+        self.devid = ''.join([random.choice(string.ascii_letters + string.digits) \
+                              for _ in range(10)])
+        self.device_type = device_type
+
+    @property
+    def fake_token(self):
+        claims = json.dumps({
+            'sub': self.devid,
+            'iss': 'Mender',
+        })
+        hdr = '{"typ": "JWT"}'
+        signature = 'fake-signature'
+        return '.'.join(urlsafe_b64encode(p.encode()).decode() \
+                        for p in [hdr, claims, signature])
