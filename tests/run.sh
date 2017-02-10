@@ -8,7 +8,8 @@ export PYTHONDONTWRITEBYTECODE=1
 
 HOST=${HOST="mender-deployments:8080"}
 
-sleep 5
+# if we're running in a container, wait a little before starting tests
+[ $$ -eq 1 ] && sleep 5
 
 # some additional test binaries can be located in tests directory (eg.
 # mender-artifact)
