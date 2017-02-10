@@ -26,3 +26,6 @@ def pytest_configure(config):
     if config.getoption("verbose"):
         lvl = logging.DEBUG
     logging.basicConfig(level=lvl)
+    # configure bravado related loggers to be less verbose
+    logging.getLogger('swagger_spec_validator').setLevel(logging.INFO)
+    logging.getLogger('bravado_core').setLevel(logging.INFO)
