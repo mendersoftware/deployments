@@ -15,7 +15,9 @@
 import os.path
 import logging
 
+import requests
 import pytest
+
 from bravado.swagger_model import load_file
 from bravado.client import SwaggerClient, RequestsClient
 
@@ -58,3 +60,30 @@ class DeviceClient(Client):
 
     spec_option = 'device-spec'
     logger_tag = 'client.DeviceClient'
+
+
+
+class InventoryClientError(Exception):
+    pass
+
+
+class InventoryClient(Client):
+
+    api_url = "http://%s/api/0.1.0/" % \
+          (pytest.config.getoption("inventory_host"))
+
+    def report_attributes(self, devtoken, attributes):
+        """Send device attributes to inventory service. Device is identified using
+        authorization token passed in `devtoken`. Attributes can be a dict, a
+        list, or anything else that can be serialized to JSON. Will raise
+        InventoryClientError if request fails.
+
+        """
+        rsp = requests.patch(self.make_api_url('/attributes'),
+                             headers={
+                                 'Authorization': 'Bearer ' + devtoken,
+                             },
+                             json=attributes)
+        if rsp.status_code != 200:
+            raise InventoryClientError(
+                'request failed with status code {}'.format(rsp.status_code))

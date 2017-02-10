@@ -7,6 +7,7 @@ DIR=$(readlink -f $(dirname $0))
 export PYTHONDONTWRITEBYTECODE=1
 
 HOST=${HOST="mender-deployments:8080"}
+INVENTORY_HOST=${INVENTORY_HOST="mender-inventory:8080"}
 
 # if we're running in a container, wait a little before starting tests
 [ $$ -eq 1 ] && sleep 5
@@ -16,6 +17,7 @@ HOST=${HOST="mender-deployments:8080"}
 export PATH=$PATH:$DIR
 
 py.test-3 -s --tb=short --api=0.0.1  --host $HOST \
+          --inventory-host $INVENTORY_HOST \
         --spec $DIR/management_api.yml \
         --verbose --junitxml=$DIR/results.xml \
         $DIR/tests/test_*.py "$@"

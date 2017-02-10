@@ -19,6 +19,8 @@ def pytest_addoption(parser):
                      help="API version used in HTTP requests")
     parser.addoption("--host", action="store", default="localhost",
                      help="host running API")
+    parser.addoption("--inventory-host", action="store", default="mender-inventory:8080",
+                     help="host running API")
     parser.addoption("--spec", default="../docs/management_api.yml")
     parser.addoption("--device-spec", default="../docs/devices_api.yml")
 
