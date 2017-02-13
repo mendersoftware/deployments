@@ -14,12 +14,15 @@
 #    limitations under the License.
 import os.path
 import logging
+import random
 
+from datetime import datetime
 from collections import OrderedDict
 from contextlib import contextmanager
 
 import requests
 import pytest
+import pytz
 
 from bravado.swagger_model import load_file
 from bravado.client import SwaggerClient, RequestsClient
@@ -144,6 +147,43 @@ class DeploymentsClient(SwaggerApiClient):
         NewDeployment = self.client.get_model('NewDeployment')
         return NewDeployment(*args, **kwargs)
 
+    def add_deployment(self, dep):
+        """Posts new deployment `dep`"""
+        res = self.client.deployments.post_deployments(Authorization='foo',
+                                                       deployment=dep).result()
+        adapter = res[1]
+        loc = adapter.headers.get('Location', None)
+        depid =  os.path.basename(loc)
+
+        self.log.debug('added new deployment with ID: %s', depid)
+        return depid
+
+    def abort_deployment(self, depid):
+        """Abort deployment with `ID `depid`"""
+        self.client.deployments.put_deployments_deployment_id_status(Authorization='foo',
+                                                                     deployment_id=depid,
+                                                                     Status={
+                                                                         'status': 'aborted',
+                                                                     }).result()
+
+    @contextmanager
+    def with_added_deployment(self, dep):
+        """Acts as a context manager, adds artifact and yields artifact ID and deletes
+        it upon completion"""
+        depid = self.add_deployment(dep)
+        yield depid
+        self.abort_deployment(depid)
+
+    def verify_deployment_stats(self, depid, expected):
+        stats = self.client.deployments.get_deployments_deployment_id_statistics(Authorization='foo',
+                                                                                 deployment_id=depid).result()[0]
+        stat_names = ['success', 'pending', 'failure', 'downloading', 'installing', 'rebooting',
+                      'noartifact', 'already-installed', 'aborted']
+        for s in stat_names:
+            exp = expected.get(s, 0)
+            current = getattr(stats, s) or 0
+            assert exp == current
+
 
 class DeviceClient(SwaggerApiClient):
     """Swagger based device API client. Can be used a Pytest base class"""
@@ -151,11 +191,38 @@ class DeviceClient(SwaggerApiClient):
     logger_tag = 'client.DeviceClient'
 
     def get_next_deployment(self, token='', artifact_name='', device_type=''):
+        """Obtain next deployment"""
         auth = 'Bearer ' + token
         res = self.client.device.get_device_deployments_next(Authorization=auth,
                                                              artifact_name=artifact_name,
                                                              device_type=device_type).result()[0]
         return res
+
+    def report_status(self, token='', devdepid=None, status=None):
+        """Report device deployment status"""
+        auth = 'Bearer ' + token
+        res = self.client.device.put_device_deployments_id_status(Authorization=auth,
+                                                                  id=devdepid,
+                                                                  Status={
+                                                                      'status': status,
+                                                                  }).result()
+        return res
+
+    def upload_logs(self, token='', devdepid=None, logs=[]):
+        auth = 'Bearer ' + token
+        DeploymentLog = self.client.get_model('DeploymentLog')
+        levels = ['info', 'debug', 'warn', 'error', 'other']
+        dl = DeploymentLog(messages=[{
+            'timestamp': pytz.utc.localize(datetime.now()),
+            'level': random.choice(levels),
+            'message': l,
+        } for l in logs])
+        res = self.client.device.put_device_deployments_id_log(Authorization=auth,
+                                                               id=devdepid,
+                                                               Log=dl).result()
+        return res
+
+
 
 class SimpleDeviceClient(DeviceClient):
     """Simple device API client, cannot be used as Pytest tests base class"""
