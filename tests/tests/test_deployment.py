@@ -37,6 +37,8 @@ def make_upload_meta(meta):
 
 
 class TestDeployment(Client):
+    def setup(self):
+        self.setup_swagger()
 
     def test_deployments_get(self):
         res = self.client.deployments.get_deployments(Authorization='foo').result()

@@ -15,28 +15,20 @@
 import io
 
 from os.path import basename
-from collections import OrderedDict
 from uuid import uuid4
 from hashlib import sha256
 
 import bravado
 import requests
 
-from client import Client
+from client import ArtifactsClient
 from common import artifact_from_raw_data, artifact_from_data
 
 
-def make_upload_meta(meta):
-    order = ['description', 'size', 'artifact']
+class TestArtifact(ArtifactsClient):
 
-    upload_meta = OrderedDict()
-    for entry in order:
-        if entry in meta:
-            upload_meta[entry] = meta[entry]
-    return upload_meta
-
-
-class TestArtifact(Client):
+    def setup(self):
+        self.setup_swagger()
 
     def test_artifacts_all(self):
         res = self.client.artifacts.get_artifacts().result()
@@ -56,7 +48,7 @@ class TestArtifact(Client):
 
     def test_artifacts_new_bogus_data(self):
         with artifact_from_raw_data(b'foo_bar') as art:
-            files = make_upload_meta({
+            files = ArtifactsClient.make_upload_meta({
                 'description': 'bar',
                 'size': str(art.size),
                 'artifact': ('firmware', art, 'application/octet-stream', {}),
@@ -74,35 +66,14 @@ class TestArtifact(Client):
 
         # generate artifact
         with artifact_from_data(name=artifact_name, data=data, devicetype=device_type) as art:
-            # prepare upload data for multipart/form-data
-            files = make_upload_meta({
-                'description': description,
-                'size': str(art.size),
-                'artifact': ('firmware', art, 'application/octet-stream', {}),
-            })
-
             self.log.info("uploading artifact")
-            # use requests directly rather than through bravado. bravado does
-            # not know how to order things when doing multipart/form-data
-            # upload
-            rsp = requests.post(self.make_api_url('/artifacts'), files=files)
-
-            self.log.info('response %s', rsp)
-            # should have be created
-            assert rsp.status_code == 201
-
-            # extract ID from location header (which should be set BTW)
-            loc = rsp.headers.get('Location', None)
-            assert loc
-            self.log.info('location: %s', loc)
+            artid = self.add_artifact(description, art.size, art)
 
             # artifacts listing should not be empty now
             res = self.client.artifacts.get_artifacts().result()
             self.log.debug('result: %s', res)
             assert len(res[0]) > 0
 
-            # fetch artifact information
-            artid = basename(loc)
             res = self.client.artifacts.get_artifacts_id(Authorization='foo',
                                                          id=artid).result()[0]
             self.log.info('artifact: %s', res)
@@ -144,8 +115,8 @@ class TestArtifact(Client):
             assert dig.hexdigest() == art.checksum
 
             # delete it now
-            rsp = requests.delete(self.make_api_url('/artifacts/{}'.format(artid)), verify=False)
-            assert rsp.status_code == 204
+            self.delete_artifact(artid)
+
             # should be unavailable now
             try:
                 res = self.client.artifacts.get_artifacts_id(Authorization='foo',
