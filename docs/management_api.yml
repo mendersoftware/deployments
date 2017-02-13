@@ -358,7 +358,7 @@ paths:
           description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: size
           in: formData
-          description: Size of the artifact file in megabytes.
+          description: Size of the artifact file in bytes.
           required: true
           type: long
         - name: description
