@@ -674,6 +674,7 @@ definitions:
           - success
           - failure
           - noartifact
+          - aborted
       created:
         type: string
         format: date-time
