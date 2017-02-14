@@ -122,7 +122,7 @@ script:
     # NOTE: the tests require mender-artifact binary to be available
     - if [[ "$JOB_TYPE" = compile_and_acceptance_tests ]]; then
         CGO_ENABLED=0 go get -u -v github.com/mendersoftware/mender-artifact &&
-        ( ./tests/build-acceptance ./tests ./docs/management_api.yml  `which mender-artifact` &&
+        ( ./tests/build-acceptance ./tests ./docs/management_api.yml ./docs/devices_api.yml `which mender-artifact` &&
         TESTS_DIR=$PWD/tests ./tests/run-test-environment "acceptance" $PWD/integration_new ./tests/docker-compose.yml );
       fi
 

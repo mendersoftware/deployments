@@ -18,6 +18,7 @@ export PATH=$PATH:$DIR
 
 py.test-3 -s --tb=short --api=0.0.1  --host $HOST \
           --inventory-host $INVENTORY_HOST \
-        --spec $DIR/management_api.yml \
-        --verbose --junitxml=$DIR/results.xml \
-        $DIR/tests/test_*.py "$@"
+          --spec $DIR/management_api.yml \
+          --device-spec $DIR/devices_api.yml \
+          --verbose --junitxml=$DIR/results.xml \
+          $DIR/tests/test_*.py "$@"
