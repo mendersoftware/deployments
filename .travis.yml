@@ -41,6 +41,9 @@ env:
         # Docker repository name
         - DOCKER_REPOSITORY="mendersoftware/deployments"
 
+        # Use correct branch for testing
+        - TEST_BRANCH=$TRAVIS_BRANCH
+
 before_install:
 
     # Install code coverage / tooling
