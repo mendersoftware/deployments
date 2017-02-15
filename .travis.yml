@@ -76,6 +76,8 @@ before_script:
     - echo $TRAVIS_BUILD_NUMBER
     - echo $TRAVIS_REPO_SLUG
 
+    - git fetch --tags origin 'refs/heads/*:refs/remotes/origin/*'
+
     # Test if code was formatted with 'go fmt'
     # Command will format code and return modified files
     # fail if any have been modified.
