@@ -70,6 +70,8 @@ paths:
             $ref: "#/definitions/DeploymentInstructions"
         204:
           description: No updates for device.
+        400:
+          $ref: "#/responses/InvalidRequestError"
         404:
           $ref: "#/responses/NotFoundError"
         500:
