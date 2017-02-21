@@ -60,7 +60,9 @@ before_install:
     - sudo apt-get install -y mongodb-org
 
 
-    - sudo apt-get -qq update && sudo apt-get -qq install -y npm e2tools
+    - sudo apt-get -qq update
+    - sudo apt-get -qq install -y npm
+    - sudo apt-get -qq install -y e2tools
     - sudo npm install -g swagger-cli
 
 
