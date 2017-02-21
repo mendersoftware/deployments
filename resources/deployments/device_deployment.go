@@ -61,7 +61,7 @@ type DeviceDeployment struct {
 	DeviceType *string `json:"device_type,omitempty" valid:"-"`
 
 	// Presence of deployment log
-	IsLogAvailable bool `json:"log" valid:"-"`
+	IsLogAvailable bool `json:"log" valid:"-" bson:"log"`
 }
 
 func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
