@@ -61,8 +61,8 @@ before_install:
     - sudo apt-get install -y mongodb-org
 
 
-    - sudo apt-get -qq update && sudo apt-get -qq install -y npm e2tools
-    - sudo npm install -g swagger-cli
+    - sudo apt-get -qq install -y e2tools
+    - npm install -g swagger-cli
 
 
     - pip2.7 install -U --user paramiko fabric PyYAML pytest requests
