@@ -213,4 +213,6 @@ type Query struct {
 	SearchText string
 	// deployment status
 	Status StatusQuery
+	Limit  int
+	Skip   int
 }
