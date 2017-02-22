@@ -301,7 +301,9 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			}
 			err := session.DB(DatabaseName).C(CollectionDevices).
 				Find(query).One(&deployment)
+
 			assert.NoError(t, err)
+			assert.Equal(t, testCase.InputLog, deployment.IsLogAvailable)
 		}
 
 		// Need to close all sessions to be able to call wipe at next test case
