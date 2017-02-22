@@ -533,6 +533,63 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
+  /artifacts/{id}/devices:
+    get:
+      summary: Get a list of devices with this artifact installed.
+      description: |
+          Returns a paged list of devices (device IDs) which have this artifact currently installed.
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
+        - name: id
+          in: path
+          description: Artifact identifier.
+          required: true
+          type: string
+        - name: page
+          in: query
+          description: Starting page.
+          required: false
+          type: number
+          format: integer
+          default: 1
+        - name: per_page
+          in: query
+          description: Number of results per page.
+          required: false
+          type: number
+          format: integer
+          default: 10
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response.
+          schema:
+            title: ListOfDeviceIDs
+            type: array
+            items:
+              type: string
+          headers:
+            Link:
+              type: string
+              description: |
+                Standard header, used for page navigation.
+
+                Supported relation types are 'first', 'next' and 'prev'.
+          examples:
+            application/json:
+              - "507f191e810c19729de860ea"
+              - "507f191e810c19729de860eb"
+              - "507f191e810c19729de860ec"
+        404:
+          $ref: "#/responses/NotFoundError"
+        500:
+          $ref: "#/responses/InternalServerError"
 
 definitions:
   Error:
