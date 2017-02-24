@@ -402,7 +402,7 @@ func (d *DeploymentsStorage) Find(match deployments.Query) ([]*deployments.Deplo
 	}
 	var deployment []*deployments.Deployment
 	err := session.DB(DatabaseName).C(CollectionDeployments).
-		Find(&query).All(&deployment)
+		Find(&query).Skip(match.Skip).Limit(match.Limit).Sort("_id").All(&deployment)
 	if err != nil {
 		return nil, err
 	}

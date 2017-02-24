@@ -22,6 +22,7 @@ import (
 	"github.com/mendersoftware/deployments/utils/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
+	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
 	"net/http"
 	"net/url"
@@ -303,11 +304,18 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 	l := requestlog.GetRequestLogger(r.Env)
 
 	query, err := ParseLookupQuery(r.URL.Query())
-
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
+
+	page, perPage, err := rest_utils.ParsePagination(r)
+	if err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+	query.Skip = int((page - 1) * perPage)
+	query.Limit = int(perPage + 1)
 
 	deps, err := d.model.LookupDeployment(query)
 	if err != nil {
@@ -315,7 +323,19 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 		return
 	}
 
-	d.view.RenderSuccessGet(w, deps)
+	len := len(deps)
+	hasNext := false
+	if uint64(len) > perPage {
+		hasNext = true
+		len = int(perPage)
+	}
+
+	links := rest_utils.MakePageLinkHdrs(r, page, perPage, hasNext)
+	for _, l := range links {
+		w.Header().Add("Link", l)
+	}
+
+	d.view.RenderSuccessGet(w, deps[:len])
 }
 
 func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {

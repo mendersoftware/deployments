@@ -37,6 +37,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	h "github.com/mendersoftware/deployments/utils/testing"
 )
@@ -850,7 +851,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
 
-			deploymentModel.On("LookupDeployment", testCase.InputModelQuery).
+			deploymentModel.On("LookupDeployment", mock.AnythingOfType("deployments.Query")).
 				Return(testCase.InputModelDeployments, testCase.InputModelError)
 
 			router, err := rest.MakeRouter(
