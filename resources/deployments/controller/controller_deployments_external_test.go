@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 	"time"
 
@@ -778,6 +779,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 		{
 			InputModelQuery: deployments.Query{
 				SearchText: " ",
+				Limit:      2,
 			},
 			InputModelError: errors.New("bad query"),
 
@@ -798,6 +800,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 		{
 			InputModelQuery: deployments.Query{
 				SearchText: "foo-not-found",
+				Limit:      2,
 			},
 			InputModelDeployments: []*deployments.Deployment{},
 
@@ -810,6 +813,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 			InputModelQuery: deployments.Query{
 				SearchText: "foo",
 				Status:     deployments.StatusQueryInProgress,
+				Limit:      2,
 			},
 			SearchStatus:          "inprogress",
 			InputModelDeployments: someDeployments,
@@ -837,6 +841,34 @@ func TestControllerLookupDeployment(t *testing.T) {
 								ArtifactName: StringToPointer("bar"),
 							},
 							Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
+						},
+						Status: "finished",
+					},
+				},
+			},
+		},
+		{
+			InputModelQuery: deployments.Query{
+				SearchText: "foo",
+				Status:     deployments.StatusQueryInProgress,
+				Limit:      1,
+			},
+			SearchStatus:          "inprogress",
+			InputModelDeployments: someDeployments,
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusOK,
+				OutputBodyObject: []struct {
+					deployments.Deployment
+					Status string `json:"status"`
+				}{
+					{
+						Deployment: deployments.Deployment{
+							DeploymentConstructor: &deployments.DeploymentConstructor{
+								Name:         StringToPointer("zen"),
+								ArtifactName: StringToPointer("baz"),
+							},
+							Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 						},
 						Status: "finished",
 					},
@@ -873,6 +905,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 			if testCase.SearchStatus != "" {
 				q.Set("status", testCase.SearchStatus)
 			}
+			q.Set("per_page", strconv.Itoa(testCase.InputModelQuery.Limit))
 			u.RawQuery = q.Encode()
 			req := test.MakeSimpleRequest("GET", u.String(), nil)
 			req.Header.Add(requestid.RequestIdHeader, "test")
