@@ -16,6 +16,7 @@ package mongo_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -905,19 +906,22 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 	}
 
 	testCases := []struct {
-		InputName                  string
-		InputStatus                deployments.StatusQuery
+		InputModelQuery            deployments.Query
 		InputDeploymentsCollection []*deployments.Deployment
 
 		OutputError error
 		OutputID    []string
 	}{
 		{
-			InputName:   "foobar-empty-db",
+			InputModelQuery: deployments.Query{
+				SearchText: "foobar-empty-db",
+			},
 			OutputError: ErrDeploymentStorageCannotExecQuery,
 		},
 		{
-			InputName: "foobar-no-match",
+			InputModelQuery: deployments.Query{
+				SearchText: "foobar-no-match",
+			},
 			InputDeploymentsCollection: []*deployments.Deployment{
 				&deployments.Deployment{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
@@ -930,7 +934,9 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			},
 		},
 		{
-			InputName:                  "NYC",
+			InputModelQuery: deployments.Query{
+				SearchText: "NYC",
+			},
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
@@ -939,7 +945,9 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			},
 		},
 		{
-			InputName:                  "NYC foo",
+			InputModelQuery: deployments.Query{
+				SearchText: "NYC foo",
+			},
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
@@ -951,7 +959,9 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			},
 		},
 		{
-			InputName:                  "bar",
+			InputModelQuery: deployments.Query{
+				SearchText: "bar",
+			},
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
@@ -961,8 +971,10 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			},
 		},
 		{
-			InputName:                  "bar",
-			InputStatus:                deployments.StatusQueryInProgress,
+			InputModelQuery: deployments.Query{
+				SearchText: "bar",
+				Status:     deployments.StatusQueryInProgress,
+			},
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
@@ -970,8 +982,10 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			},
 		},
 		{
-			InputName:                  "bar",
-			InputStatus:                deployments.StatusQueryFinished,
+			InputModelQuery: deployments.Query{
+				SearchText: "bar",
+				Status:     deployments.StatusQueryFinished,
+			},
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
@@ -980,7 +994,9 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			},
 		},
 		{
-			InputStatus:                deployments.StatusQueryInProgress,
+			InputModelQuery: deployments.Query{
+				Status: deployments.StatusQueryInProgress,
+			},
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
@@ -993,7 +1009,9 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			},
 		},
 		{
-			InputStatus:                deployments.StatusQueryPending,
+			InputModelQuery: deployments.Query{
+				Status: deployments.StatusQueryPending,
+			},
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
@@ -1001,7 +1019,9 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			},
 		},
 		{
-			InputStatus:                deployments.StatusQueryFinished,
+			InputModelQuery: deployments.Query{
+				Status: deployments.StatusQueryFinished,
+			},
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
@@ -1015,10 +1035,12 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			},
 		},
 		{
-			// whatever name
-			InputName: "",
-			// any status
-			InputStatus:                deployments.StatusQueryAny,
+			InputModelQuery: deployments.Query{
+				// whatever name
+				SearchText: "",
+				// any status
+				Status: deployments.StatusQueryAny,
+			},
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
@@ -1036,47 +1058,76 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				"32345678-0a41-401f-8f5e-582aba2a002d",
 				"42345678-0a41-401f-8f5e-582aba2a002d",
 				"52345678-0a41-401f-8f5e-582aba2a002d",
+			},
+		},
+		{
+			InputModelQuery: deployments.Query{
+				// whatever name
+				SearchText: "",
+				// any status
+				Status: deployments.StatusQueryAny,
+				Limit:  2,
+			},
+			InputDeploymentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"12345678-0a41-401f-8f5e-582aba2a002d",
+				"22345678-0a41-401f-8f5e-582aba2a002d",
+			},
+		},
+		{
+			InputModelQuery: deployments.Query{
+				// whatever name
+				SearchText: "",
+				// any status
+				Status: deployments.StatusQueryAny,
+				Limit:  2,
+				Skip:   2,
+			},
+			InputDeploymentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"32345678-0a41-401f-8f5e-582aba2a002d",
+				"3fe15222-0a41-401f-8f5e-582aba2a002c",
 			},
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
+			t.Logf("testing search: '%s'", testCase.InputModelQuery.SearchText)
+			t.Logf("        status: %v", testCase.InputModelQuery.Status)
 
-		t.Logf("testing search: '%s'", testCase.InputName)
-		t.Logf("        status: %v", testCase.InputStatus)
+			// Make sure we start test with empty database
+			db.Wipe()
 
-		// Make sure we start test with empty database
-		db.Wipe()
+			session := db.Session()
+			store := NewDeploymentsStorage(session)
 
-		session := db.Session()
-		store := NewDeploymentsStorage(session)
-
-		for _, d := range testCase.InputDeploymentsCollection {
-			if d.Created == nil {
-				now := time.Now()
-				d.Created = &now
+			for _, d := range testCase.InputDeploymentsCollection {
+				if d.Created == nil {
+					now := time.Now()
+					d.Created = &now
+				}
+				assert.NoError(t, store.Insert(d))
 			}
-			assert.NoError(t, store.Insert(d))
-		}
 
-		deployments, err := store.Find(deployments.Query{
-			SearchText: testCase.InputName,
-			Status:     testCase.InputStatus,
+			deployments, err := store.Find(testCase.InputModelQuery)
+
+			if testCase.OutputError != nil {
+				assert.EqualError(t, err, testCase.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Len(t, deployments, len(testCase.OutputID))
+				for _, dep := range deployments {
+					assert.Contains(t, testCase.OutputID, *dep.Id,
+						"got unexpected deployment %s", *dep.Id)
+				}
+			}
+
+			// Need to close all sessions to be able to call wipe at next test case
+			session.Close()
 		})
-
-		if testCase.OutputError != nil {
-			assert.EqualError(t, err, testCase.OutputError.Error())
-		} else {
-			assert.NoError(t, err)
-			assert.Len(t, deployments, len(testCase.OutputID))
-			for _, dep := range deployments {
-				assert.Contains(t, testCase.OutputID, *dep.Id,
-					"got unexpected deployment %s", *dep.Id)
-			}
-		}
-
-		// Need to close all sessions to be able to call wipe at next test case
-		session.Close()
 	}
 }
 
