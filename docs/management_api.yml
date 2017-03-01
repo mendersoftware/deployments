@@ -58,6 +58,21 @@ paths:
           description: Deployment name or description filter.
           required: false
           type: string
+        - name: page
+          in: query
+          description: Results page number
+          required: false
+          type: number
+          format: integer
+          default: 1
+        - name: per_page
+          in: query
+          description: Number of results per page
+          required: false
+          type: number
+          format: integer
+          default: 20
+          maximum: 500
       produces:
         - application/json
       responses:
@@ -75,6 +90,10 @@ paths:
             type: array
             items:
               $ref: '#/definitions/Deployment'
+          headers:
+            Link:
+              type: string
+              description: Standard header, we support 'first', 'next', and 'prev'.
         400:
           $ref: "#/responses/InvalidRequestError"
         500:
