@@ -36,6 +36,7 @@ const (
 	HttpHeaderLastModified                string = "Last-Modified"
 	HttpHeaderExpires                     string = "Expires"
 	HttpHeaderLocation                    string = "Location"
+	HttpHeaderLink                        string = "Link"
 	HttpHeaderAllow                       string = "Allow"
 	HttpHeaderAccept                      string = "Accept"
 
@@ -155,6 +156,7 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 		// Headers that can be exposed to JS
 		AccessControlExposeHeaders: []string{
 			HttpHeaderLocation,
+			HttpHeaderLink,
 		},
 	})
 }
