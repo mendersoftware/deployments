@@ -148,6 +148,36 @@ func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 	return deployment, nil
 }
 
+// FindAllDeploymentsForDeviceIDWithStatuses finds all deployments matching device id and one of specified statuses.
+func (d *DeviceDeploymentsStorage) FindAllDeploymentsForDeviceIDWithStatuses(deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error) {
+
+	// Verify ID formatting
+	if govalidator.IsNull(deviceID) {
+		return nil, ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	// Device should know only about deployments that are not finished
+	query := bson.M{
+		StorageKeyDeviceDeploymentDeviceId: deviceID,
+		StorageKeyDeviceDeploymentStatus: bson.M{
+			"$in": statuses,
+		},
+	}
+
+	var deployments []deployments.DeviceDeployment
+	if err := session.DB(DatabaseName).C(CollectionDevices).Find(query).All(&deployments); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return deployments, nil
+}
+
 func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error) {
 
 	// Verify ID formatting
@@ -346,17 +376,57 @@ func (d *DeviceDeploymentsStorage) AbortDeviceDeployments(deploymentId string) e
 
 	session := d.session.Copy()
 	defer session.Close()
-	selector := bson.M{"$and": []bson.M{
-		bson.M{StorageKeyDeviceDeploymentDeploymentID: deploymentId},
-		bson.M{
-			"status": bson.M{
-				"$in": deployments.ActiveDeploymentStatuses(),
-			}},
-	}}
+	selector := bson.M{
+		"$and": []bson.M{
+			bson.M{
+				StorageKeyDeviceDeploymentDeploymentID: deploymentId,
+			},
+			bson.M{
+				StorageKeyDeviceDeploymentStatus: bson.M{
+					"$in": deployments.ActiveDeploymentStatuses(),
+				},
+			},
+		},
+	}
 
 	update := bson.M{
 		"$set": bson.M{
-			"status": deployments.DeviceDeploymentStatusAborted,
+			StorageKeyDeviceDeploymentStatus: deployments.DeviceDeploymentStatusAborted,
+		},
+	}
+
+	_, err := session.DB(DatabaseName).C(CollectionDevices).UpdateAll(selector, update)
+
+	if err == mgo.ErrNotFound {
+		return ErrStorageInvalidID
+	}
+
+	return err
+}
+
+func (d *DeviceDeploymentsStorage) DecommissionDeviceDeployments(deviceId string) error {
+	if govalidator.IsNull(deviceId) {
+		return ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+	selector := bson.M{
+		"$and": []bson.M{
+			bson.M{
+				StorageKeyDeviceDeploymentDeviceId: deviceId,
+			},
+			bson.M{
+				StorageKeyDeviceDeploymentStatus: bson.M{
+					"$in": deployments.ActiveDeploymentStatuses(),
+				},
+			},
+		},
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeviceDeploymentStatus: deployments.DeviceDeploymentStatusDecommissioned,
 		},
 	}
 

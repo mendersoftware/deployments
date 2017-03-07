@@ -25,6 +25,7 @@ type DeviceDeploymentStorage interface {
 	InsertMany(deployment ...*deployments.DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(id string, statuses ...string) (bool, error)
 	FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
+	FindAllDeploymentsForDeviceIDWithStatuses(deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error)
 	UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error)
 	UpdateDeviceDeploymentLogAvailability(deviceID string, deploymentID string, log bool) error
 	AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error)
@@ -32,4 +33,5 @@ type DeviceDeploymentStorage interface {
 	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)
 	GetDeviceDeploymentStatus(deploymentID string, deviceID string) (string, error)
 	AbortDeviceDeployments(deploymentID string) error
+	DecommissionDeviceDeployments(deviceId string) error
 }

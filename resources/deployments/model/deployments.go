@@ -225,6 +225,10 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 		return controller.ErrDeploymentAborted
 	}
 
+	if currentStatus == deployments.DeviceDeploymentStatusDecommissioned {
+		return controller.ErrDeviceDecommissioned
+	}
+
 	// nothing to do
 	if status == currentStatus {
 		return nil
@@ -248,7 +252,7 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 
 	if deployment.IsFinished() {
 		// TODO: Make this part of UpdateStats() call as currently we are doing two
-		// write operations on DB - as well as it's saver to keep them in single transaction.
+		// write operations on DB - as well as it's safer to keep them in single transaction.
 		if err := d.deploymentsStorage.Finish(deploymentID, time.Now()); err != nil {
 			return errors.Wrap(err, "failed to mark deployment as finished")
 		}
@@ -359,4 +363,32 @@ func (d *DeploymentsModel) AbortDeployment(deploymentID string) error {
 	// Aborted deployment is considered to be finished even if some devices are
 	// still processing this deployment.
 	return d.deploymentsStorage.UpdateStatsAndFinishDeployment(deploymentID, stats)
+}
+
+func (d *DeploymentsModel) DecommissionDevice(deviceId string) error {
+
+	if err := d.deviceDeploymentsStorage.DecommissionDeviceDeployments(deviceId); err != nil {
+		return err
+	}
+
+	//get all affected deployments and update its stats
+	deviceDeployments, err := d.deviceDeploymentsStorage.FindAllDeploymentsForDeviceIDWithStatuses(
+		deviceId, deployments.DeviceDeploymentStatusDecommissioned)
+
+	if err != nil {
+		return err
+	}
+
+	for _, deviceDeployment := range deviceDeployments {
+
+		stats, err := d.deviceDeploymentsStorage.AggregateDeviceDeploymentByStatus(*deviceDeployment.DeploymentId)
+		if err != nil {
+			return err
+		}
+		if err := d.deploymentsStorage.UpdateStatsAndFinishDeployment(*deviceDeployment.DeploymentId, stats); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

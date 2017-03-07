@@ -236,7 +236,7 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 
 	status := report.Status
 	if err := d.model.UpdateDeviceDeploymentStatus(did, idata.Subject, status); err != nil {
-		if err == ErrDeploymentAborted {
+		if err == ErrDeploymentAborted || err == ErrDeviceDecommissioned {
 			d.view.RenderError(w, r, err, http.StatusConflict, l)
 		} else {
 			d.view.RenderInternalError(w, r, err, l)
@@ -390,4 +390,22 @@ func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter,
 	}
 
 	d.view.RenderDeploymentLog(w, *depl)
+}
+
+func (d *DeploymentsController) DecommissionDevice(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r.Env)
+
+	id := r.PathParam("id")
+
+	if !govalidator.IsUUIDv4(id) {
+		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		return
+	}
+
+	// Decommission deployments for devices and update deployment stats
+	if err := d.model.DecommissionDevice(id); err != nil {
+		d.view.RenderInternalError(w, r, err, l)
+	}
+
+	d.view.RenderEmptySuccessResponse(w)
 }
