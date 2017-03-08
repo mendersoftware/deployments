@@ -125,7 +125,9 @@ script:
     - git clone -b master https://github.com/mendersoftware/integration.git integration_new
 
     # Move script to testing directory
-    - mv integration_new/extra/travis-testing/* tests/
+    - if [[ "$JOB_TYPE" = compile_and_acceptance_tests ]]; then
+        mv integration_new/extra/travis-testing/* tests;
+      fi
 
     # acceptance tests
     # NOTE: the tests require mender-artifact binary to be available
