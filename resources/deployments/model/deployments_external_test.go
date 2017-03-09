@@ -1163,3 +1163,76 @@ func TestDeploymentModelAbortDeployment(t *testing.T) {
 		})
 	}
 }
+
+func TestDeploymentModelDecommissionDevice(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		InputDeviceId string
+
+		DecommissionDeviceDeploymentsError                   error
+		FindAllDeploymentsForDeviceIDWithStatusesDeployments []deployments.DeviceDeployment
+		FindAllDeploymentsForDeviceIDWithStatusesError       error
+		AggregateDeviceDeploymentByStatusStats               deployments.Stats
+		AggregateDeviceDeploymentByStatusError               error
+		UpdateStatsAndFinishDeploymentError                  error
+
+		OutputError error
+	}{
+		"DecommissionDeviceDeployments error": {
+			InputDeviceId:                      "foo",
+			DecommissionDeviceDeploymentsError: errors.New("DecommissionDeviceDeploymentsError"),
+			OutputError:                        errors.New("DecommissionDeviceDeploymentsError"),
+		},
+		"AggregateDeviceDeploymentByStatus error": {
+			InputDeviceId: "foo",
+			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deployments.NewDeviceDeployment("foo", "bar")},
+			AggregateDeviceDeploymentByStatusError:               errors.New("AggregateDeviceDeploymentByStatusError"),
+			AggregateDeviceDeploymentByStatusStats:               deployments.Stats{},
+			OutputError:                                          errors.New("AggregateDeviceDeploymentByStatusError"),
+		},
+		"UpdateStatsAndFinishDeployment error": {
+			InputDeviceId: "foo",
+			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deployments.NewDeviceDeployment("foo", "bar")},
+			AggregateDeviceDeploymentByStatusStats:               deployments.Stats{"aaa": 1},
+			UpdateStatsAndFinishDeploymentError:                  errors.New("UpdateStatsAndFinishDeploymentError"),
+			OutputError:                                          errors.New("UpdateStatsAndFinishDeploymentError"),
+		},
+		"all correct": {
+			InputDeviceId: "foo",
+			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deployments.NewDeviceDeployment("foo", "bar")},
+			AggregateDeviceDeploymentByStatusStats:               deployments.Stats{"aaa": 1},
+		},
+	}
+
+	for testCaseName, testCase := range testCases {
+		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
+
+			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
+			deploymentStorage := new(mocks.DeploymentsStorage)
+			deviceDeploymentStorage.On("DecommissionDeviceDeployments", mock.AnythingOfType("string")).
+				Return(testCase.DecommissionDeviceDeploymentsError)
+			deviceDeploymentStorage.On("FindAllDeploymentsForDeviceIDWithStatuses",
+				mock.AnythingOfType("string"),
+				mock.AnythingOfType("[]string")).
+				Return(testCase.FindAllDeploymentsForDeviceIDWithStatusesDeployments,
+					testCase.FindAllDeploymentsForDeviceIDWithStatusesError)
+			deviceDeploymentStorage.On("AggregateDeviceDeploymentByStatus", mock.AnythingOfType("string")).
+				Return(testCase.AggregateDeviceDeploymentByStatusStats, testCase.AggregateDeviceDeploymentByStatusError)
+			deploymentStorage.On("UpdateStatsAndFinishDeployment", mock.AnythingOfType("string"), mock.AnythingOfType("deployments.Stats")).
+				Return(testCase.UpdateStatsAndFinishDeploymentError)
+
+			model := NewDeploymentModel(DeploymentsModelConfig{
+				DeploymentsStorage:       deploymentStorage,
+				DeviceDeploymentsStorage: deviceDeploymentStorage,
+			})
+
+			err := model.DecommissionDevice(testCase.InputDeviceId)
+			if testCase.OutputError != nil {
+				assert.EqualError(t, err, testCase.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

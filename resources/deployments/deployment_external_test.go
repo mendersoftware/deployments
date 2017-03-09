@@ -382,6 +382,7 @@ func TestFuzzyGetStatus(t *testing.T) {
 		dep.Stats[DeviceDeploymentStatusNoArtifact] = rand(0, max)
 		dep.Stats[DeviceDeploymentStatusAlreadyInst] = rand(0, max)
 		dep.Stats[DeviceDeploymentStatusAborted] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusDecommissioned] = rand(0, max)
 
 		pending := 0
 		inprogress := 0
