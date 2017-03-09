@@ -413,7 +413,7 @@ func TestControllerPostDeployment(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
 
-			deploymentModel.On("CreateDeployment", testCase.InputBodyObject).
+			deploymentModel.On("CreateDeployment", mock.AnythingOfType("*context.valueCtx"), testCase.InputBodyObject).
 				Return(testCase.InputModelID, testCase.InputModelError)
 
 			router, err := rest.MakeRouter(

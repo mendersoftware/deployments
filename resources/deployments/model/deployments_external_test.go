@@ -309,7 +309,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				// as implementation does, if this changes test will
 				// break by panic ;)
 				imageLinker.On("GetRequest", testCase.InputOlderstDeviceDeployment.Image.Id,
-					DefaultUpdateDownloadLinkExpire).
+					DefaultUpdateDownloadLinkExpire, mock.AnythingOfType("string")).
 					Return(testCase.InputGetRequestLink, testCase.InputGetRequestError)
 
 				// if deployment is found to be already installed (i.e.
