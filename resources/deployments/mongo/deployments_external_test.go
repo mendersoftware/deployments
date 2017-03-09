@@ -54,29 +54,31 @@ func TestDeploymentStorageInsert(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		// Make sure we start test with empty database
-		db.Wipe()
+			// Make sure we start test with empty database
+			db.Wipe()
 
-		session := db.Session()
-		store := NewDeploymentsStorage(session)
+			session := db.Session()
+			store := NewDeploymentsStorage(session)
 
-		err := store.Insert(testCase.InputDeployment)
+			err := store.Insert(testCase.InputDeployment)
 
-		if testCase.OutputError != nil {
-			assert.EqualError(t, err, testCase.OutputError.Error())
-		} else {
-			assert.NoError(t, err)
+			if testCase.OutputError != nil {
+				assert.EqualError(t, err, testCase.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
 
-			dep := session.DB(DatabaseName).C(CollectionDeployments)
-			count, err := dep.Find(nil).Count()
-			assert.NoError(t, err)
-			assert.Equal(t, 1, count)
-		}
+				dep := session.DB(DatabaseName).C(CollectionDeployments)
+				count, err := dep.Find(nil).Count()
+				assert.NoError(t, err)
+				assert.Equal(t, 1, count)
+			}
 
-		// Need to close all sessions to be able to call wipe at next test case
-		session.Close()
+			// Need to close all sessions to be able to call wipe at next test case
+			session.Close()
+		})
 	}
 }
 
@@ -116,33 +118,35 @@ func TestDeploymentStorageDelete(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		// Make sure we start test with empty database
-		db.Wipe()
+			// Make sure we start test with empty database
+			db.Wipe()
 
-		session := db.Session()
-		store := NewDeploymentsStorage(session)
+			session := db.Session()
+			store := NewDeploymentsStorage(session)
 
-		dep := session.DB(DatabaseName).C(CollectionDeployments)
-		if testCase.InputDeploymentsCollection != nil {
-			assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
-		}
+			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			if testCase.InputDeploymentsCollection != nil {
+				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
+			}
 
-		err := store.Delete(testCase.InputID)
+			err := store.Delete(testCase.InputID)
 
-		if testCase.OutputError != nil {
-			assert.EqualError(t, err, testCase.OutputError.Error())
-		} else {
-			assert.NoError(t, err)
+			if testCase.OutputError != nil {
+				assert.EqualError(t, err, testCase.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
 
-			count, err := dep.FindId(testCase.InputID).Count()
-			assert.NoError(t, err)
-			assert.Equal(t, 0, count)
-		}
+				count, err := dep.FindId(testCase.InputID).Count()
+				assert.NoError(t, err)
+				assert.Equal(t, 0, count)
+			}
 
-		// Need to close all sessions to be able to call wipe at next test case
-		session.Close()
+			// Need to close all sessions to be able to call wipe at next test case
+			session.Close()
+		})
 	}
 }
 
@@ -256,30 +260,32 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testCaseNumber, testCase := range testCases {
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-		// Make sure we start test with empty database
-		db.Wipe()
+			// Make sure we start test with empty database
+			db.Wipe()
 
-		session := db.Session()
-		store := NewDeploymentsStorage(session)
+			session := db.Session()
+			store := NewDeploymentsStorage(session)
 
-		dep := session.DB(DatabaseName).C(CollectionDeployments)
-		if testCase.InputDeploymentsCollection != nil {
-			assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
-		}
+			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			if testCase.InputDeploymentsCollection != nil {
+				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
+			}
 
-		deployment, err := store.FindByID(testCase.InputID)
+			deployment, err := store.FindByID(testCase.InputID)
 
-		if testCase.OutputError != nil {
-			assert.EqualError(t, err, testCase.OutputError.Error())
-		} else {
-			assert.NoError(t, err)
-			assert.Equal(t, testCase.OutputDeployment, deployment)
-		}
+			if testCase.OutputError != nil {
+				assert.EqualError(t, err, testCase.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, testCase.OutputDeployment, deployment)
+			}
 
-		// Need to close all sessions to be able to call wipe at next test case
-		session.Close()
+			// Need to close all sessions to be able to call wipe at next test case
+			session.Close()
+		})
 	}
 }
 
@@ -425,31 +431,32 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 		},
 	}
 
-	for id, testCase := range testCases {
+	for testCaseName, testCase := range testCases {
+		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
 
-		t.Logf("testing case %s", id)
-		// Make sure we start test with empty database
-		db.Wipe()
+			// Make sure we start test with empty database
+			db.Wipe()
 
-		session := db.Session()
-		store := NewDeploymentsStorage(session)
+			session := db.Session()
+			store := NewDeploymentsStorage(session)
 
-		dep := session.DB(DatabaseName).C(CollectionDeployments)
-		if testCase.InputDeploymentsCollection != nil {
-			assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
-		}
+			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			if testCase.InputDeploymentsCollection != nil {
+				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
+			}
 
-		deployment, err := store.FindUnfinishedByID(testCase.InputID)
+			deployment, err := store.FindUnfinishedByID(testCase.InputID)
 
-		if testCase.OutputError != nil {
-			assert.EqualError(t, err, testCase.OutputError.Error())
-		} else {
-			assert.NoError(t, err)
-			assert.Equal(t, testCase.OutputDeployment, deployment)
-		}
+			if testCase.OutputError != nil {
+				assert.EqualError(t, err, testCase.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, testCase.OutputDeployment, deployment)
+			}
 
-		// Need to close all sessions to be able to call wipe at next test case
-		session.Close()
+			// Need to close all sessions to be able to call wipe at next test case
+			session.Close()
+		})
 	}
 }
 
@@ -606,32 +613,33 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 		},
 	}
 
-	for id, tc := range testCases {
-		t.Logf("testing case %s", id)
+	for testCaseName, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
 
-		db.Wipe()
+			db.Wipe()
 
-		session := db.Session()
-		store := NewDeploymentsStorage(session)
+			session := db.Session()
+			store := NewDeploymentsStorage(session)
 
-		dep := session.DB(DatabaseName).C(CollectionDeployments)
-		if tc.InputDeployment != nil {
-			assert.NoError(t, dep.Insert(tc.InputDeployment))
-		}
+			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			if tc.InputDeployment != nil {
+				assert.NoError(t, dep.Insert(tc.InputDeployment))
+			}
 
-		err := store.UpdateStats(tc.InputID, tc.InputStateFrom, tc.InputStateTo)
+			err := store.UpdateStats(tc.InputID, tc.InputStateFrom, tc.InputStateTo)
 
-		if tc.OutputError != nil {
-			assert.EqualError(t, err, tc.OutputError.Error())
-		} else {
-			var deployment *deployments.Deployment
-			err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.OutputStats, deployment.Stats)
-		}
+			if tc.OutputError != nil {
+				assert.EqualError(t, err, tc.OutputError.Error())
+			} else {
+				var deployment *deployments.Deployment
+				err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.OutputStats, deployment.Stats)
+			}
 
-		// Need to close all sessions to be able to call wipe at next test case
-		session.Close()
+			// Need to close all sessions to be able to call wipe at next test case
+			session.Close()
+		})
 	}
 }
 
@@ -693,32 +701,33 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 		},
 	}
 
-	for id, tc := range testCases {
-		t.Logf("testing case %s", id)
+	for testCaseName, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
 
-		db.Wipe()
+			db.Wipe()
 
-		session := db.Session()
-		store := NewDeploymentsStorage(session)
+			session := db.Session()
+			store := NewDeploymentsStorage(session)
 
-		dep := session.DB(DatabaseName).C(CollectionDeployments)
-		if tc.InputDeployment != nil {
-			assert.NoError(t, dep.Insert(tc.InputDeployment))
-		}
+			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			if tc.InputDeployment != nil {
+				assert.NoError(t, dep.Insert(tc.InputDeployment))
+			}
 
-		err := store.UpdateStatsAndFinishDeployment(tc.InputID, tc.InputStats)
+			err := store.UpdateStatsAndFinishDeployment(tc.InputID, tc.InputStats)
 
-		if tc.OutputError != nil {
-			assert.EqualError(t, err, tc.OutputError.Error())
-		} else {
-			var deployment *deployments.Deployment
-			err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.InputStats, deployment.Stats)
-		}
+			if tc.OutputError != nil {
+				assert.EqualError(t, err, tc.OutputError.Error())
+			} else {
+				var deployment *deployments.Deployment
+				err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.InputStats, deployment.Stats)
+			}
 
-		// Need to close all sessions to be able to call wipe at next test case
-		session.Close()
+			// Need to close all sessions to be able to call wipe at next test case
+			session.Close()
+		})
 	}
 }
 
@@ -1155,36 +1164,37 @@ func TestDeploymentFinish(t *testing.T) {
 		},
 	}
 
-	for id, tc := range testCases {
-		t.Logf("testing case %s", id)
+	for testCaseName, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
 
-		db.Wipe()
+			db.Wipe()
 
-		session := db.Session()
-		store := NewDeploymentsStorage(session)
+			session := db.Session()
+			store := NewDeploymentsStorage(session)
 
-		dep := session.DB(DatabaseName).C(CollectionDeployments)
-		if tc.InputDeployment != nil {
-			assert.NoError(t, dep.Insert(tc.InputDeployment))
-		}
-
-		now := time.Now()
-		err := store.Finish(tc.InputID, now)
-
-		if tc.OutputError != nil {
-			assert.EqualError(t, err, tc.OutputError.Error())
-		} else {
-			var deployment *deployments.Deployment
-			err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
-			assert.NoError(t, err)
-
-			if assert.NotNil(t, deployment.Finished) {
-				// mongo might have trimmed our time a bit, let's check that we are within a 1s range
-				assert.WithinDuration(t, now, *deployment.Finished, time.Second)
+			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			if tc.InputDeployment != nil {
+				assert.NoError(t, dep.Insert(tc.InputDeployment))
 			}
-		}
 
-		// Need to close all sessions to be able to call wipe at next test case
-		session.Close()
+			now := time.Now()
+			err := store.Finish(tc.InputID, now)
+
+			if tc.OutputError != nil {
+				assert.EqualError(t, err, tc.OutputError.Error())
+			} else {
+				var deployment *deployments.Deployment
+				err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
+				assert.NoError(t, err)
+
+				if assert.NotNil(t, deployment.Finished) {
+					// mongo might have trimmed our time a bit, let's check that we are within a 1s range
+					assert.WithinDuration(t, now, *deployment.Finished, time.Second)
+				}
+			}
+
+			// Need to close all sessions to be able to call wipe at next test case
+			session.Close()
+		})
 	}
 }
