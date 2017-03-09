@@ -119,10 +119,8 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 	metaArtifactConstructor, err := getMetaFromArchive(&tee)
 	if err != nil {
 		pW.Close()
-		if uploadResponseErr := <-ch; uploadResponseErr != nil {
-			return "", controller.ErrModelArtifactUploadFailed
-		}
-		return "", controller.ErrModelInvalidMetadata
+		<-ch
+		return "", errors.Wrap(controller.ErrModelParsingArtifactFailed, err.Error())
 	}
 
 	// read the rest of the data,
@@ -130,7 +128,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 	_, err = io.Copy(ioutil.Discard, tee)
 	if err != nil {
 		pW.Close()
-		_ = <-ch
+		<-ch
 		return "", err
 	}
 
