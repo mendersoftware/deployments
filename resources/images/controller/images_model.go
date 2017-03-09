@@ -33,6 +33,7 @@ var (
 	ErrModelArtifactUploadFailed        = errors.New("Failed to upload the artifact")
 	ErrModelImageInActiveDeployment     = errors.New("Image is used in active deployment and cannot be removed")
 	ErrModelImageUsedInAnyDeployment    = errors.New("Image have been already used in deployment")
+	ErrModelParsingArtifactFailed       = errors.New("Cannot parse artifact file")
 )
 
 type ImagesModel interface {
