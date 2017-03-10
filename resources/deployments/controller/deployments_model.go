@@ -29,6 +29,7 @@ var (
 	ErrModelInternal           = errors.New("Internal error")
 	ErrStorageInvalidLog       = errors.New("Invalid deployment log")
 	ErrDeploymentAborted       = errors.New("Deployment aborted")
+	ErrDeviceDecommissioned    = errors.New("Device decomissioned")
 )
 
 // Domain model for deployment
@@ -45,4 +46,5 @@ type DeploymentsModel interface {
 	LookupDeployment(query deployments.Query) ([]*deployments.Deployment, error)
 	SaveDeviceDeploymentLog(deviceID string, deploymentID string, logs []deployments.LogMessage) error
 	GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error)
+	DecommissionDevice(deviceID string) error
 }

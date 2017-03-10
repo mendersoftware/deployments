@@ -327,6 +327,32 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /deployments/devices/{id}:
+    delete:
+      summary: Remove device from all deployments
+      description: Set 'decommissioned' status to all pending device deployments for a given device
+      parameters:
+        - name: id
+          in: path
+          description: System wide device identifier
+          required: true
+          type: string
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
+      responses:
+        204:
+          description: Device was removed
+        404:
+          $ref: "#/responses/NotFoundError"
+        500:
+          description: Internal server error.
+          schema:
+              $ref: "#/definitions/Error"
+
   /artifacts:
     get:
       summary: List known artifacts

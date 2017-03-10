@@ -24,15 +24,16 @@ import (
 
 // Deployment statuses
 const (
-	DeviceDeploymentStatusDownloading = "downloading"
-	DeviceDeploymentStatusInstalling  = "installing"
-	DeviceDeploymentStatusRebooting   = "rebooting"
-	DeviceDeploymentStatusPending     = "pending"
-	DeviceDeploymentStatusSuccess     = "success"
-	DeviceDeploymentStatusFailure     = "failure"
-	DeviceDeploymentStatusNoArtifact  = "noartifact"
-	DeviceDeploymentStatusAlreadyInst = "already-installed"
-	DeviceDeploymentStatusAborted     = "aborted"
+	DeviceDeploymentStatusDownloading    = "downloading"
+	DeviceDeploymentStatusInstalling     = "installing"
+	DeviceDeploymentStatusRebooting      = "rebooting"
+	DeviceDeploymentStatusPending        = "pending"
+	DeviceDeploymentStatusSuccess        = "success"
+	DeviceDeploymentStatusFailure        = "failure"
+	DeviceDeploymentStatusNoArtifact     = "noartifact"
+	DeviceDeploymentStatusAlreadyInst    = "already-installed"
+	DeviceDeploymentStatusAborted        = "aborted"
+	DeviceDeploymentStatusDecommissioned = "decommissioned"
 )
 
 type DeviceDeployment struct {
@@ -100,6 +101,7 @@ func NewDeviceDeploymentStats() Stats {
 		DeviceDeploymentStatusDownloading,
 		DeviceDeploymentStatusAlreadyInst,
 		DeviceDeploymentStatusAborted,
+		DeviceDeploymentStatusDecommissioned,
 	}
 
 	s := make(Stats)
@@ -115,7 +117,7 @@ func NewDeviceDeploymentStats() Stats {
 func IsDeviceDeploymentStatusFinished(status string) bool {
 	if status == DeviceDeploymentStatusFailure || status == DeviceDeploymentStatusSuccess ||
 		status == DeviceDeploymentStatusNoArtifact || status == DeviceDeploymentStatusAlreadyInst ||
-		status == DeviceDeploymentStatusAborted {
+		status == DeviceDeploymentStatusAborted || status == DeviceDeploymentStatusDecommissioned {
 		return true
 	}
 	return false

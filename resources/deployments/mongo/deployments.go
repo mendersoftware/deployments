@@ -193,13 +193,24 @@ func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(id string, stats dep
 
 	session := d.session.Copy()
 	defer session.Close()
-	now := time.Now()
+	deployment := deployments.NewDeployment()
+	deployment.Stats = stats
+	var update bson.M
+	if deployment.IsFinished() {
+		now := time.Now()
 
-	update := bson.M{
-		"$set": bson.M{
-			StorageKeyDeploymentStats:    stats,
-			StorageKeyDeploymentFinished: &now,
-		},
+		update = bson.M{
+			"$set": bson.M{
+				StorageKeyDeploymentStats:    stats,
+				StorageKeyDeploymentFinished: &now,
+			},
+		}
+	} else {
+		update = bson.M{
+			"$set": bson.M{
+				StorageKeyDeploymentStats: stats,
+			},
+		}
 	}
 
 	err := session.DB(DatabaseName).C(CollectionDeployments).UpdateId(id, update)
@@ -328,6 +339,9 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 						buildStatusKey(deployments.DeviceDeploymentStatusAborted): eq0,
 					},
 					bson.M{
+						buildStatusKey(deployments.DeviceDeploymentStatusDecommissioned): eq0,
+					},
+					bson.M{
 						buildStatusKey(deployments.DeviceDeploymentStatusFailure): eq0,
 					},
 					bson.M{
@@ -341,7 +355,7 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 		}
 	case deployments.StatusQueryFinished:
 		{
-			// finished, success, noartifact, already-installed counters are non 0, all other counters are 0
+			// downloading, installing, rebooting, pending status counters are 0
 			stq = bson.M{
 				"$and": []bson.M{
 					bson.M{

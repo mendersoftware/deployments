@@ -413,7 +413,7 @@ func TestControllerPostDeployment(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
 
-			deploymentModel.On("CreateDeployment", testCase.InputBodyObject).
+			deploymentModel.On("CreateDeployment", mock.AnythingOfType("*context.valueCtx"), testCase.InputBodyObject).
 				Return(testCase.InputModelID, testCase.InputModelError)
 
 			router, err := rest.MakeRouter(
@@ -607,29 +607,31 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 		{
 			InputModelDeploymentID: "23bbc7ba-3278-4b1c-a345-4080afe59e96",
 			InputModelStats: deployments.Stats{
-				deployments.DeviceDeploymentStatusSuccess:     12,
-				deployments.DeviceDeploymentStatusFailure:     2,
-				deployments.DeviceDeploymentStatusDownloading: 1,
-				deployments.DeviceDeploymentStatusRebooting:   3,
-				deployments.DeviceDeploymentStatusInstalling:  1,
-				deployments.DeviceDeploymentStatusPending:     2,
-				deployments.DeviceDeploymentStatusNoArtifact:  0,
-				deployments.DeviceDeploymentStatusAlreadyInst: 0,
-				deployments.DeviceDeploymentStatusAborted:     0,
+				deployments.DeviceDeploymentStatusSuccess:        12,
+				deployments.DeviceDeploymentStatusFailure:        2,
+				deployments.DeviceDeploymentStatusDownloading:    1,
+				deployments.DeviceDeploymentStatusRebooting:      3,
+				deployments.DeviceDeploymentStatusInstalling:     1,
+				deployments.DeviceDeploymentStatusPending:        2,
+				deployments.DeviceDeploymentStatusNoArtifact:     0,
+				deployments.DeviceDeploymentStatusAlreadyInst:    0,
+				deployments.DeviceDeploymentStatusAborted:        0,
+				deployments.DeviceDeploymentStatusDecommissioned: 0,
 			},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
 				OutputBodyObject: deployments.Stats{
-					deployments.DeviceDeploymentStatusSuccess:     12,
-					deployments.DeviceDeploymentStatusFailure:     2,
-					deployments.DeviceDeploymentStatusDownloading: 1,
-					deployments.DeviceDeploymentStatusRebooting:   3,
-					deployments.DeviceDeploymentStatusInstalling:  1,
-					deployments.DeviceDeploymentStatusPending:     2,
-					deployments.DeviceDeploymentStatusNoArtifact:  0,
-					deployments.DeviceDeploymentStatusAlreadyInst: 0,
-					deployments.DeviceDeploymentStatusAborted:     0,
+					deployments.DeviceDeploymentStatusSuccess:        12,
+					deployments.DeviceDeploymentStatusFailure:        2,
+					deployments.DeviceDeploymentStatusDownloading:    1,
+					deployments.DeviceDeploymentStatusRebooting:      3,
+					deployments.DeviceDeploymentStatusInstalling:     1,
+					deployments.DeviceDeploymentStatusPending:        2,
+					deployments.DeviceDeploymentStatusNoArtifact:     0,
+					deployments.DeviceDeploymentStatusAlreadyInst:    0,
+					deployments.DeviceDeploymentStatusAborted:        0,
+					deployments.DeviceDeploymentStatusDecommissioned: 0,
 				},
 			},
 		},
@@ -1382,6 +1384,71 @@ func TestControllerAbortDeployment(t *testing.T) {
 
 			req := test.MakeSimpleRequest("POST", "http://localhost/r/"+testCase.InputModelDeploymentID,
 				testCase.InputBodyObject)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
+	}
+}
+
+func TestControllerDecommissionDevice(t *testing.T) {
+
+	t.Parallel()
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputModelDeviceId string
+		InputModelError    error
+	}{
+		{
+			//wrong device id
+			InputModelDeviceId: "foo",
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(ErrIDNotUUIDv4),
+			},
+		},
+		{
+			// input model error
+			InputModelDeviceId: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelError:    errors.New("Input model error"),
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
+			},
+		},
+		{
+			// all correct
+			InputModelDeviceId: "f826484e-1157-4109-af21-304e6d711560",
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus: http.StatusNoContent,
+			},
+		},
+	}
+
+	for testCaseNumber, testCase := range testCases {
+
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
+
+			deploymentModel := new(mocks.DeploymentsModel)
+
+			deploymentModel.On("DecommissionDevice", testCase.InputModelDeviceId).
+				Return(testCase.InputModelError)
+
+			router, err := rest.MakeRouter(
+				rest.Delete("/r/:id",
+					NewDeploymentsController(deploymentModel,
+						new(view.DeploymentsView)).DecommissionDevice))
+			assert.NoError(t, err)
+
+			api := makeApi(router)
+
+			req := test.MakeSimpleRequest("DELETE", "http://localhost/r/"+testCase.InputModelDeviceId, nil)
 			req.Header.Add(requestid.RequestIdHeader, "test")
 			recorded := test.RunRequest(t, api.MakeHandler(), req)
 
