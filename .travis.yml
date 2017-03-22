@@ -64,7 +64,7 @@ before_install:
     - sudo npm install -g swagger-cli
 
 
-    - pip2.7 install -U --user paramiko fabric PyYAML pytest requests
+    - pip2.7 install -U --user paramiko fabric PyYAML pytest requests pytest-xdist
 
     # Get our own Swagger verifier
     - wget https://raw.githubusercontent.com/mendersoftware/autodocs/master/verify_docs.py
