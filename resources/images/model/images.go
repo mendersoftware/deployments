@@ -262,6 +262,7 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 	}
 
 	foundImage.SetModified(time.Now())
+	foundImage.SoftwareImageMetaConstructor = *constructor
 
 	_, err = i.imagesStorage.Update(foundImage)
 	if err != nil {
