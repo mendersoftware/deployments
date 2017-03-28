@@ -16,18 +16,19 @@ package model
 
 import (
 	"context"
+	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/mendersoftware/mender-artifact/parser"
-	atutils "github.com/mendersoftware/mender-artifact/test_utils"
-	"github.com/mendersoftware/mender-artifact/writer"
+	"github.com/mendersoftware/mender-artifact/artifact"
+	"github.com/mendersoftware/mender-artifact/awriter"
+	"github.com/mendersoftware/mender-artifact/handlers"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -155,23 +156,13 @@ func TestCreateImageArtifactUploadError(t *testing.T) {
 
 	td, _ := ioutil.TempDir("", "mender-install-update-")
 	defer os.RemoveAll(td)
-	upath, err := makeFakeUpdate(t, path.Join(td, "update-root"), true)
-	if err != nil {
-		t.FailNow()
-	}
-	f, err := os.Open(upath)
-	if err != nil {
-		t.FailNow()
-	}
-	defer f.Close()
-	fileStat, err := f.Stat()
-	if err != nil {
-		t.FailNow()
-	}
+	upd, err := MakeRootfsImageArtifact(1, false)
+	assert.NoError(t, err)
+
 	multipartUploadMessage := &controller.MultipartUploadMsg{
 		MetaConstructor: createValidImageMeta(),
-		ArtifactSize:    fileStat.Size(),
-		ArtifactReader:  f,
+		ArtifactSize:    int64(upd.Len()),
+		ArtifactReader:  upd,
 	}
 	if _, err := iModel.CreateImage(context.Background(),
 		multipartUploadMessage); err == nil {
@@ -189,23 +180,13 @@ func TestCreateImageCreateOK(t *testing.T) {
 
 	td, _ := ioutil.TempDir("", "mender-install-update-")
 	defer os.RemoveAll(td)
-	upath, err := makeFakeUpdate(t, path.Join(td, "update-root"), true)
-	if err != nil {
-		t.FailNow()
-	}
-	f, err := os.Open(upath)
-	defer f.Close()
-	if err != nil {
-		t.FailNow()
-	}
-	fileStat, err := f.Stat()
-	if err != nil {
-		t.FailNow()
-	}
+	upd, err := MakeRootfsImageArtifact(1, false)
+	assert.NoError(t, err)
+
 	multipartUploadMessage := &controller.MultipartUploadMsg{
 		MetaConstructor: createValidImageMeta(),
-		ArtifactSize:    fileStat.Size(),
-		ArtifactReader:  f,
+		ArtifactSize:    int64(upd.Len()),
+		ArtifactReader:  upd,
 	}
 
 	if _, err := iModel.CreateImage(context.Background(),
@@ -512,34 +493,47 @@ func TestDownloadLink(t *testing.T) {
 	}
 }
 
-func makeFakeUpdate(t *testing.T, root string, valid bool) (string, error) {
+func MakeFakeUpdate(data string) (string, error) {
+	f, err := ioutil.TempFile("", "test_update")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	if len(data) > 0 {
+		if _, err := f.WriteString(data); err != nil {
+			return "", err
+		}
+	}
+	return f.Name(), nil
+}
 
-	var dirStructOK = []atutils.TestDirEntry{
-		{Path: "0000", IsDir: true},
-		{Path: "0000/data", IsDir: true},
-		{Path: "0000/data/update.ext4", Content: []byte("first update"), IsDir: false},
-		{Path: "0000/type-info", Content: []byte(`{"type": "rootfs-image"}`), IsDir: false},
-		{Path: "0000/meta-data", Content: []byte(`{"DeviceType": "vexpress-qemu", "ImageID": "core-image-minimal-201608110900"}`), IsDir: false},
-		{Path: "0000/signatures", IsDir: true},
-		{Path: "0000/signatures/update.sig", IsDir: false},
-		{Path: "0000/scripts", IsDir: true},
-		{Path: "0000/scripts/pre", IsDir: true},
-		{Path: "0000/scripts/pre/0000_install.sh", Content: []byte("run me!"), IsDir: false},
-		{Path: "0000/scripts/post", IsDir: true},
-		{Path: "0000/scripts/check", IsDir: true},
+func MakeRootfsImageArtifact(version int, signed bool) (*bytes.Buffer, error) {
+	upd, err := MakeFakeUpdate("test update")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(upd)
+
+	art := bytes.NewBuffer(nil)
+	var aw *awriter.Writer
+	if !signed {
+		aw = awriter.NewWriter(art)
+	} else {
+		aw = awriter.NewWriterSigned(art, new(artifact.DummySigner))
+	}
+	var u handlers.Composer
+	switch version {
+	case 1:
+		u = handlers.NewRootfsV1(upd)
+	case 2:
+		u = handlers.NewRootfsV2(upd)
 	}
 
-	err := atutils.MakeFakeUpdateDir(root, dirStructOK)
-	assert.NoError(t, err)
-
-	aw := awriter.NewWriter("mender", 1, []string{"vexpress"}, "mender-1.0")
-
-	rp := &parser.RootfsParser{}
-	aw.Register(rp)
-
-	upath := path.Join(root, "update.tar")
-	err = aw.Write(root, upath)
-	assert.NoError(t, err)
-
-	return upath, nil
+	updates := &awriter.Updates{U: []handlers.Composer{u}}
+	err = aw.WriteArtifact("mender", version, []string{"vexpress-qemu"},
+		"mender-1.1", updates)
+	if err != nil {
+		return nil, err
+	}
+	return art, nil
 }

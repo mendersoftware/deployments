@@ -20,9 +20,9 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/mendersoftware/mender-artifact/metadata"
-	"github.com/mendersoftware/mender-artifact/parser"
-	"github.com/mendersoftware/mender-artifact/reader"
+	"github.com/mendersoftware/mender-artifact/areader"
+	"github.com/mendersoftware/mender-artifact/artifact"
+	"github.com/mendersoftware/mender-artifact/handlers"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 
@@ -309,22 +309,21 @@ func (i *ImagesModel) DownloadLink(ctx context.Context, imageID string,
 	return link, nil
 }
 
-func getArtifactInfo(info metadata.Info) *images.ArtifactInfo {
+func getArtifactInfo(info artifact.Info) *images.ArtifactInfo {
 	return &images.ArtifactInfo{
 		Format:  info.Format,
 		Version: uint(info.Version),
 	}
 }
 
-func getUpdateFiles(uFiles map[string]parser.UpdateFile) ([]images.UpdateFile, error) {
+func getUpdateFiles(uFiles []*handlers.DataFile) ([]images.UpdateFile, error) {
 	var files []images.UpdateFile
 	for _, u := range uFiles {
 		files = append(files, images.UpdateFile{
-			Name:      u.Name,
-			Size:      u.Size,
-			Signature: string(u.Signature),
-			Date:      &u.Date,
-			Checksum:  string(u.Checksum),
+			Name:     u.Name,
+			Size:     u.Size,
+			Date:     &u.Date,
+			Checksum: string(u.Checksum),
 		})
 	}
 	return files, nil
@@ -334,9 +333,8 @@ func getMetaFromArchive(r *io.Reader) (*images.SoftwareImageMetaArtifactConstruc
 	metaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
 
 	aReader := areader.NewReader(*r)
-	defer aReader.Close()
 
-	data, err := aReader.Read()
+	err := aReader.ReadArtifact()
 	if err != nil {
 		return nil, errors.Wrap(err, "reading artifact error")
 	}
@@ -344,7 +342,7 @@ func getMetaFromArchive(r *io.Reader) (*images.SoftwareImageMetaArtifactConstruc
 	metaArtifact.DeviceTypesCompatible = aReader.GetCompatibleDevices()
 	metaArtifact.Name = aReader.GetArtifactName()
 
-	for _, p := range data {
+	for _, p := range aReader.GetHandlers() {
 		uFiles, err := getUpdateFiles(p.GetUpdateFiles())
 		if err != nil {
 			return nil, errors.Wrap(err, "Cannot get update files:")
@@ -354,10 +352,9 @@ func getMetaFromArchive(r *io.Reader) (*images.SoftwareImageMetaArtifactConstruc
 			metaArtifact.Updates,
 			images.Update{
 				TypeInfo: images.ArtifactUpdateTypeInfo{
-					Type: p.GetUpdateType().Type,
+					Type: p.GetType(),
 				},
-				MetaData: p.GetMetadata(),
-				Files:    uFiles,
+				Files: uFiles,
 			})
 	}
 
