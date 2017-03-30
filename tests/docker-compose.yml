@@ -13,4 +13,6 @@ services:
             - storage-proxy
     mender-deployments:
             # built/tagged locally and only used for testing
-            image: mendersoftware/deployments:pr
+            image: mendersoftware/deployments:prtest
+            volumes:
+                - "${TESTS_DIR}:/testing"
