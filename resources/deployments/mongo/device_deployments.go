@@ -433,7 +433,7 @@ func (d *DeviceDeploymentsStorage) DecommissionDeviceDeployments(deviceId string
 	_, err := session.DB(DatabaseName).C(CollectionDevices).UpdateAll(selector, update)
 
 	if err == mgo.ErrNotFound {
-		return ErrStorageInvalidID
+		return ErrStorageNotFound
 	}
 
 	return err
