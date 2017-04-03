@@ -112,13 +112,12 @@ script:
     # also including their coverage may introduce to much noice. Concentrate on the coverage of local packages.
     # Execute go test on every local subpackage (resolved as dependencies) and generate covreage report for each.
     # Test packages pararell (xargs -P)
-    - go list ./... | grep -v vendor | xargs -n1 -I {} -P 4 go test -v -covermode=atomic -coverprofile=../../../{}/coverage.txt {}
+    - if [[ "$JOB_TYPE" = compile_and_basic_tests ]]; then
+        go list ./... | grep -v vendor | xargs -n1 -I {} -P 4 go test -v -covermode=atomic -coverprofile=../../../{}/coverage.txt {} ;
+      fi
 
     # Insert build information into compiled binary using ldflags
     - CGO_ENABLED=0 go build -ldflags "-X main.Commit=`echo $TRAVIS_COMMIT` -X main.Tag=`echo $TRAVIS_TAG` -X main.Branch=`echo $TRAVIS_BRANCH` -X main.BuildNumber=`echo $TRAVIS_BUILD_NUMBER`"
-
-    # Build docker image from docker file
-    - sudo docker build -t $DOCKER_REPOSITORY:pr .
 
     # Clone integration repo. for api testing (purposely after license checking..)
     # Exexutes acceptance/integration tasts with branch: master
@@ -132,31 +131,43 @@ script:
     # acceptance tests
     # NOTE: the tests require mender-artifact binary to be available
     - if [[ "$JOB_TYPE" = compile_and_acceptance_tests ]]; then
+        CGO_ENABLED=0 go test -c -o deployments -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,);
+        sudo docker build -f Dockerfile.acceptance-testing -t $DOCKER_REPOSITORY:prtest .;
         CGO_ENABLED=0 go get -u -v github.com/mendersoftware/mender-artifact &&
         ( ./tests/build-acceptance ./tests ./docs/management_api.yml ./docs/devices_api.yml `which mender-artifact` &&
         TESTS_DIR=$PWD/tests ./tests/run-test-environment "acceptance" $PWD/integration_new ./tests/docker-compose.yml );
       fi
 
     - if [ "$JOB_TYPE" = compile_and_integration_tests_fast ]; then
+        sudo docker build -t $DOCKER_REPOSITORY:pr . ;
         ( cd $PWD/integration_new/tests && bash run.sh --runfast --docker-compose-file=../../tests/docker-compose-integration.yml );
       fi
 
     - if [ "$JOB_TYPE" = compile_and_integration_tests_slow ]; then
+        sudo docker build -t $DOCKER_REPOSITORY:pr . ;
         ( cd $PWD/integration_new/tests && bash run.sh --runslow --docker-compose-file=../../tests/docker-compose-integration.yml );
       fi
 
 after_success:
     # Integrate with https://codecov.io
-    - bash <(curl -s https://codecov.io/bash)
+    - if [[ "$JOB_TYPE" = compile_and_basic_tests ]]; then
+        bash <(curl -s https://codecov.io/bash) -F unittests ;
+      fi
+
+    - if [[ "$JOB_TYPE" = compile_and_acceptance_tests ]]; then
+        bash <(curl -s https://codecov.io/bash) -F acceptance ;
+      fi
 
 before_deploy:
     # Master is always lastest
     - if [ ! -z "$TRAVIS_TAG" ]; then export IMAGE_TAG=$TRAVIS_TAG; else export IMAGE_TAG=$TRAVIS_BRANCH; fi
-    - docker tag $DOCKER_REPOSITORY:pr $DOCKER_REPOSITORY:$IMAGE_TAG
 
     # Upload image to docker registry only on PUSH
-    - docker login --email=$DOCKER_HUB_EMAIL --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD
-    - docker push $DOCKER_REPOSITORY:$IMAGE_TAG
+    - if [ "$JOB_TYPE" = compile_and_integration_tests_slow -o "$JOB_TYPE" = compile_and_integration_tests_fast ]; then
+        docker tag $DOCKER_REPOSITORY:pr $DOCKER_REPOSITORY:$IMAGE_TAG;
+        docker login --email=$DOCKER_HUB_EMAIL --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD;
+        docker push $DOCKER_REPOSITORY:$IMAGE_TAG;
+      fi
 
 deploy:
 

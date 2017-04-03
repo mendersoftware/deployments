@@ -14,4 +14,4 @@ if [ -n "$STORAGE_BACKEND_CERT" -a -e "$STORAGE_BACKEND_CERT" ]; then
     c_rehash $CERTS_DIR
 fi
 
-exec /usr/bin/deployments -config /etc/deployments/config.yaml "$@"
+exec /usr/bin/deployments "$@"

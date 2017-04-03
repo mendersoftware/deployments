@@ -14,7 +14,19 @@
 
 package main
 
-import "testing"
+import (
+	"flag"
+	"os"
+	"os/signal"
+	"testing"
+)
+
+var runAcceptanceTests bool
+
+func init() {
+	flag.BoolVar(&runAcceptanceTests, "acceptance-tests", false, "set flag when running acceptance tests")
+	flag.Parse()
+}
 
 func TestHandleConfigFile(t *testing.T) {
 
@@ -33,4 +45,17 @@ func TestHandleConfigFile(t *testing.T) {
 		t.FailNow()
 	}
 
+}
+
+func TestRunMain(t *testing.T) {
+	if !runAcceptanceTests {
+		t.Skip()
+	}
+
+	go main()
+
+	stopChan := make(chan os.Signal)
+	signal.Notify(stopChan, os.Interrupt)
+
+	<-stopChan
 }
