@@ -35,6 +35,7 @@ const (
 var (
 	ErrDeploymentStorageInvalidDeployment = errors.New("Invalid deployment")
 	ErrStorageInvalidID                   = errors.New("Invalid id")
+	ErrStorageNotFound                    = errors.New("Not found")
 	ErrDeploymentStorageInvalidQuery      = errors.New("Invalid query")
 	ErrDeploymentStorageCannotExecQuery   = errors.New("Cannot execute query")
 	ErrStorageInvalidInput                = errors.New("invalid input")

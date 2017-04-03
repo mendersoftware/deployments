@@ -346,8 +346,6 @@ paths:
       responses:
         204:
           description: Device was removed
-        404:
-          $ref: "#/responses/NotFoundError"
         500:
           description: Internal server error.
           schema:

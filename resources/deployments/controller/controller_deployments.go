@@ -19,6 +19,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/deployments/mongo"
 	"github.com/mendersoftware/deployments/utils/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
@@ -403,9 +404,13 @@ func (d *DeploymentsController) DecommissionDevice(w rest.ResponseWriter, r *res
 	}
 
 	// Decommission deployments for devices and update deployment stats
-	if err := d.model.DecommissionDevice(id); err != nil {
-		d.view.RenderInternalError(w, r, err, l)
-	}
+	err := d.model.DecommissionDevice(id)
 
-	d.view.RenderEmptySuccessResponse(w)
+	switch err {
+	case nil, mongo.ErrStorageNotFound:
+		d.view.RenderEmptySuccessResponse(w)
+	default:
+		d.view.RenderInternalError(w, r, err, l)
+
+	}
 }
