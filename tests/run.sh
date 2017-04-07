@@ -10,7 +10,10 @@ HOST=${HOST="mender-deployments:8080"}
 INVENTORY_HOST=${INVENTORY_HOST="mender-inventory:8080"}
 
 # if we're running in a container, wait a little before starting tests
-[ $$ -eq 1 ] && sleep 5
+[ $$ -eq 1 ] && {
+    echo "-- running in container, wait for other services"
+    sleep 10
+}
 
 # some additional test binaries can be located in tests directory (eg.
 # mender-artifact)
