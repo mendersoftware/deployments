@@ -1403,17 +1403,8 @@ func TestControllerDecommissionDevice(t *testing.T) {
 		InputModelError    error
 	}{
 		{
-			//wrong device id
-			InputModelDeviceId: "foo",
-
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(ErrIDNotUUIDv4),
-			},
-		},
-		{
 			// input model error
-			InputModelDeviceId: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceId: "58e755077478ee0001b065ed",
 			InputModelError:    errors.New("Input model error"),
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -1423,7 +1414,7 @@ func TestControllerDecommissionDevice(t *testing.T) {
 		},
 		{
 			// all correct
-			InputModelDeviceId: "f826484e-1157-4109-af21-304e6d711560",
+			InputModelDeviceId: "58e755077478ee0001b065ed",
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusNoContent,

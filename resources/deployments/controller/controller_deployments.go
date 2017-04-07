@@ -398,11 +398,6 @@ func (d *DeploymentsController) DecommissionDevice(w rest.ResponseWriter, r *res
 
 	id := r.PathParam("id")
 
-	if !govalidator.IsUUIDv4(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
-		return
-	}
-
 	// Decommission deployments for devices and update deployment stats
 	err := d.model.DecommissionDevice(id)
 
