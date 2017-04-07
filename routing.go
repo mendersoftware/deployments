@@ -58,7 +58,10 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	dbSession.SetSafe(&mgo.Safe{})
+	dbSession.SetSafe(&mgo.Safe{
+		W: 1,
+		J: true,
+	})
 
 	err = MigrateDb(DbVersion, nil, dbSession)
 	if err != nil {
