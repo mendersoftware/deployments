@@ -379,10 +379,10 @@ func (d *DeviceDeploymentsStorage) AbortDeviceDeployments(deploymentId string) e
 	defer session.Close()
 	selector := bson.M{
 		"$and": []bson.M{
-			bson.M{
+			{
 				StorageKeyDeviceDeploymentDeploymentID: deploymentId,
 			},
-			bson.M{
+			{
 				StorageKeyDeviceDeploymentStatus: bson.M{
 					"$in": deployments.ActiveDeploymentStatuses(),
 				},
@@ -414,10 +414,10 @@ func (d *DeviceDeploymentsStorage) DecommissionDeviceDeployments(deviceId string
 	defer session.Close()
 	selector := bson.M{
 		"$and": []bson.M{
-			bson.M{
+			{
 				StorageKeyDeviceDeploymentDeviceId: deviceId,
 			},
-			bson.M{
+			{
 				StorageKeyDeviceDeploymentStatus: bson.M{
 					"$in": deployments.ActiveDeploymentStatuses(),
 				},

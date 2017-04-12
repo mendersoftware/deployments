@@ -286,11 +286,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "size",
 					FieldValue: "1",
 				},
-				Part{
+				{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   []byte{0},
@@ -306,7 +306,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "description",
 					FieldValue: "dt",
 				},
@@ -319,11 +319,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "size",
 					FieldValue: "123",
 				},
-				Part{
+				{
 					FieldName:  "artifact",
 					FieldValue: "ff",
 				},
@@ -336,11 +336,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "size",
 					FieldValue: strconv.Itoa(len(imageBody)),
 				},
-				Part{
+				{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,
@@ -356,11 +356,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "size",
 					FieldValue: strconv.Itoa(len(imageBody)),
 				},
-				Part{
+				{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,
@@ -376,11 +376,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "size",
 					FieldValue: strconv.Itoa(len(imageBody)),
 				},
-				Part{
+				{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,

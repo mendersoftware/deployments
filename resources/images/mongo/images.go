@@ -208,10 +208,10 @@ func (i *SoftwareImagesStorage) IsArtifactUnique(artifactName string, deviceType
 
 	query := bson.M{
 		"$and": []bson.M{
-			bson.M{
+			{
 				StorageKeySoftwareImageName: artifactName,
 			},
-			bson.M{
+			{
 				StorageKeySoftwareImageDeviceTypes: bson.M{"$in": deviceTypesCompatible},
 			},
 		},

@@ -750,7 +750,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 	t.Parallel()
 
 	someDeployments := []*deployments.Deployment{
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("zen"),
 				ArtifactName: StringToPointer("baz"),
@@ -758,7 +758,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 			},
 			Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 		},
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("foo"),
 				ArtifactName: StringToPointer("bar"),

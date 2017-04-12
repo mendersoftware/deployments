@@ -1026,8 +1026,8 @@ func TestDeploymentModelLookupDeployment(t *testing.T) {
 			OutputError: errors.New("searching for deployments: bad bad bad"),
 		},
 		"found deployments": {
-			MockDeployments:   []*deployments.Deployment{&deployments.Deployment{Id: StringToPointer("lala")}},
-			OutputDeployments: []*deployments.Deployment{&deployments.Deployment{Id: StringToPointer("lala")}},
+			MockDeployments:   []*deployments.Deployment{{Id: StringToPointer("lala")}},
+			OutputDeployments: []*deployments.Deployment{{Id: StringToPointer("lala")}},
 		},
 	}
 

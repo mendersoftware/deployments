@@ -148,17 +148,17 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 	}
 
 	logs := []deployments.DeploymentLog{
-		deployments.DeploymentLog{
+		{
 			DeviceID:     "123",
 			DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			Messages:     messages,
 		},
-		deployments.DeploymentLog{
+		{
 			Messages:     messages,
 			DeviceID:     "234",
 			DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
 		},
-		deployments.DeploymentLog{
+		{
 			Messages:     messages,
 			DeviceID:     "345",
 			DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",

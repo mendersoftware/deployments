@@ -52,7 +52,7 @@ func NewOptionsHandler(methods ...string) rest.HandlerFunc {
 // Handle is a method for handling OPTIONS method requests.
 // This method is called concurently while serving requests and should not modify self.
 func (o *OptionsHandler) handle(w rest.ResponseWriter, r *rest.Request) {
-	for method, _ := range o.methods {
+	for method := range o.methods {
 		w.Header().Add(HttpHeaderAllow, method)
 	}
 }
