@@ -16,6 +16,9 @@ package main
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/pkg/errors"
+	"gopkg.in/mgo.v2"
+
 	"github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/integration"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
@@ -29,8 +32,6 @@ import (
 	"github.com/mendersoftware/deployments/resources/images/s3"
 	imagesView "github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/mendersoftware/deployments/utils/restutil"
-	"github.com/pkg/errors"
-	"gopkg.in/mgo.v2"
 )
 
 func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {

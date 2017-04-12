@@ -18,11 +18,12 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/deployments/resources/deployments"
-	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
+	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 )
 
 // Database settings

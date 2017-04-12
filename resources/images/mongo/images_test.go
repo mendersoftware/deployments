@@ -17,10 +17,11 @@ package mongo_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/mendersoftware/deployments/resources/images"
 	model "github.com/mendersoftware/deployments/resources/images/model"
 	. "github.com/mendersoftware/deployments/resources/images/mongo"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {

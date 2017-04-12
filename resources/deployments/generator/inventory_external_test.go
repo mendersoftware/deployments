@@ -19,11 +19,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/mendersoftware/deployments/integration"
 	. "github.com/mendersoftware/deployments/resources/deployments/generator"
 	"github.com/mendersoftware/deployments/resources/deployments/generator/mocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestInventoryGetDeviceType(t *testing.T) {

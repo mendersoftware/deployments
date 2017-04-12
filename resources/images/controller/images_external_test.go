@@ -29,20 +29,20 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	"github.com/mendersoftware/go-lib-micro/requestid"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
+	"github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/resources/images/controller"
 	"github.com/mendersoftware/deployments/resources/images/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/mendersoftware/deployments/utils/pointers"
 	h "github.com/mendersoftware/deployments/utils/testing"
-	"github.com/mendersoftware/go-lib-micro/requestid"
-	"github.com/mendersoftware/go-lib-micro/requestlog"
-	"github.com/satori/go.uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 // Notice: 	Controller tests are not pure unit tests,

@@ -18,11 +18,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
-	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
+	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
 )
 
 func parseTime(t *testing.T, value string) *time.Time {

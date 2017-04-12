@@ -17,10 +17,12 @@ package model_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
-	"fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/deployments/controller"
@@ -28,8 +30,6 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments/model/mocks"
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"

@@ -18,10 +18,11 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/resources/images/model"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/model"
 )
 
 // Database KEYS

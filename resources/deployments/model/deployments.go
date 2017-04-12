@@ -18,9 +18,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/deployments/controller"
-	"github.com/pkg/errors"
 )
 
 // Defaults

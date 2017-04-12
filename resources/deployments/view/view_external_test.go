@@ -21,9 +21,10 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/view"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRenderNoUpdateForDevice(t *testing.T) {

@@ -22,10 +22,10 @@ import (
 	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/spf13/viper"
 	"gopkg.in/mgo.v2"
 
 	"github.com/mendersoftware/deployments/config"
-	"github.com/spf13/viper"
 )
 
 func main() {

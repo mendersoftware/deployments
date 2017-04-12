@@ -18,9 +18,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	. "github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/utils/pointers"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewDeviceDeployment(t *testing.T) {

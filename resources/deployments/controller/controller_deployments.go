@@ -16,17 +16,19 @@ package controller
 
 import (
 	"context"
+	"net/http"
+	"net/url"
+
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/deployments/resources/deployments"
-	"github.com/mendersoftware/deployments/resources/deployments/mongo"
-	"github.com/mendersoftware/deployments/utils/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
-	"net/http"
-	"net/url"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/deployments/mongo"
+	"github.com/mendersoftware/deployments/utils/identity"
 )
 
 // Errors

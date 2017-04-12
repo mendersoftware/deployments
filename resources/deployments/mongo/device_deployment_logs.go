@@ -15,9 +15,10 @@
 package mongo
 
 import (
-	"github.com/mendersoftware/deployments/resources/deployments"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 // Database settings

@@ -18,6 +18,7 @@ import (
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
+
 	"github.com/mendersoftware/deployments/config"
 )
 

@@ -15,12 +15,13 @@
 package generator
 
 import (
+	"context"
 	"time"
 
-	"context"
+	"github.com/pkg/errors"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/pkg/errors"
 )
 
 type ImageByNameAndDeviceTyper interface {
