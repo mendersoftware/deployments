@@ -63,11 +63,6 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 		J: true,
 	})
 
-	err = MigrateDb(DbVersion, nil, dbSession)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to migrate db")
-	}
-
 	// Storage Layer
 	fileStorage, err := SetupS3(c)
 	if err != nil {
