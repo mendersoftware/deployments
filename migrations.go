@@ -14,6 +14,8 @@
 package main
 
 import (
+	"context"
+
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
@@ -24,7 +26,7 @@ const (
 	DbName    = "deployment_service"
 )
 
-func MigrateDb(version string, migrations []migrate.Migration, session *mgo.Session) error {
+func MigrateDb(ctx context.Context, version string, migrations []migrate.Migration, session *mgo.Session) error {
 	m := migrate.DummyMigrator{
 		Session: session,
 		Db:      DbName,
@@ -35,7 +37,7 @@ func MigrateDb(version string, migrations []migrate.Migration, session *mgo.Sess
 		return errors.Wrap(err, "failed to parse service version")
 	}
 
-	err = m.Apply(ver, migrations)
+	err = m.Apply(ctx, *ver, migrations)
 	if err != nil {
 		return errors.Wrap(err, "failed to apply migrations")
 	}
