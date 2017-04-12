@@ -26,7 +26,7 @@ const (
 )
 
 type MigrationEntry struct {
-	Version   *Version  `bson:"version"`
+	Version   Version   `bson:"version"`
 	Timestamp time.Time `bson:"timestamp"`
 }
 
@@ -47,7 +47,7 @@ func GetMigrationInfo(sess *mgo.Session, db string) ([]MigrationEntry, error) {
 }
 
 // UpdateMigrationInfo inserts a migration entry in the migration info collection.
-func UpdateMigrationInfo(version *Version, sess *mgo.Session, db string) error {
+func UpdateMigrationInfo(version Version, sess *mgo.Session, db string) error {
 	s := sess.Copy()
 	defer s.Close()
 	c := s.DB(db).C(DbMigrationsColl)

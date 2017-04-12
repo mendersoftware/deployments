@@ -14,6 +14,8 @@
 package requestid
 
 import (
+	"context"
+
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
@@ -25,4 +27,18 @@ func GetReqId(r *rest.Request) string {
 	}
 
 	return ""
+}
+
+// FromContext extracts current request Id from context.Context
+func FromContext(ctx context.Context) string {
+	val := ctx.Value(RequestIdHeader)
+	if v, ok := val.(string); ok {
+		return v
+	}
+	return ""
+}
+
+// WithContext adds request to context `ctx` and returns the resulting context.
+func WithContext(ctx context.Context, reqid string) context.Context {
+	return context.WithValue(ctx, RequestIdHeader, reqid)
 }

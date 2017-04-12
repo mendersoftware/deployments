@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/ant0ine/go-json-rest/rest"
+
 	micro_strings "github.com/mendersoftware/go-lib-micro/strings"
 )
 

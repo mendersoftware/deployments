@@ -13,7 +13,9 @@
 //    limitations under the License.
 package migrate
 
+import "context"
+
 // Migrator applies a list of migrations to bring the db up to target version.
 type Migrator interface {
-	Apply(version *Version, migrations []Migration) error
+	Apply(ctx context.Context, target Version, migrations []Migration) error
 }

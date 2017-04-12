@@ -16,6 +16,7 @@ package requestlog
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/ant0ine/go-json-rest/rest"
+
 	"github.com/mendersoftware/go-lib-micro/log"
 )
 
@@ -27,8 +28,10 @@ const ReqLog = "request_log"
 // Other middlewares (notably requestid) may add context to the log.
 // Per-request loggers will by default be derived from the global log.Log,
 // unless BaseLogger is specified. In that case, it will serve as the root logger.
+// Additional context can be attached by setting LogContext field.
 type RequestLogMiddleware struct {
 	BaseLogger *logrus.Logger
+	LogContext log.Ctx
 }
 
 // MiddlewareFunc makes RequestLogMiddleware implement the Middleware interface.
@@ -36,9 +39,9 @@ func (mw *RequestLogMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerF
 	return func(w rest.ResponseWriter, r *rest.Request) {
 		var l *log.Logger
 		if mw.BaseLogger == nil {
-			l = log.New(log.Ctx{})
+			l = log.New(mw.LogContext)
 		} else {
-			l = log.NewFromLogger(mw.BaseLogger, log.Ctx{})
+			l = log.NewFromLogger(mw.BaseLogger, mw.LogContext)
 		}
 
 		r.Env[ReqLog] = l

@@ -16,13 +16,15 @@ package accesslog
 import (
 	"bytes"
 	"fmt"
-	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"net"
 	"os"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/ant0ine/go-json-rest/rest"
+
+	"github.com/mendersoftware/go-lib-micro/requestlog"
 )
 
 type AccessLogFormat string

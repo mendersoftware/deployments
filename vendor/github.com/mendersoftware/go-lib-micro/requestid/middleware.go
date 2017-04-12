@@ -15,9 +15,10 @@ package requestid
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/satori/go.uuid"
+
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
-	"github.com/satori/go.uuid"
 )
 
 const RequestIdHeader = "X-MEN-RequestID"
