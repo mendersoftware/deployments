@@ -58,7 +58,7 @@ func TestGetDeviceInventory(t *testing.T) {
 			Code: http.StatusOK,
 			Body: &Device{},
 
-			Err: errors.New("validating server response: ID: non zero value required;"),
+			Err: errors.New("validating server response: ID: non zero value required;Updated: non zero value required;"),
 		},
 		"success": {
 			Code: http.StatusOK,
