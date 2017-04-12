@@ -14,7 +14,7 @@ services:
 
 # Golang version matrix
 go:
-    - 1.7.4
+    - 1.8
 
 env:
     matrix:
