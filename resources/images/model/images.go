@@ -15,6 +15,7 @@
 package model
 
 import (
+	"context"
 	"io"
 	"io/ioutil"
 	"time"
@@ -54,7 +55,9 @@ func NewImagesModel(
 // CreateImage parses artifact and uploads artifact file to the file storage - in parallel,
 // and creates image structure in the system.
 // Returns image ID and nil on success.
-func (i *ImagesModel) CreateImage(multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
+func (i *ImagesModel) CreateImage(ctx context.Context,
+	multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
+
 	// maximum image size is 10G
 	const MaxImageSize = 1024 * 1024 * 1024 * 10
 
@@ -168,7 +171,7 @@ func (i *ImagesModel) handleArtifact(
 
 // GetImage allows to fetch image obeject with specified id
 // Nil if not found
-func (i *ImagesModel) GetImage(id string) (*images.SoftwareImage, error) {
+func (i *ImagesModel) GetImage(ctx context.Context, id string) (*images.SoftwareImage, error) {
 
 	image, err := i.imagesStorage.FindByID(id)
 	if err != nil {
@@ -187,8 +190,8 @@ func (i *ImagesModel) GetImage(id string) (*images.SoftwareImage, error) {
 // Allowed to remove image only if image is not scheduled or in progress for an updates - then image file is needed
 // In case of already finished updates only image file is not needed, metadata is attached directly to device deployment
 // therefore we still have some information about image that have been used (but not the file)
-func (i *ImagesModel) DeleteImage(imageID string) error {
-	found, err := i.GetImage(imageID)
+func (i *ImagesModel) DeleteImage(ctx context.Context, imageID string) error {
+	found, err := i.GetImage(ctx, imageID)
 
 	if err != nil {
 		return errors.Wrap(err, "Getting image metadata")
@@ -223,7 +226,8 @@ func (i *ImagesModel) DeleteImage(imageID string) error {
 }
 
 // ListImages according to specified filers.
-func (i *ImagesModel) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
+func (i *ImagesModel) ListImages(ctx context.Context,
+	filters map[string]string) ([]*images.SoftwareImage, error) {
 
 	imageList, err := i.imagesStorage.FindAll()
 	if err != nil {
@@ -238,7 +242,8 @@ func (i *ImagesModel) ListImages(filters map[string]string) ([]*images.SoftwareI
 }
 
 // EditObject allows editing only if image have not been used yet in any deployment.
-func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImageMetaConstructor) (bool, error) {
+func (i *ImagesModel) EditImage(ctx context.Context, imageID string,
+	constructor *images.SoftwareImageMetaConstructor) (bool, error) {
 
 	if err := constructor.Validate(); err != nil {
 		return false, errors.Wrap(err, "Validating image metadata")
@@ -275,7 +280,8 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 
 // DownloadLink presigned GET link to download image file.
 // Returns error if image have not been uploaded.
-func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*images.Link, error) {
+func (i *ImagesModel) DownloadLink(ctx context.Context, imageID string,
+	expire time.Duration) (*images.Link, error) {
 
 	found, err := i.imagesStorage.Exists(imageID)
 	if err != nil {

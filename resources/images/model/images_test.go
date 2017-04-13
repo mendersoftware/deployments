@@ -15,6 +15,7 @@
 package model
 
 import (
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -37,14 +38,16 @@ const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
 
 func TestCreateImageEmptyMessage(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
-	if _, err := iModel.CreateImage(nil); err != controller.ErrModelMultipartUploadMsgMalformed {
+	if _, err := iModel.CreateImage(context.Background(),
+		nil); err != controller.ErrModelMultipartUploadMsgMalformed {
 		t.FailNow()
 	}
 }
 func TestCreateImageEmptyMetaConstructor(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
 	multipartUploadMessage := &controller.MultipartUploadMsg{}
-	if _, err := iModel.CreateImage(multipartUploadMessage); err != controller.ErrModelMissingInputMetadata {
+	if _, err := iModel.CreateImage(context.Background(),
+		multipartUploadMessage); err != controller.ErrModelMissingInputMetadata {
 		t.FailNow()
 	}
 }
@@ -55,7 +58,8 @@ func TestCreateImageMissingFields(t *testing.T) {
 		MetaConstructor: images.NewSoftwareImageMetaConstructor(),
 	}
 
-	if _, err := iModel.CreateImage(multipartUploadMessage); err == nil {
+	if _, err := iModel.CreateImage(context.Background(),
+		multipartUploadMessage); err == nil {
 		t.FailNow()
 	}
 }
@@ -130,7 +134,9 @@ func TestCreateImageInsertError(t *testing.T) {
 		MetaConstructor: createValidImageMeta(),
 	}
 
-	if _, err := iModel.CreateImage(multipartUploadMessage); err == nil {
+	if _, err := iModel.CreateImage(context.Background(),
+		multipartUploadMessage); err == nil {
+
 		t.FailNow()
 	}
 }
@@ -163,7 +169,8 @@ func TestCreateImageArtifactUploadError(t *testing.T) {
 		ArtifactSize:    fileStat.Size(),
 		ArtifactReader:  f,
 	}
-	if _, err := iModel.CreateImage(multipartUploadMessage); err == nil {
+	if _, err := iModel.CreateImage(context.Background(),
+		multipartUploadMessage); err == nil {
 		t.FailNow()
 	}
 }
@@ -197,7 +204,9 @@ func TestCreateImageCreateOK(t *testing.T) {
 		ArtifactReader:  f,
 	}
 
-	if _, err := iModel.CreateImage(multipartUploadMessage); err != nil {
+	if _, err := iModel.CreateImage(context.Background(),
+		multipartUploadMessage); err != nil {
+
 		t.FailNow()
 	}
 }
@@ -207,7 +216,7 @@ func TestGetImageFindByIDError(t *testing.T) {
 	fakeIS.findByIdError = errors.New("find by id error")
 
 	iModel := NewImagesModel(nil, nil, fakeIS)
-	if _, err := iModel.GetImage(""); err == nil {
+	if _, err := iModel.GetImage(context.Background(), ""); err == nil {
 		t.FailNow()
 	}
 }
@@ -217,7 +226,9 @@ func TestGetImageFindByIDEmptyImage(t *testing.T) {
 	fakeIS.findByIdImage = nil
 
 	iModel := NewImagesModel(nil, nil, fakeIS)
-	if image, err := iModel.GetImage(""); err != nil || image != nil {
+	if image, err := iModel.GetImage(context.Background(),
+		""); err != nil || image != nil {
+
 		t.FailNow()
 	}
 }
@@ -275,7 +286,9 @@ func TestGetImageOK(t *testing.T) {
 	fakeFS.lastModifiedTime = time.Now()
 
 	iModel := NewImagesModel(fakeFS, nil, fakeIS)
-	if image, err := iModel.GetImage(""); err != nil || image == nil {
+	if image, err := iModel.GetImage(context.Background(),
+		""); err != nil || image == nil {
+
 		t.FailNow()
 	}
 }
@@ -310,43 +323,44 @@ func TestDeleteImage(t *testing.T) {
 
 	iModel := NewImagesModel(fakeFS, fakeChecker, fakeIS)
 
-	if err := iModel.DeleteImage(""); err == nil {
+	if err := iModel.DeleteImage(context.Background(), ""); err == nil {
 		t.FailNow()
 	}
 
 	fakeChecker.usedInActiveDeploymentsErr = nil
 	fakeChecker.isUsedInActiveDeployment = true
-	if err := iModel.DeleteImage(""); err != controller.ErrModelImageInActiveDeployment {
+	if err := iModel.DeleteImage(context.Background(),
+		""); err != controller.ErrModelImageInActiveDeployment {
 		t.FailNow()
 	}
 
 	// we should delete image successfully
 	fakeChecker.isUsedInActiveDeployment = false
-	if err := iModel.DeleteImage(""); err != nil {
+	if err := iModel.DeleteImage(context.Background(), ""); err != nil {
 		t.FailNow()
 	}
 
 	fakeFS.deleteError = errors.New("error")
-	if err := iModel.DeleteImage(""); err == nil {
+	if err := iModel.DeleteImage(context.Background(), ""); err == nil {
 		t.FailNow()
 	}
 
 	fakeFS.deleteError = nil
 	fakeIS.deleteError = errors.New("error")
-	if err := iModel.DeleteImage(""); err == nil {
+	if err := iModel.DeleteImage(context.Background(), ""); err == nil {
 		t.FailNow()
 	}
 
 	fakeIS.deleteError = errors.New("error")
 	fakeIS.findByIdImage = nil
 
-	if err := iModel.DeleteImage(""); err == nil {
+	if err := iModel.DeleteImage(context.Background(), ""); err == nil {
 		t.FailNow()
 	}
 
 	fakeFS.getError = errors.New("error")
 	fakeChecker.isUsedInActiveDeployment = false
-	if err := iModel.DeleteImage(""); err == nil {
+	if err := iModel.DeleteImage(context.Background(), ""); err == nil {
 		t.FailNow()
 	}
 }
@@ -358,13 +372,13 @@ func TestListImages(t *testing.T) {
 	iModel := NewImagesModel(fakeFS, fakeChecker, fakeIS)
 
 	fakeIS.findAllError = errors.New("error")
-	if _, err := iModel.ListImages(nil); err == nil {
+	if _, err := iModel.ListImages(context.Background(), nil); err == nil {
 		t.FailNow()
 	}
 
 	//no error; empty images list
 	fakeIS.findAllError = nil
-	if _, err := iModel.ListImages(nil); err != nil {
+	if _, err := iModel.ListImages(context.Background(), nil); err != nil {
 		t.FailNow()
 	}
 
@@ -377,7 +391,7 @@ func TestListImages(t *testing.T) {
 
 	listedImages := []*images.SoftwareImage{constructorImage}
 	fakeIS.findAllImages = listedImages
-	if _, err := iModel.ListImages(nil); err != nil {
+	if _, err := iModel.ListImages(context.Background(), nil); err != nil {
 		t.FailNow()
 	}
 }
@@ -392,28 +406,32 @@ func TestEditImage(t *testing.T) {
 
 	// error checking if image is used in deployments
 	fakeChecker.usedInDeploymentsErr = errors.New("error")
-	if _, err := iModel.EditImage("", imageMeta); err == nil {
+	if _, err := iModel.EditImage(context.Background(),
+		"", imageMeta); err == nil {
 		t.FailNow()
 	}
 
 	// image used in deployments
 	fakeChecker.usedInDeploymentsErr = nil
 	fakeChecker.isUsedInDeployment = true
-	if _, err := iModel.EditImage("", imageMeta); err != controller.ErrModelImageUsedInAnyDeployment {
+	if _, err := iModel.EditImage(context.Background(),
+		"", imageMeta); err != controller.ErrModelImageUsedInAnyDeployment {
 		t.FailNow()
 	}
 
 	// not used in deployments; finding error
 	fakeChecker.isUsedInDeployment = false
 	fakeIS.findByIdError = errors.New("error")
-	if _, err := iModel.EditImage("", imageMeta); err == nil {
+	if _, err := iModel.EditImage(context.Background(),
+		"", imageMeta); err == nil {
 		t.FailNow()
 	}
 
 	// not used in deployments; cannot find image
 	fakeIS.findByIdError = nil
 	fakeIS.findByIdImage = nil
-	if imageMeta, err := iModel.EditImage("", imageMeta); err != nil || imageMeta == true {
+	if imageMeta, err := iModel.EditImage(context.Background(),
+		"", imageMeta); err != nil || imageMeta == true {
 		t.FailNow()
 	}
 
@@ -421,13 +439,15 @@ func TestEditImage(t *testing.T) {
 	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
 	fakeIS.findByIdImage = constructorImage
 	fakeIS.updateError = errors.New("error")
-	if _, err := iModel.EditImage("", imageMeta); err == nil {
+	if _, err := iModel.EditImage(context.Background(),
+		"", imageMeta); err == nil {
 		t.FailNow()
 	}
 
 	// update OK
 	fakeIS.updateError = nil
-	if imageMeta, err := iModel.EditImage("", imageMeta); err != nil || !imageMeta {
+	if imageMeta, err := iModel.EditImage(context.Background(),
+		"", imageMeta); err != nil || !imageMeta {
 		t.FailNow()
 	}
 }
@@ -440,21 +460,24 @@ func TestDownloadLink(t *testing.T) {
 
 	// image exists error
 	fakeIS.imageEsistsError = errors.New("error")
-	if _, err := iModel.DownloadLink("iamge", time.Hour); err == nil {
+	if _, err := iModel.DownloadLink(context.Background(),
+		"iamge", time.Hour); err == nil {
 		t.FailNow()
 	}
 
 	// searching for image failed
 	fakeIS.imageEsistsError = errors.New("Serarching for image failed")
 	fakeIS.imageExists = false
-	if link, err := iModel.DownloadLink("iamge", time.Hour); err == nil || link != nil {
+	if link, err := iModel.DownloadLink(context.Background(),
+		"iamge", time.Hour); err == nil || link != nil {
 		t.FailNow()
 	}
 
 	// iamge does not esists
 	fakeIS.imageEsistsError = nil
 	fakeIS.imageExists = false
-	if link, err := iModel.DownloadLink("iamge", time.Hour); err != nil || link != nil {
+	if link, err := iModel.DownloadLink(context.Background(),
+		"iamge", time.Hour); err != nil || link != nil {
 		t.FailNow()
 	}
 
@@ -462,7 +485,8 @@ func TestDownloadLink(t *testing.T) {
 	fakeIS.imageExists = true
 	fakeFS.imageExists = true
 	fakeFS.getError = errors.New("error")
-	if _, err := iModel.DownloadLink("iamge", time.Hour); err == nil {
+	if _, err := iModel.DownloadLink(context.Background(),
+		"iamge", time.Hour); err == nil {
 		t.FailNow()
 	}
 
@@ -471,7 +495,8 @@ func TestDownloadLink(t *testing.T) {
 	link := images.NewLink("uri", time.Now())
 	fakeFS.getReq = link
 
-	receivedLink, err := iModel.DownloadLink("image", time.Hour)
+	receivedLink, err := iModel.DownloadLink(context.Background(),
+		"image", time.Hour)
 	if err != nil || !reflect.DeepEqual(link, receivedLink) {
 		t.FailNow()
 	}
