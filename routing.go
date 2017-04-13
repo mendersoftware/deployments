@@ -15,6 +15,8 @@
 package main
 
 import (
+	"context"
+
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
@@ -73,7 +75,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
 	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
-	if err := imagesStorage.IndexStorage(); err != nil {
+	if err := imagesStorage.IndexStorage(context.Background()); err != nil {
 		return nil, err
 	}
 
