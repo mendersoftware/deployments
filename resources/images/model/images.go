@@ -72,10 +72,11 @@ func (i *ImagesModel) CreateImage(ctx context.Context,
 		return "", controller.ErrModelArtifactFileTooLarge
 	}
 
-	artifactID, err := i.handleArtifact(multipartUploadMsg)
+	artifactID, err := i.handleArtifact(ctx, multipartUploadMsg)
 	// try to remove artifact file from file storage on error
 	if err != nil {
-		if cleanupErr := i.fileStorage.Delete(artifactID); cleanupErr != nil {
+		if cleanupErr := i.fileStorage.Delete(ctx,
+			artifactID); cleanupErr != nil {
 			return "", errors.Wrap(err, cleanupErr.Error())
 		}
 	}
@@ -85,7 +86,7 @@ func (i *ImagesModel) CreateImage(ctx context.Context,
 // handleArtifact parses artifact and uploads artifact file to the file storage - in parallel,
 // and creates image structure in the system.
 // Returns image ID, artifact file ID and nil on success.
-func (i *ImagesModel) handleArtifact(
+func (i *ImagesModel) handleArtifact(ctx context.Context,
 	multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
 
 	// create pipe
@@ -105,7 +106,7 @@ func (i *ImagesModel) handleArtifact(
 	//
 	// uploading and parsing artifact in the same process will cause in a deadlock!
 	go func() {
-		err := i.fileStorage.UploadArtifact(
+		err := i.fileStorage.UploadArtifact(ctx,
 			artifactID, multipartUploadMsg.ArtifactSize, pR, ArtifactContentType)
 		if err != nil {
 			pR.CloseWithError(err)
@@ -213,7 +214,7 @@ func (i *ImagesModel) DeleteImage(ctx context.Context, imageID string) error {
 
 	// Delete image file (call to external service)
 	// Noop for not existing file
-	if err := i.fileStorage.Delete(imageID); err != nil {
+	if err := i.fileStorage.Delete(ctx, imageID); err != nil {
 		return errors.Wrap(err, "Deleting image file")
 	}
 
@@ -292,7 +293,7 @@ func (i *ImagesModel) DownloadLink(ctx context.Context, imageID string,
 		return nil, nil
 	}
 
-	found, err = i.fileStorage.Exists(imageID)
+	found, err = i.fileStorage.Exists(ctx, imageID)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image file")
 	}
@@ -301,7 +302,8 @@ func (i *ImagesModel) DownloadLink(ctx context.Context, imageID string,
 		return nil, nil
 	}
 
-	link, err := i.fileStorage.GetRequest(imageID, expire, ArtifactContentType)
+	link, err := i.fileStorage.GetRequest(ctx, imageID,
+		expire, ArtifactContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
 	}

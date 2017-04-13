@@ -246,27 +246,31 @@ type FakeFileStorage struct {
 	uploadArtifactError error
 }
 
-func (ffs *FakeFileStorage) Delete(objectId string) error {
+func (ffs *FakeFileStorage) Delete(ctx context.Context, objectId string) error {
 	return ffs.deleteError
 }
 
-func (ffs *FakeFileStorage) Exists(objectId string) (bool, error) {
+func (ffs *FakeFileStorage) Exists(ctx context.Context, objectId string) (bool, error) {
 	return ffs.imageExists, ffs.imageEsistsError
 }
 
-func (ffs *FakeFileStorage) LastModified(objectId string) (time.Time, error) {
+func (ffs *FakeFileStorage) LastModified(ctx context.Context,
+	objectId string) (time.Time, error) {
 	return ffs.lastModifiedTime, ffs.lastModifiedError
 }
 
-func (ffs *FakeFileStorage) PutRequest(objectId string, duration time.Duration) (*images.Link, error) {
+func (ffs *FakeFileStorage) PutRequest(ctx context.Context, objectId string,
+	duration time.Duration) (*images.Link, error) {
 	return ffs.putReq, ffs.putError
 }
 
-func (ffs *FakeFileStorage) GetRequest(objectId string, duration time.Duration, responseContentType string) (*images.Link, error) {
+func (ffs *FakeFileStorage) GetRequest(ctx context.Context, objectId string,
+	duration time.Duration, responseContentType string) (*images.Link, error) {
 	return ffs.getReq, ffs.getError
 }
 
-func (fis *FakeFileStorage) UploadArtifact(id string, size int64, img io.Reader, contentType string) error {
+func (fis *FakeFileStorage) UploadArtifact(ctx context.Context, id string,
+	size int64, img io.Reader, contentType string) error {
 	if _, err := io.Copy(ioutil.Discard, img); err != nil {
 		return err
 	}

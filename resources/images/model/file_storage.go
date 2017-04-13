@@ -15,6 +15,7 @@
 package model
 
 import (
+	"context"
 	"errors"
 	"io"
 	"time"
@@ -29,10 +30,13 @@ var (
 
 // FileStorage allows to store and manage large files
 type FileStorage interface {
-	Delete(objectId string) error
-	Exists(objectId string) (bool, error)
-	LastModified(objectId string) (time.Time, error)
-	PutRequest(objectId string, duration time.Duration) (*images.Link, error)
-	GetRequest(objectId string, duration time.Duration, responseContentType string) (*images.Link, error)
-	UploadArtifact(objectId string, artifactSize int64, artifact io.Reader, contentType string) error
+	Delete(ctx context.Context, objectId string) error
+	Exists(ctx context.Context, objectId string) (bool, error)
+	LastModified(ctx context.Context, objectId string) (time.Time, error)
+	PutRequest(ctx context.Context, objectId string,
+		duration time.Duration) (*images.Link, error)
+	GetRequest(ctx context.Context, objectId string,
+		duration time.Duration, responseContentType string) (*images.Link, error)
+	UploadArtifact(ctx context.Context, objectId string,
+		artifactSize int64, artifact io.Reader, contentType string) error
 }
