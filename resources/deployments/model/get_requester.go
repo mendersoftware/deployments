@@ -15,6 +15,7 @@
 package model
 
 import (
+	"context"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -22,5 +23,6 @@ import (
 
 // Responsible for providing GET method requests to requested artifact
 type GetRequester interface {
-	GetRequest(objectId string, duration time.Duration, responseContentType string) (*images.Link, error)
+	GetRequest(ctx context.Context, objectId string,
+		duration time.Duration, responseContentType string) (*images.Link, error)
 }

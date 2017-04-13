@@ -28,6 +28,7 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments/generator/mocks"
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
+	h "github.com/mendersoftware/deployments/utils/testing"
 )
 
 func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
@@ -114,11 +115,12 @@ func TestImageBasedDeviceDeploymentGenerate(t *testing.T) {
 	for _, testCase := range testCases {
 
 		images := new(mocks.ImageByNameAndDeviceTyper)
-		images.On("ImageByNameAndDeviceType", mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+		images.On("ImageByNameAndDeviceType", h.ContextMatcher(),
+			mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 			Return(testCase.InputImageByNameAndDeviceType, testCase.InputImageByNameAndDeviceTypeError)
 
 		inventory := new(mocks.GetDeviceTyper)
-		inventory.On("GetDeviceType", mock.AnythingOfType("*context.emptyCtx"), mock.AnythingOfType("string")).
+		inventory.On("GetDeviceType", h.ContextMatcher(), mock.AnythingOfType("string")).
 			Return(testCase.InputGetDeviceType, testCase.InputGetDeviceTypeError)
 
 		deviceDeployment, err := NewImageBasedDeviceDeployment(images, inventory).

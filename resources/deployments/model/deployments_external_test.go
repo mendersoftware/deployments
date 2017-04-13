@@ -30,6 +30,7 @@ import (
 	"github.com/mendersoftware/deployments/resources/deployments/model/mocks"
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
+	h "github.com/mendersoftware/deployments/utils/testing"
 )
 
 const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
@@ -314,7 +315,8 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				// by FindOldestDeploymentForDeviceIDWithStatuses Just
 				// as implementation does, if this changes test will
 				// break by panic ;)
-				imageLinker.On("GetRequest", testCase.InputOlderstDeviceDeployment.Image.Id,
+				imageLinker.On("GetRequest", h.ContextMatcher(),
+					testCase.InputOlderstDeviceDeployment.Image.Id,
 					DefaultUpdateDownloadLinkExpire, mock.AnythingOfType("string")).
 					Return(testCase.InputGetRequestLink, testCase.InputGetRequestError)
 

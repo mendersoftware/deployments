@@ -188,7 +188,7 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
 		return nil, nil
 	}
 
-	link, err := d.imageLinker.GetRequest(deployment.Image.Id,
+	link, err := d.imageLinker.GetRequest(context.TODO(), deployment.Image.Id,
 		DefaultUpdateDownloadLinkExpire, d.imageContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")
