@@ -19,13 +19,14 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/resources/images/controller"
 	"github.com/mendersoftware/mender-artifact/metadata"
 	"github.com/mendersoftware/mender-artifact/parser"
 	"github.com/mendersoftware/mender-artifact/reader"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
+
+	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/controller"
 )
 
 const (

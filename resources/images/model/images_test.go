@@ -24,12 +24,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/resources/images/controller"
 	"github.com/mendersoftware/mender-artifact/parser"
 	atutils "github.com/mendersoftware/mender-artifact/test_utils"
 	"github.com/mendersoftware/mender-artifact/writer"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/controller"
 )
 
 const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"

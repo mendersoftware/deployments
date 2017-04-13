@@ -26,20 +26,19 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	"github.com/mendersoftware/go-lib-micro/requestid"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/resources/deployments/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/deployments/view"
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
-	"github.com/mendersoftware/go-lib-micro/requestid"
-	"github.com/mendersoftware/go-lib-micro/requestlog"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-
 	h "github.com/mendersoftware/deployments/utils/testing"
 )
 
@@ -751,7 +750,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 	t.Parallel()
 
 	someDeployments := []*deployments.Deployment{
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("zen"),
 				ArtifactName: StringToPointer("baz"),
@@ -759,7 +758,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 			},
 			Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 		},
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("foo"),
 				ArtifactName: StringToPointer("bar"),
@@ -1011,7 +1010,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		Messages string `json:"messages"`
 	}
 
-	tref := time.Now()
+	tref := time.Now().UTC()
 
 	messages := []deployments.LogMessage{
 		{

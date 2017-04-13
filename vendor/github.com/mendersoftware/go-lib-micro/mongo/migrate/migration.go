@@ -13,8 +13,10 @@
 //    limitations under the License.
 package migrate
 
-// Migration defines an incremental mongo migration step, with a concrete version.
+// Migration defines an incremental mongo migration step, with a concrete
+// version. Current version of DB is passed as `from` parameter. Once migration
+// completes, DB will be in version Version().
 type Migration interface {
-	Up() error
+	Up(from Version) error
 	Version() Version
 }

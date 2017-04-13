@@ -369,52 +369,58 @@
 			"revisionTime": "2015-12-07T23:31:27Z"
 		},
 		{
-			"checksumSHA1": "TBy4BC8vdb8QenUOK253xKqZ4r8=",
+			"checksumSHA1": "JRGHsodU6lgiNHRodtyIO34hRF4=",
 			"path": "github.com/mendersoftware/go-lib-micro/accesslog",
-			"revision": "7ba01e585c3044ffb1ae5e1662e9e8c8e11fbbe3",
-			"revisionTime": "2017-02-20T11:32:47Z"
+			"revision": "2fb25d89b70c3986322411f7af22403d5861dbe4",
+			"revisionTime": "2017-03-30T12:29:32Z"
+		},
+		{
+			"checksumSHA1": "IMuxXx5YYD4vyZKNsN0izSvE+/g=",
+			"path": "github.com/mendersoftware/go-lib-micro/context",
+			"revision": "2fb25d89b70c3986322411f7af22403d5861dbe4",
+			"revisionTime": "2017-03-30T12:29:32Z"
 		},
 		{
 			"checksumSHA1": "5PDgQnNLCVPQR537rMBdiAPm5aM=",
 			"path": "github.com/mendersoftware/go-lib-micro/customheader",
-			"revision": "7ba01e585c3044ffb1ae5e1662e9e8c8e11fbbe3",
-			"revisionTime": "2017-02-20T11:32:47Z"
+			"revision": "2fb25d89b70c3986322411f7af22403d5861dbe4",
+			"revisionTime": "2017-03-30T12:29:32Z"
 		},
 		{
-			"checksumSHA1": "ARd+lex1hH+zfIYpSf3TYQkEOOc=",
+			"checksumSHA1": "JcLlWuDsZQ7QtUEW811PPS30NyE=",
 			"path": "github.com/mendersoftware/go-lib-micro/log",
-			"revision": "7ba01e585c3044ffb1ae5e1662e9e8c8e11fbbe3",
-			"revisionTime": "2017-02-20T11:32:47Z"
+			"revision": "2fb25d89b70c3986322411f7af22403d5861dbe4",
+			"revisionTime": "2017-03-30T12:29:32Z"
 		},
 		{
-			"checksumSHA1": "aCjBzigSqKZpBg3Dcci1MK3BFvg=",
+			"checksumSHA1": "usy+42cTFkhNCywZ0qZib1XJwP0=",
 			"path": "github.com/mendersoftware/go-lib-micro/mongo/migrate",
-			"revision": "7ba01e585c3044ffb1ae5e1662e9e8c8e11fbbe3",
-			"revisionTime": "2017-02-20T11:32:47Z"
+			"revision": "2fb25d89b70c3986322411f7af22403d5861dbe4",
+			"revisionTime": "2017-03-30T12:29:32Z"
 		},
 		{
-			"checksumSHA1": "Ehd9UaCA0vFt0OAa19CVlqKUZls=",
+			"checksumSHA1": "70zTx2u1SXKjVGvH/3RGIyDYh4o=",
 			"path": "github.com/mendersoftware/go-lib-micro/requestid",
-			"revision": "7ba01e585c3044ffb1ae5e1662e9e8c8e11fbbe3",
-			"revisionTime": "2017-02-20T11:32:47Z"
+			"revision": "2fb25d89b70c3986322411f7af22403d5861dbe4",
+			"revisionTime": "2017-03-30T12:29:32Z"
 		},
 		{
-			"checksumSHA1": "a4WDC5YQzenCbeZfIcFpCvr3Rpk=",
+			"checksumSHA1": "XYdz+3uujydvDBIeQ1DaEB0VKCg=",
 			"path": "github.com/mendersoftware/go-lib-micro/requestlog",
-			"revision": "7ba01e585c3044ffb1ae5e1662e9e8c8e11fbbe3",
-			"revisionTime": "2017-02-20T11:32:47Z"
+			"revision": "2fb25d89b70c3986322411f7af22403d5861dbe4",
+			"revisionTime": "2017-03-30T12:29:32Z"
 		},
 		{
-			"checksumSHA1": "5ag9zs/ZuWxSgbr9S/Sb0+t18Hg=",
+			"checksumSHA1": "5g82TR0Rw7j5wt6xfC6OoOxtMSE=",
 			"path": "github.com/mendersoftware/go-lib-micro/rest_utils",
-			"revision": "7ba01e585c3044ffb1ae5e1662e9e8c8e11fbbe3",
-			"revisionTime": "2017-02-20T11:32:47Z"
+			"revision": "2fb25d89b70c3986322411f7af22403d5861dbe4",
+			"revisionTime": "2017-03-30T12:29:32Z"
 		},
 		{
 			"checksumSHA1": "6GY2jM77obcngaNEcfsPq7WqFZg=",
 			"path": "github.com/mendersoftware/go-lib-micro/strings",
-			"revision": "7ba01e585c3044ffb1ae5e1662e9e8c8e11fbbe3",
-			"revisionTime": "2017-02-20T11:32:47Z"
+			"revision": "2fb25d89b70c3986322411f7af22403d5861dbe4",
+			"revisionTime": "2017-03-30T12:29:32Z"
 		},
 		{
 			"checksumSHA1": "P9Oklqj7hHq9jTTmelTzIXVcLcY=",
@@ -526,16 +532,16 @@
 			"revisionTime": "2016-12-17T20:04:45Z"
 		},
 		{
-			"checksumSHA1": "5XAzjZrdlLh1mgd7xEvoK6LeLCA=",
+			"checksumSHA1": "JXUVA1jky8ZX8w09p2t5KLs97Nc=",
 			"path": "github.com/stretchr/testify/assert",
-			"revision": "e3a8ff8ce36581f87a15341206f205b1da467059",
-			"revisionTime": "2015-12-08T00:24:04Z"
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
 		},
 		{
 			"checksumSHA1": "WGwMB6WljaeGKzuNCX5M4E8LADE=",
 			"path": "github.com/stretchr/testify/mock",
-			"revision": "2402e8e7a02fc811447d11f881aa9746cdc57983",
-			"revisionTime": "2016-12-17T20:04:45Z"
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
 		},
 		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",

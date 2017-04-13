@@ -29,20 +29,20 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	"github.com/mendersoftware/go-lib-micro/requestid"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
+	"github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/resources/images/controller"
 	"github.com/mendersoftware/deployments/resources/images/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/mendersoftware/deployments/utils/pointers"
 	h "github.com/mendersoftware/deployments/utils/testing"
-	"github.com/mendersoftware/go-lib-micro/requestid"
-	"github.com/mendersoftware/go-lib-micro/requestlog"
-	"github.com/satori/go.uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 // Notice: 	Controller tests are not pure unit tests,
@@ -286,11 +286,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "size",
 					FieldValue: "1",
 				},
-				Part{
+				{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   []byte{0},
@@ -306,7 +306,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "description",
 					FieldValue: "dt",
 				},
@@ -319,11 +319,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "size",
 					FieldValue: "123",
 				},
-				Part{
+				{
 					FieldName:  "artifact",
 					FieldValue: "ff",
 				},
@@ -336,11 +336,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "size",
 					FieldValue: strconv.Itoa(len(imageBody)),
 				},
-				Part{
+				{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,
@@ -356,11 +356,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "size",
 					FieldValue: strconv.Itoa(len(imageBody)),
 				},
-				Part{
+				{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,
@@ -376,11 +376,11 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 		},
 		{
 			InputBodyObject: []Part{
-				Part{
+				{
 					FieldName:  "size",
 					FieldValue: strconv.Itoa(len(imageBody)),
 				},
-				Part{
+				{
 					FieldName:   "artifact",
 					ContentType: "application/octet-stream",
 					ImageData:   imageBody,

@@ -20,10 +20,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
-	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
+	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
 )
 
 func TestDeviceDeploymentStorageInsert(t *testing.T) {

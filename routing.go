@@ -16,6 +16,9 @@ package main
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/pkg/errors"
+	"gopkg.in/mgo.v2"
+
 	"github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/integration"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
@@ -29,8 +32,6 @@ import (
 	"github.com/mendersoftware/deployments/resources/images/s3"
 	imagesView "github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/mendersoftware/deployments/utils/restutil"
-	"github.com/pkg/errors"
-	"gopkg.in/mgo.v2"
 )
 
 func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
@@ -62,11 +63,6 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 		W: 1,
 		J: true,
 	})
-
-	err = MigrateDb(DbVersion, nil, dbSession)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to migrate db")
-	}
 
 	// Storage Layer
 	fileStorage, err := SetupS3(c)

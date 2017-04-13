@@ -21,6 +21,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+
 	. "github.com/mendersoftware/deployments/utils/restutil"
 )
 

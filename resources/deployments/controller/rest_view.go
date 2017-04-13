@@ -16,8 +16,9 @@ package controller
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/go-lib-micro/log"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 type RESTView interface {

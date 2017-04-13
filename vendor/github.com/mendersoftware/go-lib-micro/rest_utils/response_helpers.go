@@ -14,11 +14,13 @@
 package rest_utils
 
 import (
+	"net/http"
+
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/pkg/errors"
+
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/requestid"
-	"github.com/pkg/errors"
-	"net/http"
 )
 
 // return selected http code + error message directly taken from error

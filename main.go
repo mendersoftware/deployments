@@ -15,15 +15,17 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/spf13/viper"
+	"gopkg.in/mgo.v2"
 
 	"github.com/mendersoftware/deployments/config"
-	"github.com/spf13/viper"
 )
 
 func main() {
@@ -46,6 +48,20 @@ func main() {
 	configuration, err := HandleConfigFile(configPath)
 	if err != nil {
 		l.Fatalf("error loading configuration: %s", err)
+	}
+
+	dbSession, err := mgo.Dial(configuration.GetString(SettingMongo))
+	if err != nil {
+		l.Fatalf("failed to connect to DB: %v", err)
+	}
+	dbSession.SetSafe(&mgo.Safe{
+		W: 1,
+		J: true,
+	})
+
+	err = MigrateDb(context.Background(), DbVersion, nil, dbSession)
+	if err != nil {
+		l.Fatalf("failed to migrate DB data: %v", err)
 	}
 
 	l.Fatal(RunServer(configuration))

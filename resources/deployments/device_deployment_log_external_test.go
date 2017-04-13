@@ -19,9 +19,10 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/mendersoftware/deployments/resources/deployments"
 )
 
 func TestValidateDeploymentLog(t *testing.T) {

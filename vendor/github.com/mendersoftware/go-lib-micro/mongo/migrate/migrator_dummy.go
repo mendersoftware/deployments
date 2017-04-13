@@ -14,6 +14,8 @@
 package migrate
 
 import (
+	"context"
+
 	"gopkg.in/mgo.v2"
 )
 
@@ -25,14 +27,14 @@ type DummyMigrator struct {
 }
 
 // Apply makes MigratorDummy implement the Migrator interface.
-func (m *DummyMigrator) Apply(version *Version, migrations []Migration) error {
+func (m *DummyMigrator) Apply(ctx context.Context, target Version, migrations []Migration) error {
 	applied, err := GetMigrationInfo(m.Session, m.Db)
 	if err != nil {
 		return err
 	}
 
 	if len(applied) == 0 {
-		return UpdateMigrationInfo(version, m.Session, m.Db)
+		return UpdateMigrationInfo(target, m.Session, m.Db)
 	}
 
 	return nil

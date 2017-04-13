@@ -20,10 +20,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	. "github.com/mendersoftware/deployments/utils/pointers"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestDeploymentStorageInsert(t *testing.T) {
@@ -746,7 +747,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 	}
 
 	someDeployments := []*deployments.Deployment{
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("NYC Production Inc."),
 				ArtifactName: StringToPointer("App 123"),
@@ -757,7 +758,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 			}),
 		},
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("NYC Production Inc."),
 				ArtifactName: StringToPointer("App 123"),
@@ -768,7 +769,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 			}),
 		},
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("foo"),
 				ArtifactName: StringToPointer("bar"),
@@ -779,7 +780,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusFailure: 2,
 			}),
 		},
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("foo"),
 				ArtifactName: StringToPointer("bar"),
@@ -790,7 +791,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 			}),
 		},
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("foo"),
 				ArtifactName: StringToPointer("bar"),
@@ -801,7 +802,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusDownloading: 1,
 			}),
 		},
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("zed"),
 				ArtifactName: StringToPointer("daz"),
@@ -813,7 +814,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusPending:     1,
 			}),
 		},
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("zed"),
 				ArtifactName: StringToPointer("daz"),
@@ -824,7 +825,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusPending: 1,
 			}),
 		},
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("zed"),
 				ArtifactName: StringToPointer("daz"),
@@ -836,7 +837,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusSuccess:    1,
 			}),
 		},
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("123"),
 				ArtifactName: StringToPointer("dfs"),
@@ -849,7 +850,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 
 		//in progress deployment, with only pending and already-installed counters > 0
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("baz"),
 				ArtifactName: StringToPointer("asdf"),
@@ -862,7 +863,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			}),
 		},
 		//in progress deployment, with only pending and success counters > 0
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("baz"),
 				ArtifactName: StringToPointer("asdf"),
@@ -875,7 +876,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			}),
 		},
 		//in progress deployment, with only pending and failure counters > 0
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("baz"),
 				ArtifactName: StringToPointer("asdf"),
@@ -888,7 +889,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			}),
 		},
 		//in progress deployment, with only pending and noartifact counters > 0
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("baz"),
 				ArtifactName: StringToPointer("asdf"),
@@ -901,7 +902,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			}),
 		},
 		//finished deployment, with only already installed counter > 0
-		&deployments.Deployment{
+		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("baz"),
 				ArtifactName: StringToPointer("asdf"),
@@ -932,7 +933,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				SearchText: "foobar-no-match",
 			},
 			InputDeploymentsCollection: []*deployments.Deployment{
-				&deployments.Deployment{
+				{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
 						ArtifactName: StringToPointer("App 123"),

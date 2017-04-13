@@ -18,11 +18,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
-	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
+	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
 )
 
 func parseTime(t *testing.T, value string) *time.Time {
@@ -147,17 +148,17 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 	}
 
 	logs := []deployments.DeploymentLog{
-		deployments.DeploymentLog{
+		{
 			DeviceID:     "123",
 			DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			Messages:     messages,
 		},
-		deployments.DeploymentLog{
+		{
 			Messages:     messages,
 			DeviceID:     "234",
 			DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
 		},
-		deployments.DeploymentLog{
+		{
 			Messages:     messages,
 			DeviceID:     "345",
 			DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",

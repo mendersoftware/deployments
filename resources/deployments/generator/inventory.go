@@ -17,8 +17,9 @@ package generator
 import (
 	"context"
 
-	"github.com/mendersoftware/deployments/integration"
 	"github.com/pkg/errors"
+
+	"github.com/mendersoftware/deployments/integration"
 )
 
 // Attribute keys

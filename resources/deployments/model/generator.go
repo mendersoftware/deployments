@@ -16,6 +16,7 @@ package model
 
 import (
 	"context"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 )
 

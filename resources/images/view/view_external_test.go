@@ -20,9 +20,10 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
-	. "github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/mendersoftware/deployments/resources/images/view"
 )
 
 func TestRenderPost(t *testing.T) {

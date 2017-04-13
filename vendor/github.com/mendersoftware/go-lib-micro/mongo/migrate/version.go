@@ -39,6 +39,25 @@ func NewVersion(s string) (*Version, error) {
 	return &Version{Major: maj, Minor: min, Patch: patch}, nil
 }
 
-func (v *Version) String() string {
+func MakeVersion(maj uint, min uint, patch uint) Version {
+	return Version{Major: maj, Minor: min, Patch: patch}
+}
+
+func (v Version) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
+}
+
+func VersionIsLess(left Version, right Version) bool {
+	if left.Major < right.Major {
+		return true
+	} else if left.Major == right.Major {
+		if left.Minor < right.Minor {
+			return true
+		} else if left.Minor == right.Minor {
+			if left.Patch < right.Patch {
+				return true
+			}
+		}
+	}
+	return false
 }

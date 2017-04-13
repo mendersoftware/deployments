@@ -18,8 +18,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 func TestStatusUnmarshal(t *testing.T) {

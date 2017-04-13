@@ -18,8 +18,9 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/satori/go.uuid"
+
+	"github.com/mendersoftware/deployments/resources/images"
 )
 
 // Deployment statuses

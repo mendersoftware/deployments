@@ -18,10 +18,11 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/resources/images/model"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/resources/images/model"
 )
 
 // Database KEYS
@@ -207,10 +208,10 @@ func (i *SoftwareImagesStorage) IsArtifactUnique(artifactName string, deviceType
 
 	query := bson.M{
 		"$and": []bson.M{
-			bson.M{
+			{
 				StorageKeySoftwareImageName: artifactName,
 			},
-			bson.M{
+			{
 				StorageKeySoftwareImageDeviceTypes: bson.M{"$in": deviceTypesCompatible},
 			},
 		},

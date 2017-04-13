@@ -17,8 +17,9 @@ package controller
 import (
 	"encoding/json"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/pkg/errors"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 var (

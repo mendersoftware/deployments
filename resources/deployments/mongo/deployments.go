@@ -18,11 +18,11 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/pkg/errors"
-
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 // Database settings
@@ -280,32 +280,32 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 			// already-installed/success/failure/noimage >0 and pending > 0
 			stq = bson.M{
 				"$or": []bson.M{
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusDownloading): gt0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusInstalling): gt0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusRebooting): gt0,
 					},
-					bson.M{
+					{
 						"$and": []bson.M{
-							bson.M{
+							{
 								buildStatusKey(deployments.DeviceDeploymentStatusPending): gt0,
 							},
-							bson.M{
+							{
 								"$or": []bson.M{
-									bson.M{
+									{
 										buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): gt0,
 									},
-									bson.M{
+									{
 										buildStatusKey(deployments.DeviceDeploymentStatusSuccess): gt0,
 									},
-									bson.M{
+									{
 										buildStatusKey(deployments.DeviceDeploymentStatusFailure): gt0,
 									},
-									bson.M{
+									{
 										buildStatusKey(deployments.DeviceDeploymentStatusNoArtifact): gt0,
 									},
 								},
@@ -321,34 +321,34 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 			// all status counters, except for pending, are 0
 			stq = bson.M{
 				"$and": []bson.M{
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusDownloading): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusInstalling): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusRebooting): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusSuccess): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusAborted): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusDecommissioned): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusFailure): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusNoArtifact): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusPending): gt0,
 					},
 				},
@@ -359,16 +359,16 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 			// downloading, installing, rebooting, pending status counters are 0
 			stq = bson.M{
 				"$and": []bson.M{
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusDownloading): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusInstalling): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusRebooting): eq0,
 					},
-					bson.M{
+					{
 						buildStatusKey(deployments.DeviceDeploymentStatusPending): eq0,
 					},
 				},
