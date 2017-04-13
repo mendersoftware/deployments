@@ -15,6 +15,7 @@
 package mongo
 
 import (
+	"context"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -62,7 +63,7 @@ func NewSoftwareImagesStorage(session *mgo.Session) *SoftwareImagesStorage {
 
 // IndexStorage set required indexes.
 // * Set unique index on name-model image keys.
-func (i *SoftwareImagesStorage) IndexStorage() error {
+func (i *SoftwareImagesStorage) IndexStorage(ctx context.Context) error {
 
 	session := i.session.Copy()
 	defer session.Close()
@@ -79,7 +80,7 @@ func (i *SoftwareImagesStorage) IndexStorage() error {
 }
 
 // Exists checks if object with ID exists
-func (i *SoftwareImagesStorage) Exists(id string) (bool, error) {
+func (i *SoftwareImagesStorage) Exists(ctx context.Context, id string) (bool, error) {
 
 	if govalidator.IsNull(id) {
 		return false, model.ErrSoftwareImagesStorageInvalidID
@@ -101,7 +102,8 @@ func (i *SoftwareImagesStorage) Exists(id string) (bool, error) {
 
 // Update proviced SoftwareImage
 // Return false if not found
-func (i *SoftwareImagesStorage) Update(image *images.SoftwareImage) (bool, error) {
+func (i *SoftwareImagesStorage) Update(ctx context.Context,
+	image *images.SoftwareImage) (bool, error) {
 
 	if err := image.Validate(); err != nil {
 		return false, err
@@ -122,7 +124,8 @@ func (i *SoftwareImagesStorage) Update(image *images.SoftwareImage) (bool, error
 }
 
 // ImageByNameAndDeviceType find image with speficied application name and targed device type
-func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string) (*images.SoftwareImage, error) {
+func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(ctx context.Context,
+	name, deviceType string) (*images.SoftwareImage, error) {
 
 	if govalidator.IsNull(name) {
 		return nil, model.ErrSoftwareImagesStorageInvalidName
@@ -155,7 +158,7 @@ func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(name, deviceType string
 }
 
 // Insert persists object
-func (i *SoftwareImagesStorage) Insert(image *images.SoftwareImage) error {
+func (i *SoftwareImagesStorage) Insert(ctx context.Context, image *images.SoftwareImage) error {
 
 	if image == nil {
 		return model.ErrSoftwareImagesStorageInvalidImage
@@ -172,7 +175,8 @@ func (i *SoftwareImagesStorage) Insert(image *images.SoftwareImage) error {
 }
 
 // FindByID search storage for image with ID, returns nil if not found
-func (i *SoftwareImagesStorage) FindByID(id string) (*images.SoftwareImage, error) {
+func (i *SoftwareImagesStorage) FindByID(ctx context.Context,
+	id string) (*images.SoftwareImage, error) {
 
 	if govalidator.IsNull(id) {
 		return nil, model.ErrSoftwareImagesStorageInvalidID
@@ -197,7 +201,8 @@ func (i *SoftwareImagesStorage) FindByID(id string) (*images.SoftwareImage, erro
 // Returns true, nil if artifact is unique;
 // false, nil if artifact is not unique;
 // false, error in case of error.
-func (i *SoftwareImagesStorage) IsArtifactUnique(artifactName string, deviceTypesCompatible []string) (bool, error) {
+func (i *SoftwareImagesStorage) IsArtifactUnique(ctx context.Context,
+	artifactName string, deviceTypesCompatible []string) (bool, error) {
 
 	if govalidator.IsNull(artifactName) {
 		return false, model.ErrSoftwareImagesStorageInvalidArtifactName
@@ -230,7 +235,7 @@ func (i *SoftwareImagesStorage) IsArtifactUnique(artifactName string, deviceType
 
 // Delete image specified by ID
 // Noop on if not found.
-func (i *SoftwareImagesStorage) Delete(id string) error {
+func (i *SoftwareImagesStorage) Delete(ctx context.Context, id string) error {
 
 	if govalidator.IsNull(id) {
 		return model.ErrSoftwareImagesStorageInvalidID
@@ -250,7 +255,7 @@ func (i *SoftwareImagesStorage) Delete(id string) error {
 }
 
 // FindAll lists all images
-func (i *SoftwareImagesStorage) FindAll() ([]*images.SoftwareImage, error) {
+func (i *SoftwareImagesStorage) FindAll(ctx context.Context) ([]*images.SoftwareImage, error) {
 
 	session := i.session.Copy()
 	defer session.Close()
