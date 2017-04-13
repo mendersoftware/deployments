@@ -532,16 +532,16 @@
 			"revisionTime": "2016-12-17T20:04:45Z"
 		},
 		{
-			"checksumSHA1": "5XAzjZrdlLh1mgd7xEvoK6LeLCA=",
+			"checksumSHA1": "JXUVA1jky8ZX8w09p2t5KLs97Nc=",
 			"path": "github.com/stretchr/testify/assert",
-			"revision": "e3a8ff8ce36581f87a15341206f205b1da467059",
-			"revisionTime": "2015-12-08T00:24:04Z"
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
 		},
 		{
 			"checksumSHA1": "WGwMB6WljaeGKzuNCX5M4E8LADE=",
 			"path": "github.com/stretchr/testify/mock",
-			"revision": "2402e8e7a02fc811447d11f881aa9746cdc57983",
-			"revisionTime": "2016-12-17T20:04:45Z"
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
 		},
 		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
