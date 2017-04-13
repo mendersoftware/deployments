@@ -30,6 +30,7 @@ func TestGetDeviceInventory(t *testing.T) {
 
 	t.Parallel()
 
+	tm := time.Unix(10, 10).UTC()
 	testCases := map[string]struct {
 		// Input
 		Code int
@@ -64,7 +65,7 @@ func TestGetDeviceInventory(t *testing.T) {
 			Code: http.StatusOK,
 			Body: &Device{
 				ID:      "lalala",
-				Updated: time.Unix(10, 10),
+				Updated: tm,
 				Attributes: []*Attribute{
 					{
 						Name:        "sialalala",
@@ -76,7 +77,7 @@ func TestGetDeviceInventory(t *testing.T) {
 
 			Device: &Device{
 				ID:      "lalala",
-				Updated: time.Unix(10, 10),
+				Updated: tm,
 				Attributes: []*Attribute{
 					{
 						Name:        "sialalala",
@@ -114,7 +115,8 @@ func TestGetDeviceInventory(t *testing.T) {
 		} else {
 			assert.NoError(t, err)
 		}
-		assert.Equal(t, test.Device, device)
+
+		assert.EqualValues(t, test.Device, device)
 	}
 
 }

@@ -1010,7 +1010,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		Messages string `json:"messages"`
 	}
 
-	tref := time.Now()
+	tref := time.Now().UTC()
 
 	messages := []deployments.LogMessage{
 		{
