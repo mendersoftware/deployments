@@ -150,7 +150,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 	// check if artifact is unique
 	// artifact is considered to be unique if there is no artifact with the same name
 	// and supporing the same platform in the system
-	isArtifactUnique, err := i.imagesStorage.IsArtifactUnique(
+	isArtifactUnique, err := i.imagesStorage.IsArtifactUnique(ctx,
 		metaArtifactConstructor.Name, metaArtifactConstructor.DeviceTypesCompatible)
 	if err != nil {
 		return "", errors.Wrap(err, "Fail to check if artifact is unique")
@@ -163,7 +163,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor)
 
 	// save image structure in the system
-	if err = i.imagesStorage.Insert(image); err != nil {
+	if err = i.imagesStorage.Insert(ctx, image); err != nil {
 		return "", errors.Wrap(err, "Fail to store the metadata")
 	}
 
@@ -174,7 +174,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 // Nil if not found
 func (i *ImagesModel) GetImage(ctx context.Context, id string) (*images.SoftwareImage, error) {
 
-	image, err := i.imagesStorage.FindByID(id)
+	image, err := i.imagesStorage.FindByID(ctx, id)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image with specified ID")
 	}
@@ -219,7 +219,7 @@ func (i *ImagesModel) DeleteImage(ctx context.Context, imageID string) error {
 	}
 
 	// Delete metadata
-	if err := i.imagesStorage.Delete(imageID); err != nil {
+	if err := i.imagesStorage.Delete(ctx, imageID); err != nil {
 		return errors.Wrap(err, "Deleting image metadata")
 	}
 
@@ -230,7 +230,7 @@ func (i *ImagesModel) DeleteImage(ctx context.Context, imageID string) error {
 func (i *ImagesModel) ListImages(ctx context.Context,
 	filters map[string]string) ([]*images.SoftwareImage, error) {
 
-	imageList, err := i.imagesStorage.FindAll()
+	imageList, err := i.imagesStorage.FindAll(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image metadata")
 	}
@@ -259,7 +259,7 @@ func (i *ImagesModel) EditImage(ctx context.Context, imageID string,
 		return false, controller.ErrModelImageUsedInAnyDeployment
 	}
 
-	foundImage, err := i.imagesStorage.FindByID(imageID)
+	foundImage, err := i.imagesStorage.FindByID(ctx, imageID)
 	if err != nil {
 		return false, errors.Wrap(err, "Searching for image with specified ID")
 	}
@@ -271,7 +271,7 @@ func (i *ImagesModel) EditImage(ctx context.Context, imageID string,
 	foundImage.SetModified(time.Now())
 	foundImage.SoftwareImageMetaConstructor = *constructor
 
-	_, err = i.imagesStorage.Update(foundImage)
+	_, err = i.imagesStorage.Update(ctx, foundImage)
 	if err != nil {
 		return false, errors.Wrap(err, "Updating image matadata")
 	}
@@ -284,7 +284,7 @@ func (i *ImagesModel) EditImage(ctx context.Context, imageID string,
 func (i *ImagesModel) DownloadLink(ctx context.Context, imageID string,
 	expire time.Duration) (*images.Link, error) {
 
-	found, err := i.imagesStorage.Exists(imageID)
+	found, err := i.imagesStorage.Exists(ctx, imageID)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image with specified ID")
 	}

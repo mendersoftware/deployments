@@ -80,31 +80,35 @@ type FakeImageStorage struct {
 	isArtifactUniqueError error
 }
 
-func (fis *FakeImageStorage) Exists(id string) (bool, error) {
+func (fis *FakeImageStorage) Exists(ctx context.Context, id string) (bool, error) {
 	return fis.imageExists, fis.imageEsistsError
 }
 
-func (fis *FakeImageStorage) Update(image *images.SoftwareImage) (bool, error) {
+func (fis *FakeImageStorage) Update(ctx context.Context,
+	image *images.SoftwareImage) (bool, error) {
 	return fis.update, fis.updateError
 }
 
-func (fis *FakeImageStorage) Insert(image *images.SoftwareImage) error {
+func (fis *FakeImageStorage) Insert(ctx context.Context,
+	image *images.SoftwareImage) error {
 	return fis.insertError
 }
 
-func (fis *FakeImageStorage) FindByID(id string) (*images.SoftwareImage, error) {
+func (fis *FakeImageStorage) FindByID(ctx context.Context,
+	id string) (*images.SoftwareImage, error) {
 	return fis.findByIdImage, fis.findByIdError
 }
 
-func (fis *FakeImageStorage) Delete(id string) error {
+func (fis *FakeImageStorage) Delete(ctx context.Context, id string) error {
 	return fis.deleteError
 }
 
-func (fis *FakeImageStorage) FindAll() ([]*images.SoftwareImage, error) {
+func (fis *FakeImageStorage) FindAll(ctx context.Context) ([]*images.SoftwareImage, error) {
 	return fis.findAllImages, fis.findAllError
 }
 
-func (fis *FakeImageStorage) IsArtifactUnique(artifactName string, deviceTypesCompatible []string) (bool, error) {
+func (fis *FakeImageStorage) IsArtifactUnique(ctx context.Context,
+	artifactName string, deviceTypesCompatible []string) (bool, error) {
 	return fis.isArtifactUnique, fis.isArtifactUniqueError
 }
 
