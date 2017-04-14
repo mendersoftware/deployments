@@ -21,6 +21,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
@@ -28,7 +29,6 @@ import (
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/deployments/mongo"
-	"github.com/mendersoftware/deployments/utils/identity"
 )
 
 // Errors
@@ -38,6 +38,7 @@ var (
 	ErrInternal                   = errors.New("Internal error")
 	ErrDeploymentAlreadyFinished  = errors.New("Deployment already finished")
 	ErrUnexpectedDeploymentStatus = errors.New("Unexpected deployment status")
+	ErrMissingIdentity            = errors.New("Missing identity data")
 )
 
 type DeploymentsController struct {
@@ -186,9 +187,9 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 
 	l := requestlog.GetRequestLogger(r.Env)
 
-	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
-	if err != nil {
-		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+	idata := identity.FromContext(r.Context())
+	if idata == nil {
+		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
 		return
 	}
 
@@ -222,16 +223,16 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 
 	did := r.PathParam("id")
 
-	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
-	if err != nil {
-		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+	idata := identity.FromContext(r.Context())
+	if idata == nil {
+		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
 		return
 	}
 
 	// receive request body
 	var report statusReport
 
-	err = r.DecodeJsonPayload(&report)
+	err := r.DecodeJsonPayload(&report)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
@@ -346,9 +347,9 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 
 	did := r.PathParam("id")
 
-	idata, err := identity.ExtractIdentityFromHeaders(r.Header)
-	if err != nil {
-		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+	idata := identity.FromContext(r.Context())
+	if idata == nil {
+		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
 		return
 	}
 
@@ -356,7 +357,7 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 	// (un-)marshalling DeploymentLog to/from JSON
 	var log deployments.DeploymentLog
 
-	err = r.DecodeJsonPayload(&log)
+	err := r.DecodeJsonPayload(&log)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return

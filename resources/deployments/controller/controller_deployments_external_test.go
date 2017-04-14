@@ -28,6 +28,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/stretchr/testify/assert"
@@ -60,6 +61,7 @@ func makeApi(router rest.App) *rest.Api {
 			BaseLogger: &logrus.Logger{Out: ioutil.Discard},
 		},
 		&requestid.RequestIdMiddleware{},
+		&identity.IdentityMiddleware{},
 	)
 	api.SetApp(router)
 	return api
@@ -103,7 +105,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			InputID: "malformed-token",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("failed to decode claims: invalid character ':' after top-level value")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Missing identity data")),
 			},
 			Headers: map[string]string{
 				// fabricate bad token - malformed JSON
@@ -491,7 +493,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("malformed authorization data")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Missing identity data")),
 			},
 		},
 		{
@@ -1075,7 +1077,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("malformed authorization data")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Missing identity data")),
 			},
 		},
 		{
