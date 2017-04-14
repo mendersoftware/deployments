@@ -73,7 +73,8 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 
 			model := NewDeploymentModel(DeploymentsModelConfig{DeploymentsStorage: deploymentStorage})
 
-			deployment, err := model.GetDeployment(testCase.InputDeploymentID)
+			deployment, err := model.GetDeployment(context.Background(),
+				testCase.InputDeploymentID)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
@@ -128,7 +129,8 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 
 			model := NewDeploymentModel(DeploymentsModelConfig{DeviceDeploymentsStorage: deviceDeploymentStorage})
 
-			found, err := model.ImageUsedInActiveDeployment(testCase.InputID)
+			found, err := model.ImageUsedInActiveDeployment(context.Background(),
+				testCase.InputID)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
@@ -184,7 +186,8 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 
 			model := NewDeploymentModel(DeploymentsModelConfig{DeviceDeploymentsStorage: deviceDeploymentStorage})
 
-			found, err := model.ImageUsedInDeployment(testCase.InputID)
+			found, err := model.ImageUsedInDeployment(context.Background(),
+				testCase.InputID)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
@@ -351,7 +354,8 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				ImageLinker:              imageLinker,
 			})
 
-			out, err := model.GetDeploymentForDeviceWithCurrent(testCase.InputID,
+			out, err := model.GetDeploymentForDeviceWithCurrent(context.Background(),
+				testCase.InputID,
 				testCase.InputInstalledDeployment)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -669,7 +673,8 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 				DeviceDeploymentsStorage: deviceDeploymentStorage,
 			})
 
-			err := model.UpdateDeviceDeploymentStatus(*testCase.InputDeployment.Id,
+			err := model.UpdateDeviceDeploymentStatus(context.Background(),
+				*testCase.InputDeployment.Id,
 				testCase.InputDeviceID, testCase.InputStatus)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -789,7 +794,8 @@ func TestGetDeploymentStats(t *testing.T) {
 				DeviceDeploymentsStorage: deviceDeploymentStorage,
 			})
 
-			stats, err := model.GetDeploymentStats(testCase.InputDeploymentID)
+			stats, err := model.GetDeploymentStats(context.Background(),
+				testCase.InputDeploymentID)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -885,7 +891,8 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 				DeploymentsStorage:       depsDb,
 				DeviceDeploymentsStorage: devsDb,
 			})
-			statuses, err := model.GetDeviceStatusesForDeployment(tc.inDeploymentId)
+			statuses, err := model.GetDeviceStatusesForDeployment(context.Background(),
+				tc.inDeploymentId)
 
 			if tc.modelErr != nil {
 				assert.EqualError(t, err, tc.modelErr.Error())
@@ -997,7 +1004,8 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 				DeviceDeploymentLogsStorage: deviceDeploymentLogStorage,
 			})
 
-			err := model.SaveDeviceDeploymentLog(testCase.InputDeviceID,
+			err := model.SaveDeviceDeploymentLog(context.Background(),
+				testCase.InputDeviceID,
 				testCase.InputDeploymentID, testCase.InputLog)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -1042,7 +1050,8 @@ func TestDeploymentModelLookupDeployment(t *testing.T) {
 
 			model := NewDeploymentModel(DeploymentsModelConfig{DeploymentsStorage: deploymentStorage})
 
-			deployments, err := model.LookupDeployment(deployments.Query{})
+			deployments, err := model.LookupDeployment(context.Background(),
+				deployments.Query{})
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
@@ -1092,7 +1101,8 @@ func TestDeploymentModelIsDeploymentFinished(t *testing.T) {
 
 			model := NewDeploymentModel(DeploymentsModelConfig{DeploymentsStorage: deploymentStorage})
 
-			isFinished, err := model.IsDeploymentFinished(testCase.InputDeploymentID)
+			isFinished, err := model.IsDeploymentFinished(context.Background(),
+				testCase.InputDeploymentID)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
@@ -1156,7 +1166,8 @@ func TestDeploymentModelAbortDeployment(t *testing.T) {
 				DeviceDeploymentsStorage: deviceDeploymentStorage,
 			})
 
-			err := model.AbortDeployment(testCase.InputDeploymentID)
+			err := model.AbortDeployment(context.Background(),
+				testCase.InputDeploymentID)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
@@ -1229,7 +1240,8 @@ func TestDeploymentModelDecommissionDevice(t *testing.T) {
 				DeviceDeploymentsStorage: deviceDeploymentStorage,
 			})
 
-			err := model.DecommissionDevice(testCase.InputDeviceId)
+			err := model.DecommissionDevice(context.Background(),
+				testCase.InputDeviceId)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {

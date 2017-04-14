@@ -62,7 +62,8 @@ func NewDeploymentModel(config DeploymentsModelConfig) *DeploymentsModel {
 // Automatically assigns matching images to target device types.
 // In case no image is available for target device, noartifact status is set.
 // TODO: check if specified devices are bootstrapped (when have a way to do this)
-func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *deployments.DeploymentConstructor) (string, error) {
+func (d *DeploymentsModel) CreateDeployment(ctx context.Context,
+	constructor *deployments.DeploymentConstructor) (string, error) {
 
 	if constructor == nil {
 		return "", controller.ErrModelMissingInput
@@ -112,7 +113,7 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context, constructor *de
 }
 
 // IsDeploymentFinished checks if there is unfinished deployment with given ID
-func (d *DeploymentsModel) IsDeploymentFinished(deploymentID string) (bool, error) {
+func (d *DeploymentsModel) IsDeploymentFinished(ctx context.Context, deploymentID string) (bool, error) {
 
 	deployment, err := d.deploymentsStorage.FindUnfinishedByID(deploymentID)
 	if err != nil {
@@ -126,7 +127,8 @@ func (d *DeploymentsModel) IsDeploymentFinished(deploymentID string) (bool, erro
 }
 
 // GetDeployment fetches deployment by ID
-func (d *DeploymentsModel) GetDeployment(deploymentID string) (*deployments.Deployment, error) {
+func (d *DeploymentsModel) GetDeployment(ctx context.Context,
+	deploymentID string) (*deployments.Deployment, error) {
 
 	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
 	if err != nil {
@@ -138,7 +140,8 @@ func (d *DeploymentsModel) GetDeployment(deploymentID string) (*deployments.Depl
 
 // ImageUsedInActiveDeployment checks if specified image is in use by deployments
 // Image is considered to be in use if it's participating in at lest one non success/error deployment.
-func (d *DeploymentsModel) ImageUsedInActiveDeployment(imageID string) (bool, error) {
+func (d *DeploymentsModel) ImageUsedInActiveDeployment(ctx context.Context,
+	imageID string) (bool, error) {
 
 	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageID, deployments.ActiveDeploymentStatuses()...)
 	if err != nil {
@@ -150,7 +153,7 @@ func (d *DeploymentsModel) ImageUsedInActiveDeployment(imageID string) (bool, er
 
 // ImageUsedInDeployment checks if specified image is in use by deployments
 // Image is considered to be in use if it's participating in any deployment.
-func (d *DeploymentsModel) ImageUsedInDeployment(imageID string) (bool, error) {
+func (d *DeploymentsModel) ImageUsedInDeployment(ctx context.Context, imageID string) (bool, error) {
 
 	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(imageID)
 	if err != nil {
@@ -161,7 +164,7 @@ func (d *DeploymentsModel) ImageUsedInDeployment(imageID string) (bool, error) {
 }
 
 // GetDeploymentForDeviceWithCurrent returns deployment for the device
-func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
+func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
 	installed deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error) {
 
 	deployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(deviceID,
@@ -179,7 +182,7 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
 		// pretend there is no deployment for this device, but update
 		// its status to already installed first
 
-		if err := d.UpdateDeviceDeploymentStatus(*deployment.DeploymentId, deviceID,
+		if err := d.UpdateDeviceDeploymentStatus(ctx, *deployment.DeploymentId, deviceID,
 			deployments.DeviceDeploymentStatusAlreadyInst); err != nil {
 
 			return nil, errors.Wrap(err, "Failed to update deployment status")
@@ -208,7 +211,7 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(deviceID string,
 
 // UpdateDeviceDeploymentStatus will update the deployment status for device of
 // ID `deviceID`. Returns nil if update was successful.
-func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
+func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
 	deviceID string, status string) error {
 
 	var finishTime *time.Time = nil
@@ -262,7 +265,9 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(deploymentID string,
 	return nil
 }
 
-func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.Stats, error) {
+func (d *DeploymentsModel) GetDeploymentStats(ctx context.Context,
+	deploymentID string) (deployments.Stats, error) {
+
 	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
 
 	if err != nil {
@@ -277,7 +282,9 @@ func (d *DeploymentsModel) GetDeploymentStats(deploymentID string) (deployments.
 }
 
 //GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
-func (d *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error) {
+func (d *DeploymentsModel) GetDeviceStatusesForDeployment(ctx context.Context,
+	deploymentID string) ([]deployments.DeviceDeployment, error) {
+
 	deployment, err := d.deploymentsStorage.FindByID(deploymentID)
 	if err != nil {
 		return nil, controller.ErrModelInternal
@@ -295,7 +302,8 @@ func (d *DeploymentsModel) GetDeviceStatusesForDeployment(deploymentID string) (
 	return statuses, nil
 }
 
-func (d *DeploymentsModel) LookupDeployment(query deployments.Query) ([]*deployments.Deployment, error) {
+func (d *DeploymentsModel) LookupDeployment(ctx context.Context,
+	query deployments.Query) ([]*deployments.Deployment, error) {
 	list, err := d.deploymentsStorage.Find(query)
 
 	if err != nil {
@@ -311,7 +319,7 @@ func (d *DeploymentsModel) LookupDeployment(query deployments.Query) ([]*deploym
 
 // SaveDeviceDeploymentLog will save the deployment log for device of
 // ID `deviceID`. Returns nil if log was saved successfully.
-func (d *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
+func (d *DeploymentsModel) SaveDeviceDeploymentLog(ctx context.Context, deviceID string,
 	deploymentID string, logs []deployments.LogMessage) error {
 
 	// repack to temporary deployment log and validate
@@ -324,7 +332,7 @@ func (d *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
 		return errors.Wrapf(err, controller.ErrStorageInvalidLog.Error())
 	}
 
-	if has, err := d.HasDeploymentForDevice(deploymentID, deviceID); !has {
+	if has, err := d.HasDeploymentForDevice(ctx, deploymentID, deviceID); !has {
 		if err != nil {
 			return err
 		} else {
@@ -339,17 +347,19 @@ func (d *DeploymentsModel) SaveDeviceDeploymentLog(deviceID string,
 	return d.deviceDeploymentsStorage.UpdateDeviceDeploymentLogAvailability(deviceID, deploymentID, true)
 }
 
-func (d *DeploymentsModel) GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
+func (d *DeploymentsModel) GetDeviceDeploymentLog(ctx context.Context,
+	deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
 
 	return d.deviceDeploymentLogsStorage.GetDeviceDeploymentLog(deviceID, deploymentID)
 }
 
-func (d *DeploymentsModel) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
+func (d *DeploymentsModel) HasDeploymentForDevice(ctx context.Context,
+	deploymentID string, deviceID string) (bool, error) {
 	return d.deviceDeploymentsStorage.HasDeploymentForDevice(deploymentID, deviceID)
 }
 
 // AbortDeployment aborts deployment for devices and updates deployment stats
-func (d *DeploymentsModel) AbortDeployment(deploymentID string) error {
+func (d *DeploymentsModel) AbortDeployment(ctx context.Context, deploymentID string) error {
 
 	if err := d.deviceDeploymentsStorage.AbortDeviceDeployments(deploymentID); err != nil {
 		return err
@@ -366,7 +376,7 @@ func (d *DeploymentsModel) AbortDeployment(deploymentID string) error {
 	return d.deploymentsStorage.UpdateStatsAndFinishDeployment(deploymentID, stats)
 }
 
-func (d *DeploymentsModel) DecommissionDevice(deviceId string) error {
+func (d *DeploymentsModel) DecommissionDevice(ctx context.Context, deviceId string) error {
 
 	if err := d.deviceDeploymentsStorage.DecommissionDeviceDeployments(deviceId); err != nil {
 		return err
