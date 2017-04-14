@@ -22,6 +22,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/accesslog"
 	mctx "github.com/mendersoftware/go-lib-micro/context"
 	"github.com/mendersoftware/go-lib-micro/customheader"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 
@@ -90,6 +91,7 @@ var DefaultProdStack = []rest.Middleware{
 			mctx.RepackRequestIdToContext,
 		},
 	},
+	&identity.IdentityMiddleware{},
 }
 
 func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
