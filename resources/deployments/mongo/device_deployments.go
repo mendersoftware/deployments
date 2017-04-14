@@ -15,6 +15,7 @@
 package mongo
 
 import (
+	"context"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -61,7 +62,8 @@ func NewDeviceDeploymentsStorage(session *mgo.Session) *DeviceDeploymentsStorage
 
 // InsertMany stores multiple device deployment objects.
 // TODO: Handle error cleanup, multi insert is not atomic, loop into two-phase commits
-func (d *DeviceDeploymentsStorage) InsertMany(deployments ...*deployments.DeviceDeployment) error {
+func (d *DeviceDeploymentsStorage) InsertMany(ctx context.Context,
+	deployments ...*deployments.DeviceDeployment) error {
 
 	if len(deployments) == 0 {
 		return nil
@@ -90,7 +92,8 @@ func (d *DeviceDeploymentsStorage) InsertMany(deployments ...*deployments.Device
 }
 
 // ExistAssignedImageWithIDAndStatuses checks if image is used by deplyment with specified status.
-func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(imageID string, statuses ...string) (bool, error) {
+func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(ctx context.Context,
+	imageID string, statuses ...string) (bool, error) {
 
 	// Verify ID formatting
 	if govalidator.IsNull(imageID) {
@@ -121,7 +124,8 @@ func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(imageID s
 }
 
 // FindOldestDeploymentForDeviceIDWithStatuses find oldest deployment matching device id and one of specified statuses.
-func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*deployments.DeviceDeployment, error) {
+func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
+	deviceID string, statuses ...string) (*deployments.DeviceDeployment, error) {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) {
@@ -150,7 +154,8 @@ func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 }
 
 // FindAllDeploymentsForDeviceIDWithStatuses finds all deployments matching device id and one of specified statuses.
-func (d *DeviceDeploymentsStorage) FindAllDeploymentsForDeviceIDWithStatuses(deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error) {
+func (d *DeviceDeploymentsStorage) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
+	deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error) {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) {
@@ -179,7 +184,8 @@ func (d *DeviceDeploymentsStorage) FindAllDeploymentsForDeviceIDWithStatuses(dev
 	return deployments, nil
 }
 
-func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error) {
+func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(ctx context.Context,
+	deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error) {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) ||
@@ -230,8 +236,9 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(deviceID string,
 	return *old.Status, nil
 }
 
-func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentLogAvailability(
+func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 	deviceID string, deploymentID string, log bool) error {
+
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) ||
 		govalidator.IsNull(deploymentID) {
@@ -259,7 +266,8 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentLogAvailability(
 	return nil
 }
 
-func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error) {
+func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(ctx context.Context,
+	id string) (deployments.Stats, error) {
 
 	if govalidator.IsNull(id) {
 		return nil, ErrStorageInvalidID
@@ -305,7 +313,9 @@ func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(id string) 
 }
 
 //GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
-func (d *DeviceDeploymentsStorage) GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error) {
+func (d *DeviceDeploymentsStorage) GetDeviceStatusesForDeployment(ctx context.Context,
+	deploymentID string) ([]deployments.DeviceDeployment, error) {
+
 	session := d.session.Copy()
 	defer session.Close()
 
@@ -326,7 +336,9 @@ func (d *DeviceDeploymentsStorage) GetDeviceStatusesForDeployment(deploymentID s
 // Returns true if deployment of ID `deploymentID` is assigned to device with ID
 // `deviceID`, false otherwise. In case of errors returns false and an error
 // that occurred
-func (d *DeviceDeploymentsStorage) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
+func (d *DeviceDeploymentsStorage) HasDeploymentForDevice(ctx context.Context,
+	deploymentID string, deviceID string) (bool, error) {
+
 	session := d.session.Copy()
 	defer session.Close()
 
@@ -348,7 +360,9 @@ func (d *DeviceDeploymentsStorage) HasDeploymentForDevice(deploymentID string, d
 	return true, nil
 }
 
-func (d *DeviceDeploymentsStorage) GetDeviceDeploymentStatus(deploymentID string, deviceID string) (string, error) {
+func (d *DeviceDeploymentsStorage) GetDeviceDeploymentStatus(ctx context.Context,
+	deploymentID string, deviceID string) (string, error) {
+
 	session := d.session.Copy()
 	defer session.Close()
 
@@ -370,7 +384,9 @@ func (d *DeviceDeploymentsStorage) GetDeviceDeploymentStatus(deploymentID string
 	return *dep.Status, nil
 }
 
-func (d *DeviceDeploymentsStorage) AbortDeviceDeployments(deploymentId string) error {
+func (d *DeviceDeploymentsStorage) AbortDeviceDeployments(ctx context.Context,
+	deploymentId string) error {
+
 	if govalidator.IsNull(deploymentId) {
 		return ErrStorageInvalidID
 	}
@@ -405,7 +421,9 @@ func (d *DeviceDeploymentsStorage) AbortDeviceDeployments(deploymentId string) e
 	return err
 }
 
-func (d *DeviceDeploymentsStorage) DecommissionDeviceDeployments(deviceId string) error {
+func (d *DeviceDeploymentsStorage) DecommissionDeviceDeployments(ctx context.Context,
+	deviceId string) error {
+
 	if govalidator.IsNull(deviceId) {
 		return ErrStorageInvalidID
 	}

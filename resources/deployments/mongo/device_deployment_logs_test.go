@@ -15,6 +15,7 @@
 package mongo_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -102,7 +103,8 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 		session := db.Session()
 		store := NewDeviceDeploymentLogsStorage(session)
 
-		err := store.SaveDeviceDeploymentLog(testCase.InputDeviceDeploymentLog)
+		err := store.SaveDeviceDeploymentLog(context.Background(),
+			testCase.InputDeviceDeploymentLog)
 
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
@@ -202,7 +204,7 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 	store := NewDeviceDeploymentLogsStorage(session)
 
 	for _, dl := range logs {
-		err := store.SaveDeviceDeploymentLog(dl)
+		err := store.SaveDeviceDeploymentLog(context.Background(), dl)
 		assert.NoError(t, err)
 	}
 
@@ -211,7 +213,8 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 		t.Logf("testing case %v %v",
 			testCase.InputDeploymentLog, testCase.OutputError)
 
-		dlog, err := store.GetDeviceDeploymentLog(testCase.InputDeviceID, testCase.InputDeploymentID)
+		dlog, err := store.GetDeviceDeploymentLog(context.Background(),
+			testCase.InputDeviceID, testCase.InputDeploymentID)
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
 		} else {

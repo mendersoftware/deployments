@@ -20,7 +20,9 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/accesslog"
+	mctx "github.com/mendersoftware/go-lib-micro/context"
 	"github.com/mendersoftware/go-lib-micro/customheader"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 
@@ -61,6 +63,12 @@ var DefaultDevStack = []rest.Middleware{
 	// json pretty print
 	&rest.JsonIndentMiddleware{},
 	&requestid.RequestIdMiddleware{},
+	&mctx.UpdateContextMiddleware{
+		Updates: []mctx.UpdateContextFunc{
+			mctx.RepackLoggerToContext,
+			mctx.RepackRequestIdToContext,
+		},
+	},
 }
 
 var DefaultProdStack = []rest.Middleware{
@@ -77,6 +85,13 @@ var DefaultProdStack = []rest.Middleware{
 	// response compression
 	&rest.GzipMiddleware{},
 	&requestid.RequestIdMiddleware{},
+	&mctx.UpdateContextMiddleware{
+		Updates: []mctx.UpdateContextFunc{
+			mctx.RepackLoggerToContext,
+			mctx.RepackRequestIdToContext,
+		},
+	},
+	&identity.IdentityMiddleware{},
 }
 
 func SetupMiddleware(c config.ConfigReader, api *rest.Api) {

@@ -15,11 +15,14 @@
 package model
 
 import (
+	"context"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 // Device deployment log storage
 type DeviceDeploymentLogsStorage interface {
-	SaveDeviceDeploymentLog(log deployments.DeploymentLog) error
-	GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error)
+	SaveDeviceDeploymentLog(ctx context.Context, log deployments.DeploymentLog) error
+	GetDeviceDeploymentLog(ctx context.Context,
+		deviceID, deploymentID string) (*deployments.DeploymentLog, error)
 }

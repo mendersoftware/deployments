@@ -11,28 +11,22 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package main
+package identity
 
 import (
-	"fmt"
-	"log"
-	"os"
-
-	"github.com/mendersoftware/deployments/utils/identity"
+	"context"
 )
 
-func main() {
-
-	if len(os.Args) < 2 {
-		log.Fatalf("usage: dumpidentity <token>")
+// FromContext extracts current identity from context.Context
+func FromContext(ctx context.Context) *Identity {
+	val := ctx.Value(IdentityContextKey)
+	if v, ok := val.(*Identity); ok {
+		return v
 	}
+	return nil
+}
 
-	token := os.Args[1]
-	idata, err := identity.ExtractIdentity(token)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-		return
-	}
-
-	fmt.Printf("%v", idata)
+// WithContext adds identity to context `ctx` and returns the resulting context.
+func WithContext(ctx context.Context, identity *Identity) context.Context {
+	return context.WithValue(ctx, IdentityContextKey, identity)
 }

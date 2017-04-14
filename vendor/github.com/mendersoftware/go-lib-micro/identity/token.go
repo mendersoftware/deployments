@@ -22,13 +22,19 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	IdentityContextKey = "github.com/mendersoftware/go-lib-micro/identity.Identity"
+)
+
 // Token field names
 const (
 	subjectClaim = "sub"
+	tenantClaim  = "mender.tenant"
 )
 
 type Identity struct {
 	Subject string
+	Tenant  string
 }
 
 type rawClaims map[string]interface{}
@@ -60,7 +66,33 @@ func decodeClaims(token string) (rawClaims, error) {
 	return claims, nil
 }
 
-// Generate identity information from given JWT by extracting subject claim.
+func getTenant(claims rawClaims) (string, error) {
+	rawTenant, ok := claims[tenantClaim]
+	if !ok {
+		return "", nil
+	}
+
+	tenant, ok := rawTenant.(string)
+	if !ok {
+		return "", errors.Errorf("invalid tenant ID format")
+	}
+	return tenant, nil
+}
+
+func getSubject(claims rawClaims) (string, error) {
+	rawsub, ok := claims[subjectClaim]
+	if !ok {
+		return "", errors.Errorf("subject claim not found")
+	}
+
+	sub, ok := rawsub.(string)
+	if !ok {
+		return "", errors.Errorf("invalid subject format")
+	}
+	return sub, nil
+}
+
+// Generate identity information from given JWT by extracting subject and tenant claims.
 // Note that this function does not perform any form of token signature
 // verification.
 func ExtractIdentity(token string) (Identity, error) {
@@ -69,17 +101,17 @@ func ExtractIdentity(token string) (Identity, error) {
 		return Identity{}, err
 	}
 
-	rawsub, ok := claims[subjectClaim]
-	if !ok {
-		return Identity{}, errors.Errorf("subject claim not found")
+	sub, err := getSubject(claims)
+	if err != nil {
+		return Identity{}, err
 	}
 
-	sub, ok := rawsub.(string)
-	if !ok {
-		return Identity{}, errors.Errorf("invalid subject format")
+	tenant, err := getTenant(claims)
+	if err != nil {
+		return Identity{}, err
 	}
 
-	return Identity{Subject: sub}, nil
+	return Identity{Subject: sub, Tenant: tenant}, nil
 }
 
 // Extract identity information from HTTP Authorization header. The header is

@@ -28,6 +28,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/stretchr/testify/assert"
@@ -60,6 +61,7 @@ func makeApi(router rest.App) *rest.Api {
 			BaseLogger: &logrus.Logger{Out: ioutil.Discard},
 		},
 		&requestid.RequestIdMiddleware{},
+		&identity.IdentityMiddleware{},
 	)
 	api.SetApp(router)
 	return api
@@ -103,7 +105,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			InputID: "malformed-token",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("failed to decode claims: invalid character ':' after top-level value")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Missing identity data")),
 			},
 			Headers: map[string]string{
 				// fabricate bad token - malformed JSON
@@ -250,7 +252,9 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
-			deploymentModel.On("GetDeploymentForDeviceWithCurrent", testCase.InputID,
+			deploymentModel.On("GetDeploymentForDeviceWithCurrent",
+				h.ContextMatcher(),
+				testCase.InputID,
 				testCase.InputModelCurrentDeployment).
 				Return(testCase.InputModelDeploymentInstructions, testCase.InputModelError)
 
@@ -334,7 +338,8 @@ func TestControllerGetDeployment(t *testing.T) {
 		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
-			deploymentModel.On("GetDeployment", testCase.InputID).
+			deploymentModel.On("GetDeployment",
+				h.ContextMatcher(), testCase.InputID).
 				Return(testCase.InputModelDeployment, testCase.InputModelError)
 
 			router, err := rest.MakeRouter(
@@ -412,12 +417,14 @@ func TestControllerPostDeployment(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
 
-			deploymentModel.On("CreateDeployment", mock.AnythingOfType("*context.valueCtx"), testCase.InputBodyObject).
+			deploymentModel.On("CreateDeployment",
+				h.ContextMatcher(), testCase.InputBodyObject).
 				Return(testCase.InputModelID, testCase.InputModelError)
 
 			router, err := rest.MakeRouter(
 				rest.Post("/r",
-					NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).PostDeployment))
+					NewDeploymentsController(deploymentModel,
+						new(view.DeploymentsView)).PostDeployment))
 			assert.NoError(t, err)
 
 			api := makeApi(router)
@@ -491,7 +498,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("malformed authorization data")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Missing identity data")),
 			},
 		},
 		{
@@ -550,6 +557,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			deploymentModel := new(mocks.DeploymentsModel)
 
 			deploymentModel.On("UpdateDeviceDeploymentStatus",
+				h.ContextMatcher(),
 				testCase.InputModelDeploymentID,
 				testCase.InputModelDeviceID, testCase.InputModelStatus).
 				Return(testCase.InputModelError)
@@ -642,7 +650,8 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
 
-			deploymentModel.On("GetDeploymentStats", testCase.InputModelDeploymentID).
+			deploymentModel.On("GetDeploymentStats",
+				h.ContextMatcher(), testCase.InputModelDeploymentID).
 				Return(testCase.InputModelStats, testCase.InputModelError)
 
 			router, err := rest.MakeRouter(
@@ -725,12 +734,14 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 		t.Run(caseName, func(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
-			deploymentModel.On("GetDeviceStatusesForDeployment", tc.deploymentID).
+			deploymentModel.On("GetDeviceStatusesForDeployment",
+				h.ContextMatcher(), tc.deploymentID).
 				Return(tc.modelStatuses, tc.modelErr)
 
 			router, err := rest.MakeRouter(
 				rest.Get("/r/:id",
-					NewDeploymentsController(deploymentModel, new(view.DeploymentsView)).GetDeviceStatusesForDeployment))
+					NewDeploymentsController(deploymentModel,
+						new(view.DeploymentsView)).GetDeviceStatusesForDeployment))
 
 			assert.NoError(t, err)
 
@@ -884,7 +895,8 @@ func TestControllerLookupDeployment(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
 
-			deploymentModel.On("LookupDeployment", mock.AnythingOfType("deployments.Query")).
+			deploymentModel.On("LookupDeployment",
+				h.ContextMatcher(), mock.AnythingOfType("deployments.Query")).
 				Return(testCase.InputModelDeployments, testCase.InputModelError)
 
 			router, err := rest.MakeRouter(
@@ -1075,7 +1087,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("malformed authorization data")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Missing identity data")),
 			},
 		},
 		{
@@ -1123,6 +1135,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 			deploymentModel := new(mocks.DeploymentsModel)
 
 			deploymentModel.On("SaveDeviceDeploymentLog",
+				h.ContextMatcher(),
 				testCase.InputModelDeviceID,
 				testCase.InputModelDeploymentID,
 				testCase.InputModelMessages).
@@ -1251,6 +1264,7 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 			deploymentModel := new(mocks.DeploymentsModel)
 
 			deploymentModel.On("GetDeviceDeploymentLog",
+				h.ContextMatcher(),
 				testCase.InputModelDeviceID,
 				testCase.InputModelDeploymentID).
 				Return(testCase.InputModelDeploymentLog, testCase.InputModelError)
@@ -1367,11 +1381,14 @@ func TestControllerAbortDeployment(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
 
-			deploymentModel.On("AbortDeployment", testCase.InputModelDeploymentID).
+			deploymentModel.On("AbortDeployment",
+				h.ContextMatcher(), testCase.InputModelDeploymentID).
 				Return(testCase.InputModelError)
 
-			deploymentModel.On("IsDeploymentFinished", testCase.InputModelDeploymentID).
-				Return(testCase.InputModelDeploymentFinishedFlag, testCase.InputModelIsDeploymentFinishedError)
+			deploymentModel.On("IsDeploymentFinished",
+				h.ContextMatcher(), testCase.InputModelDeploymentID).
+				Return(testCase.InputModelDeploymentFinishedFlag,
+					testCase.InputModelIsDeploymentFinishedError)
 
 			router, err := rest.MakeRouter(
 				rest.Post("/r/:id",
@@ -1427,7 +1444,8 @@ func TestControllerDecommissionDevice(t *testing.T) {
 
 			deploymentModel := new(mocks.DeploymentsModel)
 
-			deploymentModel.On("DecommissionDevice", testCase.InputModelDeviceId).
+			deploymentModel.On("DecommissionDevice",
+				h.ContextMatcher(), testCase.InputModelDeviceId).
 				Return(testCase.InputModelError)
 
 			router, err := rest.MakeRouter(

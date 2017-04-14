@@ -15,6 +15,7 @@
 package model
 
 import (
+	"context"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
@@ -22,12 +23,15 @@ import (
 
 // Storage for Deployment type
 type DeploymentsStorage interface {
-	Insert(deployment *deployments.Deployment) error
-	Delete(id string) error
-	FindByID(id string) (*deployments.Deployment, error)
-	FindUnfinishedByID(id string) (*deployments.Deployment, error)
-	UpdateStats(id string, state_from, state_to string) error
-	UpdateStatsAndFinishDeployment(id string, stats deployments.Stats) error
-	Find(query deployments.Query) ([]*deployments.Deployment, error)
-	Finish(id string, when time.Time) error
+	Insert(ctx context.Context, deployment *deployments.Deployment) error
+	Delete(ctx context.Context, id string) error
+	FindByID(ctx context.Context, id string) (*deployments.Deployment, error)
+	FindUnfinishedByID(ctx context.Context,
+		id string) (*deployments.Deployment, error)
+	UpdateStats(ctx context.Context, id string, state_from, state_to string) error
+	UpdateStatsAndFinishDeployment(ctx context.Context,
+		id string, stats deployments.Stats) error
+	Find(ctx context.Context,
+		query deployments.Query) ([]*deployments.Deployment, error)
+	Finish(ctx context.Context, id string, when time.Time) error
 }

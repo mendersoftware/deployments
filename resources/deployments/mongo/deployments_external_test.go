@@ -15,6 +15,7 @@
 package mongo_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -64,7 +65,7 @@ func TestDeploymentStorageInsert(t *testing.T) {
 			session := db.Session()
 			store := NewDeploymentsStorage(session)
 
-			err := store.Insert(testCase.InputDeployment)
+			err := store.Insert(context.Background(), testCase.InputDeployment)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -133,7 +134,7 @@ func TestDeploymentStorageDelete(t *testing.T) {
 				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
 			}
 
-			err := store.Delete(testCase.InputID)
+			err := store.Delete(context.Background(), testCase.InputID)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -275,7 +276,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
 			}
 
-			deployment, err := store.FindByID(testCase.InputID)
+			deployment, err := store.FindByID(context.Background(), testCase.InputID)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -446,7 +447,8 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
 			}
 
-			deployment, err := store.FindUnfinishedByID(testCase.InputID)
+			deployment, err := store.FindUnfinishedByID(context.Background(),
+				testCase.InputID)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -627,13 +629,15 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 				assert.NoError(t, dep.Insert(tc.InputDeployment))
 			}
 
-			err := store.UpdateStats(tc.InputID, tc.InputStateFrom, tc.InputStateTo)
+			err := store.UpdateStats(context.Background(),
+				tc.InputID, tc.InputStateFrom, tc.InputStateTo)
 
 			if tc.OutputError != nil {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
 				var deployment *deployments.Deployment
-				err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
+				err := session.DB(DatabaseName).C(CollectionDeployments).
+					FindId(tc.InputID).One(&deployment)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.OutputStats, deployment.Stats)
 			}
@@ -715,13 +719,15 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 				assert.NoError(t, dep.Insert(tc.InputDeployment))
 			}
 
-			err := store.UpdateStatsAndFinishDeployment(tc.InputID, tc.InputStats)
+			err := store.UpdateStatsAndFinishDeployment(context.Background(),
+				tc.InputID, tc.InputStats)
 
 			if tc.OutputError != nil {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
 				var deployment *deployments.Deployment
-				err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
+				err := session.DB(DatabaseName).C(CollectionDeployments).
+					FindId(tc.InputID).One(&deployment)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.InputStats, deployment.Stats)
 			}
@@ -1119,10 +1125,10 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 					now := time.Now()
 					d.Created = &now
 				}
-				assert.NoError(t, store.Insert(d))
+				assert.NoError(t, store.Insert(context.Background(), d))
 			}
 
-			deployments, err := store.Find(testCase.InputModelQuery)
+			deployments, err := store.Find(context.Background(), testCase.InputModelQuery)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -1179,17 +1185,20 @@ func TestDeploymentFinish(t *testing.T) {
 			}
 
 			now := time.Now()
-			err := store.Finish(tc.InputID, now)
+			err := store.Finish(context.Background(), tc.InputID, now)
 
 			if tc.OutputError != nil {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
 				var deployment *deployments.Deployment
-				err := session.DB(DatabaseName).C(CollectionDeployments).FindId(tc.InputID).One(&deployment)
+				err := session.DB(DatabaseName).C(CollectionDeployments).
+					FindId(tc.InputID).One(&deployment)
 				assert.NoError(t, err)
 
 				if assert.NotNil(t, deployment.Finished) {
-					// mongo might have trimmed our time a bit, let's check that we are within a 1s range
+					// mongo might have trimmed our time a
+					// bit, let's check that we are within a
+					// 1s range
 					assert.WithinDuration(t, now, *deployment.Finished, time.Second)
 				}
 			}
