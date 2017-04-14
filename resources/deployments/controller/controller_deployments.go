@@ -15,15 +15,13 @@
 package controller
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/go-lib-micro/identity"
-	"github.com/mendersoftware/go-lib-micro/requestid"
-	"github.com/mendersoftware/go-lib-micro/requestlog"
+	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
 
@@ -54,7 +52,8 @@ func NewDeploymentsController(model DeploymentsModel, view RESTView) *Deployment
 }
 
 func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
 	constructor, err := d.getDeploymentConstructorFromBody(r)
 	if err != nil {
@@ -62,8 +61,6 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 		return
 	}
 
-	reqId := requestid.GetReqId(r)
-	ctx := context.WithValue(context.Background(), requestid.RequestIdHeader, reqId)
 	id, err := d.model.CreateDeployment(ctx, constructor)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
@@ -87,7 +84,8 @@ func (d *DeploymentsController) getDeploymentConstructorFromBody(r *rest.Request
 }
 
 func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
 	id := r.PathParam("id")
 
@@ -96,7 +94,7 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 		return
 	}
 
-	deployment, err := d.model.GetDeployment(id)
+	deployment, err := d.model.GetDeployment(ctx, id)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
@@ -111,7 +109,8 @@ func (d *DeploymentsController) GetDeployment(w rest.ResponseWriter, r *rest.Req
 }
 
 func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
 	id := r.PathParam("id")
 
@@ -120,7 +119,7 @@ func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *res
 		return
 	}
 
-	stats, err := d.model.GetDeploymentStats(id)
+	stats, err := d.model.GetDeploymentStats(ctx, id)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
@@ -135,7 +134,8 @@ func (d *DeploymentsController) GetDeploymentStats(w rest.ResponseWriter, r *res
 }
 
 func (d *DeploymentsController) AbortDeployment(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
 	id := r.PathParam("id")
 
@@ -160,7 +160,7 @@ func (d *DeploymentsController) AbortDeployment(w rest.ResponseWriter, r *rest.R
 	}
 
 	// Check if deployment is finished
-	isDeploymentFinished, err := d.model.IsDeploymentFinished(id)
+	isDeploymentFinished, err := d.model.IsDeploymentFinished(ctx, id)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
@@ -171,7 +171,7 @@ func (d *DeploymentsController) AbortDeployment(w rest.ResponseWriter, r *rest.R
 	}
 
 	// Abort deployments for devices and update deployment stats
-	if err := d.model.AbortDeployment(id); err != nil {
+	if err := d.model.AbortDeployment(ctx, id); err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 	}
 
@@ -184,10 +184,10 @@ const (
 )
 
 func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
-	l := requestlog.GetRequestLogger(r.Env)
-
-	idata := identity.FromContext(r.Context())
+	idata := identity.FromContext(ctx)
 	if idata == nil {
 		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
 		return
@@ -204,7 +204,7 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 		return
 	}
 
-	deployment, err := d.model.GetDeploymentForDeviceWithCurrent(idata.Subject, installed)
+	deployment, err := d.model.GetDeploymentForDeviceWithCurrent(ctx, idata.Subject, installed)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
@@ -219,11 +219,12 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 }
 
 func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
 	did := r.PathParam("id")
 
-	idata := identity.FromContext(r.Context())
+	idata := identity.FromContext(ctx)
 	if idata == nil {
 		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
 		return
@@ -239,7 +240,9 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 	}
 
 	status := report.Status
-	if err := d.model.UpdateDeviceDeploymentStatus(did, idata.Subject, status); err != nil {
+	if err := d.model.UpdateDeviceDeploymentStatus(ctx, did,
+		idata.Subject, status); err != nil {
+
 		if err == ErrDeploymentAborted || err == ErrDeviceDecommissioned {
 			d.view.RenderError(w, r, err, http.StatusConflict, l)
 		} else {
@@ -252,7 +255,8 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 }
 
 func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
 	did := r.PathParam("id")
 
@@ -261,7 +265,7 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 		return
 	}
 
-	statuses, err := d.model.GetDeviceStatusesForDeployment(did)
+	statuses, err := d.model.GetDeviceStatusesForDeployment(ctx, did)
 	if err != nil {
 		switch err {
 		case ErrModelDeploymentNotFound:
@@ -305,7 +309,8 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 }
 
 func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
 	query, err := ParseLookupQuery(r.URL.Query())
 	if err != nil {
@@ -321,7 +326,7 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 	query.Skip = int((page - 1) * perPage)
 	query.Limit = int(perPage + 1)
 
-	deps, err := d.model.LookupDeployment(query)
+	deps, err := d.model.LookupDeployment(ctx, query)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
@@ -343,11 +348,12 @@ func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.
 }
 
 func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
 	did := r.PathParam("id")
 
-	idata := identity.FromContext(r.Context())
+	idata := identity.FromContext(ctx)
 	if idata == nil {
 		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
 		return
@@ -363,7 +369,9 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 		return
 	}
 
-	if err := d.model.SaveDeviceDeploymentLog(idata.Subject, did, log.Messages); err != nil {
+	if err := d.model.SaveDeviceDeploymentLog(ctx, idata.Subject,
+		did, log.Messages); err != nil {
+
 		if err == ErrModelDeploymentNotFound {
 			d.view.RenderError(w, r, err, http.StatusNotFound, l)
 		} else {
@@ -376,12 +384,13 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 }
 
 func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
 	did := r.PathParam("id")
 	devid := r.PathParam("devid")
 
-	depl, err := d.model.GetDeviceDeploymentLog(devid, did)
+	depl, err := d.model.GetDeviceDeploymentLog(ctx, devid, did)
 
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
@@ -397,12 +406,13 @@ func (d *DeploymentsController) GetDeploymentLogForDevice(w rest.ResponseWriter,
 }
 
 func (d *DeploymentsController) DecommissionDevice(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	ctx := r.Context()
+	l := log.FromContext(ctx)
 
 	id := r.PathParam("id")
 
 	// Decommission deployments for devices and update deployment stats
-	err := d.model.DecommissionDevice(id)
+	err := d.model.DecommissionDevice(ctx, id)
 
 	switch err {
 	case nil, mongo.ErrStorageNotFound:

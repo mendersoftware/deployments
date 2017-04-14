@@ -34,17 +34,25 @@ var (
 
 // Domain model for deployment
 type DeploymentsModel interface {
-	CreateDeployment(ctx context.Context, constructor *deployments.DeploymentConstructor) (string, error)
-	GetDeployment(deploymentID string) (*deployments.Deployment, error)
-	IsDeploymentFinished(deploymentID string) (bool, error)
-	AbortDeployment(deploymentID string) error
-	GetDeploymentStats(deploymentID string) (deployments.Stats, error)
-	GetDeploymentForDeviceWithCurrent(deviceID string, current deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error)
-	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)
-	UpdateDeviceDeploymentStatus(deploymentID string, deviceID string, status string) error
-	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
-	LookupDeployment(query deployments.Query) ([]*deployments.Deployment, error)
-	SaveDeviceDeploymentLog(deviceID string, deploymentID string, logs []deployments.LogMessage) error
-	GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error)
-	DecommissionDevice(deviceID string) error
+	CreateDeployment(ctx context.Context,
+		constructor *deployments.DeploymentConstructor) (string, error)
+	GetDeployment(ctx context.Context, deploymentID string) (*deployments.Deployment, error)
+	IsDeploymentFinished(ctx context.Context, deploymentID string) (bool, error)
+	AbortDeployment(ctx context.Context, deploymentID string) error
+	GetDeploymentStats(ctx context.Context, deploymentID string) (deployments.Stats, error)
+	GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
+		current deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error)
+	HasDeploymentForDevice(ctx context.Context, deploymentID string,
+		deviceID string) (bool, error)
+	UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
+		deviceID string, status string) error
+	GetDeviceStatusesForDeployment(ctx context.Context,
+		deploymentID string) ([]deployments.DeviceDeployment, error)
+	LookupDeployment(ctx context.Context,
+		query deployments.Query) ([]*deployments.Deployment, error)
+	SaveDeviceDeploymentLog(ctx context.Context, deviceID string,
+		deploymentID string, logs []deployments.LogMessage) error
+	GetDeviceDeploymentLog(ctx context.Context,
+		deviceID, deploymentID string) (*deployments.DeploymentLog, error)
+	DecommissionDevice(ctx context.Context, deviceID string) error
 }
