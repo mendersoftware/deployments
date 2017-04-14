@@ -660,36 +660,51 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 	for testCaseNumber, testCase := range testCases {
 		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
-			t.Logf("testing %s %s %s %v %v", *testCase.InputDeployment.Id, testCase.InputDeviceID,
-				testCase.InputStatus, testCase.InputDevsStorageError, testCase.isFinished)
+			t.Logf("testing %s %s %s (in) %s (old) %v %v",
+				*testCase.InputDeployment.Id,
+				testCase.InputDeviceID, testCase.InputStatus,
+				testCase.OldStatus,
+				testCase.InputDevsStorageError, testCase.isFinished)
 
+			// status is always fetched
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
-			deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
-				h.ContextMatcher(),
-				testCase.InputDeviceID, *testCase.InputDeployment.Id,
-				testCase.InputStatus, mock.AnythingOfType("*time.Time")).
-				Return("dontcare", testCase.InputDevsStorageError)
 			deviceDeploymentStorage.On("GetDeviceDeploymentStatus",
 				h.ContextMatcher(),
 				*testCase.InputDeployment.Id, testCase.InputDeviceID).
 				Return(testCase.OldStatus, testCase.InputDevsStorageError)
 
 			deploymentStorage := new(mocks.DeploymentsStorage)
-			deploymentStorage.On("UpdateStats",
-				h.ContextMatcher(),
-				*testCase.InputDeployment.Id, mock.AnythingOfType("string"),
-				mock.AnythingOfType("string")).
-				Return(testCase.InputDepsStorageError)
-			// deployment will be marked as finished when possible, for this we need to
-			// mock a couple of additional calls
-			deploymentStorage.On("FindByID",
-				h.ContextMatcher(),
-				*testCase.InputDeployment.Id).
-				Return(testCase.InputDeployment, testCase.InputDepsFindError)
-			deploymentStorage.On("Finish",
-				h.ContextMatcher(),
-				*testCase.InputDeployment.Id, mock.AnythingOfType("time.Time")).
-				Return(testCase.InputDepsFinishError)
+
+			// however any status updates in DB are done only if the
+			// status reported by device is different from the
+			// previous one in DB
+			if testCase.OldStatus != testCase.InputStatus {
+				deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
+					h.ContextMatcher(),
+					testCase.InputDeviceID, *testCase.InputDeployment.Id,
+					testCase.InputStatus, mock.AnythingOfType("*time.Time")).
+					Return("dontcare", testCase.InputDevsStorageError)
+				deploymentStorage.On("UpdateStats",
+					h.ContextMatcher(),
+					*testCase.InputDeployment.Id, mock.AnythingOfType("string"),
+					mock.AnythingOfType("string")).
+					Return(testCase.InputDepsStorageError)
+				// deployment will be marked as finished when possible, for this we need to
+				// mock a couple of additional calls
+				deploymentStorage.On("FindByID",
+					h.ContextMatcher(),
+					*testCase.InputDeployment.Id).
+					Return(testCase.InputDeployment, testCase.InputDepsFindError)
+				if testCase.isFinished {
+					deploymentStorage.On("Finish",
+						h.ContextMatcher(),
+						*testCase.InputDeployment.Id,
+						mock.MatchedBy(func(tm time.Time) bool {
+							return assert.WithinDuration(t, time.Now(), tm, time.Second)
+						})).
+						Return(testCase.InputDepsFinishError)
+				}
+			}
 
 			model := NewDeploymentModel(DeploymentsModelConfig{
 				DeploymentsStorage:       deploymentStorage,
@@ -704,25 +719,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 
-				if deployments.IsDeviceDeploymentStatusFinished(testCase.InputStatus) {
-					// verify that device deployment finish time was passed, finish time is
-					// passed as 4th argument to UpdateDeviceDeploymentStatus
-					ft, ok := deviceDeploymentStorage.Calls[1].Arguments.Get(4).(*time.Time)
-					assert.True(t, ok)
-					assert.WithinDuration(t, time.Now(), *ft, time.Second)
-				}
-
-				// check that Finish was called
-				if testCase.isFinished {
-					deploymentStorage.AssertCalled(t, "Finish",
-						h.ContextMatcher(),
-						*testCase.InputDeployment.Id, mock.AnythingOfType("time.Time"))
-				} else {
-
-					deploymentStorage.AssertNotCalled(t, "Finish",
-						h.ContextMatcher(),
-						*testCase.InputDeployment.Id, mock.AnythingOfType("time.Time"))
-				}
+				// make sure that storage calls were done as
+				// expected
+				mock.AssertExpectationsForObjects(t, deviceDeploymentStorage,
+					deploymentStorage)
 			}
 		})
 	}
