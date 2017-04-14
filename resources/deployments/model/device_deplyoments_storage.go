@@ -15,6 +15,7 @@
 package model
 
 import (
+	"context"
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
@@ -22,16 +23,26 @@ import (
 
 // Device deployment storage
 type DeviceDeploymentStorage interface {
-	InsertMany(deployment ...*deployments.DeviceDeployment) error
-	ExistAssignedImageWithIDAndStatuses(id string, statuses ...string) (bool, error)
-	FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
-	FindAllDeploymentsForDeviceIDWithStatuses(deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error)
-	UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error)
-	UpdateDeviceDeploymentLogAvailability(deviceID string, deploymentID string, log bool) error
-	AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error)
-	GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error)
-	HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error)
-	GetDeviceDeploymentStatus(deploymentID string, deviceID string) (string, error)
-	AbortDeviceDeployments(deploymentID string) error
-	DecommissionDeviceDeployments(deviceId string) error
+	InsertMany(ctx context.Context,
+		deployment ...*deployments.DeviceDeployment) error
+	ExistAssignedImageWithIDAndStatuses(ctx context.Context,
+		id string, statuses ...string) (bool, error)
+	FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
+		deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
+	FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
+		deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error)
+	UpdateDeviceDeploymentStatus(ctx context.Context, deviceID string,
+		deploymentID string, status string, finishTime *time.Time) (string, error)
+	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
+		deviceID string, deploymentID string, log bool) error
+	AggregateDeviceDeploymentByStatus(ctx context.Context,
+		id string) (deployments.Stats, error)
+	GetDeviceStatusesForDeployment(ctx context.Context,
+		deploymentID string) ([]deployments.DeviceDeployment, error)
+	HasDeploymentForDevice(ctx context.Context,
+		deploymentID string, deviceID string) (bool, error)
+	GetDeviceDeploymentStatus(ctx context.Context,
+		deploymentID string, deviceID string) (string, error)
+	AbortDeviceDeployments(ctx context.Context, deploymentID string) error
+	DecommissionDeviceDeployments(ctx context.Context, deviceId string) error
 }

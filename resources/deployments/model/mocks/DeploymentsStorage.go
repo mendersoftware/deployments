@@ -14,6 +14,7 @@
 
 package mocks
 
+import context "context"
 import deployments "github.com/mendersoftware/deployments/resources/deployments"
 import mock "github.com/stretchr/testify/mock"
 import model "github.com/mendersoftware/deployments/resources/deployments/model"
@@ -24,13 +25,13 @@ type DeploymentsStorage struct {
 	mock.Mock
 }
 
-// Delete provides a mock function with given fields: id
-func (_m *DeploymentsStorage) Delete(id string) error {
-	ret := _m.Called(id)
+// Delete provides a mock function with given fields: ctx, id
+func (_m *DeploymentsStorage) Delete(ctx context.Context, id string) error {
+	ret := _m.Called(ctx, id)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(id)
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, id)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -38,13 +39,13 @@ func (_m *DeploymentsStorage) Delete(id string) error {
 	return r0
 }
 
-// Find provides a mock function with given fields: query
-func (_m *DeploymentsStorage) Find(query deployments.Query) ([]*deployments.Deployment, error) {
-	ret := _m.Called(query)
+// Find provides a mock function with given fields: ctx, query
+func (_m *DeploymentsStorage) Find(ctx context.Context, query deployments.Query) ([]*deployments.Deployment, error) {
+	ret := _m.Called(ctx, query)
 
 	var r0 []*deployments.Deployment
-	if rf, ok := ret.Get(0).(func(deployments.Query) []*deployments.Deployment); ok {
-		r0 = rf(query)
+	if rf, ok := ret.Get(0).(func(context.Context, deployments.Query) []*deployments.Deployment); ok {
+		r0 = rf(ctx, query)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*deployments.Deployment)
@@ -52,8 +53,8 @@ func (_m *DeploymentsStorage) Find(query deployments.Query) ([]*deployments.Depl
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(deployments.Query) error); ok {
-		r1 = rf(query)
+	if rf, ok := ret.Get(1).(func(context.Context, deployments.Query) error); ok {
+		r1 = rf(ctx, query)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -61,13 +62,13 @@ func (_m *DeploymentsStorage) Find(query deployments.Query) ([]*deployments.Depl
 	return r0, r1
 }
 
-// FindByID provides a mock function with given fields: id
-func (_m *DeploymentsStorage) FindByID(id string) (*deployments.Deployment, error) {
-	ret := _m.Called(id)
+// FindByID provides a mock function with given fields: ctx, id
+func (_m *DeploymentsStorage) FindByID(ctx context.Context, id string) (*deployments.Deployment, error) {
+	ret := _m.Called(ctx, id)
 
 	var r0 *deployments.Deployment
-	if rf, ok := ret.Get(0).(func(string) *deployments.Deployment); ok {
-		r0 = rf(id)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *deployments.Deployment); ok {
+		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*deployments.Deployment)
@@ -75,8 +76,8 @@ func (_m *DeploymentsStorage) FindByID(id string) (*deployments.Deployment, erro
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(id)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -84,13 +85,13 @@ func (_m *DeploymentsStorage) FindByID(id string) (*deployments.Deployment, erro
 	return r0, r1
 }
 
-// FindUnfinishedByID provides a mock function with given fields: id
-func (_m *DeploymentsStorage) FindUnfinishedByID(id string) (*deployments.Deployment, error) {
-	ret := _m.Called(id)
+// FindUnfinishedByID provides a mock function with given fields: ctx, id
+func (_m *DeploymentsStorage) FindUnfinishedByID(ctx context.Context, id string) (*deployments.Deployment, error) {
+	ret := _m.Called(ctx, id)
 
 	var r0 *deployments.Deployment
-	if rf, ok := ret.Get(0).(func(string) *deployments.Deployment); ok {
-		r0 = rf(id)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *deployments.Deployment); ok {
+		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*deployments.Deployment)
@@ -98,8 +99,8 @@ func (_m *DeploymentsStorage) FindUnfinishedByID(id string) (*deployments.Deploy
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(id)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -107,13 +108,13 @@ func (_m *DeploymentsStorage) FindUnfinishedByID(id string) (*deployments.Deploy
 	return r0, r1
 }
 
-// Finish provides a mock function with given fields: id, when
-func (_m *DeploymentsStorage) Finish(id string, when time.Time) error {
-	ret := _m.Called(id, when)
+// Finish provides a mock function with given fields: ctx, id, when
+func (_m *DeploymentsStorage) Finish(ctx context.Context, id string, when time.Time) error {
+	ret := _m.Called(ctx, id, when)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, time.Time) error); ok {
-		r0 = rf(id, when)
+	if rf, ok := ret.Get(0).(func(context.Context, string, time.Time) error); ok {
+		r0 = rf(ctx, id, when)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -121,13 +122,13 @@ func (_m *DeploymentsStorage) Finish(id string, when time.Time) error {
 	return r0
 }
 
-// Insert provides a mock function with given fields: deployment
-func (_m *DeploymentsStorage) Insert(deployment *deployments.Deployment) error {
-	ret := _m.Called(deployment)
+// Insert provides a mock function with given fields: ctx, deployment
+func (_m *DeploymentsStorage) Insert(ctx context.Context, deployment *deployments.Deployment) error {
+	ret := _m.Called(ctx, deployment)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*deployments.Deployment) error); ok {
-		r0 = rf(deployment)
+	if rf, ok := ret.Get(0).(func(context.Context, *deployments.Deployment) error); ok {
+		r0 = rf(ctx, deployment)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -135,13 +136,13 @@ func (_m *DeploymentsStorage) Insert(deployment *deployments.Deployment) error {
 	return r0
 }
 
-// UpdateStats provides a mock function with given fields: id, state_from, state_to
-func (_m *DeploymentsStorage) UpdateStats(id string, state_from string, state_to string) error {
-	ret := _m.Called(id, state_from, state_to)
+// UpdateStats provides a mock function with given fields: ctx, id, state_from, state_to
+func (_m *DeploymentsStorage) UpdateStats(ctx context.Context, id string, state_from string, state_to string) error {
+	ret := _m.Called(ctx, id, state_from, state_to)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
-		r0 = rf(id, state_from, state_to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+		r0 = rf(ctx, id, state_from, state_to)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -149,13 +150,13 @@ func (_m *DeploymentsStorage) UpdateStats(id string, state_from string, state_to
 	return r0
 }
 
-// UpdateStatsAndFinishDeployment provides a mock function with given fields: id, stats
-func (_m *DeploymentsStorage) UpdateStatsAndFinishDeployment(id string, stats deployments.Stats) error {
-	ret := _m.Called(id, stats)
+// UpdateStatsAndFinishDeployment provides a mock function with given fields: ctx, id, stats
+func (_m *DeploymentsStorage) UpdateStatsAndFinishDeployment(ctx context.Context, id string, stats deployments.Stats) error {
+	ret := _m.Called(ctx, id, stats)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, deployments.Stats) error); ok {
-		r0 = rf(id, stats)
+	if rf, ok := ret.Get(0).(func(context.Context, string, deployments.Stats) error); ok {
+		r0 = rf(ctx, id, stats)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -14,6 +14,7 @@
 
 package mocks
 
+import context "context"
 import deployments "github.com/mendersoftware/deployments/resources/deployments"
 import mock "github.com/stretchr/testify/mock"
 import model "github.com/mendersoftware/deployments/resources/deployments/model"
@@ -24,13 +25,13 @@ type DeviceDeploymentStorage struct {
 	mock.Mock
 }
 
-// AbortDeviceDeployments provides a mock function with given fields: deploymentID
-func (_m *DeviceDeploymentStorage) AbortDeviceDeployments(deploymentID string) error {
-	ret := _m.Called(deploymentID)
+// AbortDeviceDeployments provides a mock function with given fields: ctx, deploymentID
+func (_m *DeviceDeploymentStorage) AbortDeviceDeployments(ctx context.Context, deploymentID string) error {
+	ret := _m.Called(ctx, deploymentID)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(deploymentID)
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, deploymentID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -38,13 +39,13 @@ func (_m *DeviceDeploymentStorage) AbortDeviceDeployments(deploymentID string) e
 	return r0
 }
 
-// AggregateDeviceDeploymentByStatus provides a mock function with given fields: id
-func (_m *DeviceDeploymentStorage) AggregateDeviceDeploymentByStatus(id string) (deployments.Stats, error) {
-	ret := _m.Called(id)
+// AggregateDeviceDeploymentByStatus provides a mock function with given fields: ctx, id
+func (_m *DeviceDeploymentStorage) AggregateDeviceDeploymentByStatus(ctx context.Context, id string) (deployments.Stats, error) {
+	ret := _m.Called(ctx, id)
 
 	var r0 deployments.Stats
-	if rf, ok := ret.Get(0).(func(string) deployments.Stats); ok {
-		r0 = rf(id)
+	if rf, ok := ret.Get(0).(func(context.Context, string) deployments.Stats); ok {
+		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(deployments.Stats)
@@ -52,8 +53,8 @@ func (_m *DeviceDeploymentStorage) AggregateDeviceDeploymentByStatus(id string) 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(id)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -61,13 +62,13 @@ func (_m *DeviceDeploymentStorage) AggregateDeviceDeploymentByStatus(id string) 
 	return r0, r1
 }
 
-// DecommissionDeviceDeployments provides a mock function with given fields: deviceId
-func (_m *DeviceDeploymentStorage) DecommissionDeviceDeployments(deviceId string) error {
-	ret := _m.Called(deviceId)
+// DecommissionDeviceDeployments provides a mock function with given fields: ctx, deviceId
+func (_m *DeviceDeploymentStorage) DecommissionDeviceDeployments(ctx context.Context, deviceId string) error {
+	ret := _m.Called(ctx, deviceId)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(deviceId)
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, deviceId)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -75,20 +76,20 @@ func (_m *DeviceDeploymentStorage) DecommissionDeviceDeployments(deviceId string
 	return r0
 }
 
-// ExistAssignedImageWithIDAndStatuses provides a mock function with given fields: id, statuses
-func (_m *DeviceDeploymentStorage) ExistAssignedImageWithIDAndStatuses(id string, statuses ...string) (bool, error) {
-	ret := _m.Called(id, statuses)
+// ExistAssignedImageWithIDAndStatuses provides a mock function with given fields: ctx, id, statuses
+func (_m *DeviceDeploymentStorage) ExistAssignedImageWithIDAndStatuses(ctx context.Context, id string, statuses ...string) (bool, error) {
+	ret := _m.Called(ctx, id, statuses)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, ...string) bool); ok {
-		r0 = rf(id, statuses...)
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...string) bool); ok {
+		r0 = rf(ctx, id, statuses...)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, ...string) error); ok {
-		r1 = rf(id, statuses...)
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...string) error); ok {
+		r1 = rf(ctx, id, statuses...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -96,13 +97,13 @@ func (_m *DeviceDeploymentStorage) ExistAssignedImageWithIDAndStatuses(id string
 	return r0, r1
 }
 
-// FindAllDeploymentsForDeviceIDWithStatuses provides a mock function with given fields: deviceID, statuses
-func (_m *DeviceDeploymentStorage) FindAllDeploymentsForDeviceIDWithStatuses(deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error) {
-	ret := _m.Called(deviceID, statuses)
+// FindAllDeploymentsForDeviceIDWithStatuses provides a mock function with given fields: ctx, deviceID, statuses
+func (_m *DeviceDeploymentStorage) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error) {
+	ret := _m.Called(ctx, deviceID, statuses)
 
 	var r0 []deployments.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(string, ...string) []deployments.DeviceDeployment); ok {
-		r0 = rf(deviceID, statuses...)
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...string) []deployments.DeviceDeployment); ok {
+		r0 = rf(ctx, deviceID, statuses...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]deployments.DeviceDeployment)
@@ -110,8 +111,8 @@ func (_m *DeviceDeploymentStorage) FindAllDeploymentsForDeviceIDWithStatuses(dev
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, ...string) error); ok {
-		r1 = rf(deviceID, statuses...)
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...string) error); ok {
+		r1 = rf(ctx, deviceID, statuses...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -119,13 +120,13 @@ func (_m *DeviceDeploymentStorage) FindAllDeploymentsForDeviceIDWithStatuses(dev
 	return r0, r1
 }
 
-// FindOldestDeploymentForDeviceIDWithStatuses provides a mock function with given fields: deviceID, statuses
-func (_m *DeviceDeploymentStorage) FindOldestDeploymentForDeviceIDWithStatuses(deviceID string, statuses ...string) (*deployments.DeviceDeployment, error) {
-	ret := _m.Called(deviceID, statuses)
+// FindOldestDeploymentForDeviceIDWithStatuses provides a mock function with given fields: ctx, deviceID, statuses
+func (_m *DeviceDeploymentStorage) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...string) (*deployments.DeviceDeployment, error) {
+	ret := _m.Called(ctx, deviceID, statuses)
 
 	var r0 *deployments.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(string, ...string) *deployments.DeviceDeployment); ok {
-		r0 = rf(deviceID, statuses...)
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...string) *deployments.DeviceDeployment); ok {
+		r0 = rf(ctx, deviceID, statuses...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*deployments.DeviceDeployment)
@@ -133,8 +134,8 @@ func (_m *DeviceDeploymentStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, ...string) error); ok {
-		r1 = rf(deviceID, statuses...)
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...string) error); ok {
+		r1 = rf(ctx, deviceID, statuses...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -142,20 +143,20 @@ func (_m *DeviceDeploymentStorage) FindOldestDeploymentForDeviceIDWithStatuses(d
 	return r0, r1
 }
 
-// GetDeviceDeploymentStatus provides a mock function with given fields: deploymentID, deviceID
-func (_m *DeviceDeploymentStorage) GetDeviceDeploymentStatus(deploymentID string, deviceID string) (string, error) {
-	ret := _m.Called(deploymentID, deviceID)
+// GetDeviceDeploymentStatus provides a mock function with given fields: ctx, deploymentID, deviceID
+func (_m *DeviceDeploymentStorage) GetDeviceDeploymentStatus(ctx context.Context, deploymentID string, deviceID string) (string, error) {
+	ret := _m.Called(ctx, deploymentID, deviceID)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(string, string) string); ok {
-		r0 = rf(deploymentID, deviceID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
+		r0 = rf(ctx, deploymentID, deviceID)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(deploymentID, deviceID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, deploymentID, deviceID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -163,13 +164,13 @@ func (_m *DeviceDeploymentStorage) GetDeviceDeploymentStatus(deploymentID string
 	return r0, r1
 }
 
-// GetDeviceStatusesForDeployment provides a mock function with given fields: deploymentID
-func (_m *DeviceDeploymentStorage) GetDeviceStatusesForDeployment(deploymentID string) ([]deployments.DeviceDeployment, error) {
-	ret := _m.Called(deploymentID)
+// GetDeviceStatusesForDeployment provides a mock function with given fields: ctx, deploymentID
+func (_m *DeviceDeploymentStorage) GetDeviceStatusesForDeployment(ctx context.Context, deploymentID string) ([]deployments.DeviceDeployment, error) {
+	ret := _m.Called(ctx, deploymentID)
 
 	var r0 []deployments.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(string) []deployments.DeviceDeployment); ok {
-		r0 = rf(deploymentID)
+	if rf, ok := ret.Get(0).(func(context.Context, string) []deployments.DeviceDeployment); ok {
+		r0 = rf(ctx, deploymentID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]deployments.DeviceDeployment)
@@ -177,8 +178,8 @@ func (_m *DeviceDeploymentStorage) GetDeviceStatusesForDeployment(deploymentID s
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(deploymentID)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, deploymentID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -186,20 +187,20 @@ func (_m *DeviceDeploymentStorage) GetDeviceStatusesForDeployment(deploymentID s
 	return r0, r1
 }
 
-// HasDeploymentForDevice provides a mock function with given fields: deploymentID, deviceID
-func (_m *DeviceDeploymentStorage) HasDeploymentForDevice(deploymentID string, deviceID string) (bool, error) {
-	ret := _m.Called(deploymentID, deviceID)
+// HasDeploymentForDevice provides a mock function with given fields: ctx, deploymentID, deviceID
+func (_m *DeviceDeploymentStorage) HasDeploymentForDevice(ctx context.Context, deploymentID string, deviceID string) (bool, error) {
+	ret := _m.Called(ctx, deploymentID, deviceID)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, string) bool); ok {
-		r0 = rf(deploymentID, deviceID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+		r0 = rf(ctx, deploymentID, deviceID)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(deploymentID, deviceID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, deploymentID, deviceID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -207,13 +208,13 @@ func (_m *DeviceDeploymentStorage) HasDeploymentForDevice(deploymentID string, d
 	return r0, r1
 }
 
-// InsertMany provides a mock function with given fields: deployment
-func (_m *DeviceDeploymentStorage) InsertMany(deployment ...*deployments.DeviceDeployment) error {
-	ret := _m.Called(deployment)
+// InsertMany provides a mock function with given fields: ctx, deployment
+func (_m *DeviceDeploymentStorage) InsertMany(ctx context.Context, deployment ...*deployments.DeviceDeployment) error {
+	ret := _m.Called(ctx, deployment)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(...*deployments.DeviceDeployment) error); ok {
-		r0 = rf(deployment...)
+	if rf, ok := ret.Get(0).(func(context.Context, ...*deployments.DeviceDeployment) error); ok {
+		r0 = rf(ctx, deployment...)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -221,13 +222,13 @@ func (_m *DeviceDeploymentStorage) InsertMany(deployment ...*deployments.DeviceD
 	return r0
 }
 
-// UpdateDeviceDeploymentLogAvailability provides a mock function with given fields: deviceID, deploymentID, log
-func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentLogAvailability(deviceID string, deploymentID string, log bool) error {
-	ret := _m.Called(deviceID, deploymentID, log)
+// UpdateDeviceDeploymentLogAvailability provides a mock function with given fields: ctx, deviceID, deploymentID, log
+func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentLogAvailability(ctx context.Context, deviceID string, deploymentID string, log bool) error {
+	ret := _m.Called(ctx, deviceID, deploymentID, log)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, bool) error); ok {
-		r0 = rf(deviceID, deploymentID, log)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, bool) error); ok {
+		r0 = rf(ctx, deviceID, deploymentID, log)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -235,20 +236,20 @@ func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentLogAvailability(deviceI
 	return r0
 }
 
-// UpdateDeviceDeploymentStatus provides a mock function with given fields: deviceID, deploymentID, status, finishTime
-func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error) {
-	ret := _m.Called(deviceID, deploymentID, status, finishTime)
+// UpdateDeviceDeploymentStatus provides a mock function with given fields: ctx, deviceID, deploymentID, status, finishTime
+func (_m *DeviceDeploymentStorage) UpdateDeviceDeploymentStatus(ctx context.Context, deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error) {
+	ret := _m.Called(ctx, deviceID, deploymentID, status, finishTime)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(string, string, string, *time.Time) string); ok {
-		r0 = rf(deviceID, deploymentID, status, finishTime)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, *time.Time) string); ok {
+		r0 = rf(ctx, deviceID, deploymentID, status, finishTime)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, string, *time.Time) error); ok {
-		r1 = rf(deviceID, deploymentID, status, finishTime)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, *time.Time) error); ok {
+		r1 = rf(ctx, deviceID, deploymentID, status, finishTime)
 	} else {
 		r1 = ret.Error(1)
 	}
