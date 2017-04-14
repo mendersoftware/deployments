@@ -202,7 +202,7 @@ func (i *ImagesModel) DeleteImage(ctx context.Context, imageID string) error {
 		return controller.ErrImageMetaNotFound
 	}
 
-	inUse, err := i.deployments.ImageUsedInActiveDeployment(imageID)
+	inUse, err := i.deployments.ImageUsedInActiveDeployment(ctx, imageID)
 	if err != nil {
 		return errors.Wrap(err, "Checking if image is used in active deployment")
 	}
@@ -250,7 +250,7 @@ func (i *ImagesModel) EditImage(ctx context.Context, imageID string,
 		return false, errors.Wrap(err, "Validating image metadata")
 	}
 
-	found, err := i.deployments.ImageUsedInDeployment(imageID)
+	found, err := i.deployments.ImageUsedInDeployment(ctx, imageID)
 	if err != nil {
 		return false, errors.Wrap(err, "Searching for usage of the image among deployments")
 	}

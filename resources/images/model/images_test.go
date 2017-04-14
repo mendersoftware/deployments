@@ -308,11 +308,13 @@ type FakeUseChecker struct {
 	isUsedInDeployment         bool
 }
 
-func (fus *FakeUseChecker) ImageUsedInActiveDeployment(imageId string) (bool, error) {
+func (fus *FakeUseChecker) ImageUsedInActiveDeployment(ctx context.Context,
+	imageId string) (bool, error) {
+
 	return fus.isUsedInActiveDeployment, fus.usedInActiveDeploymentsErr
 }
 
-func (fus *FakeUseChecker) ImageUsedInDeployment(imageId string) (bool, error) {
+func (fus *FakeUseChecker) ImageUsedInDeployment(ctx context.Context, imageId string) (bool, error) {
 	return fus.isUsedInDeployment, fus.usedInDeploymentsErr
 }
 

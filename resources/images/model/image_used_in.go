@@ -14,8 +14,12 @@
 
 package model
 
+import (
+	"context"
+)
+
 // Allows to check of image is used in different deployment status groups
 type ImageUsedIn interface {
-	ImageUsedInActiveDeployment(imageId string) (bool, error)
-	ImageUsedInDeployment(imageId string) (bool, error)
+	ImageUsedInActiveDeployment(ctx context.Context, imageId string) (bool, error)
+	ImageUsedInDeployment(ctx context.Context, imageId string) (bool, error)
 }
