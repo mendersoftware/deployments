@@ -15,6 +15,8 @@
 package mongo
 
 import (
+	"context"
+
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
@@ -43,7 +45,9 @@ func NewDeviceDeploymentLogsStorage(session *mgo.Session) *DeviceDeploymentLogsS
 	}
 }
 
-func (d *DeviceDeploymentLogsStorage) SaveDeviceDeploymentLog(log deployments.DeploymentLog) error {
+func (d *DeviceDeploymentLogsStorage) SaveDeviceDeploymentLog(ctx context.Context,
+	log deployments.DeploymentLog) error {
+
 	if err := log.Validate(); err != nil {
 		return err
 	}
@@ -70,7 +74,9 @@ func (d *DeviceDeploymentLogsStorage) SaveDeviceDeploymentLog(log deployments.De
 	return nil
 }
 
-func (d *DeviceDeploymentLogsStorage) GetDeviceDeploymentLog(deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
+func (d *DeviceDeploymentLogsStorage) GetDeviceDeploymentLog(ctx context.Context,
+	deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
+
 	session := d.session.Copy()
 	defer session.Close()
 

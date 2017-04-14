@@ -15,6 +15,7 @@
 package mongo_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -77,7 +78,8 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 			session := db.Session()
 			store := NewDeviceDeploymentsStorage(session)
 
-			err := store.InsertMany(testCase.InputDeviceDeployment...)
+			err := store.InsertMany(context.Background(),
+				testCase.InputDeviceDeployment...)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -180,11 +182,12 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			store := NewDeviceDeploymentsStorage(session)
 
 			// deployments are created with status DeviceDeploymentStatusPending
-			err := store.InsertMany(testCase.InputDeviceDeployment...)
+			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
 
-			old, err := store.UpdateDeviceDeploymentStatus(testCase.InputDeviceID,
-				testCase.InputDeploymentID, testCase.InputStatus, testCase.InputFinishTime)
+			old, err := store.UpdateDeviceDeploymentStatus(context.Background(),
+				testCase.InputDeviceID, testCase.InputDeploymentID,
+				testCase.InputStatus, testCase.InputFinishTime)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -211,8 +214,11 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 					assert.Equal(t, testCase.OutputOldStatus, old)
 					// verify deployment finish time
 					if testCase.InputFinishTime != nil && assert.NotNil(t, deployment.Finished) {
-						// mongo might have trimmed our time a bit, let's check that we are within a 1s range
-						assert.WithinDuration(t, *testCase.InputFinishTime, *deployment.Finished, time.Second)
+						// mongo might have trimmed our
+						// time a bit, let's check that
+						// we are within a 1s range
+						assert.WithinDuration(t, *testCase.InputFinishTime,
+							*deployment.Finished, time.Second)
 					}
 				}
 			}
@@ -288,10 +294,10 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			store := NewDeviceDeploymentsStorage(session)
 
 			// deployments are created with status DeviceDeploymentStatusPending
-			err := store.InsertMany(testCase.InputDeviceDeployment...)
+			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
 
-			err = store.UpdateDeviceDeploymentLogAvailability(
+			err = store.UpdateDeviceDeploymentLogAvailability(context.Background(),
 				testCase.InputDeviceID, testCase.InputDeploymentID, testCase.InputLog)
 
 			if testCase.OutputError != nil {
@@ -390,10 +396,11 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 			session := db.Session()
 			store := NewDeviceDeploymentsStorage(session)
 
-			err := store.InsertMany(testCase.InputDeviceDeployment...)
+			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
 
-			stats, err := store.AggregateDeviceDeploymentByStatus(testCase.InputDeploymentID)
+			stats, err := store.AggregateDeviceDeploymentByStatus(context.Background(),
+				testCase.InputDeploymentID)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
@@ -430,7 +437,7 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 	session := db.Session()
 	store := NewDeviceDeploymentsStorage(session)
 
-	err := store.InsertMany(input...)
+	err := store.InsertMany(context.Background(), input...)
 	assert.NoError(t, err)
 
 	testCases :=
@@ -457,7 +464,8 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 	for testCaseName, tc := range testCases {
 		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
 
-			statuses, err := store.GetDeviceStatusesForDeployment(tc.inputDeploymentId)
+			statuses, err := store.GetDeviceStatusesForDeployment(context.Background(),
+				tc.inputDeploymentId)
 			assert.NoError(t, err)
 
 			assert.Equal(t, len(tc.outputStatuses), len(statuses))
@@ -488,7 +496,7 @@ func TestHasDeploymentForDevice(t *testing.T) {
 	session := db.Session()
 	store := NewDeviceDeploymentsStorage(session)
 
-	err := store.InsertMany(input...)
+	err := store.InsertMany(context.Background(), input...)
 	assert.NoError(t, err)
 
 	testCases := []struct {
@@ -527,7 +535,8 @@ func TestHasDeploymentForDevice(t *testing.T) {
 
 			t.Logf("testing case: %v %v %v %v", tc.deviceID, tc.deploymentID, tc.has, tc.err)
 
-			has, err := store.HasDeploymentForDevice(tc.deploymentID, tc.deviceID)
+			has, err := store.HasDeploymentForDevice(context.Background(),
+				tc.deploymentID, tc.deviceID)
 			if tc.err != nil {
 				assert.Error(t, err)
 				assert.EqualError(t, err, tc.err.Error())
@@ -559,7 +568,7 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 	session := db.Session()
 	store := NewDeviceDeploymentsStorage(session)
 
-	err := store.InsertMany(input...)
+	err := store.InsertMany(context.Background(), input...)
 	assert.NoError(t, err)
 
 	testCases := map[string]struct {
@@ -590,7 +599,8 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 
 			t.Logf("testing case: %v %v %v", tc.deviceID, tc.deploymentID, tc.status)
 
-			status, err := store.GetDeviceDeploymentStatus(tc.deploymentID, tc.deviceID)
+			status, err := store.GetDeviceDeploymentStatus(context.Background(),
+				tc.deploymentID, tc.deviceID)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.status, status)
 		})
@@ -633,10 +643,10 @@ func TestAbortDeviceDeployments(t *testing.T) {
 			session := db.Session()
 			store := NewDeviceDeploymentsStorage(session)
 
-			err := store.InsertMany(testCase.InputDeviceDeployment...)
+			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
 
-			err = store.AbortDeviceDeployments(testCase.InputDeploymentID)
+			err = store.AbortDeviceDeployments(context.Background(), testCase.InputDeploymentID)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -657,11 +667,13 @@ func TestAbortDeviceDeployments(t *testing.T) {
 				if testCase.OutputError != nil {
 					for _, deployment := range deploymentList {
 						// status must be unchanged in case of errors
-						assert.Equal(t, deployments.DeviceDeploymentStatusPending, *deployment.Status)
+						assert.Equal(t, deployments.DeviceDeploymentStatusPending,
+							*deployment.Status)
 					}
 				} else {
 					for _, deployment := range deploymentList {
-						assert.Equal(t, deployments.DeviceDeploymentStatusAborted, *deployment.Status)
+						assert.Equal(t, deployments.DeviceDeploymentStatusAborted,
+							*deployment.Status)
 					}
 				}
 			}
@@ -706,10 +718,10 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 			session := db.Session()
 			store := NewDeviceDeploymentsStorage(session)
 
-			err := store.InsertMany(testCase.InputDeviceDeployment...)
+			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
 
-			err = store.DecommissionDeviceDeployments(testCase.InputDeviceId)
+			err = store.DecommissionDeviceDeployments(context.Background(), testCase.InputDeviceId)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -730,11 +742,13 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 				if testCase.OutputError != nil {
 					for _, deployment := range deploymentList {
 						// status must be unchanged in case of errors
-						assert.Equal(t, deployments.DeviceDeploymentStatusPending, *deployment.Status)
+						assert.Equal(t, deployments.DeviceDeploymentStatusPending,
+							*deployment.Status)
 					}
 				} else {
 					for _, deployment := range deploymentList {
-						assert.Equal(t, deployments.DeviceDeploymentStatusDecommissioned, *deployment.Status)
+						assert.Equal(t, deployments.DeviceDeploymentStatusDecommissioned,
+							*deployment.Status)
 					}
 				}
 			}

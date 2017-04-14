@@ -15,6 +15,7 @@
 package mongo
 
 import (
+	"context"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -73,7 +74,7 @@ func (d *DeploymentsStorage) ensureIndexing(session *mgo.Session) error {
 }
 
 // return true if required indexing was set up
-func (d *DeploymentsStorage) hasIndexing(session *mgo.Session) bool {
+func (d *DeploymentsStorage) hasIndexing(ctx context.Context, session *mgo.Session) bool {
 	idxs, err := session.DB(DatabaseName).C(CollectionDeployments).Indexes()
 	if err != nil {
 		// check failed, assume indexing is not there
@@ -97,7 +98,7 @@ func (d *DeploymentsStorage) hasIndexing(session *mgo.Session) bool {
 }
 
 // Insert persists object
-func (d *DeploymentsStorage) Insert(deployment *deployments.Deployment) error {
+func (d *DeploymentsStorage) Insert(ctx context.Context, deployment *deployments.Deployment) error {
 
 	if deployment == nil {
 		return ErrDeploymentStorageInvalidDeployment
@@ -122,7 +123,7 @@ func (d *DeploymentsStorage) Insert(deployment *deployments.Deployment) error {
 
 // Delete removed entry by ID
 // Noop on ID not found
-func (d *DeploymentsStorage) Delete(id string) error {
+func (d *DeploymentsStorage) Delete(ctx context.Context, id string) error {
 
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
@@ -141,7 +142,7 @@ func (d *DeploymentsStorage) Delete(id string) error {
 	return nil
 }
 
-func (d *DeploymentsStorage) FindByID(id string) (*deployments.Deployment, error) {
+func (d *DeploymentsStorage) FindByID(ctx context.Context, id string) (*deployments.Deployment, error) {
 
 	if govalidator.IsNull(id) {
 		return nil, ErrStorageInvalidID
@@ -162,7 +163,8 @@ func (d *DeploymentsStorage) FindByID(id string) (*deployments.Deployment, error
 	return deployment, nil
 }
 
-func (d *DeploymentsStorage) FindUnfinishedByID(id string) (*deployments.Deployment, error) {
+func (d *DeploymentsStorage) FindUnfinishedByID(ctx context.Context,
+	id string) (*deployments.Deployment, error) {
 
 	if govalidator.IsNull(id) {
 		return nil, ErrStorageInvalidID
@@ -187,7 +189,9 @@ func (d *DeploymentsStorage) FindUnfinishedByID(id string) (*deployments.Deploym
 	return deployment, nil
 }
 
-func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(id string, stats deployments.Stats) error {
+func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(ctx context.Context,
+	id string, stats deployments.Stats) error {
+
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
 	}
@@ -222,7 +226,9 @@ func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(id string, stats dep
 	return err
 }
 
-func (d *DeploymentsStorage) UpdateStats(id string, state_from, state_to string) error {
+func (d *DeploymentsStorage) UpdateStats(ctx context.Context, id string,
+	state_from, state_to string) error {
+
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
 	}
@@ -379,7 +385,8 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 	return stq
 }
 
-func (d *DeploymentsStorage) Find(match deployments.Query) ([]*deployments.Deployment, error) {
+func (d *DeploymentsStorage) Find(ctx context.Context,
+	match deployments.Query) ([]*deployments.Deployment, error) {
 
 	session := d.session.Copy()
 	defer session.Close()
@@ -389,7 +396,7 @@ func (d *DeploymentsStorage) Find(match deployments.Query) ([]*deployments.Deplo
 	// build deployment by name part of the query
 	if match.SearchText != "" {
 		// we must have indexing for text search
-		if !d.hasIndexing(session) {
+		if !d.hasIndexing(ctx, session) {
 			return nil, ErrDeploymentStorageCannotExecQuery
 		}
 
@@ -425,7 +432,7 @@ func (d *DeploymentsStorage) Find(match deployments.Query) ([]*deployments.Deplo
 	return deployment, nil
 }
 
-func (d *DeploymentsStorage) Finish(id string, when time.Time) error {
+func (d *DeploymentsStorage) Finish(ctx context.Context, id string, when time.Time) error {
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
 	}
