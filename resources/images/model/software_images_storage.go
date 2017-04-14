@@ -15,6 +15,7 @@
 package model
 
 import (
+	"context"
 	"errors"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -31,11 +32,12 @@ var (
 
 // SoftwareImagesStorage allow to store and manage image.SoftwareImages
 type SoftwareImagesStorage interface {
-	Exists(id string) (bool, error)
-	Update(image *images.SoftwareImage) (bool, error)
-	Insert(image *images.SoftwareImage) error
-	FindByID(id string) (*images.SoftwareImage, error)
-	IsArtifactUnique(artifactName string, deviceTypesCompatible []string) (bool, error)
-	Delete(id string) error
-	FindAll() ([]*images.SoftwareImage, error)
+	Exists(ctx context.Context, id string) (bool, error)
+	Update(ctx context.Context, image *images.SoftwareImage) (bool, error)
+	Insert(ctx context.Context, image *images.SoftwareImage) error
+	FindByID(ctx context.Context, id string) (*images.SoftwareImage, error)
+	IsArtifactUnique(ctx context.Context, artifactName string,
+		deviceTypesCompatible []string) (bool, error)
+	Delete(ctx context.Context, id string) error
+	FindAll(ctx context.Context) ([]*images.SoftwareImage, error)
 }

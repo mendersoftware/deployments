@@ -15,6 +15,7 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -36,10 +37,14 @@ var (
 )
 
 type ImagesModel interface {
-	ListImages(filters map[string]string) ([]*images.SoftwareImage, error)
-	DownloadLink(imageID string, expire time.Duration) (*images.Link, error)
-	GetImage(id string) (*images.SoftwareImage, error)
-	DeleteImage(imageID string) error
-	CreateImage(multipartUploadMsg *MultipartUploadMsg) (string, error)
-	EditImage(id string, constructorData *images.SoftwareImageMetaConstructor) (bool, error)
+	ListImages(ctx context.Context,
+		filters map[string]string) ([]*images.SoftwareImage, error)
+	DownloadLink(ctx context.Context, imageID string,
+		expire time.Duration) (*images.Link, error)
+	GetImage(ctx context.Context, id string) (*images.SoftwareImage, error)
+	DeleteImage(ctx context.Context, imageID string) error
+	CreateImage(ctx context.Context,
+		multipartUploadMsg *MultipartUploadMsg) (string, error)
+	EditImage(ctx context.Context, id string,
+		constructorData *images.SoftwareImageMetaConstructor) (bool, error)
 }

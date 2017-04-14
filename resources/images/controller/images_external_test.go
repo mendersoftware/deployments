@@ -51,49 +51,11 @@ import (
 
 const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
 
-//TODO: replace with mocks subpackage usage
-type fakeImageModeler struct {
-	getImage          *images.SoftwareImage
-	getImageError     error
-	imagesList        []*images.SoftwareImage
-	listImagesError   error
-	downloadLink      *images.Link
-	downloadLinkError error
-	editImage         bool
-	editError         error
-	deleteError       error
-}
-
 type Part struct {
 	ContentType string
 	ImageData   []byte
 	FieldName   string
 	FieldValue  string
-}
-
-func (fim *fakeImageModeler) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
-	return fim.imagesList, fim.listImagesError
-}
-
-func (fim *fakeImageModeler) DownloadLink(imageID string, expire time.Duration) (*images.Link, error) {
-	return fim.downloadLink, fim.downloadLinkError
-}
-
-func (fim *fakeImageModeler) GetImage(id string) (*images.SoftwareImage, error) {
-	return fim.getImage, fim.getImageError
-}
-
-func (fim *fakeImageModeler) DeleteImage(imageID string) error {
-	return fim.deleteError
-}
-
-func (fim *fakeImageModeler) CreateImage(
-	multipartUploadMessge *MultipartUploadMsg) (string, error) {
-	return "", nil
-}
-
-func (fim *fakeImageModeler) EditImage(id string, metaConstructor *images.SoftwareImageMetaConstructor) (bool, error) {
-	return fim.editImage, fim.editError
 }
 
 type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.Route
@@ -113,7 +75,7 @@ func setUpRestTest(route string, routeType routerTypeHandler, handler func(w res
 }
 
 func TestControllerGetImage(t *testing.T) {
-	imagesModel := new(fakeImageModeler)
+	imagesModel := &mocks.ImagesModel{}
 	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Get, controller.GetImage)
@@ -125,22 +87,27 @@ func TestControllerGetImage(t *testing.T) {
 
 	//have correct id, but no image
 	id := uuid.NewV4().String()
+	imagesModel.On("GetImage", h.ContextMatcher(), id).
+		Return(nil, nil)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusNotFound)
 
 	//have correct id, but error getting image
-	imagesModel.getImageError = errors.New("error")
+	id = uuid.NewV4().String()
+	imagesModel.On("GetImage", h.ContextMatcher(), id).
+		Return(nil, errors.New("error"))
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	// have image, get OK
+	id = uuid.NewV4().String()
 	imageMeta := images.NewSoftwareImageMetaConstructor()
 	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
 	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
-	imagesModel.getImageError = nil
-	imagesModel.getImage = constructorImage
+	imagesModel.On("GetImage", h.ContextMatcher(), id).
+		Return(constructorImage, nil)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusOK)
@@ -153,23 +120,27 @@ func TestControllerGetImage(t *testing.T) {
 }
 
 func TestControllerListImages(t *testing.T) {
-	imagesModel := new(fakeImageModeler)
+	imagesModel := &mocks.ImagesModel{}
 	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images", rest.Get, controller.ListImages)
 
 	//getting list error
-	imagesModel.listImagesError = errors.New("error")
+	imagesModel.On("ListImages", h.ContextMatcher(), mock.Anything).
+		Return(nil, errors.New("error"))
 	recorded := test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images", nil))
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	//getting list OK
-	imagesModel.listImagesError = nil
+	imagesModel = &mocks.ImagesModel{}
+	controller = NewSoftwareImagesController(imagesModel, new(view.RESTView))
+	api = setUpRestTest("/api/0.0.1/images", rest.Get, controller.ListImages)
 	imageMeta := images.NewSoftwareImageMetaConstructor()
 	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
 	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
-	imagesModel.imagesList = append(imagesModel.imagesList, constructorImage)
+	imagesModel.On("ListImages", h.ContextMatcher(), mock.Anything).
+		Return([]*images.SoftwareImage{constructorImage}, nil)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images", nil))
 	recorded.CodeIs(http.StatusOK)
@@ -177,7 +148,7 @@ func TestControllerListImages(t *testing.T) {
 }
 
 func TestControllerDeleteImage(t *testing.T) {
-	imagesModel := new(fakeImageModeler)
+	imagesModel := &mocks.ImagesModel{}
 	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Delete, controller.DeleteImage)
@@ -193,14 +164,17 @@ func TestControllerDeleteImage(t *testing.T) {
 
 	// valid id; doesn't exist
 	id := uuid.NewV4().String()
-	imagesModel.deleteError = ErrImageMetaNotFound
+	imagesModel.On("DeleteImage", h.ContextMatcher(), id).
+		Return(ErrImageMetaNotFound)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("DELETE", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusNotFound)
 
 	// valid id; image exists
-	imagesModel.deleteError = nil
-	imagesModel.getImage = constructorImage
+	id = uuid.NewV4().String()
+	imagesModel.On("DeleteImage", h.ContextMatcher(), id).Return(nil)
+	imagesModel.On("GetImage", h.ContextMatcher(), id).
+		Return(constructorImage, nil)
 
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("DELETE", "http://localhost/api/0.0.1/images/"+id, nil))
@@ -209,7 +183,7 @@ func TestControllerDeleteImage(t *testing.T) {
 }
 
 func TestControllerEditImage(t *testing.T) {
-	imagesModel := new(fakeImageModeler)
+	imagesModel := &mocks.ImagesModel{}
 	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Put, controller.EditImage)
@@ -226,21 +200,27 @@ func TestControllerEditImage(t *testing.T) {
 	recorded.CodeIs(http.StatusBadRequest)
 
 	// correct id; correct payload; edit error
-	imagesModel.editError = errors.New("error")
+	id = uuid.NewV4().String()
+	imagesModel.On("EditImage", h.ContextMatcher(), id, mock.Anything).
+		Return(false, errors.New("error"))
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
 			map[string]string{"name": "myImage"}))
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	// correct id; correct payload; edit no image
-	imagesModel.editError = nil
+	id = uuid.NewV4().String()
+	imagesModel.On("EditImage", h.ContextMatcher(), id, mock.Anything).
+		Return(false, nil)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
 			map[string]string{"name": "myImage"}))
 	recorded.CodeIs(http.StatusNotFound)
 
 	// correct id; correct payload; have image
-	imagesModel.editImage = true
+	id = uuid.NewV4().String()
+	imagesModel.On("EditImage", h.ContextMatcher(), id, mock.Anything).
+		Return(true, nil)
 
 	req := test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
 		map[string]string{"name": "myImage"})
@@ -400,14 +380,17 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 
 		// Run each test case as individual subtest
 		t.Run(fmt.Sprintf("Test case number: %v", testCaseNumber+1), func(t *testing.T) {
-			model := new(mocks.ImagesModel)
+			model := &mocks.ImagesModel{}
 
-			model.On("CreateImage", mock.AnythingOfType("*controller.MultipartUploadMsg")).
+			model.On("CreateImage", h.ContextMatcher(),
+				mock.AnythingOfType("*controller.MultipartUploadMsg")).
 				Return(testCase.InputModelID, testCase.InputModelError)
 
-			api := setUpRestTest("/r", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).NewImage)
+			api := setUpRestTest("/r", rest.Post,
+				NewSoftwareImagesController(model, new(view.RESTView)).NewImage)
 
-			req := MakeMultipartRequest("POST", "http://localhost/r", testCase.InputContentType, testCase.InputBodyObject)
+			req := MakeMultipartRequest("POST", "http://localhost/r",
+				testCase.InputContentType, testCase.InputBodyObject)
 			req.Header.Add(requestid.RequestIdHeader, "test")
 			recorded := test.RunRequest(t, api.MakeHandler(), req)
 
@@ -541,12 +524,14 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		model := new(mocks.ImagesModel)
+		model := &mocks.ImagesModel{}
 
-		model.On("DownloadLink", testCase.InputID, mock.AnythingOfType("time.Duration")).
+		model.On("DownloadLink", h.ContextMatcher(),
+			testCase.InputID, mock.AnythingOfType("time.Duration")).
 			Return(testCase.InputModelLink, testCase.InputModelError)
 
-		api := setUpRestTest("/:id", rest.Post, NewSoftwareImagesController(model, new(view.RESTView)).DownloadLink)
+		api := setUpRestTest("/:id", rest.Post,
+			NewSoftwareImagesController(model, new(view.RESTView)).DownloadLink)
 
 		var expire string
 		if testCase.InputParamExpire != nil {

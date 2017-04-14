@@ -15,6 +15,7 @@
 package mongo_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -129,7 +130,8 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 
 			store := NewSoftwareImagesStorage(session)
-			img, err := store.ImageByNameAndDeviceType(tc.InputImageName, tc.InputDevType)
+			img, err := store.ImageByNameAndDeviceType(context.Background(),
+				tc.InputImageName, tc.InputDevType)
 
 			if tc.OutputError != nil {
 				assert.EqualError(t, err, tc.OutputError.Error())
@@ -217,7 +219,8 @@ func TestIsArtifactUnique(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 
 			store := NewSoftwareImagesStorage(session)
-			isUnique, err := store.IsArtifactUnique(tc.InputArtifactName, tc.InputDevTypes)
+			isUnique, err := store.IsArtifactUnique(context.Background(),
+				tc.InputArtifactName, tc.InputDevTypes)
 
 			if tc.OutputError != nil {
 				assert.EqualError(t, err, tc.OutputError.Error())

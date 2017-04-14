@@ -14,6 +14,7 @@
 
 package mocks
 
+import context "context"
 import images "github.com/mendersoftware/deployments/resources/images"
 import mock "github.com/stretchr/testify/mock"
 import model "github.com/mendersoftware/deployments/resources/deployments/model"
@@ -24,13 +25,13 @@ type GetRequester struct {
 	mock.Mock
 }
 
-// GetRequest provides a mock function with given fields: objectId, duration, responseContentType
-func (_m *GetRequester) GetRequest(objectId string, duration time.Duration, responseContentType string) (*images.Link, error) {
-	ret := _m.Called(objectId, duration, responseContentType)
+// GetRequest provides a mock function with given fields: ctx, objectId, duration, responseContentType
+func (_m *GetRequester) GetRequest(ctx context.Context, objectId string, duration time.Duration, responseContentType string) (*images.Link, error) {
+	ret := _m.Called(ctx, objectId, duration, responseContentType)
 
 	var r0 *images.Link
-	if rf, ok := ret.Get(0).(func(string, time.Duration, string) *images.Link); ok {
-		r0 = rf(objectId, duration, responseContentType)
+	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration, string) *images.Link); ok {
+		r0 = rf(ctx, objectId, duration, responseContentType)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*images.Link)
@@ -38,8 +39,8 @@ func (_m *GetRequester) GetRequest(objectId string, duration time.Duration, resp
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, time.Duration, string) error); ok {
-		r1 = rf(objectId, duration, responseContentType)
+	if rf, ok := ret.Get(1).(func(context.Context, string, time.Duration, string) error); ok {
+		r1 = rf(ctx, objectId, duration, responseContentType)
 	} else {
 		r1 = ret.Error(1)
 	}

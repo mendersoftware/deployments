@@ -25,7 +25,8 @@ import (
 )
 
 type ImageByNameAndDeviceTyper interface {
-	ImageByNameAndDeviceType(name, deviceType string) (*images.SoftwareImage, error)
+	ImageByNameAndDeviceType(ctx context.Context,
+		name, deviceType string) (*images.SoftwareImage, error)
 }
 
 type GetDeviceTyper interface {
@@ -55,7 +56,7 @@ func (d *ImageBasedDeviceDeployment) Generate(ctx context.Context, deviceID stri
 		return nil, errors.Wrap(err, "Checking device type")
 	}
 
-	image, err := d.images.ImageByNameAndDeviceType(*deployment.ArtifactName, deviceType)
+	image, err := d.images.ImageByNameAndDeviceType(ctx, *deployment.ArtifactName, deviceType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Assigning image targeted for device type")
 	}

@@ -11,18 +11,18 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-
-package model
+package testing
 
 import (
 	"context"
-	"time"
 
-	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/stretchr/testify/mock"
 )
 
-// Responsible for providing GET method requests to requested artifact
-type GetRequester interface {
-	GetRequest(ctx context.Context, objectId string,
-		duration time.Duration, responseContentType string) (*images.Link, error)
+// IsContext can be used as argument matcher for
+// github.com/stretchr/testify/mock compatible mocks
+func ContextMatcher() interface{} {
+	return mock.MatchedBy(func(c context.Context) bool {
+		return true
+	})
 }

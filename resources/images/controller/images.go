@@ -79,7 +79,7 @@ func (s *SoftwareImagesController) GetImage(w rest.ResponseWriter, r *rest.Reque
 		return
 	}
 
-	image, err := s.model.GetImage(id)
+	image, err := s.model.GetImage(r.Context(), id)
 	if err != nil {
 		s.view.RenderInternalError(w, r, err, l)
 		return
@@ -96,7 +96,7 @@ func (s *SoftwareImagesController) GetImage(w rest.ResponseWriter, r *rest.Reque
 func (s *SoftwareImagesController) ListImages(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r.Env)
 
-	list, err := s.model.ListImages(r.PathParams)
+	list, err := s.model.ListImages(r.Context(), r.PathParams)
 	if err != nil {
 		s.view.RenderInternalError(w, r, err, l)
 		return
@@ -121,7 +121,7 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 		return
 	}
 
-	link, err := s.model.DownloadLink(id, expire)
+	link, err := s.model.DownloadLink(r.Context(), id, expire)
 	if err != nil {
 		s.view.RenderInternalError(w, r, err, l)
 		return
@@ -184,7 +184,7 @@ func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Re
 		return
 	}
 
-	if err := s.model.DeleteImage(id); err != nil {
+	if err := s.model.DeleteImage(r.Context(), id); err != nil {
 		if err == ErrImageMetaNotFound {
 			s.view.RenderErrorNotFound(w, r, l)
 			return
@@ -212,7 +212,7 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 		return
 	}
 
-	found, err := s.model.EditImage(id, constructor)
+	found, err := s.model.EditImage(r.Context(), id, constructor)
 	if err != nil {
 		s.view.RenderInternalError(w, r, err, l)
 		return
@@ -263,7 +263,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 		return
 	}
 
-	imgID, err := s.model.CreateImage(multipartUploadMsg)
+	imgID, err := s.model.CreateImage(r.Context(), multipartUploadMsg)
 	cause := errors.Cause(err)
 	switch cause {
 	default:

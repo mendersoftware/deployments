@@ -15,6 +15,7 @@
 package s3
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -113,7 +114,7 @@ func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageServi
 
 // Delete removes delected file from storage.
 // Noop if ID does not exist.
-func (s *SimpleStorageService) Delete(objectID string) error {
+func (s *SimpleStorageService) Delete(ctx context.Context, objectID string) error {
 
 	params := &s3.DeleteObjectInput{
 		// Required
@@ -135,7 +136,7 @@ func (s *SimpleStorageService) Delete(objectID string) error {
 }
 
 // Exists check if selected object exists in the storage
-func (s *SimpleStorageService) Exists(objectID string) (bool, error) {
+func (s *SimpleStorageService) Exists(ctx context.Context, objectID string) (bool, error) {
 
 	params := &s3.ListObjectsInput{
 		// Required
@@ -166,7 +167,8 @@ func (s *SimpleStorageService) Exists(objectID string) (bool, error) {
 
 // UploadArtifact uploads given artifact into the file server (AWS S3 or minio)
 // using objectID as a key
-func (s *SimpleStorageService) UploadArtifact(objectID string, size int64, artifact io.Reader, contentType string) error {
+func (s *SimpleStorageService) UploadArtifact(ctx context.Context,
+	objectID string, size int64, artifact io.Reader, contentType string) error {
 
 	params := &s3.PutObjectInput{
 		// Required
@@ -202,7 +204,8 @@ func (s *SimpleStorageService) UploadArtifact(objectID string, size int64, artif
 }
 
 // PutRequest duration is limited to 7 days (AWS limitation)
-func (s *SimpleStorageService) PutRequest(objectID string, duration time.Duration) (*images.Link, error) {
+func (s *SimpleStorageService) PutRequest(ctx context.Context, objectID string,
+	duration time.Duration) (*images.Link, error) {
 
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
@@ -226,7 +229,8 @@ func (s *SimpleStorageService) PutRequest(objectID string, duration time.Duratio
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
-func (s *SimpleStorageService) GetRequest(objectID string, duration time.Duration, responseContentType string) (*images.Link, error) {
+func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
+	duration time.Duration, responseContentType string) (*images.Link, error) {
 
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
@@ -263,7 +267,7 @@ func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) er
 
 // LastModified returns last file modification time.
 // If object not found return ErrFileStorageFileNotFound
-func (s *SimpleStorageService) LastModified(objectID string) (time.Time, error) {
+func (s *SimpleStorageService) LastModified(ctx context.Context, objectID string) (time.Time, error) {
 
 	params := &s3.ListObjectsInput{
 		// Required

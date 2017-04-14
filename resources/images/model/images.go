@@ -15,6 +15,7 @@
 package model
 
 import (
+	"context"
 	"io"
 	"io/ioutil"
 	"time"
@@ -54,7 +55,9 @@ func NewImagesModel(
 // CreateImage parses artifact and uploads artifact file to the file storage - in parallel,
 // and creates image structure in the system.
 // Returns image ID and nil on success.
-func (i *ImagesModel) CreateImage(multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
+func (i *ImagesModel) CreateImage(ctx context.Context,
+	multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
+
 	// maximum image size is 10G
 	const MaxImageSize = 1024 * 1024 * 1024 * 10
 
@@ -69,10 +72,11 @@ func (i *ImagesModel) CreateImage(multipartUploadMsg *controller.MultipartUpload
 		return "", controller.ErrModelArtifactFileTooLarge
 	}
 
-	artifactID, err := i.handleArtifact(multipartUploadMsg)
+	artifactID, err := i.handleArtifact(ctx, multipartUploadMsg)
 	// try to remove artifact file from file storage on error
 	if err != nil {
-		if cleanupErr := i.fileStorage.Delete(artifactID); cleanupErr != nil {
+		if cleanupErr := i.fileStorage.Delete(ctx,
+			artifactID); cleanupErr != nil {
 			return "", errors.Wrap(err, cleanupErr.Error())
 		}
 	}
@@ -82,7 +86,7 @@ func (i *ImagesModel) CreateImage(multipartUploadMsg *controller.MultipartUpload
 // handleArtifact parses artifact and uploads artifact file to the file storage - in parallel,
 // and creates image structure in the system.
 // Returns image ID, artifact file ID and nil on success.
-func (i *ImagesModel) handleArtifact(
+func (i *ImagesModel) handleArtifact(ctx context.Context,
 	multipartUploadMsg *controller.MultipartUploadMsg) (string, error) {
 
 	// create pipe
@@ -102,7 +106,7 @@ func (i *ImagesModel) handleArtifact(
 	//
 	// uploading and parsing artifact in the same process will cause in a deadlock!
 	go func() {
-		err := i.fileStorage.UploadArtifact(
+		err := i.fileStorage.UploadArtifact(ctx,
 			artifactID, multipartUploadMsg.ArtifactSize, pR, ArtifactContentType)
 		if err != nil {
 			pR.CloseWithError(err)
@@ -146,7 +150,7 @@ func (i *ImagesModel) handleArtifact(
 	// check if artifact is unique
 	// artifact is considered to be unique if there is no artifact with the same name
 	// and supporing the same platform in the system
-	isArtifactUnique, err := i.imagesStorage.IsArtifactUnique(
+	isArtifactUnique, err := i.imagesStorage.IsArtifactUnique(ctx,
 		metaArtifactConstructor.Name, metaArtifactConstructor.DeviceTypesCompatible)
 	if err != nil {
 		return "", errors.Wrap(err, "Fail to check if artifact is unique")
@@ -159,7 +163,7 @@ func (i *ImagesModel) handleArtifact(
 		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor)
 
 	// save image structure in the system
-	if err = i.imagesStorage.Insert(image); err != nil {
+	if err = i.imagesStorage.Insert(ctx, image); err != nil {
 		return "", errors.Wrap(err, "Fail to store the metadata")
 	}
 
@@ -168,9 +172,9 @@ func (i *ImagesModel) handleArtifact(
 
 // GetImage allows to fetch image obeject with specified id
 // Nil if not found
-func (i *ImagesModel) GetImage(id string) (*images.SoftwareImage, error) {
+func (i *ImagesModel) GetImage(ctx context.Context, id string) (*images.SoftwareImage, error) {
 
-	image, err := i.imagesStorage.FindByID(id)
+	image, err := i.imagesStorage.FindByID(ctx, id)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image with specified ID")
 	}
@@ -187,8 +191,8 @@ func (i *ImagesModel) GetImage(id string) (*images.SoftwareImage, error) {
 // Allowed to remove image only if image is not scheduled or in progress for an updates - then image file is needed
 // In case of already finished updates only image file is not needed, metadata is attached directly to device deployment
 // therefore we still have some information about image that have been used (but not the file)
-func (i *ImagesModel) DeleteImage(imageID string) error {
-	found, err := i.GetImage(imageID)
+func (i *ImagesModel) DeleteImage(ctx context.Context, imageID string) error {
+	found, err := i.GetImage(ctx, imageID)
 
 	if err != nil {
 		return errors.Wrap(err, "Getting image metadata")
@@ -210,12 +214,12 @@ func (i *ImagesModel) DeleteImage(imageID string) error {
 
 	// Delete image file (call to external service)
 	// Noop for not existing file
-	if err := i.fileStorage.Delete(imageID); err != nil {
+	if err := i.fileStorage.Delete(ctx, imageID); err != nil {
 		return errors.Wrap(err, "Deleting image file")
 	}
 
 	// Delete metadata
-	if err := i.imagesStorage.Delete(imageID); err != nil {
+	if err := i.imagesStorage.Delete(ctx, imageID); err != nil {
 		return errors.Wrap(err, "Deleting image metadata")
 	}
 
@@ -223,9 +227,10 @@ func (i *ImagesModel) DeleteImage(imageID string) error {
 }
 
 // ListImages according to specified filers.
-func (i *ImagesModel) ListImages(filters map[string]string) ([]*images.SoftwareImage, error) {
+func (i *ImagesModel) ListImages(ctx context.Context,
+	filters map[string]string) ([]*images.SoftwareImage, error) {
 
-	imageList, err := i.imagesStorage.FindAll()
+	imageList, err := i.imagesStorage.FindAll(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image metadata")
 	}
@@ -238,7 +243,8 @@ func (i *ImagesModel) ListImages(filters map[string]string) ([]*images.SoftwareI
 }
 
 // EditObject allows editing only if image have not been used yet in any deployment.
-func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImageMetaConstructor) (bool, error) {
+func (i *ImagesModel) EditImage(ctx context.Context, imageID string,
+	constructor *images.SoftwareImageMetaConstructor) (bool, error) {
 
 	if err := constructor.Validate(); err != nil {
 		return false, errors.Wrap(err, "Validating image metadata")
@@ -253,7 +259,7 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 		return false, controller.ErrModelImageUsedInAnyDeployment
 	}
 
-	foundImage, err := i.imagesStorage.FindByID(imageID)
+	foundImage, err := i.imagesStorage.FindByID(ctx, imageID)
 	if err != nil {
 		return false, errors.Wrap(err, "Searching for image with specified ID")
 	}
@@ -265,7 +271,7 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 	foundImage.SetModified(time.Now())
 	foundImage.SoftwareImageMetaConstructor = *constructor
 
-	_, err = i.imagesStorage.Update(foundImage)
+	_, err = i.imagesStorage.Update(ctx, foundImage)
 	if err != nil {
 		return false, errors.Wrap(err, "Updating image matadata")
 	}
@@ -275,9 +281,10 @@ func (i *ImagesModel) EditImage(imageID string, constructor *images.SoftwareImag
 
 // DownloadLink presigned GET link to download image file.
 // Returns error if image have not been uploaded.
-func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*images.Link, error) {
+func (i *ImagesModel) DownloadLink(ctx context.Context, imageID string,
+	expire time.Duration) (*images.Link, error) {
 
-	found, err := i.imagesStorage.Exists(imageID)
+	found, err := i.imagesStorage.Exists(ctx, imageID)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image with specified ID")
 	}
@@ -286,7 +293,7 @@ func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*image
 		return nil, nil
 	}
 
-	found, err = i.fileStorage.Exists(imageID)
+	found, err = i.fileStorage.Exists(ctx, imageID)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image file")
 	}
@@ -295,7 +302,8 @@ func (i *ImagesModel) DownloadLink(imageID string, expire time.Duration) (*image
 		return nil, nil
 	}
 
-	link, err := i.fileStorage.GetRequest(imageID, expire, ArtifactContentType)
+	link, err := i.fileStorage.GetRequest(ctx, imageID,
+		expire, ArtifactContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
 	}
