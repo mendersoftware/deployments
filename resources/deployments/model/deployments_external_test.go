@@ -68,7 +68,9 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
 			deploymentStorage := new(mocks.DeploymentsStorage)
-			deploymentStorage.On("FindByID", testCase.InputDeploymentID).
+			deploymentStorage.On("FindByID",
+				h.ContextMatcher(),
+				testCase.InputDeploymentID).
 				Return(testCase.InoutFindByIDDeployment, testCase.InoutFindByIDError)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{DeploymentsStorage: deploymentStorage})
@@ -123,7 +125,9 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
-			deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
+			deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses",
+				h.ContextMatcher(),
+				testCase.InputID, mock.AnythingOfType("[]string")).
 				Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
 					testCase.InputExistAssignedImageWithIDAndStatusesError)
 
@@ -180,7 +184,9 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
-			deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses", testCase.InputID, mock.AnythingOfType("[]string")).
+			deviceDeploymentStorage.On("ExistAssignedImageWithIDAndStatuses",
+				h.ContextMatcher(),
+				testCase.InputID, mock.AnythingOfType("[]string")).
 				Return(testCase.InputImageUsedInDeploymentFound,
 					testCase.InputImageUsedInDeploymentError)
 
@@ -296,6 +302,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 			deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses",
+				h.ContextMatcher(),
 				testCase.InputID, mock.AnythingOfType("[]string")).
 				Return(testCase.InputOlderstDeviceDeployment,
 					testCase.InputOlderstDeviceDeploymentError)
@@ -304,10 +311,12 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			// will be already-installed
 
 			deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
+				h.ContextMatcher(),
 				mock.AnythingOfType("string"), mock.AnythingOfType("string"),
 				deployments.DeviceDeploymentStatusAlreadyInst, mock.AnythingOfType("*time.Time")).
 				Return("dontcare", nil)
 			deviceDeploymentStorage.On("GetDeviceDeploymentStatus",
+				h.ContextMatcher(),
 				mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 				Return("dontcare", nil)
 
@@ -328,12 +337,14 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				// as device deployment one), deployment will have its
 				// statistics updated
 				deploymentStorage.On("UpdateStats",
+					h.ContextMatcher(),
 					*testCase.InputOlderstDeviceDeployment.DeploymentId,
 					mock.AnythingOfType("string"),
 					deployments.DeviceDeploymentStatusAlreadyInst).
 					Return(nil)
 
 				deploymentStorage.On("FindByID",
+					h.ContextMatcher(),
 					*testCase.InputOlderstDeviceDeployment.DeploymentId).
 					Return(&deployments.Deployment{
 						Id:    testCase.InputOlderstDeviceDeployment.DeploymentId,
@@ -343,6 +354,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				// if deployment is found to be finished, we need to
 				// mock another call
 				deploymentStorage.On("Finish",
+					h.ContextMatcher(),
 					*testCase.InputOlderstDeviceDeployment.DeploymentId,
 					mock.AnythingOfType("time.Time")).
 					Return(nil)
@@ -474,13 +486,19 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				Return(testCase.InputGenerateDeviceDeployment, testCase.InputGenerateError)
 
 			deploymentStorage := new(mocks.DeploymentsStorage)
-			deploymentStorage.On("Insert", mock.AnythingOfType("*deployments.Deployment")).
+			deploymentStorage.On("Insert",
+				h.ContextMatcher(),
+				mock.AnythingOfType("*deployments.Deployment")).
 				Return(testCase.InputDeploymentStorageInsertError)
-			deploymentStorage.On("Delete", mock.AnythingOfType("string")).
+			deploymentStorage.On("Delete",
+				h.ContextMatcher(),
+				mock.AnythingOfType("string")).
 				Return(testCase.InputDeploymentStorageDeleteError)
 
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
-			deviceDeploymentStorage.On("InsertMany", mock.AnythingOfType("[]*deployments.DeviceDeployment")).
+			deviceDeploymentStorage.On("InsertMany",
+				h.ContextMatcher(),
+				mock.AnythingOfType("[]*deployments.DeviceDeployment")).
 				Return(testCase.InputDeviceDeploymentStorageInsertManyError)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{
@@ -647,24 +665,29 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 			deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
+				h.ContextMatcher(),
 				testCase.InputDeviceID, *testCase.InputDeployment.Id,
 				testCase.InputStatus, mock.AnythingOfType("*time.Time")).
 				Return("dontcare", testCase.InputDevsStorageError)
 			deviceDeploymentStorage.On("GetDeviceDeploymentStatus",
+				h.ContextMatcher(),
 				*testCase.InputDeployment.Id, testCase.InputDeviceID).
 				Return(testCase.OldStatus, testCase.InputDevsStorageError)
 
 			deploymentStorage := new(mocks.DeploymentsStorage)
 			deploymentStorage.On("UpdateStats",
+				h.ContextMatcher(),
 				*testCase.InputDeployment.Id, mock.AnythingOfType("string"),
 				mock.AnythingOfType("string")).
 				Return(testCase.InputDepsStorageError)
 			// deployment will be marked as finished when possible, for this we need to
 			// mock a couple of additional calls
 			deploymentStorage.On("FindByID",
+				h.ContextMatcher(),
 				*testCase.InputDeployment.Id).
 				Return(testCase.InputDeployment, testCase.InputDepsFindError)
 			deploymentStorage.On("Finish",
+				h.ContextMatcher(),
 				*testCase.InputDeployment.Id, mock.AnythingOfType("time.Time")).
 				Return(testCase.InputDepsFinishError)
 
@@ -684,7 +707,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 				if deployments.IsDeviceDeploymentStatusFinished(testCase.InputStatus) {
 					// verify that device deployment finish time was passed, finish time is
 					// passed as 4th argument to UpdateDeviceDeploymentStatus
-					ft, ok := deviceDeploymentStorage.Calls[1].Arguments.Get(3).(*time.Time)
+					ft, ok := deviceDeploymentStorage.Calls[1].Arguments.Get(4).(*time.Time)
 					assert.True(t, ok)
 					assert.WithinDuration(t, time.Now(), *ft, time.Second)
 				}
@@ -692,10 +715,12 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 				// check that Finish was called
 				if testCase.isFinished {
 					deploymentStorage.AssertCalled(t, "Finish",
+						h.ContextMatcher(),
 						*testCase.InputDeployment.Id, mock.AnythingOfType("time.Time"))
 				} else {
 
 					deploymentStorage.AssertNotCalled(t, "Finish",
+						h.ContextMatcher(),
 						*testCase.InputDeployment.Id, mock.AnythingOfType("time.Time"))
 				}
 			}
@@ -782,11 +807,14 @@ func TestGetDeploymentStats(t *testing.T) {
 
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 			deviceDeploymentStorage.On("AggregateDeviceDeploymentByStatus",
+				h.ContextMatcher(),
 				testCase.InputDeploymentID).
 				Return(testCase.InputModelDeploymentStats, testCase.InputModelError)
 
 			deploymentStorage := new(mocks.DeploymentsStorage)
-			deploymentStorage.On("FindByID", testCase.InputDeploymentID).
+			deploymentStorage.On("FindByID",
+				h.ContextMatcher(),
+				testCase.InputDeploymentID).
 				Return(testCase.InoutFindByIDDeployment, testCase.InoutFindByIDError)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{
@@ -879,12 +907,13 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 
 			devsDb := new(mocks.DeviceDeploymentStorage)
 
-			devsDb.On("GetDeviceStatusesForDeployment", tc.inDeploymentId).
+			devsDb.On("GetDeviceStatusesForDeployment",
+				h.ContextMatcher(), tc.inDeploymentId).
 				Return(tc.devsStorageStatuses, tc.devsStorageErr)
 
 			depsDb := new(mocks.DeploymentsStorage)
 
-			depsDb.On("FindByID", tc.inDeploymentId).
+			depsDb.On("FindByID", h.ContextMatcher(), tc.inDeploymentId).
 				Return(tc.depsStorageDeployment, tc.depsStorageErr)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{
@@ -982,8 +1011,9 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 			t.Logf("testing %s %s %s %v", testCase.InputDeploymentID, testCase.InputDeviceID,
 				testCase.InputLog, testCase.InputModelError)
 
-			deviceDeploymentLogStorage := new(mocks.DeviceDeploymentLogStorage)
+			deviceDeploymentLogStorage := new(mocks.DeviceDeploymentLogsStorage)
 			deviceDeploymentLogStorage.On("SaveDeviceDeploymentLog",
+				h.ContextMatcher(),
 				deployments.DeploymentLog{
 					DeviceID:     testCase.InputDeviceID,
 					DeploymentID: testCase.InputDeploymentID,
@@ -993,9 +1023,11 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 			deviceDeploymentStorage.On("HasDeploymentForDevice",
+				h.ContextMatcher(),
 				testCase.InputDeploymentID, testCase.InputDeviceID).
 				Return(testCase.InputHasDeployment, testCase.InputHasModelError)
 			deviceDeploymentStorage.On("UpdateDeviceDeploymentLogAvailability",
+				h.ContextMatcher(),
 				testCase.InputDeviceID, testCase.InputDeploymentID, true).
 				Return(testCase.InputUpdateLogError)
 
@@ -1045,7 +1077,8 @@ func TestDeploymentModelLookupDeployment(t *testing.T) {
 		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
 
 			deploymentStorage := new(mocks.DeploymentsStorage)
-			deploymentStorage.On("Find", mock.AnythingOfType("deployments.Query")).
+			deploymentStorage.On("Find",
+				h.ContextMatcher(), mock.AnythingOfType("deployments.Query")).
 				Return(testCase.MockDeployments, testCase.MockError)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{DeploymentsStorage: deploymentStorage})
@@ -1096,7 +1129,8 @@ func TestDeploymentModelIsDeploymentFinished(t *testing.T) {
 		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
 
 			deploymentStorage := new(mocks.DeploymentsStorage)
-			deploymentStorage.On("FindUnfinishedByID", mock.AnythingOfType("string")).
+			deploymentStorage.On("FindUnfinishedByID",
+				h.ContextMatcher(), mock.AnythingOfType("string")).
 				Return(testCase.MockDeployment, testCase.MockError)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{DeploymentsStorage: deploymentStorage})
@@ -1154,11 +1188,16 @@ func TestDeploymentModelAbortDeployment(t *testing.T) {
 
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 			deploymentStorage := new(mocks.DeploymentsStorage)
-			deviceDeploymentStorage.On("AbortDeviceDeployments", mock.AnythingOfType("string")).
+			deviceDeploymentStorage.On("AbortDeviceDeployments",
+				h.ContextMatcher(), mock.AnythingOfType("string")).
 				Return(testCase.AbortDeviceDeploymentsError)
-			deviceDeploymentStorage.On("AggregateDeviceDeploymentByStatus", mock.AnythingOfType("string")).
-				Return(testCase.AggregateDeviceDeploymentByStatusStats, testCase.AggregateDeviceDeploymentByStatusError)
-			deploymentStorage.On("UpdateStatsAndFinishDeployment", mock.AnythingOfType("string"), mock.AnythingOfType("deployments.Stats")).
+			deviceDeploymentStorage.On("AggregateDeviceDeploymentByStatus",
+				h.ContextMatcher(), mock.AnythingOfType("string")).
+				Return(testCase.AggregateDeviceDeploymentByStatusStats,
+					testCase.AggregateDeviceDeploymentByStatusError)
+			deploymentStorage.On("UpdateStatsAndFinishDeployment",
+				h.ContextMatcher(), mock.AnythingOfType("string"),
+				mock.AnythingOfType("deployments.Stats")).
 				Return(testCase.UpdateStatsAndFinishDeploymentError)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{
@@ -1223,16 +1262,22 @@ func TestDeploymentModelDecommissionDevice(t *testing.T) {
 
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 			deploymentStorage := new(mocks.DeploymentsStorage)
-			deviceDeploymentStorage.On("DecommissionDeviceDeployments", mock.AnythingOfType("string")).
+			deviceDeploymentStorage.On("DecommissionDeviceDeployments",
+				h.ContextMatcher(), mock.AnythingOfType("string")).
 				Return(testCase.DecommissionDeviceDeploymentsError)
 			deviceDeploymentStorage.On("FindAllDeploymentsForDeviceIDWithStatuses",
+				h.ContextMatcher(),
 				mock.AnythingOfType("string"),
 				mock.AnythingOfType("[]string")).
 				Return(testCase.FindAllDeploymentsForDeviceIDWithStatusesDeployments,
 					testCase.FindAllDeploymentsForDeviceIDWithStatusesError)
-			deviceDeploymentStorage.On("AggregateDeviceDeploymentByStatus", mock.AnythingOfType("string")).
-				Return(testCase.AggregateDeviceDeploymentByStatusStats, testCase.AggregateDeviceDeploymentByStatusError)
-			deploymentStorage.On("UpdateStatsAndFinishDeployment", mock.AnythingOfType("string"), mock.AnythingOfType("deployments.Stats")).
+			deviceDeploymentStorage.On("AggregateDeviceDeploymentByStatus",
+				h.ContextMatcher(), mock.AnythingOfType("string")).
+				Return(testCase.AggregateDeviceDeploymentByStatusStats,
+					testCase.AggregateDeviceDeploymentByStatusError)
+			deploymentStorage.On("UpdateStatsAndFinishDeployment",
+				h.ContextMatcher(), mock.AnythingOfType("string"),
+				mock.AnythingOfType("deployments.Stats")).
 				Return(testCase.UpdateStatsAndFinishDeploymentError)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{
