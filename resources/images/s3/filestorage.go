@@ -196,8 +196,12 @@ func (s *SimpleStorageService) UploadArtifact(ctx context.Context,
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("Artifact upload failed: " + resp.Status)
+		err = getS3Error(resp)
+		return errors.Wrapf(err,
+			"Artifact upload failed with HTTP status %v", resp.Status)
 	}
 
 	return nil
