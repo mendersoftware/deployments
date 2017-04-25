@@ -196,6 +196,8 @@ func (s *SimpleStorageService) UploadArtifact(ctx context.Context,
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("Artifact upload failed: " + resp.Status)
 	}
