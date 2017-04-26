@@ -17,6 +17,7 @@ package mongo
 import (
 	"context"
 
+	"github.com/mendersoftware/go-lib-micro/store"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
@@ -67,7 +68,8 @@ func (d *DeviceDeploymentLogsStorage) SaveDeviceDeploymentLog(ctx context.Contex
 			StorageKeyDeviceDeploymentLogMessages: log.Messages,
 		},
 	}
-	if _, err := session.DB(DatabaseName).C(CollectionDeviceDeploymentLogs).Upsert(query, update); err != nil {
+	if _, err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeviceDeploymentLogs).Upsert(query, update); err != nil {
 		return err
 	}
 
@@ -86,8 +88,8 @@ func (d *DeviceDeploymentLogsStorage) GetDeviceDeploymentLog(ctx context.Context
 	}
 
 	var depl deployments.DeploymentLog
-	if err := session.DB(DatabaseName).C(CollectionDeviceDeploymentLogs).
-		Find(query).One(&depl); err != nil {
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeviceDeploymentLogs).Find(query).One(&depl); err != nil {
 		if err == mgo.ErrNotFound {
 			return nil, nil
 		}

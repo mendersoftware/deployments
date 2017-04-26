@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -68,14 +69,16 @@ func NewDeploymentsStorage(session *mgo.Session) *DeploymentsStorage {
 	}
 }
 
-func (d *DeploymentsStorage) ensureIndexing(session *mgo.Session) error {
-	return session.DB(DatabaseName).C(CollectionDeployments).
+func (d *DeploymentsStorage) ensureIndexing(ctx context.Context, session *mgo.Session) error {
+	return session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).
 		EnsureIndexKey(StorageIndexes...)
 }
 
 // return true if required indexing was set up
 func (d *DeploymentsStorage) hasIndexing(ctx context.Context, session *mgo.Session) bool {
-	idxs, err := session.DB(DatabaseName).C(CollectionDeployments).Indexes()
+	idxs, err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).Indexes()
 	if err != nil {
 		// check failed, assume indexing is not there
 		return false
@@ -111,11 +114,12 @@ func (d *DeploymentsStorage) Insert(ctx context.Context, deployment *deployments
 	session := d.session.Copy()
 	defer session.Close()
 
-	if err := d.ensureIndexing(session); err != nil {
+	if err := d.ensureIndexing(ctx, session); err != nil {
 		return err
 	}
 
-	if err := session.DB(DatabaseName).C(CollectionDeployments).Insert(deployment); err != nil {
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).Insert(deployment); err != nil {
 		return err
 	}
 	return nil
@@ -132,7 +136,8 @@ func (d *DeploymentsStorage) Delete(ctx context.Context, id string) error {
 	session := d.session.Copy()
 	defer session.Close()
 
-	if err := session.DB(DatabaseName).C(CollectionDeployments).RemoveId(id); err != nil {
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).RemoveId(id); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return nil
 		}
@@ -152,8 +157,8 @@ func (d *DeploymentsStorage) FindByID(ctx context.Context, id string) (*deployme
 	defer session.Close()
 
 	var deployment *deployments.Deployment
-	if err := session.DB(DatabaseName).C(CollectionDeployments).
-		FindId(id).One(&deployment); err != nil {
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).FindId(id).One(&deployment); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return nil, nil
 		}
@@ -178,8 +183,8 @@ func (d *DeploymentsStorage) FindUnfinishedByID(ctx context.Context,
 		"_id": id,
 		StorageKeyDeploymentFinished: time.Time{},
 	}
-	if err := session.DB(DatabaseName).C(CollectionDeployments).
-		Find(filter).One(&deployment); err != nil {
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).Find(filter).One(&deployment); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return nil, nil
 		}
@@ -218,7 +223,8 @@ func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(ctx context.Context,
 		}
 	}
 
-	err := session.DB(DatabaseName).C(CollectionDeployments).UpdateId(id, update)
+	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).UpdateId(id, update)
 	if err == mgo.ErrNotFound {
 		return ErrStorageInvalidID
 	}
@@ -258,7 +264,8 @@ func (d *DeploymentsStorage) UpdateStats(ctx context.Context, id string,
 		},
 	}
 
-	err := session.DB(DatabaseName).C(CollectionDeployments).UpdateId(id, update)
+	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).UpdateId(id, update)
 
 	if err == mgo.ErrNotFound {
 		return ErrStorageInvalidID
@@ -423,8 +430,11 @@ func (d *DeploymentsStorage) Find(ctx context.Context,
 		}
 	}
 	var deployment []*deployments.Deployment
-	err := session.DB(DatabaseName).C(CollectionDeployments).
-		Find(&query).Skip(match.Skip).Limit(match.Limit).Sort("_id").All(&deployment)
+	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).
+		Find(&query).Skip(match.Skip).
+		Limit(match.Limit).Sort("_id").
+		All(&deployment)
 	if err != nil {
 		return nil, err
 	}
@@ -447,7 +457,8 @@ func (d *DeploymentsStorage) Finish(ctx context.Context, id string, when time.Ti
 		},
 	}
 
-	err := session.DB(DatabaseName).C(CollectionDeployments).UpdateId(id, update)
+	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).UpdateId(id, update)
 
 	if err == mgo.ErrNotFound {
 		return ErrStorageInvalidID

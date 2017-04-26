@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -84,7 +85,8 @@ func (d *DeviceDeploymentsStorage) InsertMany(ctx context.Context,
 		list = append(list, deployment)
 	}
 
-	if err := d.session.DB(DatabaseName).C(CollectionDevices).Insert(list...); err != nil {
+	if err := d.session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Insert(list...); err != nil {
 		return err
 	}
 
@@ -113,7 +115,8 @@ func (d *DeviceDeploymentsStorage) ExistAssignedImageWithIDAndStatuses(ctx conte
 
 	// if found at least one then image in active deployment
 	var tmp interface{}
-	if err := session.DB(DatabaseName).C(CollectionDevices).Find(query).One(&tmp); err != nil {
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Find(query).One(&tmp); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return false, nil
 		}
@@ -143,7 +146,8 @@ func (d *DeviceDeploymentsStorage) FindOldestDeploymentForDeviceIDWithStatuses(c
 
 	// Select only the oldest one that have not been finished yet.
 	var deployment *deployments.DeviceDeployment
-	if err := session.DB(DatabaseName).C(CollectionDevices).Find(query).Sort("created").One(&deployment); err != nil {
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Find(query).Sort("created").One(&deployment); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return nil, nil
 		}
@@ -174,7 +178,8 @@ func (d *DeviceDeploymentsStorage) FindAllDeploymentsForDeviceIDWithStatuses(ctx
 	}
 
 	var deployments []deployments.DeviceDeployment
-	if err := session.DB(DatabaseName).C(CollectionDevices).Find(query).All(&deployments); err != nil {
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Find(query).All(&deployments); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return nil, nil
 		}
@@ -223,7 +228,8 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(ctx context.Cont
 		Update: update,
 	}
 
-	chi, err := session.DB(DatabaseName).C(CollectionDevices).Find(query).Apply(change, &old)
+	chi, err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Find(query).Apply(change, &old)
 
 	if err != nil {
 		return "", err
@@ -259,7 +265,8 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentLogAvailability(ctx con
 		},
 	}
 
-	if err := session.DB(DatabaseName).C(CollectionDevices).Update(selector, update); err != nil {
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Update(selector, update); err != nil {
 		return err
 	}
 
@@ -297,7 +304,8 @@ func (d *DeviceDeploymentsStorage) AggregateDeviceDeploymentByStatus(ctx context
 		Name  string `bson:"_id"`
 		Count int
 	}
-	err := session.DB(DatabaseName).C(CollectionDevices).Pipe(&pipe).All(&results)
+	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Pipe(&pipe).All(&results)
 	if err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
 			return nil, nil
@@ -325,7 +333,8 @@ func (d *DeviceDeploymentsStorage) GetDeviceStatusesForDeployment(ctx context.Co
 
 	var statuses []deployments.DeviceDeployment
 
-	err := session.DB(DatabaseName).C(CollectionDevices).Find(query).All(&statuses)
+	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Find(query).All(&statuses)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +357,8 @@ func (d *DeviceDeploymentsStorage) HasDeploymentForDevice(ctx context.Context,
 	}
 
 	var dep deployments.DeviceDeployment
-	err := session.DB(DatabaseName).C(CollectionDevices).Find(query).One(&dep)
+	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Find(query).One(&dep)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return false, nil
@@ -372,7 +382,8 @@ func (d *DeviceDeploymentsStorage) GetDeviceDeploymentStatus(ctx context.Context
 	}
 
 	var dep deployments.DeviceDeployment
-	err := session.DB(DatabaseName).C(CollectionDevices).Find(query).One(&dep)
+	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Find(query).One(&dep)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return "", nil
@@ -412,7 +423,8 @@ func (d *DeviceDeploymentsStorage) AbortDeviceDeployments(ctx context.Context,
 		},
 	}
 
-	_, err := session.DB(DatabaseName).C(CollectionDevices).UpdateAll(selector, update)
+	_, err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).UpdateAll(selector, update)
 
 	if err == mgo.ErrNotFound {
 		return ErrStorageInvalidID
@@ -449,7 +461,8 @@ func (d *DeviceDeploymentsStorage) DecommissionDeviceDeployments(ctx context.Con
 		},
 	}
 
-	_, err := session.DB(DatabaseName).C(CollectionDevices).UpdateAll(selector, update)
+	_, err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).UpdateAll(selector, update)
 
 	return err
 }
