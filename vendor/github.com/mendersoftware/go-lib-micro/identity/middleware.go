@@ -39,7 +39,7 @@ func (mw *IdentityMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFun
 
 		identity, err := ExtractIdentityFromHeaders(r.Header)
 		if err != nil {
-			l.Errorf("Failed to extract identity from header: %v", err)
+			l.Warnf("Failed to extract identity from header: %v", err)
 		} else {
 			ctx = WithContext(ctx, &identity)
 			r.Request = r.WithContext(ctx)
