@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mendersoftware/go-lib-micro/identity"
+	ctxstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
 
@@ -36,6 +38,7 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 
 	testCases := []struct {
 		InputDeviceDeployment []*deployments.DeviceDeployment
+		InputTenant           string
 		OutputError           error
 	}{
 		{
@@ -67,6 +70,15 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 			},
 			OutputError: nil,
 		},
+		{
+			// same as previous case, but this time with tenant DB
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+				deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+			},
+			InputTenant: "acme",
+			OutputError: nil,
+		},
 	}
 
 	for testCaseNumber, testCase := range testCases {
@@ -78,7 +90,14 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 			session := db.Session()
 			store := NewDeviceDeploymentsStorage(session)
 
-			err := store.InsertMany(context.Background(),
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			}
+
+			err := store.InsertMany(ctx,
 				testCase.InputDeviceDeployment...)
 
 			if testCase.OutputError != nil {
@@ -86,10 +105,21 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 
-				dep := session.DB(DatabaseName).C(CollectionDevices)
-				count, err := dep.Find(nil).Count()
+				count, err := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+					C(CollectionDevices).
+					Find(nil).Count()
 				assert.NoError(t, err)
 				assert.Equal(t, len(testCase.InputDeviceDeployment), count)
+
+				if testCase.InputTenant != "" {
+					// deployment was added to tenant's DB,
+					// make sure it's not in default DB
+					count, err := session.DB(DatabaseName).
+						C(CollectionDevices).
+						Find(nil).Count()
+					assert.NoError(t, err)
+					assert.Equal(t, 0, count)
+				}
 			}
 
 			// Need to close all sessions to be able to call wipe at next test case
@@ -112,6 +142,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		InputStatus           string
 		InputDeviceDeployment []*deployments.DeviceDeployment
 		InputFinishTime       *time.Time
+		InputTenant           string
 
 		OutputError     error
 		OutputOldStatus string
@@ -166,6 +197,16 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			OutputError:     nil,
 			OutputOldStatus: "pending",
 		},
+		{
+			InputDeviceID:     "678",
+			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397d",
+			InputStatus:       deployments.DeviceDeploymentStatusInstalling,
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				deployments.NewDeviceDeployment("678", "30b3e62c-9ec2-4312-a7fa-cff24cc7397d"),
+			},
+			InputTenant:     "acme",
+			OutputOldStatus: "pending",
+		},
 	}
 
 	for testCaseNumber, testCase := range testCases {
@@ -181,11 +222,18 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			session := db.Session()
 			store := NewDeviceDeploymentsStorage(session)
 
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			}
+
 			// deployments are created with status DeviceDeploymentStatusPending
-			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
+			err := store.InsertMany(ctx, testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
 
-			old, err := store.UpdateDeviceDeploymentStatus(context.Background(),
+			old, err := store.UpdateDeviceDeploymentStatus(ctx,
 				testCase.InputDeviceID, testCase.InputDeploymentID,
 				testCase.InputStatus, testCase.InputFinishTime)
 
@@ -193,12 +241,24 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
+
+				if testCase.InputTenant != "" {
+					// update in tenant's DB was successful,
+					// similar update in default DB should
+					// fail because deployments are present
+					// in tenant's DB only
+					_, err := store.UpdateDeviceDeploymentStatus(context.Background(),
+						testCase.InputDeviceID, testCase.InputDeploymentID,
+						testCase.InputStatus, testCase.InputFinishTime)
+					t.Logf("error: %+v", err)
+					assert.EqualError(t, err, ErrStorageNotFound.Error())
+				}
 			}
 
 			if testCase.InputDeviceDeployment != nil {
 				// these checks only make sense if there are any deployments in database
 				var deployment *deployments.DeviceDeployment
-				dep := session.DB(DatabaseName).C(CollectionDevices)
+				dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).C(CollectionDevices)
 				query := bson.M{
 					StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceID,
 					StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
@@ -240,6 +300,7 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 		InputDeploymentID     string
 		InputLog              bool
 		InputDeviceDeployment []*deployments.DeviceDeployment
+		InputTenant           string
 
 		OutputError error
 	}{
@@ -276,7 +337,7 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
 				deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
 			},
-			OutputError: nil,
+			InputTenant: "acme",
 		},
 	}
 
@@ -293,17 +354,32 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			session := db.Session()
 			store := NewDeviceDeploymentsStorage(session)
 
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			}
+
 			// deployments are created with status DeviceDeploymentStatusPending
-			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
+			err := store.InsertMany(ctx, testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
 
-			err = store.UpdateDeviceDeploymentLogAvailability(context.Background(),
+			err = store.UpdateDeviceDeploymentLogAvailability(ctx,
 				testCase.InputDeviceID, testCase.InputDeploymentID, testCase.InputLog)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
+
+				if testCase.InputTenant != "" {
+					// we're using tenant's DB, so acting on default DB should fail
+					err := store.UpdateDeviceDeploymentLogAvailability(context.Background(),
+						testCase.InputDeviceID, testCase.InputDeploymentID,
+						testCase.InputLog)
+					assert.EqualError(t, err, ErrStorageNotFound.Error())
+				}
 			}
 
 			if testCase.InputDeviceDeployment != nil {
@@ -312,7 +388,8 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 					StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceID,
 					StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
 				}
-				err := session.DB(DatabaseName).C(CollectionDevices).
+				err := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+					C(CollectionDevices).
 					Find(query).One(&deployment)
 
 				assert.NoError(t, err)
@@ -340,6 +417,7 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 	testCases := []struct {
 		InputDeploymentID     string
 		InputDeviceDeployment []*deployments.DeviceDeployment
+		InputTenant           string
 		OutputError           error
 		OutputStats           deployments.Stats
 	}{
@@ -382,6 +460,20 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 				deployments.DeviceDeploymentStatusDecommissioned: 0,
 			},
 		},
+		{
+			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				newDeviceDeploymentWithStatus("123", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+					deployments.DeviceDeploymentStatusFailure),
+				newDeviceDeploymentWithStatus("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+					deployments.DeviceDeploymentStatusSuccess),
+			},
+			InputTenant: "acme",
+			OutputStats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusSuccess: 1,
+				deployments.DeviceDeploymentStatusFailure: 1,
+			}),
+		},
 	}
 
 	for testCaseNumber, testCase := range testCases {
@@ -396,15 +488,31 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 			session := db.Session()
 			store := NewDeviceDeploymentsStorage(session)
 
-			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			}
+
+			err := store.InsertMany(ctx, testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
 
-			stats, err := store.AggregateDeviceDeploymentByStatus(context.Background(),
+			stats, err := store.AggregateDeviceDeploymentByStatus(ctx,
 				testCase.InputDeploymentID)
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
+
+				if testCase.InputTenant != "" {
+					// data was inserted into tenant's DB,
+					// verify that aggregates are all 0
+					stats, err := store.AggregateDeviceDeploymentByStatus(context.Background(),
+						testCase.InputDeploymentID)
+					assert.NoError(t, err)
+					assert.Equal(t, newTestStats(deployments.Stats{}), stats)
+				}
 			}
 
 			if testCase.OutputStats != nil {
@@ -431,40 +539,52 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 		deployments.NewDeviceDeployment("device0005", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
 	}
 
-	// setup db - once for all cases
-	db.Wipe()
+	testCases := map[string]struct {
+		caseId string
+		tenant string
 
-	session := db.Session()
-	store := NewDeviceDeploymentsStorage(session)
-
-	err := store.InsertMany(context.Background(), input...)
-	assert.NoError(t, err)
-
-	testCases :=
-		map[string]struct {
-			caseId string
-
-			inputDeploymentId string
-			outputStatuses    []*deployments.DeviceDeployment
-		}{
-			"existing deployments 1": {
-				inputDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-				outputStatuses:    input[:3],
-			},
-			"existing deployments 2": {
-				inputDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
-				outputStatuses:    input[3:],
-			},
-			"nonexistent deployment": {
-				inputDeploymentId: "aaaaaaaa-9ec2-4312-a7fa-cff24cc7397b",
-				outputStatuses:    []*deployments.DeviceDeployment{},
-			},
-		}
+		inputDeploymentId string
+		outputStatuses    []*deployments.DeviceDeployment
+	}{
+		"existing deployments 1": {
+			inputDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			outputStatuses:    input[:3],
+		},
+		"existing deployments 2": {
+			inputDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+			outputStatuses:    input[3:],
+		},
+		"nonexistent deployment": {
+			inputDeploymentId: "aaaaaaaa-9ec2-4312-a7fa-cff24cc7397b",
+			outputStatuses:    []*deployments.DeviceDeployment{},
+		},
+		"tenant, existing deployments": {
+			inputDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+			tenant:            "acme",
+			outputStatuses:    input[3:],
+		},
+	}
 
 	for testCaseName, tc := range testCases {
 		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
 
-			statuses, err := store.GetDeviceStatusesForDeployment(context.Background(),
+			// setup db - once for all cases
+			db.Wipe()
+
+			session := db.Session()
+			store := NewDeviceDeploymentsStorage(session)
+
+			ctx := context.Background()
+			if tc.tenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.tenant,
+				})
+			}
+
+			err := store.InsertMany(ctx, input...)
+			assert.NoError(t, err)
+
+			statuses, err := store.GetDeviceStatusesForDeployment(ctx,
 				tc.inputDeploymentId)
 			assert.NoError(t, err)
 
@@ -473,10 +593,20 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 				assert.Equal(t, out.DeviceId, statuses[i].DeviceId)
 				assert.Equal(t, out.DeploymentId, statuses[i].DeploymentId)
 			}
+
+			if tc.tenant != "" {
+				// deployment statuses are present in tenant's
+				// DB, verify that listing from default DB
+				// yields empty list
+				statuses, err := store.GetDeviceStatusesForDeployment(context.Background(),
+					tc.inputDeploymentId)
+				assert.NoError(t, err)
+				assert.Len(t, statuses, 0)
+			}
+
+			session.Close()
 		})
 	}
-
-	session.Close()
 }
 
 func TestHasDeploymentForDevice(t *testing.T) {
@@ -490,18 +620,10 @@ func TestHasDeploymentForDevice(t *testing.T) {
 		deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
 	}
 
-	// setup db - once for all cases
-	db.Wipe()
-
-	session := db.Session()
-	store := NewDeviceDeploymentsStorage(session)
-
-	err := store.InsertMany(context.Background(), input...)
-	assert.NoError(t, err)
-
 	testCases := []struct {
 		deviceID     string
 		deploymentID string
+		tenant       string
 
 		has bool
 		err error
@@ -528,6 +650,12 @@ func TestHasDeploymentForDevice(t *testing.T) {
 			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",
 			has:          false,
 		},
+		{
+			deviceID:     "device0003",
+			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			has:          true,
+			tenant:       "acme",
+		},
 	}
 
 	for testCaseNumber, tc := range testCases {
@@ -535,7 +663,22 @@ func TestHasDeploymentForDevice(t *testing.T) {
 
 			t.Logf("testing case: %v %v %v %v", tc.deviceID, tc.deploymentID, tc.has, tc.err)
 
-			has, err := store.HasDeploymentForDevice(context.Background(),
+			db.Wipe()
+
+			session := db.Session()
+			store := NewDeviceDeploymentsStorage(session)
+
+			ctx := context.Background()
+			if tc.tenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.tenant,
+				})
+			}
+
+			err := store.InsertMany(ctx, input...)
+			assert.NoError(t, err)
+
+			has, err := store.HasDeploymentForDevice(ctx,
 				tc.deploymentID, tc.deviceID)
 			if tc.err != nil {
 				assert.Error(t, err)
@@ -544,11 +687,21 @@ func TestHasDeploymentForDevice(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.has, has)
+
+				if tc.tenant != "" {
+					// data was added to tenant's DB, verify
+					// that there's no deployment if looking
+					// in default DB
+					has, err := store.HasDeploymentForDevice(context.Background(),
+						tc.deploymentID, tc.deviceID)
+					assert.False(t, has)
+					assert.NoError(t, err)
+				}
 			}
+
+			session.Close()
 		})
 	}
-
-	session.Close()
 }
 
 func TestGetDeviceDeploymentStatus(t *testing.T) {
@@ -562,18 +715,10 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 		deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
 	}
 
-	// setup db - once for all cases
-	db.Wipe()
-
-	session := db.Session()
-	store := NewDeviceDeploymentsStorage(session)
-
-	err := store.InsertMany(context.Background(), input...)
-	assert.NoError(t, err)
-
 	testCases := map[string]struct {
 		deviceID     string
 		deploymentID string
+		tenant       string
 
 		status string
 	}{
@@ -592,6 +737,12 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",
 			status:       "",
 		},
+		"tenant, device deployment exists": {
+			deviceID:     "device0001",
+			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			status:       "pending",
+			tenant:       "acme",
+		},
 	}
 
 	for testCaseName, tc := range testCases {
@@ -599,14 +750,40 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 
 			t.Logf("testing case: %v %v %v", tc.deviceID, tc.deploymentID, tc.status)
 
-			status, err := store.GetDeviceDeploymentStatus(context.Background(),
+			db.Wipe()
+
+			session := db.Session()
+			store := NewDeviceDeploymentsStorage(session)
+
+			ctx := context.Background()
+			if tc.tenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.tenant,
+				})
+			}
+
+			err := store.InsertMany(ctx, input...)
+			assert.NoError(t, err)
+
+			status, err := store.GetDeviceDeploymentStatus(ctx,
 				tc.deploymentID, tc.deviceID)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.status, status)
+
+			if tc.tenant != "" {
+				// data was added to tenant's DB, trying to
+				// fetch it from default DB will not fail but
+				// returns empty status instead
+				status, err := store.GetDeviceDeploymentStatus(context.Background(),
+					tc.deploymentID, tc.deviceID)
+				assert.NoError(t, err)
+				assert.Equal(t, "", status)
+			}
+
+			session.Close()
 		})
 	}
 
-	session.Close()
 }
 
 func TestAbortDeviceDeployments(t *testing.T) {
