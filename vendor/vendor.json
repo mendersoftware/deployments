@@ -405,6 +405,12 @@
 			"revisionTime": "2017-04-20T09:04:30Z"
 		},
 		{
+			"checksumSHA1": "aFpMSIKd5L05oFey4tkL1UEBtnE=",
+			"path": "github.com/mendersoftware/go-lib-micro/mongo/testing",
+			"revision": "a89e3f02d35dffd3d3a4684081e634533abc6275",
+			"revisionTime": "2017-04-20T09:04:30Z"
+		},
+		{
 			"checksumSHA1": "70zTx2u1SXKjVGvH/3RGIyDYh4o=",
 			"path": "github.com/mendersoftware/go-lib-micro/requestid",
 			"revision": "a89e3f02d35dffd3d3a4684081e634533abc6275",
@@ -596,6 +602,13 @@
 			"path": "gopkg.in/mgo.v2/dbtest",
 			"revision": "b6e2fa371e64216a45e61072a96d4e3859f169da",
 			"revisionTime": "2016-02-23T13:38:14Z"
+		},
+		{
+			"checksumSHA1": "XQsrqoNT1U0KzLxOFcAZVvqhLfk=",
+			"origin": "github.com/mendersoftware/go-lib-micro/vendor/gopkg.in/mgo.v2/internal/json",
+			"path": "gopkg.in/mgo.v2/internal/json",
+			"revision": "a89e3f02d35dffd3d3a4684081e634533abc6275",
+			"revisionTime": "2017-04-20T09:04:30Z"
 		},
 		{
 			"checksumSHA1": "CkCDTsyN2Lbj1cL8+oaYKoPpI9w=",
