@@ -18,6 +18,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -69,6 +70,7 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 	testCases := map[string]struct {
 		InputImageName string
 		InputDevType   string
+		InputTenant    string
 
 		OutputImage *images.SoftwareImage
 		OutputError error
@@ -122,6 +124,11 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			OutputImage: nil,
 			OutputError: model.ErrSoftwareImagesStorageInvalidDeviceType,
 		},
+		"other tenant": {
+			InputImageName: "App1 v1.0",
+			InputDevType:   "foo",
+			InputTenant:    "acme",
+		},
 	}
 
 	for name, tc := range testCases {
@@ -129,8 +136,14 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 		// Run each test case as subtest
 		t.Run(name, func(t *testing.T) {
 
+			ctx := context.Background()
+			if tc.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.InputTenant,
+				})
+			}
 			store := NewSoftwareImagesStorage(session)
-			img, err := store.ImageByNameAndDeviceType(context.Background(),
+			img, err := store.ImageByNameAndDeviceType(ctx,
 				tc.InputImageName, tc.InputDevType)
 
 			if tc.OutputError != nil {
@@ -181,6 +194,7 @@ func TestIsArtifactUnique(t *testing.T) {
 	testCases := map[string]struct {
 		InputArtifactName string
 		InputDevTypes     []string
+		InputTenant       string
 
 		OutputIsUnique bool
 		OutputError    error
@@ -211,6 +225,14 @@ func TestIsArtifactUnique(t *testing.T) {
 
 			OutputError: model.ErrSoftwareImagesStorageInvalidArtifactName,
 		},
+		"other tenant": {
+			// is unique because we're using another DB
+			InputArtifactName: "app1-v1.0",
+			InputDevTypes:     []string{"foo", "bar"},
+			InputTenant:       "acme",
+
+			OutputIsUnique: true,
+		},
 	}
 
 	for name, tc := range testCases {
@@ -218,8 +240,14 @@ func TestIsArtifactUnique(t *testing.T) {
 		// Run test cases as subtests
 		t.Run(name, func(t *testing.T) {
 
+			ctx := context.Background()
+			if tc.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.InputTenant,
+				})
+			}
 			store := NewSoftwareImagesStorage(session)
-			isUnique, err := store.IsArtifactUnique(context.Background(),
+			isUnique, err := store.IsArtifactUnique(ctx,
 				tc.InputArtifactName, tc.InputDevTypes)
 
 			if tc.OutputError != nil {

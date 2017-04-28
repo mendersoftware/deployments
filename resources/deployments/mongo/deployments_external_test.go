@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mendersoftware/go-lib-micro/identity"
+	ctxstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
@@ -36,6 +38,7 @@ func TestDeploymentStorageInsert(t *testing.T) {
 
 	testCases := []struct {
 		InputDeployment *deployments.Deployment
+		InputTenant     string
 		OutputError     error
 	}{
 		{
@@ -54,6 +57,14 @@ func TestDeploymentStorageInsert(t *testing.T) {
 			}),
 			OutputError: nil,
 		},
+		{
+			InputDeployment: deployments.NewDeploymentFromConstructor(&deployments.DeploymentConstructor{
+				Name:         StringToPointer("NYC Production"),
+				ArtifactName: StringToPointer("App 123"),
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			}),
+			InputTenant: "acme",
+		},
 	}
 
 	for testCaseNumber, testCase := range testCases {
@@ -65,17 +76,32 @@ func TestDeploymentStorageInsert(t *testing.T) {
 			session := db.Session()
 			store := NewDeploymentsStorage(session)
 
-			err := store.Insert(context.Background(), testCase.InputDeployment)
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			}
+
+			err := store.Insert(ctx, testCase.InputDeployment)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
 
-				dep := session.DB(DatabaseName).C(CollectionDeployments)
+				dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+					C(CollectionDeployments)
 				count, err := dep.Find(nil).Count()
 				assert.NoError(t, err)
 				assert.Equal(t, 1, count)
+
+				if testCase.InputTenant != "" {
+					indefault, _ := session.DB(DatabaseName).
+						C(CollectionDeployments).
+						Find(nil).Count()
+					assert.Equal(t, 0, indefault)
+				}
 			}
 
 			// Need to close all sessions to be able to call wipe at next test case
@@ -93,6 +119,7 @@ func TestDeploymentStorageDelete(t *testing.T) {
 	testCases := []struct {
 		InputID                    string
 		InputDeploymentsCollection []interface{}
+		InputTenant                string
 
 		OutputError error
 	}{
@@ -118,6 +145,20 @@ func TestDeploymentStorageDelete(t *testing.T) {
 			},
 			OutputError: nil,
 		},
+		{
+			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
+			InputDeploymentsCollection: []interface{}{
+				deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id: StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
+				},
+			},
+			InputTenant: "acme",
+		},
 	}
 
 	for testCaseNumber, testCase := range testCases {
@@ -129,12 +170,20 @@ func TestDeploymentStorageDelete(t *testing.T) {
 			session := db.Session()
 			store := NewDeploymentsStorage(session)
 
-			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			}
+
+			dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+				C(CollectionDeployments)
 			if testCase.InputDeploymentsCollection != nil {
 				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
 			}
 
-			err := store.Delete(context.Background(), testCase.InputID)
+			err := store.Delete(ctx, testCase.InputID)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -144,6 +193,13 @@ func TestDeploymentStorageDelete(t *testing.T) {
 				count, err := dep.FindId(testCase.InputID).Count()
 				assert.NoError(t, err)
 				assert.Equal(t, 0, count)
+
+				if testCase.InputTenant != "" {
+					indefault, _ := session.DB(DatabaseName).
+						C(CollectionDeployments).
+						Find(nil).Count()
+					assert.Equal(t, 0, indefault)
+				}
 			}
 
 			// Need to close all sessions to be able to call wipe at next test case
@@ -161,6 +217,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 	testCases := []struct {
 		InputID                    string
 		InputDeploymentsCollection []interface{}
+		InputTenant                string
 
 		OutputError      error
 		OutputDeployment *deployments.Deployment
@@ -260,6 +317,31 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 				},
 			},
 		},
+		{
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeploymentsCollection: []interface{}{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:    StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Stats: map[string]int{},
+				},
+			},
+			InputTenant: "acme",
+
+			OutputDeployment: &deployments.Deployment{
+				DeploymentConstructor: &deployments.DeploymentConstructor{
+					Name:         StringToPointer("NYC Production"),
+					ArtifactName: StringToPointer("App 123"),
+					//Devices is not kept around!
+				},
+				Id:    StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Stats: map[string]int{},
+			},
+		},
 	}
 
 	for testCaseNumber, testCase := range testCases {
@@ -271,18 +353,34 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 			session := db.Session()
 			store := NewDeploymentsStorage(session)
 
-			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			}
+
+			dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+				C(CollectionDeployments)
 			if testCase.InputDeploymentsCollection != nil {
 				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
 			}
 
-			deployment, err := store.FindByID(context.Background(), testCase.InputID)
+			deployment, err := store.FindByID(ctx, testCase.InputID)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, testCase.OutputDeployment, deployment)
+			}
+
+			// tenant is set, verify that deployment is not present in default DB
+			if testCase.InputTenant != "" {
+				deployment, err := store.FindByID(context.Background(),
+					testCase.InputID)
+				assert.Nil(t, deployment)
+				assert.Nil(t, err)
 			}
 
 			// Need to close all sessions to be able to call wipe at next test case
@@ -302,6 +400,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 	testCases := map[string]struct {
 		InputID                    string
 		InputDeploymentsCollection []interface{}
+		InputTenant                string
 
 		OutputError      error
 		OutputDeployment *deployments.Deployment
@@ -431,6 +530,41 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 			OutputError:      nil,
 			OutputDeployment: nil,
 		},
+		"multi tenant, deployment found": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeploymentsCollection: []interface{}{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Finished: &nullTime,
+					Stats: map[string]int{
+						deployments.DeviceDeploymentStatusPending: 10,
+						deployments.DeviceDeploymentStatusSuccess: 15,
+						deployments.DeviceDeploymentStatusFailure: 1,
+					},
+				},
+			},
+			InputTenant: "acme",
+			OutputError: nil,
+			OutputDeployment: &deployments.Deployment{
+				DeploymentConstructor: &deployments.DeploymentConstructor{
+					Name:         StringToPointer("NYC Production"),
+					ArtifactName: StringToPointer("App 123"),
+					//Devices is not kept around!
+				},
+				Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Finished: &nullTime,
+				Stats: map[string]int{
+					deployments.DeviceDeploymentStatusPending: 10,
+					deployments.DeviceDeploymentStatusSuccess: 15,
+					deployments.DeviceDeploymentStatusFailure: 1,
+				},
+			},
+		},
 	}
 
 	for testCaseName, testCase := range testCases {
@@ -442,19 +576,34 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 			session := db.Session()
 			store := NewDeploymentsStorage(session)
 
-			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			}
+
+			dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+				C(CollectionDeployments)
 			if testCase.InputDeploymentsCollection != nil {
 				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
 			}
 
-			deployment, err := store.FindUnfinishedByID(context.Background(),
-				testCase.InputID)
+			deployment, err := store.FindUnfinishedByID(ctx, testCase.InputID)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, testCase.OutputDeployment, deployment)
+			}
+
+			// tenant is set, verify that deployment is not present in default DB
+			if testCase.InputTenant != "" {
+				deployment, err := store.FindUnfinishedByID(context.Background(),
+					testCase.InputID)
+				assert.Nil(t, deployment)
+				assert.Nil(t, err)
 			}
 
 			// Need to close all sessions to be able to call wipe at next test case
@@ -471,6 +620,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 	testCases := map[string]struct {
 		InputID         string
 		InputDeployment *deployments.Deployment
+		InputTenant     string
 
 		InputStateFrom string
 		InputStateTo   string
@@ -614,6 +764,40 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 				deployments.DeviceDeploymentStatusAborted:     0,
 			},
 		},
+		"tenant, pending -> finished": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Stats: map[string]int{
+					deployments.DeviceDeploymentStatusDownloading: 1,
+					deployments.DeviceDeploymentStatusInstalling:  2,
+					deployments.DeviceDeploymentStatusRebooting:   3,
+					deployments.DeviceDeploymentStatusPending:     10,
+					deployments.DeviceDeploymentStatusSuccess:     15,
+					deployments.DeviceDeploymentStatusFailure:     4,
+					deployments.DeviceDeploymentStatusNoArtifact:  5,
+					deployments.DeviceDeploymentStatusAlreadyInst: 0,
+					deployments.DeviceDeploymentStatusAborted:     0,
+				},
+			},
+			InputTenant: "acme",
+
+			InputStateFrom: deployments.DeviceDeploymentStatusPending,
+			InputStateTo:   deployments.DeviceDeploymentStatusSuccess,
+
+			OutputError: nil,
+			OutputStats: map[string]int{
+				deployments.DeviceDeploymentStatusDownloading: 1,
+				deployments.DeviceDeploymentStatusInstalling:  2,
+				deployments.DeviceDeploymentStatusRebooting:   3,
+				deployments.DeviceDeploymentStatusPending:     9,
+				deployments.DeviceDeploymentStatusSuccess:     16,
+				deployments.DeviceDeploymentStatusFailure:     4,
+				deployments.DeviceDeploymentStatusNoArtifact:  5,
+				deployments.DeviceDeploymentStatusAlreadyInst: 0,
+				deployments.DeviceDeploymentStatusAborted:     0,
+			},
+		},
 	}
 
 	for testCaseName, tc := range testCases {
@@ -624,22 +808,54 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 			session := db.Session()
 			store := NewDeploymentsStorage(session)
 
-			dep := session.DB(DatabaseName).C(CollectionDeployments)
-			if tc.InputDeployment != nil {
-				assert.NoError(t, dep.Insert(tc.InputDeployment))
+			ctx := context.Background()
+			if tc.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.InputTenant,
+				})
 			}
 
-			err := store.UpdateStats(context.Background(),
+			if tc.InputDeployment != nil {
+				err := session.DB(DatabaseName).
+					C(CollectionDeployments).
+					Insert(tc.InputDeployment)
+				assert.NoError(t, err)
+				// multi tenant test only makes sense if there
+				// is a deployment to input, if there's one
+				// we'll add it to tenant's DB
+				if tc.InputTenant != "" {
+					err = session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+						C(CollectionDeployments).
+						Insert(tc.InputDeployment)
+					assert.NoError(t, err)
+				}
+			}
+
+			err := store.UpdateStats(ctx,
 				tc.InputID, tc.InputStateFrom, tc.InputStateTo)
 
 			if tc.OutputError != nil {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
 				var deployment *deployments.Deployment
-				err := session.DB(DatabaseName).C(CollectionDeployments).
+				err := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+					C(CollectionDeployments).
 					FindId(tc.InputID).One(&deployment)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.OutputStats, deployment.Stats)
+
+				// if there's a tenant, verify that deployment
+				// in default DB remains unchanged, again only
+				// makes sense if there's an input deployment
+				if tc.InputTenant != "" && tc.InputDeployment != nil {
+					var defDeployment *deployments.Deployment
+					err := session.DB(DatabaseName).
+						C(CollectionDeployments).
+						FindId(tc.InputID).One(&defDeployment)
+					assert.NoError(t, err)
+					assert.Equal(t, defDeployment.Stats, tc.InputDeployment.Stats)
+				}
+
 			}
 
 			// Need to close all sessions to be able to call wipe at next test case
@@ -657,6 +873,7 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 		InputID         string
 		InputDeployment *deployments.Deployment
 		InputStats      map[string]int
+		InputTenant     string
 
 		OutputError error
 	}{
@@ -704,6 +921,21 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 
 			OutputError: ErrStorageInvalidID,
 		},
+		"tenant, all correct": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Stats: newTestStats(deployments.Stats{
+					deployments.DeviceDeploymentStatusRebooting: 3,
+				}),
+			},
+			InputStats: newTestStats(deployments.Stats{
+				deployments.DeviceDeploymentStatusRebooting: 3,
+			}),
+			InputTenant: "acme",
+
+			OutputError: nil,
+		},
 	}
 
 	for testCaseName, tc := range testCases {
@@ -714,22 +946,41 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 			session := db.Session()
 			store := NewDeploymentsStorage(session)
 
-			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			ctx := context.Background()
+			if tc.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.InputTenant,
+				})
+			}
+
+			dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+				C(CollectionDeployments)
 			if tc.InputDeployment != nil {
 				assert.NoError(t, dep.Insert(tc.InputDeployment))
 			}
 
-			err := store.UpdateStatsAndFinishDeployment(context.Background(),
+			err := store.UpdateStatsAndFinishDeployment(ctx,
 				tc.InputID, tc.InputStats)
 
 			if tc.OutputError != nil {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
 				var deployment *deployments.Deployment
-				err := session.DB(DatabaseName).C(CollectionDeployments).
+				err := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+					C(CollectionDeployments).
 					FindId(tc.InputID).One(&deployment)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.InputStats, deployment.Stats)
+			}
+
+			if tc.InputTenant != "" && tc.InputDeployment != nil {
+				// tenant is configured, so deployments that are
+				// part of test input were added to tenant's DB,
+				// trying to update them in default DB will
+				// raise an error
+				err := store.UpdateStatsAndFinishDeployment(context.Background(),
+					tc.InputID, tc.InputStats)
+				assert.EqualError(t, err, ErrStorageInvalidID.Error())
 			}
 
 			// Need to close all sessions to be able to call wipe at next test case
@@ -924,6 +1175,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 	testCases := []struct {
 		InputModelQuery            deployments.Query
 		InputDeploymentsCollection []*deployments.Deployment
+		InputTenant                string
 
 		OutputError error
 		OutputID    []string
@@ -1107,6 +1359,18 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				"3fe15222-0a41-401f-8f5e-582aba2a002c",
 			},
 		},
+		{
+			InputModelQuery: deployments.Query{
+				SearchText: "NYC",
+			},
+			InputDeploymentsCollection: someDeployments,
+			InputTenant:                "acme",
+			OutputError:                nil,
+			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				"d1804903-5caa-4a73-a3ae-0efcc3205405",
+			},
+		},
 	}
 
 	for testCaseNumber, testCase := range testCases {
@@ -1120,25 +1384,61 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			session := db.Session()
 			store := NewDeploymentsStorage(session)
 
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			}
+
 			for _, d := range testCase.InputDeploymentsCollection {
 				if d.Created == nil {
 					now := time.Now()
 					d.Created = &now
 				}
-				assert.NoError(t, store.Insert(context.Background(), d))
+				assert.NoError(t, store.Insert(ctx, d))
 			}
 
-			deployments, err := store.Find(context.Background(), testCase.InputModelQuery)
+			deps, err := store.Find(ctx,
+				testCase.InputModelQuery)
 
 			if testCase.OutputError != nil {
-				assert.EqualError(t, err, testCase.OutputError.Error())
+				assert.EqualError(t, err,
+					testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Len(t, deployments, len(testCase.OutputID))
-				for _, dep := range deployments {
-					assert.Contains(t, testCase.OutputID, *dep.Id,
-						"got unexpected deployment %s", *dep.Id)
+				assert.Len(t, deps, len(testCase.OutputID))
+				for _, dep := range deps {
+					assert.Contains(t, testCase.OutputID,
+						*dep.Id,
+						"got unexpected deployment %s",
+						*dep.Id)
 				}
+			}
+
+			if testCase.InputTenant != "" {
+				// have to add a deployment, otherwise, it won't
+				// be possible to run find queries
+				err := store.Insert(context.Background(),
+					&deployments.Deployment{
+						DeploymentConstructor: &deployments.DeploymentConstructor{
+							Name:         StringToPointer("foo-" + testCase.InputTenant),
+							ArtifactName: StringToPointer("bar-" + testCase.InputTenant),
+							Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc399"},
+						},
+						Id:      StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c199"),
+						Stats:   newTestStats(deployments.Stats{}),
+						Created: TimeToPointer(time.Now().UTC()),
+					})
+				assert.NoError(t, err)
+
+				// tenant is set, so only tenant's DB was set
+				// up, verify that we cannot find anything in
+				// default DB
+				deps, err := store.Find(context.Background(),
+					testCase.InputModelQuery)
+				assert.Len(t, deps, 0)
+				assert.NoError(t, err)
 			}
 
 			// Need to close all sessions to be able to call wipe at next test case
@@ -1155,6 +1455,7 @@ func TestDeploymentFinish(t *testing.T) {
 	testCases := map[string]struct {
 		InputID         string
 		InputDeployment *deployments.Deployment
+		InputTenant     string
 
 		OutputError error
 	}{
@@ -1169,6 +1470,14 @@ func TestDeploymentFinish(t *testing.T) {
 			InputID:     "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			OutputError: errors.New("Invalid id"),
 		},
+		"tenant, finished": {
+			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			InputDeployment: &deployments.Deployment{
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+			},
+			InputTenant: "acme",
+			OutputError: nil,
+		},
 	}
 
 	for testCaseName, tc := range testCases {
@@ -1179,19 +1488,28 @@ func TestDeploymentFinish(t *testing.T) {
 			session := db.Session()
 			store := NewDeploymentsStorage(session)
 
-			dep := session.DB(DatabaseName).C(CollectionDeployments)
+			ctx := context.Background()
+			if tc.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.InputTenant,
+				})
+			}
+
 			if tc.InputDeployment != nil {
+				dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+					C(CollectionDeployments)
 				assert.NoError(t, dep.Insert(tc.InputDeployment))
 			}
 
 			now := time.Now()
-			err := store.Finish(context.Background(), tc.InputID, now)
+			err := store.Finish(ctx, tc.InputID, now)
 
 			if tc.OutputError != nil {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
 				var deployment *deployments.Deployment
-				err := session.DB(DatabaseName).C(CollectionDeployments).
+				err := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+					C(CollectionDeployments).
 					FindId(tc.InputID).One(&deployment)
 				assert.NoError(t, err)
 
@@ -1203,6 +1521,12 @@ func TestDeploymentFinish(t *testing.T) {
 				}
 			}
 
+			if tc.InputTenant != "" {
+				// deployment was added to tenant's DB, so this
+				// should fail with default DB
+				err := store.Finish(context.Background(), tc.InputID, now)
+				assert.EqualError(t, err, ErrStorageInvalidID.Error())
+			}
 			// Need to close all sessions to be able to call wipe at next test case
 			session.Close()
 		})

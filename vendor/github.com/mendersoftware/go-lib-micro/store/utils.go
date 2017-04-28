@@ -11,25 +11,21 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-
-package mongo_test
+package store
 
 import (
-	"os"
-	"testing"
+	"context"
 
-	mtesting "github.com/mendersoftware/go-lib-micro/mongo/testing"
+	"github.com/mendersoftware/go-lib-micro/identity"
 )
 
-var db mtesting.TestDBRunner
-
-// Overwrites test execution and allows for test database setup
-func TestMain(m *testing.M) {
-
-	status := mtesting.WithDB(func(d mtesting.TestDBRunner) int {
-		db = d
-		return m.Run()
-	})
-
-	os.Exit(status)
+// DbFromContext generates database name using tenant field from identity extracted
+// from context and original database name
+func DbFromContext(ctx context.Context, origDbName string) string {
+	identity := identity.FromContext(ctx)
+	if identity != nil && identity.Tenant != "" {
+		return origDbName + "-" + identity.Tenant
+	} else {
+		return origDbName
+	}
 }

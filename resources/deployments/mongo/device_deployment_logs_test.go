@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mendersoftware/go-lib-micro/identity"
+	ctxstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
@@ -56,6 +58,7 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 	}
 	testCases := []struct {
 		InputDeviceDeploymentLog deployments.DeploymentLog
+		InputTenant              string
 		OutputError              error
 	}{
 		{
@@ -90,6 +93,16 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 			},
 			OutputError: nil,
 		},
+		{
+			InputDeviceDeploymentLog: deployments.DeploymentLog{
+				DeviceID:     "567",
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+				Messages:     messages,
+			},
+			// same as previous case but with tenant
+			InputTenant: "acme",
+			OutputError: nil,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -103,7 +116,14 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 		session := db.Session()
 		store := NewDeviceDeploymentLogsStorage(session)
 
-		err := store.SaveDeviceDeploymentLog(context.Background(),
+		ctx := context.Background()
+		if testCase.InputTenant != "" {
+			ctx = identity.WithContext(ctx, &identity.Identity{
+				Tenant: testCase.InputTenant,
+			})
+		}
+
+		err := store.SaveDeviceDeploymentLog(ctx,
 			testCase.InputDeviceDeploymentLog)
 
 		if testCase.OutputError != nil {
@@ -113,10 +133,12 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 
 			// no errors, so we should be able to find the log in DB
 			var dlog deployments.DeploymentLog
-			err := session.DB(DatabaseName).C(CollectionDeviceDeploymentLogs).Find(bson.M{
-				StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceDeploymentLog.DeviceID,
-				StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeviceDeploymentLog.DeploymentID,
-			}).One(&dlog)
+			err := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+				C(CollectionDeviceDeploymentLogs).
+				Find(bson.M{
+					StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceDeploymentLog.DeviceID,
+					StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeviceDeploymentLog.DeploymentID,
+				}).One(&dlog)
 
 			assert.NoError(t, err)
 
@@ -124,6 +146,20 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 			// or reflect.DeepEqual() as both will choke on *time.Time pointing to
 			// different, but value-equal instances, just compare if length is ok for now
 			assert.Len(t, dlog.Messages, len(testCase.InputDeviceDeploymentLog.Messages))
+
+			if testCase.InputTenant != "" {
+				// logs were saved to tenant's DB, double check
+				// that they are not found in default DB
+				c, err := session.DB(DatabaseName).
+					C(CollectionDeviceDeploymentLogs).
+					Find(bson.M{
+						StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceDeploymentLog.DeviceID,
+						StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeviceDeploymentLog.DeploymentID,
+					}).Count()
+				assert.Equal(t, 0, c)
+				assert.NoError(t, err)
+			}
+
 		}
 		// Need to close all sessions to be able to call wipe at next test case
 		session.Close()
@@ -171,6 +207,7 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 		InputDeviceID      string
 		InputDeploymentID  string
 		InputDeploymentLog *deployments.DeploymentLog
+		InputTenant        string
 		OutputError        error
 	}{
 		{
@@ -194,6 +231,13 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 			InputDeploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",
 			InputDeploymentLog: nil,
 		},
+		{
+			// same as first case, but accessing tenant's DB
+			InputDeviceID:      "123",
+			InputDeploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			InputTenant:        "acme",
+			InputDeploymentLog: nil,
+		},
 	}
 
 	// Make sure we start test with empty database
@@ -204,6 +248,7 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 	store := NewDeviceDeploymentLogsStorage(session)
 
 	for _, dl := range logs {
+		// save all messages to default DB
 		err := store.SaveDeviceDeploymentLog(context.Background(), dl)
 		assert.NoError(t, err)
 	}
@@ -213,7 +258,14 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 		t.Logf("testing case %v %v",
 			testCase.InputDeploymentLog, testCase.OutputError)
 
-		dlog, err := store.GetDeviceDeploymentLog(context.Background(),
+		ctx := context.Background()
+		if testCase.InputTenant != "" {
+			ctx = identity.WithContext(ctx, &identity.Identity{
+				Tenant: testCase.InputTenant,
+			})
+		}
+
+		dlog, err := store.GetDeviceDeploymentLog(ctx,
 			testCase.InputDeviceID, testCase.InputDeploymentID)
 		if testCase.OutputError != nil {
 			assert.EqualError(t, err, testCase.OutputError.Error())
