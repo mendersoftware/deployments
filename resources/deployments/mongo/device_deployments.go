@@ -271,6 +271,9 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentLogAvailability(ctx con
 
 	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDevices).Update(selector, update); err != nil {
+		if err == mgo.ErrNotFound {
+			return ErrStorageNotFound
+		}
 		return err
 	}
 
