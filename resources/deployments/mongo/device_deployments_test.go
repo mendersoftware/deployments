@@ -142,7 +142,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputDeviceID:     "345",
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputStatus:       "notnull",
-			OutputError:       errors.New("not found"),
+			OutputError:       ErrStorageNotFound,
 			OutputOldStatus:   "",
 		},
 		{

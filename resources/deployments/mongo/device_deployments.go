@@ -232,11 +232,15 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(ctx context.Cont
 		C(CollectionDevices).Find(query).Apply(change, &old)
 
 	if err != nil {
+		if err == mgo.ErrNotFound {
+			return "", ErrStorageNotFound
+		}
 		return "", err
+
 	}
 
 	if chi.Updated == 0 {
-		return "", mgo.ErrNotFound
+		return "", ErrStorageNotFound
 	}
 
 	return *old.Status, nil
