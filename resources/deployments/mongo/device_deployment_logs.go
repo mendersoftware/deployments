@@ -91,7 +91,7 @@ func (d *DeviceDeploymentLogsStorage) GetDeviceDeploymentLog(ctx context.Context
 	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDeviceDeploymentLogs).Find(query).One(&depl); err != nil {
 		if err == mgo.ErrNotFound {
-			return nil, nil
+			return nil, err
 		}
 		return nil, err
 	}
