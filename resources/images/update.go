@@ -43,5 +43,5 @@ type UpdateFile struct {
 type Update struct {
 	TypeInfo ArtifactUpdateTypeInfo `json:"type_info" valid:"required"`
 	Files    []UpdateFile           `json:"files"`
-	MetaData interface{}            `json:"meta_data" valid:"optional"` //TODO check this
+	MetaData interface{}            `json:"meta_data,omitempty" valid:"optional"`
 }
