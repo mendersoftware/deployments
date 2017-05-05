@@ -177,7 +177,7 @@ func (s *SimpleStorageService) UploadArtifact(objectID string, size int64, artif
 	r, _ := s.client.PutObjectRequest(params)
 
 	// Presign request
-	uri, err := r.Presign(10 * time.Second)
+	uri, err := r.Presign(5 * time.Minute)
 	if err != nil {
 		return err
 	}
