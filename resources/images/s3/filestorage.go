@@ -180,7 +180,7 @@ func (s *SimpleStorageService) UploadArtifact(ctx context.Context,
 	r, _ := s.client.PutObjectRequest(params)
 
 	// Presign request
-	uri, err := r.Presign(10 * time.Second)
+	uri, err := r.Presign(5 * time.Minute)
 	if err != nil {
 		return err
 	}
