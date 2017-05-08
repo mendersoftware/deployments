@@ -59,6 +59,9 @@ type SoftwareImageMetaArtifactConstructor struct {
 	// Artifact version info
 	Info *ArtifactInfo `json:"info" valid:"required"`
 
+	// Flag that indicates if artifact is signed or not
+	Signed bool `json:"signed" bson:"signed"`
+
 	// List of updates
 	Updates []Update `json:"updates" valid:"-"`
 }

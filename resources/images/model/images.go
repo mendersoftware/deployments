@@ -334,10 +334,18 @@ func getMetaFromArchive(r *io.Reader) (*images.SoftwareImageMetaArtifactConstruc
 
 	aReader := areader.NewReader(*r)
 
+	// There is no signature verification here.
+	// It is just simple check if artifact is signed or not.
+	aReader.VerifySignatureCallback = func(message, sig []byte) error {
+		metaArtifact.Signed = true
+		return nil
+	}
+
 	err := aReader.ReadArtifact()
 	if err != nil {
 		return nil, errors.Wrap(err, "reading artifact error")
 	}
+
 	metaArtifact.Info = getArtifactInfo(aReader.GetInfo())
 	metaArtifact.DeviceTypesCompatible = aReader.GetCompatibleDevices()
 	metaArtifact.Name = aReader.GetArtifactName()
