@@ -367,6 +367,7 @@ paths:
                 description: Johns Monday test build
                 device_types_compatible: [Beagle Bone]
                 id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                signed: false
                 modified: "2016-03-11T13:03:17.063493443Z"
                 info:
                     type_info:
@@ -374,7 +375,6 @@ paths:
                 files:
                   - name: rootfs-image-1
                     checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                    signature: "12344"
                     size: 123
                     date: 2016-03-11T13:03:17.063+0000
                 metadata: {}
@@ -456,6 +456,7 @@ paths:
               description: Johns Monday test build
               device_types_compatible: [Beagle Bone]
               id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+              signed: false
               modified: "2016-03-11T13:03:17.063493443Z"
               info:
                   type_info:
@@ -463,7 +464,6 @@ paths:
               files:
                 - name: rootfs-image-1
                   checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                  signature: "12344"
                   size: 123
                   date: 2016-03-11T13:03:17.063+0000
               metadata: {}
@@ -763,8 +763,6 @@ definitions:
           type: string
         checksum:
           type: string
-        signature:
-          type: string
         size:
           type: integer
         date:
@@ -809,6 +807,9 @@ definitions:
           description: An array of compatible device types.
       id:
         type: string
+      signed:
+        type: boolean
+        description: Idicates if artifact is signed or not.
       modified:
         type: string
         format: date-time
@@ -832,6 +833,7 @@ definitions:
         description: Johns Monday test build
         device_types_compatible: [Beagle Bone]
         id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+        signed: false
         modified: "2016-03-11T13:03:17.063493443Z"
         info:
             type_info:
@@ -839,7 +841,6 @@ definitions:
         files:
           - name: rootfs-image-1
             checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-            signature: "12344"
             size: 123
             date: 2016-03-11T13:03:17.063+0000
         metadata: {}
