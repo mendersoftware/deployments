@@ -15,8 +15,8 @@
 package model
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -181,6 +181,32 @@ func TestCreateImageCreateOK(t *testing.T) {
 	td, _ := ioutil.TempDir("", "mender-install-update-")
 	defer os.RemoveAll(td)
 	upd, err := MakeRootfsImageArtifact(1, false)
+	assert.NoError(t, err)
+
+	multipartUploadMessage := &controller.MultipartUploadMsg{
+		MetaConstructor: createValidImageMeta(),
+		ArtifactSize:    int64(upd.Len()),
+		ArtifactReader:  upd,
+	}
+
+	if _, err := iModel.CreateImage(context.Background(),
+		multipartUploadMessage); err != nil {
+
+		t.FailNow()
+	}
+}
+
+func TestCreateSignedImageCreateOK(t *testing.T) {
+	fakeIS := new(FakeImageStorage)
+	fakeIS.insertError = nil
+	fakeIS.isArtifactUnique = true
+	fakeFS := new(FakeFileStorage)
+
+	iModel := NewImagesModel(fakeFS, nil, fakeIS)
+
+	td, _ := ioutil.TempDir("", "mender-install-update-")
+	defer os.RemoveAll(td)
+	upd, err := MakeRootfsImageArtifact(2, true)
 	assert.NoError(t, err)
 
 	multipartUploadMessage := &controller.MultipartUploadMsg{

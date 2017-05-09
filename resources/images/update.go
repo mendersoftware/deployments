@@ -29,9 +29,6 @@ type UpdateFile struct {
 	// Image file checksum
 	Checksum string `json:"checksum" valid:"optional"`
 
-	// Image file signature
-	Signature string `json:"signature" valid:"optional"`
-
 	// Image size
 	Size int64 `json:"size" valid:"optional"`
 
