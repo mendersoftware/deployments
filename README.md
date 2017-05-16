@@ -1,6 +1,6 @@
 # Deployments
-[![Build Status](https://travis-ci.org/mendersoftware/deployments.svg?branch=master)](https://travis-ci.org/mendersoftware/deployments)
-[![codecov](https://codecov.io/gh/mendersoftware/deployments/branch/master/graph/badge.svg)](https://codecov.io/gh/mendersoftware/deployments)
+[![Build Status](https://travis-ci.org/mendersoftware/deployments.svg?branch=1.1.x)](https://travis-ci.org/mendersoftware/deployments)
+[![codecov](https://codecov.io/gh/mendersoftware/deployments/branch/1.1.x/graph/badge.svg)](https://codecov.io/gh/mendersoftware/deployments)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mendersoftware/deployments)](https://goreportcard.com/report/github.com/mendersoftware/deployments)
 [![Docker pulls](https://img.shields.io/docker/pulls/mendersoftware/deployments.svg?maxAge=3600)](https://hub.docker.com/r/mendersoftware/deployments/)
 
@@ -48,7 +48,7 @@ go build
 
 The service can be configured by:
 * providing configuration file (supports JSON, TOML, YAML and HCL formatting).
-The default configuration file is provided to be downloaded from [config.yaml](https://github.com/mendersoftware/deployments/blob/master/config.yaml).
+The default configuration file is provided to be downloaded from [config.yaml](https://github.com/mendersoftware/deployments/blob/1.1.x/config.yaml).
 * setting environment variables. The service will check for a environment variable
 with a name matching the key uppercased and prefixed with DEPLOYMENTS_.
 Eg. for "listen" the variable name is "DEPLOYMENTS_LISTEN".
