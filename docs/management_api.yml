@@ -635,6 +635,11 @@ definitions:
           - inprogress
           - pending
           - finished
+      artifacts:
+        type: array
+        items:
+          type: string
+          description: An array of artifact's identifiers.
     required:
       - created
       - name
