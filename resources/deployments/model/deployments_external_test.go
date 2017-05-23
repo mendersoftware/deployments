@@ -37,7 +37,7 @@ const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
 
 func TestDeploymentModelGetDeployment(t *testing.T) {
 
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := []struct {
 		InputDeploymentID       string
@@ -89,13 +89,16 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 
 func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := []struct {
 		InputID string
 
 		InputExistAssignedImageWithIDAndStatusesFound bool
 		InputExistAssignedImageWithIDAndStatusesError error
+
+		InputExistUnfinishedByArtifactIdFlag bool
+		ExistUnfinishedByArtifactIdError     error
 
 		OutputError error
 		OutputBool  bool
@@ -131,7 +134,18 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 				Return(testCase.InputExistAssignedImageWithIDAndStatusesFound,
 					testCase.InputExistAssignedImageWithIDAndStatusesError)
 
-			model := NewDeploymentModel(DeploymentsModelConfig{DeviceDeploymentsStorage: deviceDeploymentStorage})
+			deploymentStorage := new(mocks.DeploymentsStorage)
+			deploymentStorage.On("ExistUnfinishedByArtifactId",
+				h.ContextMatcher(),
+				mock.AnythingOfType("string")).
+				Return(testCase.InputExistUnfinishedByArtifactIdFlag,
+					testCase.ExistUnfinishedByArtifactIdError)
+
+			model := NewDeploymentModel(
+				DeploymentsModelConfig{
+					DeviceDeploymentsStorage: deviceDeploymentStorage,
+					DeploymentsStorage:       deploymentStorage,
+				})
 
 			found, err := model.ImageUsedInActiveDeployment(context.Background(),
 				testCase.InputID)
@@ -148,13 +162,16 @@ func TestDeploymentModelImageUsedInActiveDeployment(t *testing.T) {
 
 func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := []struct {
 		InputID string
 
 		InputImageUsedInDeploymentFound bool
 		InputImageUsedInDeploymentError error
+
+		InputExistUnfinishedByArtifactIdFlag bool
+		ExistUnfinishedByArtifactIdError     error
 
 		OutputError error
 		OutputBool  bool
@@ -190,7 +207,18 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 				Return(testCase.InputImageUsedInDeploymentFound,
 					testCase.InputImageUsedInDeploymentError)
 
-			model := NewDeploymentModel(DeploymentsModelConfig{DeviceDeploymentsStorage: deviceDeploymentStorage})
+			deploymentStorage := new(mocks.DeploymentsStorage)
+			deploymentStorage.On("ExistUnfinishedByArtifactId",
+				h.ContextMatcher(),
+				mock.AnythingOfType("string")).
+				Return(testCase.InputExistUnfinishedByArtifactIdFlag,
+					testCase.ExistUnfinishedByArtifactIdError)
+
+			model := NewDeploymentModel(
+				DeploymentsModelConfig{
+					DeviceDeploymentsStorage: deviceDeploymentStorage,
+					DeploymentsStorage:       deploymentStorage,
+				})
 
 			found, err := model.ImageUsedInDeployment(context.Background(),
 				testCase.InputID)
@@ -207,7 +235,7 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 
 func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 
-	t.Parallel()
+	//t.Parallel()
 
 	image := images.NewSoftwareImage(
 		validUUIDv4,
@@ -229,6 +257,15 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		InputGetRequestError error
 
 		InputInstalledDeployment deployments.InstalledDeviceDeployment
+
+		InputArtifact                      *images.SoftwareImage
+		InputImageByIdsAndDeviceTypeError  error
+		InputImageByNameAndDeviceTypeError error
+
+		InputAssignArtifactError error
+
+		InputExistUnfinishedByArtifactIdFlag bool
+		ExistUnfinishedByArtifactIdError     error
 
 		OutputError                  error
 		OutputDeploymentInstructions *deployments.DeploymentInstructions
@@ -252,9 +289,26 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 					validUUIDv4,
 					&images.SoftwareImageMetaConstructor{},
 					&images.SoftwareImageMetaArtifactConstructor{
-						Name: "foo-artifact",
+						Name: image.Name,
+						DeviceTypesCompatible: []string{
+							"hammer",
+						},
 					}),
+				DeviceId:     StringToPointer("ID:123"),
 				DeploymentId: StringToPointer("ID:678"),
+			},
+			InputArtifact: images.NewSoftwareImage(
+				validUUIDv4,
+				&images.SoftwareImageMetaConstructor{},
+				&images.SoftwareImageMetaArtifactConstructor{
+					Name: image.Name,
+					DeviceTypesCompatible: []string{
+						"hammer",
+					},
+				}),
+			InputInstalledDeployment: deployments.InstalledDeviceDeployment{
+				Artifact:   "different-artifact",
+				DeviceType: "hammer",
 			},
 			InputGetRequestError: errors.New("file storage error"),
 
@@ -264,8 +318,10 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			InputID: "ID:123",
 			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
 				Image:        image,
+				DeviceId:     StringToPointer("ID:123"),
 				DeploymentId: StringToPointer("ID:678"),
 			},
+			InputArtifact:       image,
 			InputGetRequestLink: &images.Link{},
 
 			OutputDeploymentInstructions: &deployments.DeploymentInstructions{
@@ -282,6 +338,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			InputID: "ID:123",
 			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
 				Id:           StringToPointer("ID:device-deployment-123"),
+				DeviceId:     StringToPointer("ID:123"),
 				Image:        image,
 				DeploymentId: StringToPointer("ID:678"),
 			},
@@ -299,6 +356,11 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
 
 			deploymentStorage := new(mocks.DeploymentsStorage)
+			deploymentStorage.On("ExistUnfinishedByArtifactId",
+				h.ContextMatcher(),
+				mock.AnythingOfType("string")).
+				Return(testCase.InputExistUnfinishedByArtifactIdFlag,
+					testCase.ExistUnfinishedByArtifactIdError)
 
 			deviceDeploymentStorage := new(mocks.DeviceDeploymentStorage)
 			deviceDeploymentStorage.On("FindOldestDeploymentForDeviceIDWithStatuses",
@@ -307,18 +369,23 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				Return(testCase.InputOlderstDeviceDeployment,
 					testCase.InputOlderstDeviceDeploymentError)
 
-			// if UpdateDeviceDeploymentStatus is ever called, the status
-			// will be already-installed
-
 			deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
 				h.ContextMatcher(),
 				mock.AnythingOfType("string"), mock.AnythingOfType("string"),
-				deployments.DeviceDeploymentStatusAlreadyInst, mock.AnythingOfType("*time.Time")).
+				mock.AnythingOfType("string"), mock.AnythingOfType("*time.Time")).
 				Return("dontcare", nil)
 			deviceDeploymentStorage.On("GetDeviceDeploymentStatus",
 				h.ContextMatcher(),
 				mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 				Return("dontcare", nil)
+
+			deviceDeploymentStorage.On("AssignArtifact",
+				h.ContextMatcher(),
+				mock.AnythingOfType("string"),
+				mock.AnythingOfType("string"),
+				mock.AnythingOfType("*images.SoftwareImage")).
+				Return(nil)
+				//Return(testCase.InputAssignArtifactError)
 
 			imageLinker := new(mocks.GetRequester)
 			if testCase.InputOlderstDeviceDeployment != nil {
@@ -340,7 +407,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 					h.ContextMatcher(),
 					*testCase.InputOlderstDeviceDeployment.DeploymentId,
 					mock.AnythingOfType("string"),
-					deployments.DeviceDeploymentStatusAlreadyInst).
+					mock.AnythingOfType("string")).
 					Return(nil)
 
 				deploymentStorage.On("FindByID",
@@ -349,6 +416,9 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 					Return(&deployments.Deployment{
 						Id:    testCase.InputOlderstDeviceDeployment.DeploymentId,
 						Stats: deployments.NewDeviceDeploymentStats(),
+						DeploymentConstructor: &deployments.DeploymentConstructor{
+							ArtifactName: &image.Name,
+						},
 					}, nil)
 
 				// if deployment is found to be finished, we need to
@@ -360,10 +430,26 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 					Return(nil)
 			}
 
+			artifactGetter := new(mocks.ArtifactGetter)
+			artifactGetter.On("ImageByIdsAndDeviceType",
+				h.ContextMatcher(),
+				mock.AnythingOfType("[]string"),
+				mock.AnythingOfType("string")).
+				Return(testCase.InputArtifact,
+					testCase.InputImageByIdsAndDeviceTypeError)
+
+			artifactGetter.On("ImageByNameAndDeviceType",
+				h.ContextMatcher(),
+				mock.AnythingOfType("string"),
+				mock.AnythingOfType("string")).
+				Return(testCase.InputArtifact,
+					testCase.InputImageByNameAndDeviceTypeError)
+
 			model := NewDeploymentModel(DeploymentsModelConfig{
 				DeviceDeploymentsStorage: deviceDeploymentStorage,
 				DeploymentsStorage:       deploymentStorage,
 				ImageLinker:              imageLinker,
+				ArtifactGetter:           artifactGetter,
 			})
 
 			out, err := model.GetDeploymentForDeviceWithCurrent(context.Background(),
@@ -388,17 +474,15 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 
 func TestDeploymentModelCreateDeployment(t *testing.T) {
 
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := []struct {
 		InputConstructor *deployments.DeploymentConstructor
 
-		InputGenerateDeviceDeployment *deployments.DeviceDeployment
-		InputGenerateError            error
-
 		InputDeploymentStorageInsertError           error
 		InputDeviceDeploymentStorageInsertManyError error
 		InputDeploymentStorageDeleteError           error
+		InputImagesByNameError                      error
 
 		OutputError error
 		OutputBody  bool
@@ -416,17 +500,6 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			InputGenerateError: errors.New("generation error"),
-
-			OutputError: errors.New("Preparing deployment for device: generation error"),
-		},
-		{
-			InputConstructor: &deployments.DeploymentConstructor{
-				Name:         StringToPointer("NYC Production"),
-				ArtifactName: StringToPointer("App 123"),
-				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
-			},
-			InputGenerateDeviceDeployment:     &deployments.DeviceDeployment{},
 			InputDeploymentStorageInsertError: errors.New("insert error"),
 
 			OutputError: errors.New("Storing deployment data: insert error"),
@@ -437,7 +510,6 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			InputGenerateDeviceDeployment:               &deployments.DeviceDeployment{},
 			InputDeviceDeploymentStorageInsertManyError: errors.New("insert error"),
 			InputDeploymentStorageDeleteError:           errors.New("delete error"),
 
@@ -449,7 +521,6 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			InputGenerateDeviceDeployment:               &deployments.DeviceDeployment{},
 			InputDeviceDeploymentStorageInsertManyError: errors.New("insert error"),
 
 			OutputError: errors.New("Storing assigned deployments to devices: insert error"),
@@ -460,7 +531,6 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			InputGenerateDeviceDeployment: &deployments.DeviceDeployment{},
 
 			OutputBody: true,
 		},
@@ -470,9 +540,6 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			InputGenerateDeviceDeployment: &deployments.DeviceDeployment{
-				Status: StringToPointer(deployments.DeviceDeploymentStatusNoArtifact),
-			},
 
 			OutputBody: true,
 		},
@@ -480,10 +547,6 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 
 	for testCaseNumber, testCase := range testCases {
 		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
-
-			generator := new(mocks.Generator)
-			generator.On("Generate", mock.AnythingOfType("*context.emptyCtx"), mock.AnythingOfType("string"), mock.AnythingOfType("*deployments.Deployment")).
-				Return(testCase.InputGenerateDeviceDeployment, testCase.InputGenerateError)
 
 			deploymentStorage := new(mocks.DeploymentsStorage)
 			deploymentStorage.On("Insert",
@@ -501,10 +564,27 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				mock.AnythingOfType("[]*deployments.DeviceDeployment")).
 				Return(testCase.InputDeviceDeploymentStorageInsertManyError)
 
+			artifactGetter := new(mocks.ArtifactGetter)
+			artifactGetter.On("ImagesByName",
+				h.ContextMatcher(),
+				mock.AnythingOfType("string")).
+				Return(
+					[]*images.SoftwareImage{images.NewSoftwareImage(
+						validUUIDv4,
+						&images.SoftwareImageMetaConstructor{},
+						&images.SoftwareImageMetaArtifactConstructor{
+							//Name: *testCase.InputConstructor.ArtifactName,
+							Name: "App 123",
+							DeviceTypesCompatible: []string{
+								"hammer",
+							},
+						})},
+					testCase.InputImagesByNameError)
+
 			model := NewDeploymentModel(DeploymentsModelConfig{
-				DeploymentsStorage:        deploymentStorage,
-				DeviceDeploymentGenerator: generator,
-				DeviceDeploymentsStorage:  deviceDeploymentStorage,
+				DeploymentsStorage:       deploymentStorage,
+				DeviceDeploymentsStorage: deviceDeploymentStorage,
+				ArtifactGetter:           artifactGetter,
 			})
 
 			out, err := model.CreateDeployment(context.Background(), testCase.InputConstructor)
@@ -523,7 +603,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 
 func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := []struct {
 		InputDeployment *deployments.Deployment
@@ -682,7 +762,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 				deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
 					h.ContextMatcher(),
 					testCase.InputDeviceID, *testCase.InputDeployment.Id,
-					testCase.InputStatus, mock.AnythingOfType("*time.Time")).
+					mock.AnythingOfType("string"), mock.AnythingOfType("*time.Time")).
 					Return("dontcare", testCase.InputDevsStorageError)
 				deploymentStorage.On("UpdateStats",
 					h.ContextMatcher(),
@@ -731,7 +811,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 
 func TestGetDeploymentStats(t *testing.T) {
 
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := []struct {
 		InputDeploymentID         string
@@ -837,7 +917,7 @@ func TestGetDeploymentStats(t *testing.T) {
 }
 
 func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := map[string]struct {
 		inDeploymentId string
@@ -938,7 +1018,7 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 
 func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 
-	t.Parallel()
+	//t.Parallel()
 
 	tref := time.Now()
 	messages := []deployments.LogMessage{
@@ -1050,7 +1130,7 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 
 func TestDeploymentModelLookupDeployment(t *testing.T) {
 
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := map[string]struct {
 		MockDeployments []*deployments.Deployment
@@ -1096,7 +1176,7 @@ func TestDeploymentModelLookupDeployment(t *testing.T) {
 }
 
 func TestDeploymentModelIsDeploymentFinished(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := map[string]struct {
 		InputDeploymentID string
@@ -1148,7 +1228,7 @@ func TestDeploymentModelIsDeploymentFinished(t *testing.T) {
 }
 
 func TestDeploymentModelAbortDeployment(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := map[string]struct {
 		InputDeploymentID string
@@ -1217,7 +1297,7 @@ func TestDeploymentModelAbortDeployment(t *testing.T) {
 }
 
 func TestDeploymentModelDecommissionDevice(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := map[string]struct {
 		InputDeviceId string

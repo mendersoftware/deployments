@@ -372,6 +372,9 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
+				if deployment != nil && assert.Equal(t, 0, len(deployment.Artifacts)) {
+					deployment.Artifacts = nil
+				}
 				assert.Equal(t, testCase.OutputDeployment, deployment)
 			}
 
@@ -586,6 +589,9 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
+				if deployment != nil && assert.Equal(t, 0, len(deployment.Artifacts)) {
+					deployment.Artifacts = nil
+				}
 				assert.Equal(t, testCase.OutputDeployment, deployment)
 			}
 
