@@ -512,8 +512,9 @@ paths:
     delete:
       summary: Delete the artifact
       description: |
-        Deletes the artifact from file and artifacts storage. Deployments
-        in progress can not be deleted until deployment finishes.
+        Deletes the artifact from file and artifacts storage.
+        Artifacts used by deployments in progress can not be deleted
+        until deployment finishes.
       produces:
         - application/json
       parameters:
@@ -533,6 +534,10 @@ paths:
           description: The artifact deleted successfully.
         404:
           $ref: "#/responses/NotFoundError"
+        409:
+          description: Artifact used by active deployment.
+          schema:
+            $ref: "#/definitions/Error"
         500:
           $ref: "#/responses/InternalServerError"
 
