@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/images"
 )
 
 // Device deployment storage
@@ -35,6 +36,8 @@ type DeviceDeploymentStorage interface {
 		deploymentID string, status string, finishTime *time.Time) (string, error)
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
+	AssignArtifact(ctx context.Context, deviceID string,
+		deploymentID string, artifact *images.SoftwareImage) error
 	AggregateDeviceDeploymentByStatus(ctx context.Context,
 		id string) (deployments.Stats, error)
 	GetDeviceStatusesForDeployment(ctx context.Context,
