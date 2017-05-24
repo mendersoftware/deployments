@@ -18,13 +18,10 @@ import (
 	"context"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 
 	"github.com/mendersoftware/deployments/config"
-	"github.com/mendersoftware/deployments/integration"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
-	"github.com/mendersoftware/deployments/resources/deployments/generator"
 	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	deploymentsMongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	deploymentsView "github.com/mendersoftware/deployments/resources/deployments/view"
@@ -79,22 +76,14 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 		return nil, err
 	}
 
-	inventory, err := integration.NewMenderAPI(c.GetString(SettingGateway))
-	if err != nil {
-		return nil, errors.Wrap(err, "init inventory client")
-	}
-
 	// Domain Models
 	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{
 		DeploymentsStorage:          deploymentsStorage,
 		DeviceDeploymentsStorage:    deviceDeploymentsStorage,
 		DeviceDeploymentLogsStorage: deviceDeploymentLogsStorage,
 		ImageLinker:                 fileStorage,
-		DeviceDeploymentGenerator: generator.NewImageBasedDeviceDeployment(
-			imagesStorage,
-			generator.NewInventory(inventory),
-		),
-		ImageContentType: imagesModel.ArtifactContentType,
+		ArtifactGetter:              imagesStorage,
+		ImageContentType:            imagesModel.ArtifactContentType,
 	})
 
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)

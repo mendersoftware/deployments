@@ -18,10 +18,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/deployments/controller"
+	"github.com/mendersoftware/deployments/resources/images"
 )
 
 // Defaults
@@ -29,12 +31,21 @@ const (
 	DefaultUpdateDownloadLinkExpire = 24 * time.Hour
 )
 
+type ArtifactGetter interface {
+	ImagesByName(ctx context.Context,
+		artifactName string) ([]*images.SoftwareImage, error)
+	ImageByIdsAndDeviceType(ctx context.Context,
+		ids []string, deviceType string) (*images.SoftwareImage, error)
+	ImageByNameAndDeviceType(ctx context.Context,
+		name, deviceType string) (*images.SoftwareImage, error)
+}
+
 type DeploymentsModel struct {
 	deploymentsStorage          DeploymentsStorage
 	deviceDeploymentsStorage    DeviceDeploymentStorage
 	deviceDeploymentLogsStorage DeviceDeploymentLogsStorage
 	imageLinker                 GetRequester
-	deviceDeploymentGenerator   Generator
+	artifactGetter              ArtifactGetter
 	imageContentType            string
 }
 
@@ -43,7 +54,7 @@ type DeploymentsModelConfig struct {
 	DeviceDeploymentsStorage    DeviceDeploymentStorage
 	DeviceDeploymentLogsStorage DeviceDeploymentLogsStorage
 	ImageLinker                 GetRequester
-	DeviceDeploymentGenerator   Generator
+	ArtifactGetter              ArtifactGetter
 	ImageContentType            string
 }
 
@@ -53,14 +64,20 @@ func NewDeploymentModel(config DeploymentsModelConfig) *DeploymentsModel {
 		deviceDeploymentsStorage:    config.DeviceDeploymentsStorage,
 		deviceDeploymentLogsStorage: config.DeviceDeploymentLogsStorage,
 		imageLinker:                 config.ImageLinker,
-		deviceDeploymentGenerator:   config.DeviceDeploymentGenerator,
+		artifactGetter:              config.ArtifactGetter,
 		imageContentType:            config.ImageContentType,
 	}
 }
 
+func getArtifactIDs(artifacts []*images.SoftwareImage) []string {
+	artifactIDs := make([]string, 0, len(artifacts))
+	for _, artifact := range artifacts {
+		artifactIDs = append(artifactIDs, artifact.Id)
+	}
+	return artifactIDs
+}
+
 // CreateDeployment precomputes new deplyomet and schedules it for devices.
-// Automatically assigns matching images to target device types.
-// In case no image is available for target device, noartifact status is set.
 // TODO: check if specified devices are bootstrapped (when have a way to do this)
 func (d *DeploymentsModel) CreateDeployment(ctx context.Context,
 	constructor *deployments.DeploymentConstructor) (string, error) {
@@ -75,27 +92,33 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context,
 
 	deployment := deployments.NewDeploymentFromConstructor(constructor)
 
+	// Assign artifacts to the deployment.
+	// Only artifacts present in the system at the moment of deployment creation
+	// will be part of this deployment.
+	artifacts, err := d.artifactGetter.ImagesByName(ctx, *deployment.ArtifactName)
+	if err != nil {
+		return "", errors.Wrap(err, "Finding artifact with given name")
+	}
+
+	if len(artifacts) == 0 {
+		return "", errors.New("No artifact for deployment")
+	}
+
+	deployment.Artifacts = getArtifactIDs(artifacts)
+
 	// Generate deployment for each specified device.
-	unassigned := 0
+	// Do not assign artifacts to the particular device deployment.
+	// Artifacts will be assigned on device update request handling, based on
+	// information provided by the device in the update request.
 	deviceDeployments := make([]*deployments.DeviceDeployment, 0, len(constructor.Devices))
 	for _, id := range constructor.Devices {
-
-		deviceDeployment, err := d.deviceDeploymentGenerator.Generate(ctx, id, deployment)
-		if err != nil {
-			return "", errors.Wrap(err, "Preparing deployment for device")
-		}
-
-		// // Check how many devices are not going to be deployed
-		if deviceDeployment.Status != nil && *(deviceDeployment.Status) == deployments.DeviceDeploymentStatusNoArtifact {
-			unassigned++
-		}
-
+		deviceDeployment := deployments.NewDeviceDeployment(id, *deployment.Id)
+		deviceDeployment.Created = deployment.Created
 		deviceDeployments = append(deviceDeployments, deviceDeployment)
 	}
 
 	// Set initial statistics cache values
-	deployment.Stats[deployments.DeviceDeploymentStatusNoArtifact] = unassigned
-	deployment.Stats[deployments.DeviceDeploymentStatusPending] = len(constructor.Devices) - unassigned
+	deployment.Stats[deployments.DeviceDeploymentStatusPending] = len(constructor.Devices)
 
 	if err := d.deploymentsStorage.Insert(ctx, deployment); err != nil {
 		return "", errors.Wrap(err, "Storing deployment data")
@@ -143,7 +166,18 @@ func (d *DeploymentsModel) GetDeployment(ctx context.Context,
 func (d *DeploymentsModel) ImageUsedInActiveDeployment(ctx context.Context,
 	imageID string) (bool, error) {
 
-	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(ctx,
+	var found bool
+
+	found, err := d.deploymentsStorage.ExistUnfinishedByArtifactId(ctx, imageID)
+	if err != nil {
+		return false, errors.Wrap(err, "Checking if image is used by active deployment")
+	}
+
+	if found {
+		return found, nil
+	}
+
+	found, err = d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(ctx,
 		imageID, deployments.ActiveDeploymentStatuses()...)
 	if err != nil {
 		return false, errors.Wrap(err, "Checking if image is used by active deployment")
@@ -156,7 +190,18 @@ func (d *DeploymentsModel) ImageUsedInActiveDeployment(ctx context.Context,
 // Image is considered to be in use if it's participating in any deployment.
 func (d *DeploymentsModel) ImageUsedInDeployment(ctx context.Context, imageID string) (bool, error) {
 
-	found, err := d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(ctx, imageID)
+	var found bool
+
+	found, err := d.deploymentsStorage.ExistUnfinishedByArtifactId(ctx, imageID)
+	if err != nil {
+		return false, errors.Wrap(err, "Checking if image is used by active deployment")
+	}
+
+	if found {
+		return found, nil
+	}
+
+	found, err = d.deviceDeploymentsStorage.ExistAssignedImageWithIDAndStatuses(ctx, imageID)
 	if err != nil {
 		return false, errors.Wrap(err, "Checking if image is used in deployment")
 	}
@@ -164,11 +209,66 @@ func (d *DeploymentsModel) ImageUsedInDeployment(ctx context.Context, imageID st
 	return found, nil
 }
 
+// assignArtifact assignes artifact to the device deployment
+func (d *DeploymentsModel) assignArtifact(
+	ctx context.Context,
+	deployment *deployments.Deployment,
+	deviceDeployment *deployments.DeviceDeployment,
+	installed deployments.InstalledDeviceDeployment) error {
+
+	// Assign artifact to the device deployment.
+	var artifact *images.SoftwareImage
+	var err error
+	// Clear device deployment image
+	// New artifact will be selected for the device deployment
+	// TODO: Should selecting different artifact be treated as an error?
+	deviceDeployment.Image = nil
+
+	// First case is for backward compatibility.
+	// It is possible that there is old deployment structure in the system.
+	// In such case we need to select artifact using name and device type.
+	if deployment.Artifacts == nil || len(deployment.Artifacts) == 0 {
+		artifact, err = d.artifactGetter.ImageByNameAndDeviceType(ctx, installed.Artifact, installed.DeviceType)
+		if err != nil {
+			return errors.Wrap(err, "assigning artifact to device deployment")
+		}
+	} else {
+		// Select artifact for the device deployment from artifacts assgined to the deployment.
+		artifact, err = d.artifactGetter.ImageByIdsAndDeviceType(ctx, deployment.Artifacts, installed.DeviceType)
+		if err != nil {
+			return errors.Wrap(err, "assigning artifact to device deployment")
+		}
+	}
+
+	if deviceDeployment.DeploymentId == nil || deviceDeployment.DeviceId == nil {
+		return controller.ErrModelInternal
+	}
+
+	// If not having appropriate image, set noartifact status
+	if artifact == nil {
+		if err := d.UpdateDeviceDeploymentStatus(ctx, *deviceDeployment.DeploymentId,
+			*deviceDeployment.DeviceId, deployments.DeviceDeploymentStatusNoArtifact); err != nil {
+			return errors.Wrap(err, "Failed to update deployment status")
+		}
+		return nil
+	}
+
+	if err := d.deviceDeploymentsStorage.AssignArtifact(
+		ctx, *deviceDeployment.DeviceId, *deviceDeployment.DeploymentId, artifact); err != nil {
+		return errors.Wrap(err, "Assigning artifact to the device deployment")
+	}
+
+	deviceDeployment.Image = artifact
+	deviceDeployment.DeviceType = &installed.DeviceType
+
+	return nil
+}
+
 // GetDeploymentForDeviceWithCurrent returns deployment for the device
 func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
 	installed deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error) {
 
-	deployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(
+	deviceDeployment, err := d.deviceDeploymentsStorage.FindOldestDeploymentForDeviceIDWithStatuses(
 		ctx,
 		deviceID,
 		deployments.ActiveDeploymentStatuses()...)
@@ -177,15 +277,24 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context
 		return nil, errors.Wrap(err, "Searching for oldest active deployment for the device")
 	}
 
+	if deviceDeployment == nil {
+		return nil, nil
+	}
+
+	deployment, err := d.deploymentsStorage.FindByID(ctx, *deviceDeployment.DeploymentId)
+	if err != nil {
+		return nil, controller.ErrModelInternal
+	}
+
 	if deployment == nil {
 		return nil, nil
 	}
 
-	if installed.Artifact != "" && deployment.Image.Name == installed.Artifact {
+	if installed.Artifact != "" && *deployment.ArtifactName == installed.Artifact {
 		// pretend there is no deployment for this device, but update
 		// its status to already installed first
 
-		if err := d.UpdateDeviceDeploymentStatus(ctx, *deployment.DeploymentId, deviceID,
+		if err := d.UpdateDeviceDeploymentStatus(ctx, *deviceDeployment.DeploymentId, deviceID,
 			deployments.DeviceDeploymentStatusAlreadyInst); err != nil {
 
 			return nil, errors.Wrap(err, "Failed to update deployment status")
@@ -194,18 +303,26 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context
 		return nil, nil
 	}
 
-	link, err := d.imageLinker.GetRequest(ctx, deployment.Image.Id,
+	if err := d.assignArtifact(ctx, deployment, deviceDeployment, installed); err != nil {
+		return nil, err
+	}
+
+	if deviceDeployment.Image == nil {
+		return nil, nil
+	}
+
+	link, err := d.imageLinker.GetRequest(ctx, deviceDeployment.Image.Id,
 		DefaultUpdateDownloadLinkExpire, d.imageContentType)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}
 
 	instructions := &deployments.DeploymentInstructions{
-		ID: *deployment.DeploymentId,
+		ID: *deviceDeployment.DeploymentId,
 		Artifact: deployments.ArtifactDeploymentInstructions{
-			ArtifactName:          deployment.Image.Name,
+			ArtifactName:          deviceDeployment.Image.Name,
 			Source:                *link,
-			DeviceTypesCompatible: deployment.Image.DeviceTypesCompatible,
+			DeviceTypesCompatible: deviceDeployment.Image.DeviceTypesCompatible,
 		},
 	}
 
@@ -216,6 +333,10 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context
 // ID `deviceID`. Returns nil if update was successful.
 func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
 	deviceID string, status string) error {
+
+	l := log.FromContext(ctx)
+
+	l.Infof("New status: %s for device %s deployment: %v", status, deviceID, deploymentID)
 
 	var finishTime *time.Time = nil
 	if deployments.IsDeviceDeploymentStatusFinished(status) {
@@ -262,6 +383,7 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(ctx context.Context, dep
 	if deployment.IsFinished() {
 		// TODO: Make this part of UpdateStats() call as currently we are doing two
 		// write operations on DB - as well as it's safer to keep them in single transaction.
+		l.Infof("Finish deployment: %s", deploymentID)
 		if err := d.deploymentsStorage.Finish(ctx, deploymentID, time.Now()); err != nil {
 			return errors.Wrap(err, "failed to mark deployment as finished")
 		}

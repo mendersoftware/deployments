@@ -159,6 +159,8 @@ func (d *DeploymentsController) AbortDeployment(w rest.ResponseWriter, r *rest.R
 		d.view.RenderError(w, r, ErrUnexpectedDeploymentStatus, http.StatusBadRequest, l)
 	}
 
+	l.Infof("Abort deployment: %s", id)
+
 	// Check if deployment is finished
 	isDeploymentFinished, err := d.model.IsDeploymentFinished(ctx, id)
 	if err != nil {
