@@ -157,8 +157,7 @@ class TestDeployment(DeploymentsClient):
             ac.delete_artifact(artid)
 
     def test_deployments_new_no_artifact(self):
-        """Add deployment without an artifact, verify that it's finished and device
-        deployment has `noartifact` status"""
+        """Try to add deployment without an artifact, verify that it failed with 422"""
         dev = Device()
 
         self.log.info('fake device with ID: %s', dev.devid)
@@ -169,23 +168,12 @@ class TestDeployment(DeploymentsClient):
         # come up with an artifact
         newdep = self.make_new_deployment(name='fake deployment', artifact_name=artifact_name,
                                           devices=[dev.devid])
-        with self.with_added_deployment(newdep) as depid:
-
-            dep = self.client.deployments.get_deployments_id(Authorization='foo',
-                                                             id=depid).result()[0]
-            self.log.debug('deployment dep: %s', dep)
-            assert dep.artifact_name == artifact_name
-            assert dep.id == depid
-            assert dep.status == 'finished'
-
-            # fetch device status
-            depdevs = self.client.deployments.get_deployments_deployment_id_devices(Authorization='foo',
-                                                                                    deployment_id=depid).result()[0]
-            self.log.debug('deployment devices: %s', depdevs)
-            assert len(depdevs) == 1
-            depdev = depdevs[0]
-            assert depdev.status == 'noartifact'
-            assert depdev.id == dev.devid
+        try:
+            self.add_deployment(newdep)
+        except bravado.exception.HTTPError as err:
+            assert err.response.status_code == 422
+        else:
+            raise AssertionError('expected to fail')
 
 
     def test_device_deployments_simple(self):
