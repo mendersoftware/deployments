@@ -743,7 +743,6 @@ definitions:
     required:
       - id
       - status
-      - device_type
       - log
     example:
       application/json:
