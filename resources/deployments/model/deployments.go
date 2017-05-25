@@ -143,10 +143,10 @@ func (d *DeploymentsModel) IsDeploymentFinished(ctx context.Context, deploymentI
 		return false, errors.Wrap(err, "Searching for unfinished deployment by ID")
 	}
 	if deployment == nil {
-		return false, nil
+		return true, nil
 	}
 
-	return true, nil
+	return false, nil
 }
 
 // GetDeployment fetches deployment by ID

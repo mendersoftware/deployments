@@ -1190,7 +1190,7 @@ func TestDeploymentModelIsDeploymentFinished(t *testing.T) {
 			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
 			MockDeployment:    nil,
 			OutputError:       nil,
-			OutputValue:       false,
+			OutputValue:       true,
 		},
 		"error": {
 			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
@@ -1201,7 +1201,7 @@ func TestDeploymentModelIsDeploymentFinished(t *testing.T) {
 		"found unfinished deployment": {
 			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
 			MockDeployment:    &deployments.Deployment{Id: StringToPointer("f826484e-1157-4109-af21-304e6d711561")},
-			OutputValue:       true,
+			OutputValue:       false,
 		},
 	}
 
