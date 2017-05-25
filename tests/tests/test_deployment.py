@@ -106,7 +106,7 @@ class TestDeployment(DeploymentsClient):
                 ac.delete_artifact(artid)
             except ArtifactsClientError as ace:
                 #  artifact is used in deployment
-                assert ace.response.status_code == 500
+                assert ace.response.status_code == 409
             else:
                 raise AssertionError('expected to fail')
 
