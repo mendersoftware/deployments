@@ -101,7 +101,7 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context,
 	}
 
 	if len(artifacts) == 0 {
-		return "", errors.New("No artifact for deployment")
+		return "", controller.ErrNoArtifact
 	}
 
 	deployment.Artifacts = getArtifactIDs(artifacts)
