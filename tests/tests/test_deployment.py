@@ -180,7 +180,6 @@ class TestDeployment(DeploymentsClient):
         """Check that device can get next deployment, simple cases:
         - bogus token
         - valid update
-        - already installed
         - device type incompatible with artifact
         """
         dev = Device()
@@ -226,10 +225,34 @@ class TestDeployment(DeploymentsClient):
                                                      artifact_name='different {}'.format(artifact_name),
                                                      device_type='other {}'.format(dev.device_type))
                     self.log.info('device next: %s', nextdep)
-                    # TODO: this should fail or a deployment should come with a
-                    # new artifact, come back when
-                    # https://tracker.mender.io/browse/MEN-782 is resolved
-                    # assert nextdep == None
+                    assert nextdep == None
+                    # verify that device status was properly recorded
+                    self.verify_deployment_stats(depid, expected={
+                        'noartifact': 1,
+                    })
+
+    def test_device_deployments_already_installed(self):
+        """Check case with already installed artifact
+        """
+        dev = Device()
+
+        self.log.info('fake device with ID: %s', dev.devid)
+
+        self.inventory_add_dev(dev)
+
+        data = b'foo_bar'
+        artifact_name = 'hammer-update ' + str(uuid4())
+        # come up with an artifact
+        with artifact_from_data(name=artifact_name, data=data, devicetype=dev.device_type) as art:
+            ac = SimpleArtifactsClient()
+            with ac.with_added_artifact(description='desc', size=art.size, data=art) as artid:
+
+                newdep = self.make_new_deployment(name='foo', artifact_name=artifact_name,
+                                                  devices=[dev.devid])
+
+                with self.with_added_deployment(newdep) as depid:
+                    dc = SimpleDeviceClient()
+                    self.log.debug('device token %s', dev.fake_token)
 
                     # pretend we have the same artifact installed already
                     # NOTE: asking for a deployment while having it already
