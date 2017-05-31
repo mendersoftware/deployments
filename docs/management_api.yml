@@ -106,6 +106,8 @@ paths:
         device from all available artifacts based on artifact name and device type.
         Devices for which there are no compatible artifacts to be installed are
         considered finished successfully as well as receive status of `noartifact`.
+        If there is no artifacts for the deployment, deployment will not be created
+        and the 422 Unprocessable Entity status code will be returned.
 
       parameters:
         - name: Authorization
@@ -131,6 +133,8 @@ paths:
               type: string
         400:
           $ref: "#/responses/InvalidRequestError"
+        422:
+            $ref: "#/responses/UnprocessableEntityError"
         500:
           $ref: "#/responses/InternalServerError"
 
