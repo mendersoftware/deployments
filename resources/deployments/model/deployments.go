@@ -303,8 +303,11 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context
 		return nil, nil
 	}
 
-	if err := d.assignArtifact(ctx, deployment, deviceDeployment, installed); err != nil {
-		return nil, err
+	// assign artifact only if the artifact was not assigned previously or the device type has changed
+	if deviceDeployment.Image == nil || deviceDeployment.DeviceType == nil || *deviceDeployment.DeviceType != installed.DeviceType {
+		if err := d.assignArtifact(ctx, deployment, deviceDeployment, installed); err != nil {
+			return nil, err
+		}
 	}
 
 	if deviceDeployment.Image == nil {
