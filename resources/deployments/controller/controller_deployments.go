@@ -65,7 +65,7 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 	id, err := d.model.CreateDeployment(ctx, constructor)
 	if err != nil {
 		if err == ErrNoArtifact {
-			d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+			d.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
 		} else {
 			d.view.RenderInternalError(w, r, err, l)
 		}
