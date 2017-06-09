@@ -387,9 +387,11 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     post:
-      summary: Create an artifact
+      summary: Upload mender artifact
       description: |
-        Creates artifact. Mulitpart request with meta and artifact.
+        Upload medner artifact. Multipart request with meta and artifact.
+        
+        Supports artifact (versions v1, v2)[https://docs.mender.io/1.1/architecture/mender-artifacts#versions].
       consumes:
         - multipart/form-data
       parameters:
