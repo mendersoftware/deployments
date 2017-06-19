@@ -37,6 +37,7 @@ var (
 	ErrDeploymentAlreadyFinished  = errors.New("Deployment already finished")
 	ErrUnexpectedDeploymentStatus = errors.New("Unexpected deployment status")
 	ErrMissingIdentity            = errors.New("Missing identity data")
+	ErrNoArtifact                 = errors.New("No artifact for the deployment")
 )
 
 type DeploymentsController struct {
@@ -63,7 +64,11 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 
 	id, err := d.model.CreateDeployment(ctx, constructor)
 	if err != nil {
-		d.view.RenderInternalError(w, r, err, l)
+		if err == ErrNoArtifact {
+			d.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
+		} else {
+			d.view.RenderInternalError(w, r, err, l)
+		}
 		return
 	}
 
@@ -158,6 +163,8 @@ func (d *DeploymentsController) AbortDeployment(w rest.ResponseWriter, r *rest.R
 	if status.Status != deployments.DeviceDeploymentStatusAborted {
 		d.view.RenderError(w, r, ErrUnexpectedDeploymentStatus, http.StatusBadRequest, l)
 	}
+
+	l.Infof("Abort deployment: %s", id)
 
 	// Check if deployment is finished
 	isDeploymentFinished, err := d.model.IsDeploymentFinished(ctx, id)

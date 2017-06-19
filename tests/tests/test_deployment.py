@@ -106,7 +106,7 @@ class TestDeployment(DeploymentsClient):
                 ac.delete_artifact(artid)
             except ArtifactsClientError as ace:
                 #  artifact is used in deployment
-                assert ace.response.status_code == 500
+                assert ace.response.status_code == 409
             else:
                 raise AssertionError('expected to fail')
 
@@ -157,8 +157,7 @@ class TestDeployment(DeploymentsClient):
             ac.delete_artifact(artid)
 
     def test_deployments_new_no_artifact(self):
-        """Add deployment without an artifact, verify that it's finished and device
-        deployment has `noartifact` status"""
+        """Try to add deployment without an artifact, verify that it failed with 422"""
         dev = Device()
 
         self.log.info('fake device with ID: %s', dev.devid)
@@ -169,30 +168,18 @@ class TestDeployment(DeploymentsClient):
         # come up with an artifact
         newdep = self.make_new_deployment(name='fake deployment', artifact_name=artifact_name,
                                           devices=[dev.devid])
-        with self.with_added_deployment(newdep) as depid:
-
-            dep = self.client.deployments.get_deployments_id(Authorization='foo',
-                                                             id=depid).result()[0]
-            self.log.debug('deployment dep: %s', dep)
-            assert dep.artifact_name == artifact_name
-            assert dep.id == depid
-            assert dep.status == 'finished'
-
-            # fetch device status
-            depdevs = self.client.deployments.get_deployments_deployment_id_devices(Authorization='foo',
-                                                                                    deployment_id=depid).result()[0]
-            self.log.debug('deployment devices: %s', depdevs)
-            assert len(depdevs) == 1
-            depdev = depdevs[0]
-            assert depdev.status == 'noartifact'
-            assert depdev.id == dev.devid
+        try:
+            self.add_deployment(newdep)
+        except bravado.exception.HTTPError as err:
+            assert err.response.status_code == 422
+        else:
+            raise AssertionError('expected to fail')
 
 
     def test_device_deployments_simple(self):
         """Check that device can get next deployment, simple cases:
         - bogus token
         - valid update
-        - already installed
         - device type incompatible with artifact
         """
         dev = Device()
@@ -238,10 +225,34 @@ class TestDeployment(DeploymentsClient):
                                                      artifact_name='different {}'.format(artifact_name),
                                                      device_type='other {}'.format(dev.device_type))
                     self.log.info('device next: %s', nextdep)
-                    # TODO: this should fail or a deployment should come with a
-                    # new artifact, come back when
-                    # https://tracker.mender.io/browse/MEN-782 is resolved
-                    # assert nextdep == None
+                    assert nextdep == None
+                    # verify that device status was properly recorded
+                    self.verify_deployment_stats(depid, expected={
+                        'noartifact': 1,
+                    })
+
+    def test_device_deployments_already_installed(self):
+        """Check case with already installed artifact
+        """
+        dev = Device()
+
+        self.log.info('fake device with ID: %s', dev.devid)
+
+        self.inventory_add_dev(dev)
+
+        data = b'foo_bar'
+        artifact_name = 'hammer-update ' + str(uuid4())
+        # come up with an artifact
+        with artifact_from_data(name=artifact_name, data=data, devicetype=dev.device_type) as art:
+            ac = SimpleArtifactsClient()
+            with ac.with_added_artifact(description='desc', size=art.size, data=art) as artid:
+
+                newdep = self.make_new_deployment(name='foo', artifact_name=artifact_name,
+                                                  devices=[dev.devid])
+
+                with self.with_added_deployment(newdep) as depid:
+                    dc = SimpleDeviceClient()
+                    self.log.debug('device token %s', dev.fake_token)
 
                     # pretend we have the same artifact installed already
                     # NOTE: asking for a deployment while having it already

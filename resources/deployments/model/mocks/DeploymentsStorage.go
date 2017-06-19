@@ -39,6 +39,48 @@ func (_m *DeploymentsStorage) Delete(ctx context.Context, id string) error {
 	return r0
 }
 
+// ExistByArtifactId provides a mock function with given fields: ctx, id
+func (_m *DeploymentsStorage) ExistByArtifactId(ctx context.Context, id string) (bool, error) {
+	ret := _m.Called(ctx, id)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ExistUnfinishedByArtifactId provides a mock function with given fields: ctx, id
+func (_m *DeploymentsStorage) ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error) {
+	ret := _m.Called(ctx, id)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Find provides a mock function with given fields: ctx, query
 func (_m *DeploymentsStorage) Find(ctx context.Context, query deployments.Query) ([]*deployments.Deployment, error) {
 	ret := _m.Called(ctx, query)

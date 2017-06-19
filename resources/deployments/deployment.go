@@ -73,6 +73,9 @@ type Deployment struct {
 	// Deployment id, required
 	Id *string `json:"id" bson:"_id" valid:"uuidv4,required"`
 
+	// List of artifact id's targeted for deployments, optional
+	Artifacts []string `json:"artifacts,omitempty" bson:"artifacts"`
+
 	// Aggregated device status counters.
 	// Initialized with the "pending" counter set to total device count for deployment.
 	// Individual counter incremented/decremented according to device status updates.

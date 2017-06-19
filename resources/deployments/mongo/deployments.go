@@ -48,6 +48,7 @@ const (
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
 	StorageKeyDeploymentStats        = "stats"
 	StorageKeyDeploymentFinished     = "finished"
+	StorageKeyDeploymentArtifacts    = "artifacts"
 )
 
 var (
@@ -181,7 +182,7 @@ func (d *DeploymentsStorage) FindUnfinishedByID(ctx context.Context,
 	var deployment *deployments.Deployment
 	filter := bson.M{
 		"_id": id,
-		StorageKeyDeploymentFinished: time.Time{},
+		StorageKeyDeploymentFinished: nil,
 	}
 	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDeployments).Find(filter).One(&deployment); err != nil {
@@ -465,4 +466,58 @@ func (d *DeploymentsStorage) Finish(ctx context.Context, id string, when time.Ti
 	}
 
 	return err
+}
+
+// ExistUnfinishedByArtifactId checks if there is an active deployment that uses
+// given artifact
+func (d *DeploymentsStorage) ExistUnfinishedByArtifactId(ctx context.Context,
+	id string) (bool, error) {
+
+	if govalidator.IsNull(id) {
+		return false, ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	var tmp interface{}
+	query := bson.M{
+		StorageKeyDeploymentFinished:  nil,
+		StorageKeyDeploymentArtifacts: id,
+	}
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).Find(query).One(&tmp); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
+// ExistByArtifactId check if there is any deployment that uses give artifact
+func (d *DeploymentsStorage) ExistByArtifactId(ctx context.Context,
+	id string) (bool, error) {
+
+	if govalidator.IsNull(id) {
+		return false, ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	var tmp interface{}
+	query := bson.M{
+		StorageKeyDeploymentArtifacts: id,
+	}
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDeployments).Find(query).One(&tmp); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }

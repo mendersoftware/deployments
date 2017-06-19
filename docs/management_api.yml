@@ -106,6 +106,8 @@ paths:
         device from all available artifacts based on artifact name and device type.
         Devices for which there are no compatible artifacts to be installed are
         considered finished successfully as well as receive status of `noartifact`.
+        If there is no artifacts for the deployment, deployment will not be created
+        and the 422 Unprocessable Entity status code will be returned.
 
       parameters:
         - name: Authorization
@@ -131,6 +133,8 @@ paths:
               type: string
         400:
           $ref: "#/responses/InvalidRequestError"
+        422:
+            $ref: "#/responses/UnprocessableEntityError"
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -514,8 +518,9 @@ paths:
     delete:
       summary: Delete the artifact
       description: |
-        Deletes the artifact from file and artifacts storage. Deployments
-        in progress can not be deleted until deployment finishes.
+        Deletes the artifact from file and artifacts storage.
+        Artifacts used by deployments in progress can not be deleted
+        until deployment finishes.
       produces:
         - application/json
       parameters:
@@ -535,6 +540,10 @@ paths:
           description: The artifact deleted successfully.
         404:
           $ref: "#/responses/NotFoundError"
+        409:
+          description: Artifact used by active deployment.
+          schema:
+            $ref: "#/definitions/Error"
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -637,6 +646,11 @@ definitions:
           - inprogress
           - pending
           - finished
+      artifacts:
+        type: array
+        items:
+          type: string
+          description: An array of artifact's identifiers.
     required:
       - created
       - name
@@ -731,7 +745,6 @@ definitions:
     required:
       - id
       - status
-      - device_type
       - log
     example:
       application/json:

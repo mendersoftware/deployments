@@ -16,6 +16,7 @@ package mocks
 
 import context "context"
 import deployments "github.com/mendersoftware/deployments/resources/deployments"
+import images "github.com/mendersoftware/deployments/resources/images"
 import mock "github.com/stretchr/testify/mock"
 import model "github.com/mendersoftware/deployments/resources/deployments/model"
 import time "time"
@@ -60,6 +61,20 @@ func (_m *DeviceDeploymentStorage) AggregateDeviceDeploymentByStatus(ctx context
 	}
 
 	return r0, r1
+}
+
+// AssignArtifact provides a mock function with given fields: ctx, deviceID, deploymentID, artifact
+func (_m *DeviceDeploymentStorage) AssignArtifact(ctx context.Context, deviceID string, deploymentID string, artifact *images.SoftwareImage) error {
+	ret := _m.Called(ctx, deviceID, deploymentID, artifact)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *images.SoftwareImage) error); ok {
+		r0 = rf(ctx, deviceID, deploymentID, artifact)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // DecommissionDeviceDeployments provides a mock function with given fields: ctx, deviceId

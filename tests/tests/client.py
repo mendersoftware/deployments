@@ -26,7 +26,7 @@ import pytz
 
 from bravado.swagger_model import load_file
 from bravado.client import SwaggerClient, RequestsClient
-
+from bravado.exception import HTTPUnprocessableEntity
 
 API_URL = "http://%s/api/%s/" % \
           (pytest.config.getoption("host"), \
@@ -172,7 +172,11 @@ class DeploymentsClient(SwaggerApiClient):
         it upon completion"""
         depid = self.add_deployment(dep)
         yield depid
-        self.abort_deployment(depid)
+        try:
+            self.abort_deployment(depid)
+        except HTTPUnprocessableEntity:
+            self.log.warning('deployment: %s already finished', depid)
+
 
     def verify_deployment_stats(self, depid, expected):
         stats = self.client.deployments.get_deployments_deployment_id_statistics(Authorization='foo',

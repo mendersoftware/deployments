@@ -25,6 +25,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/resources/images"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 )
 
@@ -42,6 +43,7 @@ const (
 	StorageKeyDeviceDeploymentDeploymentID    = "deploymentid"
 	StorageKeyDeviceDeploymentFinished        = "finished"
 	StorageKeyDeviceDeploymentIsLogAvailable  = "log"
+	StorageKeyDeviceDeploymentArtifact        = "image"
 )
 
 // Errors
@@ -266,6 +268,41 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentLogAvailability(ctx con
 	update := bson.M{
 		"$set": bson.M{
 			StorageKeyDeviceDeploymentIsLogAvailable: log,
+		},
+	}
+
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Update(selector, update); err != nil {
+		if err == mgo.ErrNotFound {
+			return ErrStorageNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+// AssignArtifact assignes artifact to the device deployment
+func (d *DeviceDeploymentsStorage) AssignArtifact(ctx context.Context,
+	deviceID string, deploymentID string, artifact *images.SoftwareImage) error {
+
+	// Verify ID formatting
+	if govalidator.IsNull(deviceID) ||
+		govalidator.IsNull(deploymentID) {
+		return ErrStorageInvalidID
+	}
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	selector := bson.M{
+		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeviceDeploymentArtifact: artifact,
 		},
 	}
 

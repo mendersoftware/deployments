@@ -372,6 +372,9 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
+				if deployment != nil && assert.Equal(t, 0, len(deployment.Artifacts)) {
+					deployment.Artifacts = nil
+				}
 				assert.Equal(t, testCase.OutputDeployment, deployment)
 			}
 
@@ -395,7 +398,6 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 		t.Skip("skipping TestDeploymentStorageFindUnfinishedByID in short mode.")
 	}
 	now := time.Now()
-	nullTime := time.Time{}
 
 	testCases := map[string]struct {
 		InputID                    string
@@ -423,8 +425,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 						ArtifactName: StringToPointer("App 123"),
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-					Finished: &nullTime,
+					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 				},
 				&deployments.Deployment{
 					DeploymentConstructor: &deployments.DeploymentConstructor{
@@ -432,8 +433,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 						ArtifactName: StringToPointer("App 123"),
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:       StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
-					Finished: &nullTime,
+					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
 				},
 			},
 			OutputError:      nil,
@@ -448,8 +448,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 						ArtifactName: StringToPointer("App 123"),
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-					Finished: &nullTime,
+					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 					Stats: map[string]int{
 						deployments.DeviceDeploymentStatusDownloading: 0,
 						deployments.DeviceDeploymentStatusInstalling:  0,
@@ -468,8 +467,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 						ArtifactName: StringToPointer("App 123"),
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:       StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
-					Finished: &nullTime,
+					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
 					Stats: map[string]int{
 						deployments.DeviceDeploymentStatusDownloading: 0,
 						deployments.DeviceDeploymentStatusInstalling:  0,
@@ -490,8 +488,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 					ArtifactName: StringToPointer("App 123"),
 					//Devices is not kept around!
 				},
-				Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Finished: &nullTime,
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 				Stats: map[string]int{
 					deployments.DeviceDeploymentStatusDownloading: 0,
 					deployments.DeviceDeploymentStatusInstalling:  0,
@@ -523,8 +520,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 						ArtifactName: StringToPointer("App 123"),
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:       StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
-					Finished: &nullTime,
+					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
 				},
 			},
 			OutputError:      nil,
@@ -539,8 +535,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 						ArtifactName: StringToPointer("App 123"),
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-					Finished: &nullTime,
+					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 					Stats: map[string]int{
 						deployments.DeviceDeploymentStatusPending: 10,
 						deployments.DeviceDeploymentStatusSuccess: 15,
@@ -556,8 +551,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 					ArtifactName: StringToPointer("App 123"),
 					//Devices is not kept around!
 				},
-				Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Finished: &nullTime,
+				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 				Stats: map[string]int{
 					deployments.DeviceDeploymentStatusPending: 10,
 					deployments.DeviceDeploymentStatusSuccess: 15,
@@ -595,6 +589,9 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
+				if deployment != nil && assert.Equal(t, 0, len(deployment.Artifacts)) {
+					deployment.Artifacts = nil
+				}
 				assert.Equal(t, testCase.OutputDeployment, deployment)
 			}
 

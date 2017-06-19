@@ -127,7 +127,7 @@ func (i *SoftwareImagesStorage) Update(ctx context.Context,
 	return true, nil
 }
 
-// ImageByNameAndDeviceType find image with speficied application name and targed device type
+// ImageByNameAndDeviceType finds image with speficied application name and targed device type
 func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(ctx context.Context,
 	name, deviceType string) (*images.SoftwareImage, error) {
 
@@ -160,6 +160,66 @@ func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(ctx context.Context,
 	}
 
 	return &image, nil
+}
+
+// ImageByIdsAndDeviceType finds image with id from ids and targed device type
+func (i *SoftwareImagesStorage) ImageByIdsAndDeviceType(ctx context.Context,
+	ids []string, deviceType string) (*images.SoftwareImage, error) {
+
+	if govalidator.IsNull(deviceType) {
+		return nil, model.ErrSoftwareImagesStorageInvalidDeviceType
+	}
+
+	if len(ids) == 0 {
+		return nil, model.ErrSoftwareImagesStorageInvalidID
+	}
+
+	query := bson.M{
+		StorageKeySoftwareImageDeviceTypes: deviceType,
+		StorageKeySoftwareImageId:          bson.M{"$in": ids},
+	}
+
+	session := i.session.Copy()
+	defer session.Close()
+
+	// Both we lookup uniqe object, should be one or none.
+	var image images.SoftwareImage
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionImages).Find(query).One(&image); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &image, nil
+}
+
+// ImagesByName finds images with speficied artifact name
+func (i *SoftwareImagesStorage) ImagesByName(
+	ctx context.Context, name string) ([]*images.SoftwareImage, error) {
+
+	if govalidator.IsNull(name) {
+		return nil, model.ErrSoftwareImagesStorageInvalidName
+
+	}
+
+	// equal to artifact name
+	query := bson.M{
+		StorageKeySoftwareImageName: name,
+	}
+
+	session := i.session.Copy()
+	defer session.Close()
+
+	// Both we lookup uniqe object, should be one or none.
+	var images []*images.SoftwareImage
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionImages).Find(query).All(&images); err != nil {
+		return nil, err
+	}
+
+	return images, nil
 }
 
 // Insert persists object

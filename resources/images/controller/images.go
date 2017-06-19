@@ -42,8 +42,9 @@ const (
 )
 
 var (
-	ErrIDNotUUIDv4        = errors.New("ID is not UUIDv4")
-	ErrInvalidExpireParam = errors.New("Invalid expire parameter")
+	ErrIDNotUUIDv4                    = errors.New("ID is not UUIDv4")
+	ErrArtifactUsedInActiveDeployment = errors.New("Artifact is used in active deployment")
+	ErrInvalidExpireParam             = errors.New("Invalid expire parameter")
 )
 
 type SoftwareImagesController struct {
@@ -185,11 +186,14 @@ func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Re
 	}
 
 	if err := s.model.DeleteImage(r.Context(), id); err != nil {
-		if err == ErrImageMetaNotFound {
+		switch err {
+		default:
+			s.view.RenderInternalError(w, r, err, l)
+		case ErrImageMetaNotFound:
 			s.view.RenderErrorNotFound(w, r, l)
-			return
+		case ErrModelImageInActiveDeployment:
+			s.view.RenderError(w, r, ErrArtifactUsedInActiveDeployment, http.StatusConflict, l)
 		}
-		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
 

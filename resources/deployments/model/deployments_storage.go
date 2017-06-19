@@ -34,4 +34,6 @@ type DeploymentsStorage interface {
 	Find(ctx context.Context,
 		query deployments.Query) ([]*deployments.Deployment, error)
 	Finish(ctx context.Context, id string, when time.Time) error
+	ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error)
+	ExistByArtifactId(ctx context.Context, id string) (bool, error)
 }
