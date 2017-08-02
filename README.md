@@ -1,6 +1,6 @@
 # Deployments
-[![Build Status](https://travis-ci.org/mendersoftware/deployments.svg?branch=master)](https://travis-ci.org/mendersoftware/deployments)
-[![codecov](https://codecov.io/gh/mendersoftware/deployments/branch/master/graph/badge.svg)](https://codecov.io/gh/mendersoftware/deployments)
+[![Build Status](https://travis-ci.org/mendersoftware/deployments.svg?branch=1.2.x)](https://travis-ci.org/mendersoftware/deployments)
+[![codecov](https://codecov.io/gh/mendersoftware/deployments/branch/1.2.x/graph/badge.svg)](https://codecov.io/gh/mendersoftware/deployments)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mendersoftware/deployments)](https://goreportcard.com/report/github.com/mendersoftware/deployments)
 [![Docker pulls](https://img.shields.io/docker/pulls/mendersoftware/deployments.svg?maxAge=3600)](https://hub.docker.com/r/mendersoftware/deployments/)
 
