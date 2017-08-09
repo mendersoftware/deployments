@@ -159,6 +159,12 @@ before_deploy:
         docker tag $DOCKER_REPOSITORY:pr $DOCKER_REPOSITORY:$IMAGE_TAG;
         docker login --email=$DOCKER_HUB_EMAIL --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD;
         docker push $DOCKER_REPOSITORY:$IMAGE_TAG;
+
+        if [ "$TRAVIS_BRANCH" = master ]; then 
+            export COMMIT_TAG="$TRAVIS_BRANCH"_"$TRAVIS_COMMIT";
+            docker tag $DOCKER_REPOSITORY:pr $DOCKER_REPOSITORY:$COMMIT_TAG;
+            docker push $DOCKER_REPOSITORY:$COMMIT_TAG;
+        fi;
       fi
 
 deploy:
