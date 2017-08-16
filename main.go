@@ -105,5 +105,7 @@ func SetDefaultConfigs(config *viper.Viper) {
 	config.SetDefault(SettingAwsS3Region, SettingAwsS3RegionDefault)
 	config.SetDefault(SettingAwsS3Bucket, SettingAwsS3BucketDefault)
 	config.SetDefault(SettingMongo, SettingMongoDefault)
+	config.SetDefault(SettingDbSSL, SettingDbSSLDefault)
+	config.SetDefault(SettingDbSSLSkipVerify, SettingDbSSLSkipVerifyDefault)
 	config.SetDefault(SettingGateway, SettingGatewayDefault)
 }

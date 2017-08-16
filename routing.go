@@ -16,8 +16,12 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"net"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 
 	"github.com/mendersoftware/deployments/config"
@@ -51,17 +55,64 @@ func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
 	return s3.NewSimpleStorageServiceDefaults(bucket, region)
 }
 
-// NewRouter defines all REST API routes.
-func NewRouter(c config.ConfigReader) (rest.App, error) {
+func NewMongoSession(c config.ConfigReader) (*mgo.Session, error) {
 
-	dbSession, err := mgo.Dial(c.GetString(SettingMongo))
+	dialInfo, err := mgo.ParseURL(c.GetString(SettingMongo))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to open mgo session")
 	}
-	dbSession.SetSafe(&mgo.Safe{
+
+	// Set 10s timeout - same as set by Dial
+	dialInfo.Timeout = 10 * time.Second
+
+	username := c.GetString(SettingDbUsername)
+	if username != "" {
+		dialInfo.Username = username
+	}
+
+	passward := c.GetString(SettingDbPassword)
+	if passward != "" {
+		dialInfo.Password = passward
+	}
+
+	if c.GetBool(SettingDbSSL) {
+		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+
+			// Setup TLS
+			tlsConfig := &tls.Config{}
+			tlsConfig.InsecureSkipVerify = c.GetBool(SettingDbSSLSkipVerify)
+
+			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
+			return conn, err
+		}
+	}
+
+	masterSession, err := mgo.DialWithInfo(dialInfo)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to open mgo session")
+	}
+
+	// Validate connection
+	if err := masterSession.Ping(); err != nil {
+		return nil, errors.Wrap(err, "failed to open mgo session")
+	}
+
+	// force write ack with immediate journal file fsync
+	masterSession.SetSafe(&mgo.Safe{
 		W: 1,
 		J: true,
 	})
+
+	return masterSession, nil
+}
+
+// NewRouter defines all REST API routes.
+func NewRouter(c config.ConfigReader) (rest.App, error) {
+
+	dbSession, err := NewMongoSession(c)
+	if err != nil {
+		return nil, err
+	}
 
 	// Storage Layer
 	fileStorage, err := SetupS3(c)

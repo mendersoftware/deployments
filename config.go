@@ -43,6 +43,15 @@ const (
 	SettingMongo        = "mongo-url"
 	SettingMongoDefault = "mongo-deployments"
 
+	SettingDbSSL        = "mongo_ssl"
+	SettingDbSSLDefault = false
+
+	SettingDbSSLSkipVerify        = "mongo_ssl_skipverify"
+	SettingDbSSLSkipVerifyDefault = false
+
+	SettingDbUsername = "mongo_username"
+	SettingDbPassword = "mongo_password"
+
 	SettingGateway        = "mender-gateway"
 	SettingGatewayDefault = "localhost:9080"
 
