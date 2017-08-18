@@ -15,7 +15,6 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"net"
 	"time"
@@ -123,9 +122,6 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
 	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
-	if err := imagesStorage.IndexStorage(context.Background()); err != nil {
-		return nil, err
-	}
 
 	// Domain Models
 	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{

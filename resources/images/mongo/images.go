@@ -62,12 +62,8 @@ func NewSoftwareImagesStorage(session *mgo.Session) *SoftwareImagesStorage {
 	}
 }
 
-// IndexStorage set required indexes.
-// * Set unique index on name-model image keys.
-func (i *SoftwareImagesStorage) IndexStorage(ctx context.Context) error {
-
-	session := i.session.Copy()
-	defer session.Close()
+// Ensure required indexes exists; create if not.
+func (i *SoftwareImagesStorage) ensureIndexing(ctx context.Context, session *mgo.Session) error {
 
 	uniqueNameVersionIndex := mgo.Index{
 		Key:    []string{StorageKeySoftwareImageName, StorageKeySoftwareImageDeviceTypes},
@@ -235,6 +231,10 @@ func (i *SoftwareImagesStorage) Insert(ctx context.Context, image *images.Softwa
 
 	session := i.session.Copy()
 	defer session.Close()
+
+	if err := i.ensureIndexing(ctx, session); err != nil {
+		return err
+	}
 
 	return session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).Insert(image)
