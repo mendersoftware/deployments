@@ -1,87 +1,79 @@
 # API server listen address
 # Defauls to: ":8080" which will listen on all avalable interfaces.
-# Env key: DEPLOYMENTS_LISTEN
+# Overwrite with environment variable: DEPLOYMENTS_LISTEN
+
 listen: :8080
 
-    # HTTP Server middleware environment
-    # Available values:
-    #   dev
-    #       development environment
-    #   prod
-    #       production environment
-    #
-    # Defaults to: prod
-# middleware: dev
+# HTTP Server middleware environment
+# Available values:
+#   dev - development environment
+#   prod - production environment
+# Defaults to: prod
+# Overwrite with environment variable: DEPLOYMENTS_MIDDLEWARE
 
+# middleware: dev
 
 # HTTPS configuration
 # To enable listening using HTTPS protocol please uncomment and configure following section.
-# All fields in https are required.
-# Env keys:
+# All fields in https section are required if any set.
+# Defaults to: unset
+# Overwrite with environment variables:
 # - DEPLOYMENTS_HTTPS_CERTIFICATE
 # - DEPLOYMENTS_HTTPS_KEY
+
 # https:
 #     certificate: /path/to/certificate
 #     key: /path/to/private_key
 
-
-# Database configuration
-# MongoDB is a required to run the service.
-# Format: [mongodb://][user:pass@]host1[:port1][,host2[:port2],...][?options]
-# Options:
-#   connect=direct
-#
-#       Disables the automatic replica set server discovery logic, and
-#       forces the use of servers provided only (even if secondaries).
-#       Note that to talk to a secondary the consistency requirements
-#       must be relaxed to Monotonic or Eventual via SetMode.
-#
-#   connect=replicaSet
-#
-#       Discover replica sets automatically. Default connection behavior.
-#
-#   replicaSet=<setname>
-#
-#       If specified will prevent the obtained session from communicating
-#       with any server which is not part of a replica set with the given name.
-#       The default is to communicate with any server specified or discovered
-#       via the servers contacted.
-#
-#   authSource=<db>
-#
-#       Informs the database used to establish credentials and privileges
-#       with a MongoDB server. Defaults to the database name provided via
-#       the URL path, and "admin" if that's unset.
-#
-#   authMechanism=<mechanism>
-#
-#       Defines the protocol for credential negotiation. Defaults to "MONGODB-CR",
-#       which is the default username/password challenge-response mechanism.
-#
-#   gssapiServiceName=<name>
-#
-#       Defines the service name to use when authenticating with the GSSAPI
-#       mechanism. Defaults to "mongodb".
-#
-#   maxPoolSize=<limit>
-#
-#    Defines the per-server socket pool limit. Defaults to 4096.
-#    See Session.SetPoolLimit for details.
-#
+# Mongodb connection string
 # Defaults to: "mongo-deployments"
-# Env key: DEPLOYMENTS_MONGO_URL
+# Overwrite with environment variable: DEPLOYMENTS_MONGO_URL
+
 mongo-url: mongo-deployments
 
-# Public API gateway address
-# Defaults to: "http://mender-inventory:8080"
+# Enable SSL for mongo connections
+# Defaults to: false
+# Overwrite with environment variable: DEPLOYMENTS_MONGO_SSL
+
+# mongo_ssl: false
+
+# SkipVerify controls whether a mongo client verifies the
+# server's certificate chain and host name.
+# If InsecureSkipVerify is true, accepts any certificate
+# presented by the server and any host name in that certificate.
+# Defaults to: false
+# Overwrite with environment variable: DEPLOYMENTS_MONGO_SSL_SKIPVERIFY
+
+# mongo_ssl_skipverify: false
+
+# Mongodb username
+# Overwrites username set in connection string.
+# Defaults to: none
+# Overwrite with environment variable: DEPLOYMENTS_MONGO_USERNAME
+
+# mongo_username: user
+
+# Mongodb password
+# Overwrites password set in connection string.
+# Defaults to: none
+# Overwrite with environment variable: DEPLOYMENTS_MONGO_PASSWORD
+
+# mongo_password: secret
+
+# Inventory service address
+# Defaults to: http://mender-inventory:8080
 # Env key: DEPLOYMENTS_MENDER_GATEWAY
+
 mender-gateway: "http://mender-inventory:8080"
 
+# AWS configuration section
 aws:
-    # AWS region for minio shoud be "us-east-1"
-    # Env key: DEPLOYMENTS_AWS_REGION
-    region: us-east-1
 
+    # AWS region for minio shoud be "us-east-1"
+    # Defaults to: us-east-1
+    # Overwrite with environment variable: DEPLOYMENTS_AWS_REGION
+    
+    region: us-east-1
 
     # S3 bucket where the uploaded images will be stored and served from.
     # Bucket is required to be created before running the service.
@@ -96,15 +88,15 @@ aws:
     #     </CORSRule>
     #     </CORSConfiguration>
     # Defaults to: "mender-artifact-storage"
-    # Env key: DEPLOYMENTS_AWS_BUCKET
+    # Overwrite with environment variable: DEPLOYMENTS_AWS_BUCKET
+    
     bucket: mender-artifact-storage
-
 
     # S3 URI
     # Defaults to: none (s3.amazonaws.com)
-    # Env key: DEPLOYMENTS_AWS_URI
+    # Overwrite with environment variable: DEPLOYMENTS_AWS_URI
 
-    # uri:
+    # uri: example.com
 
     # Authentication credentials for AWS.
     # AWS role requires READ/WRITE permissions for configured S3 bucket.
@@ -139,7 +131,7 @@ aws:
     # In case when none of the credential retrieving methods are set, service will default to retrieving authentication
     # credentials locally from AWS IAM which is prefered method then running the service in EC2
     #
-    # Env keys:
+    # Overwrite with environment variables:
     # - DEPLOYMENTS_AWS_AUTH_KEY
     # - DEPLOYMENTS_AWS_AUTH_SECRET
     # - DEPLOYMENTS_AWS_AUTH_TOKEN
