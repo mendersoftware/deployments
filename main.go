@@ -23,7 +23,6 @@ import (
 
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/spf13/viper"
-	"gopkg.in/mgo.v2"
 
 	"github.com/mendersoftware/deployments/config"
 )
@@ -50,14 +49,10 @@ func main() {
 		l.Fatalf("error loading configuration: %s", err)
 	}
 
-	dbSession, err := mgo.Dial(configuration.GetString(SettingMongo))
+	dbSession, err := NewMongoSession(configuration)
 	if err != nil {
 		l.Fatalf("failed to connect to DB: %v", err)
 	}
-	dbSession.SetSafe(&mgo.Safe{
-		W: 1,
-		J: true,
-	})
 
 	err = MigrateDb(context.Background(), DbVersion, nil, dbSession)
 	if err != nil {
