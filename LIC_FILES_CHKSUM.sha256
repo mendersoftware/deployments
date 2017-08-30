@@ -41,6 +41,7 @@ d5ecab1f944eb45c5c89dbd749819af7b8a74a018065695baf535c962ded39f0  vendor/github.
 fde7d610b9b95fc5a6304055c4dae951025b630aaa42a24e95ebf76675ae832c  vendor/github.com/stretchr/objx/LICENSE.md
 6e1f6027554298e2ff599fed7e81f98ece104c2756d1d6d8e7bffee932269fbd  vendor/github.com/pelletier/go-toml/LICENSE
 8a8dfa5f0d44be786425f14eb7ed30738399f2c827808928f22d9c03410b0625  vendor/github.com/pelletier/go-buffruneio/README.md
+da277af11b85227490377fbcac6afccc68be560c4fff36ac05ca62de55345fd7  vendor/github.com/urfave/cli/LICENSE
 #
 # LGPL3 with static linking exception.
 b442bc6658b18bf92cb6cb34dd12e758773de618bbad62294ba65f2758e2dc34  vendor/gopkg.in/yaml.v2/LICENSE
