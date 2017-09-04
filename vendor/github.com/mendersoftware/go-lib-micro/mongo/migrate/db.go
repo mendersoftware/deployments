@@ -1,4 +1,4 @@
-// Copyright 2016 Mender Software AS
+// Copyright 2017 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ package migrate
 import (
 	"time"
 
+	"github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 )
@@ -63,4 +64,23 @@ func UpdateMigrationInfo(version Version, sess *mgo.Session, db string) error {
 	}
 
 	return nil
+}
+
+func GetTenantDbs(sess *mgo.Session, matcher store.TenantDbMatchFunc) ([]string, error) {
+	s := sess.Copy()
+	defer s.Close()
+
+	dbs, err := s.DatabaseNames()
+	if err != nil {
+		return nil, err
+	}
+
+	tenantDbs := []string{}
+	for _, db := range dbs {
+		if matcher(db) {
+			tenantDbs = append(tenantDbs, db)
+		}
+	}
+
+	return tenantDbs, err
 }

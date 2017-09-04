@@ -11,16 +11,20 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package strings
 
-// Check if string is presnt in an array. Would use interface{} but
-// whatever.
-func ContainsString(val string, vals []string) bool {
+package testing
 
-	for _, v := range vals {
-		if val == v {
-			return true
-		}
+import (
+	"io/ioutil"
+	"os"
+
+	"github.com/mendersoftware/go-lib-micro/log"
+)
+
+// MaybeDiscardLogs() will setup a default logger to write to ioutil.Discard
+// unless TESTING_LOGS environment variable is non empty.
+func MaybeDiscardLogs() {
+	if os.Getenv("TESTING_LOGS") == "" {
+		log.Log.Out = ioutil.Discard
 	}
-	return false
 }
