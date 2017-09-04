@@ -45,6 +45,21 @@ func doMain(args []string) {
 		},
 	}
 
+	app.Commands = []cli.Command{
+		{
+			Name:  "server",
+			Usage: "Run the service as a server",
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "automigrate",
+					Usage: "Run database migrations before starting.",
+				},
+			},
+
+			Action: cmdServer,
+		},
+	}
+
 	app.Action = cmdServer
 	app.Before = func(args *cli.Context) error {
 
@@ -79,6 +94,15 @@ func cmdServer(args *cli.Context) error {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to connect to db: %v", err),
 			3)
+	}
+
+	if args.Bool("automigrate") {
+		err = MigrateDb(context.Background(), DbVersion, nil, dbSession)
+		if err != nil {
+			return cli.NewExitError(
+				fmt.Sprintf("failed to run migrations: %v", err),
+				3)
+		}
 	}
 
 	l.Printf("Deployments Service, version %s starting up",
