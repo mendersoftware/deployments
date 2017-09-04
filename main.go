@@ -97,13 +97,14 @@ func cmdServer(args *cli.Context) error {
 	}
 
 	if args.Bool("automigrate") {
-		err = MigrateDb(context.Background(), DbVersion, nil, dbSession)
+		err = Migrate(context.Background(), DbVersion, dbSession, true)
 		if err != nil {
 			return cli.NewExitError(
 				fmt.Sprintf("failed to run migrations: %v", err),
 				3)
 		}
 	}
+	dbSession.Close()
 
 	l.Printf("Deployments Service, version %s starting up",
 		CreateVersionString())
