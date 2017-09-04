@@ -14,4 +14,4 @@ COPY ./config.yaml /usr/bin/
 
 STOPSIGNAL SIGINT
 ENV DEPLOYMENTS_MENDER_GATEWAY http://mender-inventory:8080
-ENTRYPOINT ["/usr/bin/entrypoint.sh", "-test.coverprofile=/testing/coverage-acceptance.txt", "-acceptance-tests", "-test.run=TestRunMain"]
+ENTRYPOINT ["/usr/bin/entrypoint.sh", "-test.coverprofile=/testing/coverage-acceptance.txt", "-acceptance-tests", "-test.run=TestRunMain", "-cli-args=server --automigrate"]
