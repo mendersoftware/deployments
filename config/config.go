@@ -13,7 +13,16 @@
 //    limitations under the License.
 package config
 
-import "time"
+import (
+	"strings"
+	"time"
+
+	"github.com/spf13/viper"
+)
+
+var (
+	Config = viper.New()
+)
 
 type ConfigReader interface {
 	Get(key string) interface{}
@@ -29,6 +38,36 @@ type ConfigReader interface {
 	IsSet(key string) bool
 }
 
+func FromConfigFile(filePath string,
+	defaults []Default,
+	configValidators ...Validator) error {
+
+	// map settings such as foo.bar and foo-bar to FOO_BAR environment keys
+	Config.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+
+	// Enable setting also other conig values by environment variables
+	Config.SetEnvPrefix("DEPLOYMENTS")
+	Config.AutomaticEnv()
+
+	// Set default values for config
+	SetDefaults(Config, defaults)
+
+	// Find and read the config file
+	if filePath != "" {
+		Config.SetConfigFile(filePath)
+		if err := Config.ReadInConfig(); err != nil {
+			return err
+		}
+	}
+
+	// Validate config
+	if err := ValidateConfig(Config, configValidators...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type Validator func(c ConfigReader) error
 
 // ValidateConfig validates conifg accroding to provided validators.
@@ -42,4 +81,20 @@ func ValidateConfig(c ConfigReader, validators ...Validator) error {
 	}
 
 	return nil
+}
+
+type Writer interface {
+	SetDefault(key string, val interface{})
+	Set(key string, val interface{})
+}
+
+type Default struct {
+	Key   string
+	Value interface{}
+}
+
+func SetDefaults(c Writer, defaults []Default) {
+	for _, def := range defaults {
+		c.SetDefault(def.Key, def.Value)
+	}
 }

@@ -19,32 +19,18 @@ import (
 	"os"
 	"os/signal"
 	"testing"
+
+	logt "github.com/mendersoftware/go-lib-micro/log/testing"
 )
 
 var runAcceptanceTests bool
 
 func init() {
+
+	logt.MaybeDiscardLogs()
+
 	flag.BoolVar(&runAcceptanceTests, "acceptance-tests", false, "set flag when running acceptance tests")
 	flag.Parse()
-}
-
-func TestHandleConfigFile(t *testing.T) {
-
-	// Empty config allowed (using default values)
-	if _, err := HandleConfigFile(""); err != nil {
-		t.FailNow()
-	}
-
-	// Non-existing file should fail
-	if _, err := HandleConfigFile("Non-existing-file.yaml"); err == nil {
-		t.FailNow()
-	}
-
-	// Depends on default config being avaiable and correct (which is nice!)
-	if _, err := HandleConfigFile("config.yaml"); err != nil {
-		t.FailNow()
-	}
-
 }
 
 func TestRunMain(t *testing.T) {

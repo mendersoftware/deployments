@@ -106,3 +106,16 @@ func ValidateHttps(c config.ConfigReader) error {
 func MissingOptionError(option string) error {
 	return fmt.Errorf("Required option: '%s'", option)
 }
+
+var (
+	configValidators = []config.Validator{ValidateAwsAuth, ValidateHttps}
+	configDefaults   = []config.Default{
+		{Key: SettingListen, Value: SettingListenDefault},
+		{Key: SettingAwsS3Region, Value: SettingAwsS3RegionDefault},
+		{Key: SettingAwsS3Bucket, Value: SettingAwsS3BucketDefault},
+		{Key: SettingMongo, Value: SettingMongoDefault},
+		{Key: SettingDbSSL, Value: SettingDbSSLDefault},
+		{Key: SettingDbSSLSkipVerify, Value: SettingDbSSLSkipVerifyDefault},
+		{Key: SettingGateway, Value: SettingGatewayDefault},
+	}
+)
