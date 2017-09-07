@@ -16,7 +16,9 @@ package main
 import (
 	"context"
 
+	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
+	ctx_store "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 )
@@ -26,20 +28,45 @@ const (
 	DbName    = "deployment_service"
 )
 
-func MigrateDb(ctx context.Context, version string, migrations []migrate.Migration, session *mgo.Session) error {
-	m := migrate.DummyMigrator{
-		Session: session,
-		Db:      DbName,
+func Migrate(ctx context.Context,
+	version string,
+	session *mgo.Session,
+	automigrate bool) error {
+
+	l := log.FromContext(ctx)
+
+	dbs, err := migrate.GetTenantDbs(session, ctx_store.IsTenantDb(DbName))
+	if err != nil {
+		return errors.Wrap(err, "failed go retrieve tenant DBs")
 	}
 
-	ver, err := migrate.NewVersion(version)
-	if err != nil {
-		return errors.Wrap(err, "failed to parse service version")
+	if len(dbs) == 0 {
+		dbs = []string{DbName}
 	}
 
-	err = m.Apply(ctx, *ver, migrations)
-	if err != nil {
-		return errors.Wrap(err, "failed to apply migrations")
+	if automigrate {
+		l.Infof("automigrate is ON, will apply migrations")
+	} else {
+		l.Infof("automigrate is OFF, will check db version compatibility")
+	}
+
+	for _, d := range dbs {
+		l.Infof("migrating %s", d)
+		m := migrate.DummyMigrator{
+			Session:     session,
+			Db:          d,
+			Automigrate: automigrate,
+		}
+
+		ver, err := migrate.NewVersion(version)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse service version")
+		}
+
+		err = m.Apply(ctx, *ver, nil)
+		if err != nil {
+			return errors.Wrap(err, "failed to apply migrations")
+		}
 	}
 
 	return nil

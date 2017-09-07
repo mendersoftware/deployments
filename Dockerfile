@@ -10,7 +10,7 @@ EXPOSE 8080
 
 COPY ./config.yaml /etc/deployments/
 
-ENTRYPOINT ["/entrypoint.sh", "-config", "/etc/deployments/config.yaml"]
+ENTRYPOINT ["/entrypoint.sh", "--config", "/etc/deployments/config.yaml"]
 
 COPY ./entrypoint.sh /entrypoint.sh
 COPY ./deployments /usr/bin/

@@ -1,4 +1,4 @@
-// Copyright 2016 Mender Software AS
+// Copyright 2017 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -15,13 +15,23 @@ package migrate
 
 import (
 	"context"
+	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 
 	"github.com/mendersoftware/go-lib-micro/log"
 )
+
+var (
+	ErrNeedsMigration = "db needs migration"
+)
+
+func IsErrNeedsMigration(e error) bool {
+	return strings.HasPrefix(e.Error(), ErrNeedsMigration)
+}
 
 // SimpleMigratior applies migrations by comparing `Version` of migrations
 // passed to Apply() and already applied migrations. Only migrations that are of
@@ -32,17 +42,20 @@ import (
 //   migrations that will be applied: 1.0.3, 1.1.0
 //
 type SimpleMigrator struct {
-	Session *mgo.Session
-	Db      string
+	Session     *mgo.Session
+	Db          string
+	Automigrate bool
 }
 
-// Apply will apply migrations. After each successful migration a new migration
+// Apply will apply migrations, provided that Automigrate is on. After each successful migration a new migration
 // record will be added to DB with the version of migration that was just
 // applied. If a migration fails, Apply() returns an error and does not add a
 // migration record (so last migration that is recorded is N-1).
 //
 // Apply() will log some messages when running. Logger will be extracted from
 // context using go-lib-micro/log.LoggerContextKey as key.
+// If Automigrate is off, the migrator will just check if the DB is up-to-date, and return with ErrNeedsMigration otherwise.
+// Check for it with IsErrNeedsMigration.
 func (m *SimpleMigrator) Apply(ctx context.Context, target Version, migrations []Migration) error {
 	l := log.FromContext(ctx).F(log.Ctx{"db": m.Db})
 
@@ -65,6 +78,16 @@ func (m *SimpleMigrator) Apply(ctx context.Context, target Version, migrations [
 		})
 		// last version from already applied migrations
 		last = applied[len(applied)-1].Version
+	}
+
+	// if Automigrate is disabled - just check
+	// if the last applied migration is lower than the target one
+	if !m.Automigrate {
+		if VersionIsLess(last, target) {
+			return fmt.Errorf(ErrNeedsMigration+": %s has version %s, needs version %s", m.Db, last.String(), target.String())
+		} else {
+			return nil
+		}
 	}
 
 	// try to apply migrations

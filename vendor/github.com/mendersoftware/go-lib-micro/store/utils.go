@@ -1,4 +1,4 @@
-// Copyright 2016 Mender Software AS
+// Copyright 2017 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@ package store
 
 import (
 	"context"
+	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/identity"
 )
@@ -27,5 +28,14 @@ func DbFromContext(ctx context.Context, origDbName string) string {
 		return origDbName + "-" + identity.Tenant
 	} else {
 		return origDbName
+	}
+}
+
+type TenantDbMatchFunc func(name string) bool
+
+func IsTenantDb(baseDb string) TenantDbMatchFunc {
+	prefix := baseDb + "-"
+	return func(name string) bool {
+		return strings.HasPrefix(name, prefix)
 	}
 }
