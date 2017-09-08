@@ -75,9 +75,17 @@ func NewDeploymentsStorage(session *mgo.Session) *DeploymentsStorage {
 }
 
 func (d *DeploymentsStorage) ensureIndexing(ctx context.Context, session *mgo.Session) error {
+	uniqueDeploymentArtifactNameIndex := mgo.Index{
+		Key:    StorageIndexes,
+		Unique: true,
+		Name:   IndexUniqeDeploymentArtifactNameStr,
+		// Build index upfront - make sure this index is allways on.
+		Background: false,
+	}
+
 	return session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDeployments).
-		EnsureIndexKey(StorageIndexes...)
+		EnsureIndex(uniqueDeploymentArtifactNameIndex)
 }
 
 // return true if required indexing was set up
