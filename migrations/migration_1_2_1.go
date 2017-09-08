@@ -45,8 +45,6 @@ func (m *migration_1_2_1) Up(from migrate.Version) error {
 	// create the 'short' index
 	storage := deployments_mongo.NewDeploymentsStorage(m.session)
 	return storage.DoEnsureIndexing(m.db, m.session)
-
-	return err
 }
 
 func (m *migration_1_2_1) Version() migrate.Version {
