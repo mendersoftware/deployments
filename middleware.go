@@ -69,6 +69,7 @@ var DefaultDevStack = []rest.Middleware{
 			mctx.RepackRequestIdToContext,
 		},
 	},
+	&identity.IdentityMiddleware{},
 }
 
 var DefaultProdStack = []rest.Middleware{
