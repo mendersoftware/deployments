@@ -51,6 +51,10 @@ const (
 	StorageKeyDeploymentArtifacts    = "artifacts"
 )
 
+const (
+	IndexDeploymentArtifactNameStr = "deploymentArtifactNameIndex"
+)
+
 var (
 	StorageIndexes = []string{
 		"$text:" + StorageKeyDeploymentName,
