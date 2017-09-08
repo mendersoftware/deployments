@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	DbVersion = "0.0.1"
+	DbVersion = "1.2.1"
 	DbName    = "deployment_service"
 )
 
