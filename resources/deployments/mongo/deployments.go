@@ -51,6 +51,10 @@ const (
 	StorageKeyDeploymentArtifacts    = "artifacts"
 )
 
+const (
+	IndexDeploymentArtifactNameStr = "deploymentArtifactNameIndex"
+)
+
 var (
 	StorageIndexes = []string{
 		"$text:" + StorageKeyDeploymentName,
@@ -70,10 +74,22 @@ func NewDeploymentsStorage(session *mgo.Session) *DeploymentsStorage {
 	}
 }
 
-func (d *DeploymentsStorage) ensureIndexing(ctx context.Context, session *mgo.Session) error {
-	return session.DB(store.DbFromContext(ctx, DatabaseName)).
+func (d *DeploymentsStorage) EnsureIndexing(ctx context.Context, session *mgo.Session) error {
+	db := store.DbFromContext(ctx, DatabaseName)
+
+	return d.DoEnsureIndexing(db, session)
+}
+
+func (d *DeploymentsStorage) DoEnsureIndexing(db string, session *mgo.Session) error {
+	deploymentArtifactNameIndex := mgo.Index{
+		Key:        StorageIndexes,
+		Name:       IndexDeploymentArtifactNameStr,
+		Background: false,
+	}
+
+	return session.DB(db).
 		C(CollectionDeployments).
-		EnsureIndexKey(StorageIndexes...)
+		EnsureIndex(deploymentArtifactNameIndex)
 }
 
 // return true if required indexing was set up
@@ -115,7 +131,7 @@ func (d *DeploymentsStorage) Insert(ctx context.Context, deployment *deployments
 	session := d.session.Copy()
 	defer session.Close()
 
-	if err := d.ensureIndexing(ctx, session); err != nil {
+	if err := d.EnsureIndexing(ctx, session); err != nil {
 		return err
 	}
 

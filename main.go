@@ -23,6 +23,7 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/deployments/migrations"
 )
 
 func main() {
@@ -97,7 +98,7 @@ func cmdServer(args *cli.Context) error {
 	}
 
 	if args.Bool("automigrate") {
-		err = Migrate(context.Background(), DbVersion, dbSession, true)
+		err = migrations.Migrate(context.Background(), migrations.DbVersion, dbSession, true)
 		if err != nil {
 			return cli.NewExitError(
 				fmt.Sprintf("failed to run migrations: %v", err),

@@ -11,7 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package main
+package migrations
 
 import (
 	"context"
@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	DbVersion = "0.0.1"
+	DbVersion = "1.2.1"
 	DbName    = "deployment_service"
 )
 
@@ -52,7 +52,7 @@ func Migrate(ctx context.Context,
 
 	for _, d := range dbs {
 		l.Infof("migrating %s", d)
-		m := migrate.DummyMigrator{
+		m := migrate.SimpleMigrator{
 			Session:     session,
 			Db:          d,
 			Automigrate: automigrate,
@@ -63,7 +63,14 @@ func Migrate(ctx context.Context,
 			return errors.Wrap(err, "failed to parse service version")
 		}
 
-		err = m.Apply(ctx, *ver, nil)
+		migrations := []migrate.Migration{
+			&migration_1_2_1{
+				session: session,
+				db:      d,
+			},
+		}
+
+		err = m.Apply(ctx, *ver, migrations)
 		if err != nil {
 			return errors.Wrap(err, "failed to apply migrations")
 		}
