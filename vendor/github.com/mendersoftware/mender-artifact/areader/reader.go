@@ -1,4 +1,4 @@
-// Copyright 2016 Mender Software AS
+// Copyright 2017 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -32,9 +32,11 @@ import (
 
 type SignatureVerifyFn func(message, sig []byte) error
 type DevicesCompatibleFn func([]string) error
+type ScriptsReadFn func(io.Reader, os.FileInfo) error
 
 type Reader struct {
 	CompatibleDevicesCallback DevicesCompatibleFn
+	ScriptsReadCallback       ScriptsReadFn
 	VerifySignatureCallback   SignatureVerifyFn
 
 	signed     bool
@@ -43,6 +45,8 @@ type Reader struct {
 	r          io.Reader
 	handlers   map[string]handlers.Installer
 	installers map[int]handlers.Installer
+
+	rawReader *tar.Reader
 }
 
 func NewReader(r io.Reader) *Reader {
@@ -53,20 +57,55 @@ func NewReader(r io.Reader) *Reader {
 	}
 }
 
-func (ar *Reader) isSigned() bool {
-	return ar.signed
+func NewReaderSigned(r io.Reader) *Reader {
+	return &Reader{
+		r:          r,
+		signed:     true,
+		handlers:   make(map[string]handlers.Installer, 1),
+		installers: make(map[int]handlers.Installer, 1),
+	}
+}
+
+func getReader(tReader io.Reader, headerSum []byte) io.Reader {
+
+	if headerSum != nil {
+		// If artifact is signed we need to calculate header checksum to be
+		// able to validate it later.
+		return artifact.NewReaderChecksum(tReader, headerSum)
+	} else {
+		return tReader
+	}
+}
+
+func readStateScripts(tr *tar.Reader, header *tar.Header, cb ScriptsReadFn) error {
+
+	for {
+		hdr, err := getNext(tr)
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return errors.Wrapf(err,
+				"reader: error reading artifact header file: %v", hdr)
+		}
+		if filepath.Dir(hdr.Name) == "scripts" {
+			if cb != nil {
+				if err = cb(tr, hdr.FileInfo()); err != nil {
+					return err
+				}
+			}
+		} else {
+			// if there are no more scripts to read leave the loop
+			*header = *hdr
+			break
+		}
+	}
+
+	return nil
 }
 
 func (ar *Reader) readHeader(tReader io.Reader, headerSum []byte) error {
 
-	var r io.Reader
-	if headerSum != nil {
-		// If artifact is signed we need to calculate header checksum to be
-		// able to validate it later.
-		r = artifact.NewReaderChecksum(tReader, headerSum)
-	} else {
-		r = tReader
-	}
+	r := getReader(tReader, headerSum)
 	// header MUST be compressed
 	gz, err := gzip.NewReader(r)
 	if err != nil {
@@ -89,6 +128,13 @@ func (ar *Reader) readHeader(tReader io.Reader, headerSum []byte) error {
 		}
 	}
 
+	var hdr tar.Header
+
+	// Next we need to read and process state scripts.
+	if err = readStateScripts(tr, &hdr, ar.ScriptsReadCallback); err != nil {
+		return err
+	}
+
 	// Next step is setting correct installers based on update types being
 	// part of the artifact.
 	if err = ar.setInstallers(hInfo.Updates); err != nil {
@@ -96,7 +142,18 @@ func (ar *Reader) readHeader(tReader io.Reader, headerSum []byte) error {
 	}
 
 	// At the end read rest of the header using correct installers.
-	return ar.readHeaderUpdate(tr)
+	if err = ar.readHeaderUpdate(tr, &hdr); err != nil {
+		return err
+	}
+
+	// Check if header checksum is correct.
+	if cr, ok := r.(*artifact.Checksum); ok {
+		if err = cr.Verify(); err != nil {
+			return errors.Wrap(err, "reader: reading header error")
+		}
+	}
+
+	return nil
 }
 
 func readVersion(tr *tar.Reader) (*artifact.Info, []byte, error) {
@@ -129,6 +186,10 @@ func (ar *Reader) GetHandlers() map[int]handlers.Installer {
 }
 
 func (ar *Reader) readHeaderV1(tReader *tar.Reader) error {
+	if ar.signed {
+		return errors.New("reader: expecting signed artifact; " +
+			"v1 is not supporting signatures")
+	}
 	hdr, err := getNext(tReader)
 	if err != nil {
 		return errors.New("reader: error reading header")
@@ -156,18 +217,21 @@ func readManifest(tReader *tar.Reader) (*artifact.ChecksumStore, error) {
 }
 
 func signatureReadAndVerify(tReader *tar.Reader, message []byte,
-	verify SignatureVerifyFn) error {
-	// first read signature...
-	sig := bytes.NewBuffer(nil)
-	if _, err := io.Copy(sig, tReader); err != nil {
-		return errors.Wrapf(err, "reader: can not read signature file")
-	}
+	verify SignatureVerifyFn, signed bool) error {
 
 	// verify signature
-	if verify == nil {
+	if verify == nil && signed {
 		return errors.New("reader: verify signature callback not registered")
-	} else if err := verify(message, sig.Bytes()); err != nil {
-		return errors.Wrap(err, "reader: invalid signature")
+	} else if verify != nil {
+		// first read signature...
+		sig := bytes.NewBuffer(nil)
+		if _, err := io.Copy(sig, tReader); err != nil {
+			return errors.Wrapf(err, "reader: can not read signature file")
+		}
+
+		if err := verify(message, sig.Bytes()); err != nil {
+			return errors.Wrap(err, "reader: invalid signature")
+		}
 	}
 	return nil
 }
@@ -196,15 +260,20 @@ func (ar *Reader) readHeaderV2(tReader *tar.Reader,
 	// either header or signature file
 	hdr, err := getNext(tReader)
 	if err != nil {
-		return nil, errors.Wrapf(err, "reader: error reading file after checksums")
+		return nil, errors.Wrapf(err, "reader: error reading file after manifest")
+	}
+
+	// we are expecting to have a signed artifact, but the signature is missing
+	if ar.signed && (hdr.FileInfo().Name() != "manifest.sig") {
+		return nil,
+			errors.New("reader: expecting signed artifact, but no signature file found")
 	}
 
 	switch hdr.FileInfo().Name() {
 	case "manifest.sig":
 		// firs read and verify signature
-		ar.signed = true
 		if err = signatureReadAndVerify(tReader, manifest.GetRaw(),
-			ar.VerifySignatureCallback); err != nil {
+			ar.VerifySignatureCallback, ar.signed); err != nil {
 			return nil, err
 		}
 		// verify checksums of version
@@ -240,6 +309,41 @@ func (ar *Reader) readHeaderV2(tReader *tar.Reader,
 	return manifest, nil
 }
 
+func (ar *Reader) ReadRaw() (*artifact.Raw, error) {
+	// each artifact is tar archive
+	if ar.r == nil {
+		return nil, errors.New("reader: read raw called on invalid stream")
+	}
+	if ar.rawReader == nil {
+		ar.rawReader = tar.NewReader(ar.r)
+	}
+	hdr, err := getNext(ar.rawReader)
+	if err != nil {
+		return nil, errors.Wrap(err, "reader: error reading raw data")
+	}
+	return artifact.NewRaw(hdr.Name, hdr.Size, ar.rawReader), nil
+}
+
+func (ar *Reader) ReadRawVersion() (int, *artifact.Raw, error) {
+	// each artifact is tar archive
+	if ar.r == nil {
+		return 0, nil,
+			errors.New("reader: read raw version called on invalid stream")
+	}
+
+	// check if reader is initialized
+	if ar.rawReader == nil {
+		ar.rawReader = tar.NewReader(ar.r)
+	}
+
+	ver, vRaw, err := readVersion(ar.rawReader)
+	if err != nil {
+		return 0, nil, errors.Wrapf(err, "reader: can not read version file")
+	}
+	return ver.Version,
+		artifact.NewRaw("version", int64(len(vRaw)), bytes.NewBuffer(vRaw)), nil
+}
+
 func (ar *Reader) ReadArtifact() error {
 	// each artifact is tar archive
 	if ar.r == nil {
@@ -248,7 +352,7 @@ func (ar *Reader) ReadArtifact() error {
 	tReader := tar.NewReader(ar.r)
 
 	// first file inside the artifact MUST be version
-	ver, raw, err := readVersion(tReader)
+	ver, vRaw, err := readVersion(tReader)
 	if err != nil {
 		return errors.Wrapf(err, "reader: can not read version file")
 	}
@@ -262,7 +366,7 @@ func (ar *Reader) ReadArtifact() error {
 			return err
 		}
 	case 2:
-		s, err = ar.readHeaderV2(tReader, raw)
+		s, err = ar.readHeaderV2(tReader, vRaw)
 		if err != nil {
 			return err
 		}
@@ -312,16 +416,8 @@ func getUpdateNoFromDataPath(path string) (int, error) {
 	return strconv.Atoi(no)
 }
 
-func (ar *Reader) readHeaderUpdate(tr *tar.Reader) error {
+func (ar *Reader) readHeaderUpdate(tr *tar.Reader, hdr *tar.Header) error {
 	for {
-		hdr, err := getNext(tr)
-
-		if err == io.EOF {
-			return nil
-		} else if err != nil {
-			return errors.Wrapf(err,
-				"reader: can not read artifact header file: %v", hdr)
-		}
 		updNo, err := getUpdateNoFromHeaderPath(hdr.Name)
 		if err != nil {
 			return errors.Wrapf(err, "reader: error getting header update number")
@@ -331,8 +427,16 @@ func (ar *Reader) readHeaderUpdate(tr *tar.Reader) error {
 		if !ok {
 			return errors.Errorf("reader: can not find parser for update: %v", hdr.Name)
 		}
-		if err := inst.ReadHeader(tr, hdr.Name); err != nil {
-			return errors.Wrap(err, "reader: can not read header")
+		if hErr := inst.ReadHeader(tr, hdr.Name); hErr != nil {
+			return errors.Wrap(hErr, "reader: can not read header")
+		}
+
+		hdr, err = getNext(tr)
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return errors.Wrapf(err,
+				"reader: can not read artifact header file: %v", hdr)
 		}
 	}
 }
@@ -456,8 +560,12 @@ func readAndInstall(r io.Reader, i handlers.Installer,
 		// check checksum
 		ch := artifact.NewReaderChecksum(tar, df.Checksum)
 
-		if err := i.Install(ch, &info); err != nil {
+		if err = i.Install(ch, &info); err != nil {
 			return errors.Wrapf(err, "update: can not install update: %v", hdr)
+		}
+
+		if err = ch.Verify(); err != nil {
+			return errors.Wrap(err, "reader: error reading data")
 		}
 	}
 	return nil

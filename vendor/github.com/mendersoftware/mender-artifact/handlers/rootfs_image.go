@@ -1,4 +1,4 @@
-// Copyright 2016 Mender Software AS
+// Copyright 2017 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -27,9 +27,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Rootfs handles updates of type 'rootfs-image'. The parser can be
-// initialized setting `W` (io.Writer the update data gets written to), or
-// `DataFunc` (user provided callback that handlers the update data stream).
+// Rootfs handles updates of type 'rootfs-image'.
 type Rootfs struct {
 	version int
 	update  *DataFile
@@ -130,6 +128,13 @@ func (rfs *Rootfs) ComposeHeader(tw *tar.Writer, no int) error {
 	// store type-info
 	if err := writeTypeInfo(tw, "rootfs-image", path); err != nil {
 		return err
+	}
+
+	// store empty meta-data
+	// the file needs to be a part of artifact even if this one is empty
+	sw := artifact.NewTarWriterStream(tw)
+	if err := sw.Write(nil, filepath.Join(path, "meta-data")); err != nil {
+		return errors.Wrap(err, "update: can not store meta-data")
 	}
 
 	if rfs.version == 1 {
