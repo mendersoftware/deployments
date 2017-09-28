@@ -587,6 +587,28 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
+  /limits/storage:
+    get:
+      summary: Get storage limit and current storage usage
+      description: |
+        Get storage limit and current storage usage for currently logged in user.
+        If the limit value is 0 it means there is no limit for storage for logged in user.
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response.
+          schema:
+            $ref: "#/definitions/StorageLimit"
+        500:
+          $ref: "#/responses/InternalServerError"
 
 definitions:
   Error:
@@ -875,3 +897,22 @@ definitions:
       application/json:
         uri: http://mender.io/artifact.tar.gz.mender
         expire: 2016-10-29T10:45:34Z
+  StorageLimit:
+    description: Tenant account storage limit and storage usage.
+    type: object
+    properties:
+      limit:
+        type: integer
+        description: |
+            Storage limit in bytes. If set to 0 - there is no limit for storage.
+      usage:
+        type: integer
+        description: |
+            Current storage usage in bytes.
+    required:
+      - limit
+      - usage
+    example:
+      application/json:
+        limit: 1073741824
+        usage: 536870912
