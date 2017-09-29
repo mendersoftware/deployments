@@ -9,7 +9,7 @@ RUN mkdir /etc/deployments
 EXPOSE 8080
 
 COPY ./entrypoint.sh /usr/bin/
-COPY ./deployments /usr/bin/
+COPY ./deployments-test /usr/bin/deployments
 COPY ./config.yaml /usr/bin/
 
 STOPSIGNAL SIGINT

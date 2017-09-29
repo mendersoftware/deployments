@@ -129,7 +129,7 @@ script:
     # acceptance tests
     # NOTE: the tests require mender-artifact binary to be available
     - if [[ "$JOB_TYPE" = compile_and_acceptance_tests ]]; then
-        CGO_ENABLED=0 go test -c -o deployments -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,);
+        CGO_ENABLED=0 go test -c -o deployments-test -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,);
         sudo docker build -f Dockerfile.acceptance-testing -t $DOCKER_REPOSITORY:prtest .;
         CGO_ENABLED=0 go get -u -v github.com/mendersoftware/mender-artifact &&
         ( ./tests/build-acceptance ./tests ./docs/management_api.yml ./docs/devices_api.yml `which mender-artifact` &&
