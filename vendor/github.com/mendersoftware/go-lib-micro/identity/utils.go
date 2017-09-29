@@ -17,9 +17,15 @@ import (
 	"context"
 )
 
+type identityContextKeyType int
+
+const (
+	identityContextKey identityContextKeyType = 0
+)
+
 // FromContext extracts current identity from context.Context
 func FromContext(ctx context.Context) *Identity {
-	val := ctx.Value(IdentityContextKey)
+	val := ctx.Value(identityContextKey)
 	if v, ok := val.(*Identity); ok {
 		return v
 	}
@@ -28,5 +34,5 @@ func FromContext(ctx context.Context) *Identity {
 
 // WithContext adds identity to context `ctx` and returns the resulting context.
 func WithContext(ctx context.Context, identity *Identity) context.Context {
-	return context.WithValue(ctx, IdentityContextKey, identity)
+	return context.WithValue(ctx, identityContextKey, identity)
 }

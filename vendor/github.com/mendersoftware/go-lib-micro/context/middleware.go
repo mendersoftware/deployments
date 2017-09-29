@@ -28,7 +28,7 @@ import (
 // accessed using log.FromContext(ctx).
 func RepackLoggerToContext(ctx context.Context, r *rest.Request) context.Context {
 	return log.WithContext(ctx,
-		requestlog.GetRequestLogger(r.Env))
+		requestlog.GetRequestLogger(r))
 }
 
 // RepackRequestIdToContext can be used to attach a request ID assigned by
@@ -39,7 +39,7 @@ func RepackRequestIdToContext(ctx context.Context, r *rest.Request) context.Cont
 		requestid.GetReqId(r))
 }
 
-// ContextUpdateFunc is a function that can update context ctx using data from
+// UpdateContextFunc is a function that can update context ctx using data from
 // rest.Request and return modified context.
 type UpdateContextFunc func(ctx context.Context, r *rest.Request) context.Context
 

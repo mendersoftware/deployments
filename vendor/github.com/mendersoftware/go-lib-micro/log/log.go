@@ -44,8 +44,10 @@ var (
 	Log = logrus.New()
 )
 
+type loggerContextKeyType int
+
 const (
-	LoggerContextKey = "github.com/mendersoftware/go-lib-micro/log.Logger"
+	loggerContextKey loggerContextKeyType = 0
 )
 
 // ContextLogger interface for components which support
@@ -144,7 +146,7 @@ func (hook ContextHook) Fire(entry *logrus.Entry) error {
 // Logger is based on logrus.Entry, if logger instance from context is any of
 // logrus.Logger, logrus.Entry, necessary adaption will be applied.
 func FromContext(ctx context.Context) *Logger {
-	l := ctx.Value(LoggerContextKey)
+	l := ctx.Value(loggerContextKey)
 	if l == nil {
 		return New(Ctx{})
 	}
@@ -163,5 +165,5 @@ func FromContext(ctx context.Context) *Logger {
 
 // WithContext adds logger to context `ctx` and returns the resulting context.
 func WithContext(ctx context.Context, log *Logger) context.Context {
-	return context.WithValue(ctx, LoggerContextKey, log)
+	return context.WithValue(ctx, loggerContextKey, log)
 }
