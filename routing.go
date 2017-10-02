@@ -33,6 +33,10 @@ import (
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/mendersoftware/deployments/resources/images/s3"
 	imagesView "github.com/mendersoftware/deployments/resources/images/view"
+	limitsController "github.com/mendersoftware/deployments/resources/limits/controller"
+	limitsModel "github.com/mendersoftware/deployments/resources/limits/model"
+	limitsMongo "github.com/mendersoftware/deployments/resources/limits/mongo"
+	limitsView "github.com/mendersoftware/deployments/resources/limits/view"
 	"github.com/mendersoftware/deployments/utils/restutil"
 )
 
@@ -122,6 +126,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
 	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
+	limitsStorage := limitsMongo.NewLimitsStorage(dbSession)
 
 	// Domain Models
 	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{
@@ -134,16 +139,20 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	})
 
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
+	limitsModel := limitsModel.NewLimitsModel(limitsStorage)
 
 	// Controllers
 	imagesController := imagesController.NewSoftwareImagesController(imagesModel, new(imagesView.RESTView))
 	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel, new(deploymentsView.DeploymentsView))
+	limitsController := limitsController.NewLimitsController(limitsModel, new(limitsView.RESTView))
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)
 	deploymentsRoutes := NewDeploymentsResourceRoutes(deploymentsController)
+	limitsRoutes := NewLimitsResourceRoutes(limitsController)
 
 	routes := append(imageRoutes, deploymentsRoutes...)
+	routes = append(routes, limitsRoutes...)
 
 	return rest.MakeRouter(restutil.AutogenOptionsRoutes(restutil.NewOptionsHandler, routes...)...)
 }
@@ -193,5 +202,17 @@ func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsC
 			controller.PutDeploymentStatusForDevice),
 		rest.Put("/api/0.0.1/device/deployments/:id/log",
 			controller.PutDeploymentLogForDevice),
+	}
+}
+
+func NewLimitsResourceRoutes(controller *limitsController.LimitsController) []*rest.Route {
+
+	if controller == nil {
+		return []*rest.Route{}
+	}
+
+	return []*rest.Route{
+		// limits
+		rest.Get("/api/0.0.1/limits/:name", controller.GetLimit),
 	}
 }
