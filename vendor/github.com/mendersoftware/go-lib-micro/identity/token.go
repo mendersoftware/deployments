@@ -22,19 +22,19 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	IdentityContextKey = "github.com/mendersoftware/go-lib-micro/identity.Identity"
-)
-
 // Token field names
 const (
 	subjectClaim = "sub"
 	tenantClaim  = "mender.tenant"
+	deviceClaim  = "mender.device"
+	userClaim    = "mender.user"
 )
 
 type Identity struct {
-	Subject string
-	Tenant  string
+	Subject  string
+	Tenant   string
+	IsUser   bool
+	IsDevice bool
 }
 
 type rawClaims map[string]interface{}
@@ -92,6 +92,20 @@ func getSubject(claims rawClaims) (string, error) {
 	return sub, nil
 }
 
+func getBoolField(claims rawClaims, name string) (bool, error) {
+	rawval, ok := claims[name]
+	if !ok {
+		return false, errors.Errorf("field %s not found", name)
+	}
+
+	val, ok := rawval.(bool)
+	if !ok {
+		return false, errors.Errorf("field %v has incorrect value %v", name, rawval)
+	}
+
+	return val, nil
+}
+
 // Generate identity information from given JWT by extracting subject and tenant claims.
 // Note that this function does not perform any form of token signature
 // verification.
@@ -111,7 +125,16 @@ func ExtractIdentity(token string) (Identity, error) {
 		return Identity{}, err
 	}
 
-	return Identity{Subject: sub, Tenant: tenant}, nil
+	identity := Identity{Subject: sub, Tenant: tenant}
+	if isUser, err := getBoolField(claims, userClaim); err == nil {
+		identity.IsUser = isUser
+	}
+
+	if isDevice, err := getBoolField(claims, deviceClaim); err == nil {
+		identity.IsDevice = isDevice
+	}
+
+	return identity, nil
 }
 
 // Extract identity information from HTTP Authorization header. The header is

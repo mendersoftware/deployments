@@ -19,19 +19,27 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
+type requestIdKeyType int
+
+const (
+	requestIdKey requestIdKeyType = 0
+)
+
 // GetReqId helper for retrieving current request Id
 func GetReqId(r *rest.Request) string {
-	reqid := r.Env[RequestIdHeader]
-	if reqid != nil {
-		return reqid.(string)
-	}
+	return FromContext(r.Context())
+}
 
-	return ""
+// SetReqId is a helper for setting request ID in request context
+func SetReqId(r *rest.Request, reqid string) *rest.Request {
+	ctx := WithContext(r.Context(), reqid)
+	r.Request = r.Request.WithContext(ctx)
+	return r
 }
 
 // FromContext extracts current request Id from context.Context
 func FromContext(ctx context.Context) string {
-	val := ctx.Value(RequestIdHeader)
+	val := ctx.Value(requestIdKey)
 	if v, ok := val.(string); ok {
 		return v
 	}
@@ -40,5 +48,5 @@ func FromContext(ctx context.Context) string {
 
 // WithContext adds request to context `ctx` and returns the resulting context.
 func WithContext(ctx context.Context, reqid string) context.Context {
-	return context.WithValue(ctx, RequestIdHeader, reqid)
+	return context.WithValue(ctx, requestIdKey, reqid)
 }

@@ -25,7 +25,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/go-lib-micro/requestlog"
+	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -71,7 +71,7 @@ func NewSoftwareImagesController(model ImagesModel, view RESTView) *SoftwareImag
 }
 
 func (s *SoftwareImagesController) GetImage(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	l := log.FromContext(r.Context())
 
 	id := r.PathParam("id")
 
@@ -95,7 +95,7 @@ func (s *SoftwareImagesController) GetImage(w rest.ResponseWriter, r *rest.Reque
 }
 
 func (s *SoftwareImagesController) ListImages(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	l := log.FromContext(r.Context())
 
 	list, err := s.model.ListImages(r.Context(), r.PathParams)
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *SoftwareImagesController) ListImages(w rest.ResponseWriter, r *rest.Req
 }
 
 func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	l := log.FromContext(r.Context())
 
 	id := r.PathParam("id")
 
@@ -176,7 +176,7 @@ func (s *SoftwareImagesController) validExpire(expire string) bool {
 }
 
 func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	l := log.FromContext(r.Context())
 
 	id := r.PathParam("id")
 
@@ -201,7 +201,7 @@ func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Re
 }
 
 func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	l := log.FromContext(r.Context())
 
 	id := r.PathParam("id")
 
@@ -250,7 +250,7 @@ func (s SoftwareImagesController) getSoftwareImageMetaConstructorFromBody(r *res
 // First part should contain Metadata file. This file should be of type "application/json".
 // Second part should contain artifact file.
 func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r.Env)
+	l := log.FromContext(r.Context())
 
 	// parse content type and params according to RFC 1521
 	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))

@@ -20,7 +20,6 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/accesslog"
-	mctx "github.com/mendersoftware/go-lib-micro/context"
 	"github.com/mendersoftware/go-lib-micro/customheader"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
@@ -47,13 +46,15 @@ const (
 	EnvDev  string = "dev"
 )
 
-var DefaultDevStack = []rest.Middleware{
-
+var commonLoggingAccessStack = []rest.Middleware{
 	// logging
 	&requestlog.RequestLogMiddleware{},
 	&accesslog.AccessLogMiddleware{Format: accesslog.SimpleLogFormat},
 	&rest.TimerMiddleware{},
 	&rest.RecorderMiddleware{},
+}
+
+var defaultDevStack = []rest.Middleware{
 
 	// catches the panic errors that occur with stack trace
 	&rest.RecoverMiddleware{
@@ -62,37 +63,14 @@ var DefaultDevStack = []rest.Middleware{
 
 	// json pretty print
 	&rest.JsonIndentMiddleware{},
-	&requestid.RequestIdMiddleware{},
-	&mctx.UpdateContextMiddleware{
-		Updates: []mctx.UpdateContextFunc{
-			mctx.RepackLoggerToContext,
-			mctx.RepackRequestIdToContext,
-		},
-	},
-	&identity.IdentityMiddleware{},
 }
 
-var DefaultProdStack = []rest.Middleware{
-
-	// logging
-	&requestlog.RequestLogMiddleware{},
-	&accesslog.AccessLogMiddleware{Format: accesslog.SimpleLogFormat},
-	&rest.TimerMiddleware{},
-	&rest.RecorderMiddleware{},
-
+var defaultProdStack = []rest.Middleware{
 	// catches the panic errorsx
 	&rest.RecoverMiddleware{},
 
 	// response compression
 	&rest.GzipMiddleware{},
-	&requestid.RequestIdMiddleware{},
-	&mctx.UpdateContextMiddleware{
-		Updates: []mctx.UpdateContextFunc{
-			mctx.RepackLoggerToContext,
-			mctx.RepackRequestIdToContext,
-		},
-	},
-	&identity.IdentityMiddleware{},
 }
 
 func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
@@ -102,12 +80,19 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 		HeaderValue: CreateVersionString(),
 	})
 
+	api.Use(commonLoggingAccessStack...)
+
 	mwtype := c.GetString(SettingMiddleware)
 	if mwtype == EnvDev {
-		api.Use(DefaultDevStack...)
+		api.Use(defaultDevStack...)
 	} else {
-		api.Use(DefaultProdStack...)
+		api.Use(defaultProdStack...)
 	}
+
+	api.Use(&requestid.RequestIdMiddleware{},
+		&identity.IdentityMiddleware{
+			UpdateLogger: true,
+		})
 
 	// Verifies the request Content-Type header if the content is non-null.
 	// For the POST /api/0.0.1/images request expected Content-Type is 'multipart/form-data'.
@@ -124,7 +109,9 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 			return func(w rest.ResponseWriter, r *rest.Request) {
 				mediatype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 				if r.ContentLength > 0 && !(mediatype == "multipart/form-data") {
-					rest.Error(w, "Bad Content-Type, expected 'multipart/form-data'", http.StatusUnsupportedMediaType)
+					rest.Error(w,
+						"Bad Content-Type, expected 'multipart/form-data'",
+						http.StatusUnsupportedMediaType)
 					return
 				}
 				// call the wrapped handler

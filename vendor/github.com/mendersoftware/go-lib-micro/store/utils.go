@@ -33,9 +33,21 @@ func DbFromContext(ctx context.Context, origDbName string) string {
 
 type TenantDbMatchFunc func(name string) bool
 
+// IsTenantDb returns a function of `TenantDbMatchFunc` that can be used for
+// checking if database has a tenant DB name format
 func IsTenantDb(baseDb string) TenantDbMatchFunc {
 	prefix := baseDb + "-"
 	return func(name string) bool {
 		return strings.HasPrefix(name, prefix)
 	}
+}
+
+// TenantFromDbName attempts to extract tenant ID from provided tenant DB name.
+// Returns extracted tenant ID or an empty string.
+func TenantFromDbName(dbName string, baseDb string) string {
+	noBase := strings.TrimPrefix(dbName, baseDb+"-")
+	if noBase == dbName {
+		return ""
+	}
+	return noBase
 }

@@ -20,15 +20,12 @@ import (
 	"github.com/mendersoftware/go-lib-micro/log"
 )
 
-// name of the per-request log in the request's context
-const ReqLog = "request_log"
-
-// RequestLogMiddleware creates a per-request logger and sticks it into Env.
-// The logger will be ready to use in the handler (less boilerplate).
-// Other middlewares (notably requestid) may add context to the log.
-// Per-request loggers will by default be derived from the global log.Log,
-// unless BaseLogger is specified. In that case, it will serve as the root logger.
-// Additional context can be attached by setting LogContext field.
+// RequestLogMiddleware creates a per-request logger and sticks it into
+// http.Request context. The logger will be ready to use in the handler (less
+// boilerplate). Other middlewares (notably requestid) may add context to the
+// log. Per-request loggers will by default be derived from the global log.Log,
+// unless BaseLogger is specified. In that case, it will serve as the root
+// logger. Additional context can be attached by setting LogContext field.
 type RequestLogMiddleware struct {
 	BaseLogger *logrus.Logger
 	LogContext log.Ctx
@@ -44,11 +41,20 @@ func (mw *RequestLogMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerF
 			l = log.NewFromLogger(mw.BaseLogger, mw.LogContext)
 		}
 
-		r.Env[ReqLog] = l
+		r = SetRequestLogger(r, l)
 		h(w, r)
 	}
 }
 
-func GetRequestLogger(env map[string]interface{}) *log.Logger {
-	return env[ReqLog].(*log.Logger)
+// GetRequestLogger will return a logger associated with the request.
+func GetRequestLogger(r *rest.Request) *log.Logger {
+	return log.FromContext(r.Context())
+}
+
+// SetRequestLogger assigns logger l to request r by putting it in request
+// context.
+func SetRequestLogger(r *rest.Request, l *log.Logger) *rest.Request {
+	ctx := log.WithContext(r.Context(), l)
+	r.Request = r.Request.WithContext(ctx)
+	return r
 }
