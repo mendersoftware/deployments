@@ -40,8 +40,8 @@ import (
 	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/resources/images/controller"
 	"github.com/mendersoftware/deployments/resources/images/controller/mocks"
-	"github.com/mendersoftware/deployments/resources/images/view"
 	"github.com/mendersoftware/deployments/utils/pointers"
+	"github.com/mendersoftware/deployments/utils/restutil/view"
 	h "github.com/mendersoftware/deployments/utils/testing"
 )
 

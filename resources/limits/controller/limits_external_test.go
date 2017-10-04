@@ -33,7 +33,7 @@ import (
 	"github.com/mendersoftware/deployments/resources/limits"
 	. "github.com/mendersoftware/deployments/resources/limits/controller"
 	"github.com/mendersoftware/deployments/resources/limits/controller/mocks"
-	"github.com/mendersoftware/deployments/resources/limits/view"
+	"github.com/mendersoftware/deployments/utils/restutil/view"
 )
 
 type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.Route

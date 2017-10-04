@@ -32,12 +32,11 @@ import (
 	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/mendersoftware/deployments/resources/images/s3"
-	imagesView "github.com/mendersoftware/deployments/resources/images/view"
 	limitsController "github.com/mendersoftware/deployments/resources/limits/controller"
 	limitsModel "github.com/mendersoftware/deployments/resources/limits/model"
 	limitsMongo "github.com/mendersoftware/deployments/resources/limits/mongo"
-	limitsView "github.com/mendersoftware/deployments/resources/limits/view"
 	"github.com/mendersoftware/deployments/utils/restutil"
+	"github.com/mendersoftware/deployments/utils/restutil/view"
 )
 
 func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
@@ -142,9 +141,12 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	limitsModel := limitsModel.NewLimitsModel(limitsStorage)
 
 	// Controllers
-	imagesController := imagesController.NewSoftwareImagesController(imagesModel, new(imagesView.RESTView))
-	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel, new(deploymentsView.DeploymentsView))
-	limitsController := limitsController.NewLimitsController(limitsModel, new(limitsView.RESTView))
+	imagesController := imagesController.NewSoftwareImagesController(imagesModel,
+		new(view.RESTView))
+	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel,
+		new(deploymentsView.DeploymentsView))
+	limitsController := limitsController.NewLimitsController(limitsModel,
+		new(view.RESTView))
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)
