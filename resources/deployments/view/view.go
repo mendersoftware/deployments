@@ -21,7 +21,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
-	"github.com/mendersoftware/deployments/resources/images/view"
+	"github.com/mendersoftware/deployments/utils/restutil/view"
 )
 
 type DeploymentsView struct {
