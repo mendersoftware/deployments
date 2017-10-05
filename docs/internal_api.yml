@@ -1,0 +1,85 @@
+swagger: '2.0'
+info:
+  title: Deployments Internal API
+  version: '1'
+  description: |
+    Internal API of deployments service
+
+host: 'docker.mender.io'
+basePath: '/api/internal/v1/deployments'
+schemes:
+  - https
+
+responses:
+  NotFoundError: # 404
+    description: Not Found.
+    schema:
+      $ref: "#/definitions/Error"
+  InternalServerError: # 500
+    description: Internal Server Error.
+    schema:
+      $ref: "#/definitions/Error"
+  InvalidRequestError: # 400
+    description: Invalid Request.
+    schema:
+      $ref: "#/definitions/Error"
+  UnprocessableEntityError: # 422
+    description: Unprocessable Entity.
+    schema:
+      $ref: "#/definitions/Error"
+
+paths:
+  /tenants/:id/limits/storage:
+    get:
+      summary: Get storage limit and current storage usage for given tenant
+      description: |
+        Get storage limit and current storage usage for given tenant.
+        If the limit value is 0 it means storage space is unlimited
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Tenant ID
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response.
+          schema:
+            $ref: "#/definitions/StorageLimit"
+        500:
+          $ref: "#/responses/InternalServerError"
+definitions:
+  Error:
+    description: Error descriptor.
+    type: object
+    properties:
+      error:
+        description: Description of the error.
+        type: string
+      request_id:
+        description: Request ID (same as in X-MEN-RequestID header).
+        type: string
+    example:
+      application/json:
+          error: "failed to decode device group data: JSON payload is empty"
+          request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+  StorageLimit:
+    description: Tenant account storage limit and storage usage.
+    type: object
+    properties:
+      limit:
+        type: integer
+        description: |
+            Storage limit in bytes. If set to 0 - there is no limit for storage.
+      usage:
+        type: integer
+        description: |
+            Current storage usage in bytes.
+    required:
+      - limit
+      - usage
+    example:
+      application/json:
+        limit: 1073741824
+        usage: 536870912
