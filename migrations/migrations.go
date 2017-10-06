@@ -51,29 +51,45 @@ func Migrate(ctx context.Context,
 	}
 
 	for _, d := range dbs {
-		l.Infof("migrating %s", d)
-		m := migrate.SimpleMigrator{
-			Session:     session,
-			Db:          d,
-			Automigrate: automigrate,
-		}
-
-		ver, err := migrate.NewVersion(version)
+		err := MigrateSingle(ctx, d, version, session, automigrate)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse service version")
+			return err
 		}
+	}
 
-		migrations := []migrate.Migration{
-			&migration_1_2_1{
-				session: session,
-				db:      d,
-			},
-		}
+	return nil
+}
 
-		err = m.Apply(ctx, *ver, migrations)
-		if err != nil {
-			return errors.Wrap(err, "failed to apply migrations")
-		}
+func MigrateSingle(ctx context.Context,
+	db string,
+	version string,
+	session *mgo.Session,
+	automigrate bool) error {
+	l := log.FromContext(ctx)
+
+	l.Infof("migrating %s", db)
+
+	ver, err := migrate.NewVersion(version)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse service version")
+	}
+
+	m := migrate.SimpleMigrator{
+		Session:     session,
+		Db:          db,
+		Automigrate: automigrate,
+	}
+
+	migrations := []migrate.Migration{
+		&migration_1_2_1{
+			session: session,
+			db:      db,
+		},
+	}
+
+	err = m.Apply(ctx, *ver, migrations)
+	if err != nil {
+		return errors.Wrap(err, "failed to apply migrations")
 	}
 
 	return nil
