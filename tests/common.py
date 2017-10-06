@@ -21,11 +21,17 @@ import abc
 import random
 import string
 import json
+import pytest
 
 from hashlib import sha256
 from contextlib import contextmanager
 from base64 import urlsafe_b64encode
 from client import CliClient
+from pymongo import MongoClient
+
+DB_NAME = "deployment_service"
+DB_MIGRATION_COLLECTION = "migration_info"
+DB_VERSION = "1.2.1"
 
 class Artifact(metaclass=abc.ABCMeta):
     @abc.abstractproperty
@@ -142,3 +148,22 @@ class Device:
 @pytest.fixture(scope="session")
 def cli():
     return CliClient()
+
+@pytest.fixture(scope="session")
+def mongo():
+    return MongoClient('mender-mongo-deployments:27017')
+
+@pytest.yield_fixture(scope='function')
+def clean_db(mongo):
+    mongo_cleanup(mongo)
+    yield
+    mongo_cleanup(mongo)
+
+def mongo_cleanup(mongo):
+    dbs = mongo.database_names()
+    dbs = [d for d in dbs if d not in ['local', 'admin']]
+    for d in dbs:
+        mongo.drop_database(d)
+
+def make_tenant_db(tenant_id):
+    return '{}-{}'.format(DB_NAME, tenant_id)
