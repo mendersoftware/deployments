@@ -12,6 +12,13 @@ services:
     - docker
     - mongodb
 
+addons:
+  apt:
+    sources:
+      - mongodb-3.4-precise
+    packages:
+      - mongodb-org-server
+
 # Golang version matrix
 go:
     - 1.8
