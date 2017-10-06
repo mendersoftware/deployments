@@ -1,0 +1,19 @@
+version: '2'
+services:
+    acceptance:
+        image: testing
+        networks:
+            - mender
+        volumes:
+            - "${TESTS_DIR}:/testing"
+        command: -k 'not MultiTenant'
+        depends_on:
+            - mender-deployments
+            - mender-inventory
+            - minio
+            - storage-proxy
+    mender-deployments:
+            # built/tagged locally and only used for testing
+            image: mendersoftware/deployments:prtest
+            volumes:
+                - "${TESTS_DIR}:/testing"
