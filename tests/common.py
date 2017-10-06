@@ -25,6 +25,7 @@ import json
 from hashlib import sha256
 from contextlib import contextmanager
 from base64 import urlsafe_b64encode
+from client import CliClient
 
 class Artifact(metaclass=abc.ABCMeta):
     @abc.abstractproperty
@@ -137,3 +138,7 @@ class Device:
         signature = 'fake-signature'
         return '.'.join(urlsafe_b64encode(p.encode()).decode() \
                         for p in [hdr, claims, signature])
+
+@pytest.fixture(scope="session")
+def cli():
+    return CliClient()
