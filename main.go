@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/mendersoftware/go-lib-micro/log"
+	mstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/urfave/cli"
 
 	"github.com/mendersoftware/deployments/config"
@@ -58,6 +59,18 @@ func doMain(args []string) {
 			},
 
 			Action: cmdServer,
+		},
+		{
+			Name:  "migrate",
+			Usage: "Run migrations and exit",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "tenant",
+					Usage: "Tenant ID (optional).",
+				},
+			},
+
+			Action: cmdMigrate,
 		},
 	}
 
@@ -114,6 +127,29 @@ func cmdServer(args *cli.Context) error {
 	if err != nil {
 		return cli.NewExitError(err.Error(), 4)
 	}
+
+	return nil
+}
+
+func cmdMigrate(args *cli.Context) error {
+	tenant := args.String("tenant")
+	db := mstore.DbNameForTenant(tenant, migrations.DbName)
+
+	dbSession, err := NewMongoSession(config.Config)
+	if err != nil {
+		return cli.NewExitError(
+			fmt.Sprintf("failed to connect to db: %v", err),
+			3)
+	}
+
+	err = migrations.MigrateSingle(context.Background(), db, migrations.DbVersion, dbSession, true)
+	if err != nil {
+		return cli.NewExitError(
+			fmt.Sprintf("failed to run migrations: %v", err),
+			3)
+	}
+
+	dbSession.Close()
 
 	return nil
 }

@@ -24,11 +24,12 @@ import (
 // from context and original database name
 func DbFromContext(ctx context.Context, origDbName string) string {
 	identity := identity.FromContext(ctx)
-	if identity != nil && identity.Tenant != "" {
-		return origDbName + "-" + identity.Tenant
-	} else {
-		return origDbName
+	tenant := ""
+	if identity != nil {
+		tenant = identity.Tenant
 	}
+
+	return DbNameForTenant(tenant, origDbName)
 }
 
 type TenantDbMatchFunc func(name string) bool
@@ -50,4 +51,12 @@ func TenantFromDbName(dbName string, baseDb string) string {
 		return ""
 	}
 	return noBase
+}
+
+// DbNameForTenant composes tenant's db name.
+func DbNameForTenant(tenantId string, baseDb string) string {
+	if tenantId == "" {
+		return baseDb
+	}
+	return baseDb + "-" + tenantId
 }

@@ -15,6 +15,7 @@
 import os.path
 import logging
 import random
+import subprocess
 
 from datetime import datetime
 from collections import OrderedDict
@@ -258,3 +259,16 @@ class InventoryClient(BaseApiClient, RequestsApiClient):
         if rsp.status_code != 200:
             raise InventoryClientError(
                 'request failed with status code {}'.format(rsp.status_code))
+
+
+class CliClient:
+    cmd = '/testing/deployments'
+
+    def migrate(self, tenant=None):
+        args = [self.cmd,
+                'migrate']
+
+        if tenant is not None:
+            args.extend(['--tenant', tenant])
+
+        subprocess.run(args, check=True)
