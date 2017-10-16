@@ -464,31 +464,34 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 			},
 		},
 		{
-			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputID:          "83241c4b-6281-40dd-b6fa-932633e21baa",
 			InputParamExpire: pointers.StringToPointer("ala ma kota"),
+			InputModelLink:   images.NewLink("http://come.and.get.me", time.Time{}),
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(ErrInvalidExpireParam),
+				OutputStatus:     http.StatusOK,
+				OutputBodyObject: images.NewLink("http://come.and.get.me", time.Time{}),
 			},
 		},
 		{
 			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
 			InputParamExpire: pointers.StringToPointer("1.1"),
+			InputModelLink:   images.NewLink("http://come.and.get.me", time.Time{}),
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(ErrInvalidExpireParam),
+				OutputStatus:     http.StatusOK,
+				OutputBodyObject: images.NewLink("http://come.and.get.me", time.Time{}),
 			},
 		},
 		{
-			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bac",
 			InputParamExpire: pointers.StringToPointer("9999999"),
+			InputModelLink:   images.NewLink("http://come.and.get.me", time.Time{}),
 			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(ErrInvalidExpireParam),
+				OutputStatus:     http.StatusOK,
+				OutputBodyObject: images.NewLink("http://come.and.get.me", time.Time{}),
 			},
 		},
 		{
-			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bad",
 			InputParamExpire: pointers.StringToPointer("123"),
 			InputModelError:  errors.New("file service down"),
 			JSONResponseParams: h.JSONResponseParams{
@@ -497,7 +500,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 			},
 		},
 		{
-			InputID:         "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputID:         "83241c4b-6281-40dd-b6fa-932633e21bae",
 			InputModelError: errors.New("file service down"),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusInternalServerError,
@@ -506,7 +509,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 		},
 		// no file found
 		{
-			InputID: "83241c4b-6281-40dd-b6fa-932633e21bab",
+			InputID: "83241c4b-6281-40dd-b6fa-932633e21baf",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusNotFound,
 				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Resource not found`)),

@@ -21,7 +21,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
@@ -33,7 +32,8 @@ import (
 
 // API input validation constants
 const (
-	DefaultDownloadLinkExpire = 60
+	// 15 minutes
+	DefaultDownloadLinkExpire = 15
 
 	// AWS limitation is 1 week
 	MaxLinkExpire = 60 * 7 * 24
@@ -116,13 +116,7 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 		return
 	}
 
-	expire, err := s.getLinkExpireParam(r, DefaultDownloadLinkExpire)
-	if err != nil {
-		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
-		return
-	}
-
-	link, err := s.model.DownloadLink(r.Context(), id, expire)
+	link, err := s.model.DownloadLink(r.Context(), id, DefaultDownloadLinkExpire)
 	if err != nil {
 		s.view.RenderInternalError(w, r, err, l)
 		return
@@ -134,45 +128,6 @@ func (s *SoftwareImagesController) DownloadLink(w rest.ResponseWriter, r *rest.R
 	}
 
 	s.view.RenderSuccessGet(w, link)
-}
-
-func (s *SoftwareImagesController) getLinkExpireParam(r *rest.Request, defaultValue uint64) (time.Duration, error) {
-
-	expire := defaultValue
-	expireStr := r.URL.Query().Get("expire")
-
-	// Validate input
-	if !govalidator.IsNull(expireStr) {
-		if !s.validExpire(expireStr) {
-			return 0, ErrInvalidExpireParam
-		}
-
-		var err error
-		expire, err = strconv.ParseUint(expireStr, 10, 64)
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	return time.Duration(int64(expire)) * time.Minute, nil
-}
-
-func (s *SoftwareImagesController) validExpire(expire string) bool {
-
-	if govalidator.IsNull(expire) {
-		return false
-	}
-
-	number, err := strconv.ParseUint(expire, 10, 64)
-	if err != nil {
-		return false
-	}
-
-	if number > MaxLinkExpire {
-		return false
-	}
-
-	return true
 }
 
 func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Request) {
