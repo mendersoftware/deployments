@@ -21,6 +21,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
@@ -33,10 +34,7 @@ import (
 // API input validation constants
 const (
 	// 15 minutes
-	DefaultDownloadLinkExpire = 15
-
-	// AWS limitation is 1 week
-	MaxLinkExpire = 60 * 7 * 24
+	DefaultDownloadLinkExpire = 15 * time.Minute
 
 	DefaultMaxMetaSize = 1024 * 1024 * 10
 )
