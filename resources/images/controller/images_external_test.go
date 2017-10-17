@@ -463,40 +463,14 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 				OutputBodyObject: h.ErrorToErrStruct(ErrIDNotUUIDv4),
 			},
 		},
+		// expire is ignored
 		{
 			InputID:          "83241c4b-6281-40dd-b6fa-932633e21baa",
-			InputParamExpire: pointers.StringToPointer("ala ma kota"),
+			InputParamExpire: pointers.StringToPointer("1234"),
 			InputModelLink:   images.NewLink("http://come.and.get.me", time.Time{}),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusOK,
 				OutputBodyObject: images.NewLink("http://come.and.get.me", time.Time{}),
-			},
-		},
-		{
-			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bab",
-			InputParamExpire: pointers.StringToPointer("1.1"),
-			InputModelLink:   images.NewLink("http://come.and.get.me", time.Time{}),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusOK,
-				OutputBodyObject: images.NewLink("http://come.and.get.me", time.Time{}),
-			},
-		},
-		{
-			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bac",
-			InputParamExpire: pointers.StringToPointer("9999999"),
-			InputModelLink:   images.NewLink("http://come.and.get.me", time.Time{}),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusOK,
-				OutputBodyObject: images.NewLink("http://come.and.get.me", time.Time{}),
-			},
-		},
-		{
-			InputID:          "83241c4b-6281-40dd-b6fa-932633e21bad",
-			InputParamExpire: pointers.StringToPointer("123"),
-			InputModelError:  errors.New("file service down"),
-			JSONResponseParams: h.JSONResponseParams{
-				OutputStatus:     http.StatusInternalServerError,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`internal error`)),
 			},
 		},
 		{
@@ -530,7 +504,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 		model := &mocks.ImagesModel{}
 
 		model.On("DownloadLink", h.ContextMatcher(),
-			testCase.InputID, mock.AnythingOfType("time.Duration")).
+			testCase.InputID, DefaultDownloadLinkExpire).
 			Return(testCase.InputModelLink, testCase.InputModelError)
 
 		api := setUpRestTest("/:id", rest.Post,
