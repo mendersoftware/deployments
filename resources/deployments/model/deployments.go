@@ -28,7 +28,7 @@ import (
 
 // Defaults
 const (
-	DefaultUpdateDownloadLinkExpire = 24 * time.Hour
+	DefaultUpdateDownloadLinkExpire = 1 * time.Hour
 )
 
 type ArtifactGetter interface {

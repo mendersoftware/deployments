@@ -17,3 +17,5 @@ services:
             image: mendersoftware/deployments:prtest
             volumes:
                 - "${TESTS_DIR}:/testing"
+            environment:
+              TESTING_LOGS: 1

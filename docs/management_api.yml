@@ -567,13 +567,6 @@ paths:
           description: Artifact identifier.
           required: true
           type: string
-        - name: expire
-          in: query
-          description: |
-            Link validity length in minutes. Min 1 minute, max 10080 (1 week).
-          required: false
-          type: integer
-          default: 60
       produces:
         - application/json
       responses:
