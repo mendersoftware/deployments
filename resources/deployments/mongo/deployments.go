@@ -449,8 +449,8 @@ func (d *DeploymentsStorage) Find(ctx context.Context,
 	var deployment []*deployments.Deployment
 	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDeployments).
-		Find(&query).Skip(match.Skip).
-		Limit(match.Limit).Sort("_id").
+		Find(&query).Sort("-created").
+		Skip(match.Skip).Limit(match.Limit).
 		All(&deployment)
 	if err != nil {
 		return nil, err
