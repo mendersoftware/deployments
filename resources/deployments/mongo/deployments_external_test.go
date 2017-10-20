@@ -1007,7 +1007,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000001"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 			}),
@@ -1018,7 +1018,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000002"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 			}),
@@ -1029,7 +1029,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("bar"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000003"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusFailure: 2,
 			}),
@@ -1040,7 +1040,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("bar"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("3fe15222-0a41-401f-8f5e-582aba2a002c"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000004"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 			}),
@@ -1051,7 +1051,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("bar"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("3fe15222-0a41-401f-8f5e-582aba2a002d"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000005"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusDownloading: 1,
 			}),
@@ -1062,7 +1062,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("daz"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("3fe15222-1234-401f-8f5e-582aba2a002e"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000006"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusDownloading: 1,
 				deployments.DeviceDeploymentStatusPending:     1,
@@ -1074,7 +1074,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("daz"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("3fe15222-1234-401f-8f5e-582aba2a002f"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000007"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusPending: 1,
 			}),
@@ -1085,7 +1085,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("daz"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("44dd8822-eeb1-44db-a18e-f4f5acc43796"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000008"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 				deployments.DeviceDeploymentStatusSuccess:    1,
@@ -1097,7 +1097,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("dfs"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc34a"},
 			},
-			Id: StringToPointer("3fe15222-1234-401f-8f5e-582aba2a002a"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000009"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusAborted: 1,
 			}),
@@ -1110,7 +1110,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("asdf"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("12345678-0a41-401f-8f5e-582aba2a002d"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000010"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusPending:     1,
 				deployments.DeviceDeploymentStatusAlreadyInst: 1,
@@ -1123,7 +1123,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("asdf"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("22345678-0a41-401f-8f5e-582aba2a002d"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000011"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusPending: 1,
 				deployments.DeviceDeploymentStatusSuccess: 1,
@@ -1136,7 +1136,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("asdf"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("32345678-0a41-401f-8f5e-582aba2a002d"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000012"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusPending: 1,
 				deployments.DeviceDeploymentStatusFailure: 1,
@@ -1149,7 +1149,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("asdf"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("42345678-0a41-401f-8f5e-582aba2a002d"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000013"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusPending:    1,
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
@@ -1162,7 +1162,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				ArtifactName: StringToPointer("asdf"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("52345678-0a41-401f-8f5e-582aba2a002d"),
+			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000014"),
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusAlreadyInst: 1,
 			}),
@@ -1205,8 +1205,8 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-				"d1804903-5caa-4a73-a3ae-0efcc3205405",
+				"a108ae14-bb4e-455f-9b40-000000000002",
+				"a108ae14-bb4e-455f-9b40-000000000001",
 			},
 		},
 		{
@@ -1216,11 +1216,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-				"d1804903-5caa-4a73-a3ae-0efcc3205405",
-				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
-				"3fe15222-0a41-401f-8f5e-582aba2a002c",
-				"3fe15222-0a41-401f-8f5e-582aba2a002d",
+				"a108ae14-bb4e-455f-9b40-000000000005",
+				"a108ae14-bb4e-455f-9b40-000000000004",
+				"a108ae14-bb4e-455f-9b40-000000000003",
+				"a108ae14-bb4e-455f-9b40-000000000002",
+				"a108ae14-bb4e-455f-9b40-000000000001",
 			},
 		},
 		{
@@ -1230,9 +1230,9 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
-				"3fe15222-0a41-401f-8f5e-582aba2a002c",
-				"3fe15222-0a41-401f-8f5e-582aba2a002d",
+				"a108ae14-bb4e-455f-9b40-000000000005",
+				"a108ae14-bb4e-455f-9b40-000000000004",
+				"a108ae14-bb4e-455f-9b40-000000000003",
 			},
 		},
 		{
@@ -1243,7 +1243,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"3fe15222-0a41-401f-8f5e-582aba2a002d",
+				"a108ae14-bb4e-455f-9b40-000000000005",
 			},
 		},
 		{
@@ -1254,8 +1254,8 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
-				"3fe15222-0a41-401f-8f5e-582aba2a002c",
+				"a108ae14-bb4e-455f-9b40-000000000004",
+				"a108ae14-bb4e-455f-9b40-000000000003",
 			},
 		},
 		{
@@ -1265,12 +1265,12 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"3fe15222-0a41-401f-8f5e-582aba2a002d",
-				"3fe15222-1234-401f-8f5e-582aba2a002e",
-				"12345678-0a41-401f-8f5e-582aba2a002d",
-				"22345678-0a41-401f-8f5e-582aba2a002d",
-				"32345678-0a41-401f-8f5e-582aba2a002d",
-				"42345678-0a41-401f-8f5e-582aba2a002d",
+				"a108ae14-bb4e-455f-9b40-000000000013",
+				"a108ae14-bb4e-455f-9b40-000000000012",
+				"a108ae14-bb4e-455f-9b40-000000000011",
+				"a108ae14-bb4e-455f-9b40-000000000010",
+				"a108ae14-bb4e-455f-9b40-000000000006",
+				"a108ae14-bb4e-455f-9b40-000000000005",
 			},
 		},
 		{
@@ -1280,7 +1280,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"3fe15222-1234-401f-8f5e-582aba2a002f",
+				"a108ae14-bb4e-455f-9b40-000000000007",
 			},
 		},
 		{
@@ -1290,13 +1290,13 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-				"d1804903-5caa-4a73-a3ae-0efcc3205405",
-				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
-				"3fe15222-0a41-401f-8f5e-582aba2a002c",
-				"44dd8822-eeb1-44db-a18e-f4f5acc43796",
-				"3fe15222-1234-401f-8f5e-582aba2a002a",
-				"52345678-0a41-401f-8f5e-582aba2a002d",
+				"a108ae14-bb4e-455f-9b40-000000000014",
+				"a108ae14-bb4e-455f-9b40-000000000009",
+				"a108ae14-bb4e-455f-9b40-000000000008",
+				"a108ae14-bb4e-455f-9b40-000000000004",
+				"a108ae14-bb4e-455f-9b40-000000000003",
+				"a108ae14-bb4e-455f-9b40-000000000002",
+				"a108ae14-bb4e-455f-9b40-000000000001",
 			},
 		},
 		{
@@ -1309,20 +1309,20 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-				"d1804903-5caa-4a73-a3ae-0efcc3205405",
-				"e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130",
-				"3fe15222-0a41-401f-8f5e-582aba2a002c",
-				"3fe15222-0a41-401f-8f5e-582aba2a002d",
-				"3fe15222-1234-401f-8f5e-582aba2a002e",
-				"3fe15222-1234-401f-8f5e-582aba2a002f",
-				"44dd8822-eeb1-44db-a18e-f4f5acc43796",
-				"3fe15222-1234-401f-8f5e-582aba2a002a",
-				"12345678-0a41-401f-8f5e-582aba2a002d",
-				"22345678-0a41-401f-8f5e-582aba2a002d",
-				"32345678-0a41-401f-8f5e-582aba2a002d",
-				"42345678-0a41-401f-8f5e-582aba2a002d",
-				"52345678-0a41-401f-8f5e-582aba2a002d",
+				"a108ae14-bb4e-455f-9b40-000000000014",
+				"a108ae14-bb4e-455f-9b40-000000000013",
+				"a108ae14-bb4e-455f-9b40-000000000012",
+				"a108ae14-bb4e-455f-9b40-000000000011",
+				"a108ae14-bb4e-455f-9b40-000000000010",
+				"a108ae14-bb4e-455f-9b40-000000000009",
+				"a108ae14-bb4e-455f-9b40-000000000008",
+				"a108ae14-bb4e-455f-9b40-000000000007",
+				"a108ae14-bb4e-455f-9b40-000000000006",
+				"a108ae14-bb4e-455f-9b40-000000000005",
+				"a108ae14-bb4e-455f-9b40-000000000004",
+				"a108ae14-bb4e-455f-9b40-000000000003",
+				"a108ae14-bb4e-455f-9b40-000000000002",
+				"a108ae14-bb4e-455f-9b40-000000000001",
 			},
 		},
 		{
@@ -1336,8 +1336,8 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"12345678-0a41-401f-8f5e-582aba2a002d",
-				"22345678-0a41-401f-8f5e-582aba2a002d",
+				"a108ae14-bb4e-455f-9b40-000000000014",
+				"a108ae14-bb4e-455f-9b40-000000000013",
 			},
 		},
 		{
@@ -1352,8 +1352,8 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
-				"32345678-0a41-401f-8f5e-582aba2a002d",
-				"3fe15222-0a41-401f-8f5e-582aba2a002c",
+				"a108ae14-bb4e-455f-9b40-000000000012",
+				"a108ae14-bb4e-455f-9b40-000000000011",
 			},
 		},
 		{
@@ -1364,14 +1364,16 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputTenant:                "acme",
 			OutputError:                nil,
 			OutputID: []string{
-				"a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-				"d1804903-5caa-4a73-a3ae-0efcc3205405",
+				"a108ae14-bb4e-455f-9b40-000000000002",
+				"a108ae14-bb4e-455f-9b40-000000000001",
 			},
 		},
 	}
 
 	for testCaseNumber, testCase := range testCases {
-		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
+		t.Run(fmt.Sprintf("test case %02d search %s", testCaseNumber+1,
+			testCase.InputModelQuery.SearchText), func(t *testing.T) {
+
 			t.Logf("testing search: '%s'", testCase.InputModelQuery.SearchText)
 			t.Logf("        status: %v", testCase.InputModelQuery.Status)
 
@@ -1388,12 +1390,16 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				})
 			}
 
+			createdTime := time.Now().UTC()
+
 			for _, d := range testCase.InputDeploymentsCollection {
-				if d.Created == nil {
-					now := time.Now()
-					d.Created = &now
-				}
+				// setup created time so that input deployments
+				// are created with 'created time' within a
+				// minute from each other, this will ensure
+				// proper ordering
+				d.Created = &createdTime
 				assert.NoError(t, store.Insert(ctx, d))
+				createdTime = createdTime.Add(time.Minute)
 			}
 
 			deps, err := store.Find(ctx,
@@ -1405,12 +1411,21 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Len(t, deps, len(testCase.OutputID))
-				for _, dep := range deps {
-					assert.Contains(t, testCase.OutputID,
+
+				// verify that order is as expected
+				for idx, dep := range deps {
+					// deployments must be listed in the same order
+					assert.Equal(t, testCase.OutputID[idx],
 						*dep.Id,
-						"got unexpected deployment %s",
-						*dep.Id)
+						"unexpected deployment %v at position %v, expected %v",
+						*dep.Id, idx, testCase.OutputID[idx])
 				}
+
+				// output result should be stable
+				otherDeps, _ := store.Find(ctx,
+					testCase.InputModelQuery)
+				assert.Equal(t, deps, otherDeps)
+
 			}
 
 			if testCase.InputTenant != "" {

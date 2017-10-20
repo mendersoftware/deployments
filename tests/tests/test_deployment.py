@@ -89,7 +89,7 @@ class TestDeployment(DeploymentsClient):
         self.inventory_add_dev(dev)
 
         data = b'foo_bar'
-        artifact_name = 'hammer-update ' + str(uuid4())
+        artifact_name = 'hammer-update-' + str(uuid4())
         # come up with an artifact
         with artifact_from_data(name=artifact_name, data=data, devicetype=dev.device_type) as art:
             ac = SimpleArtifactsClient()
@@ -189,7 +189,7 @@ class TestDeployment(DeploymentsClient):
         self.inventory_add_dev(dev)
 
         data = b'foo_bar'
-        artifact_name = 'hammer-update ' + str(uuid4())
+        artifact_name = 'hammer-update-' + str(uuid4())
         # come up with an artifact
         with artifact_from_data(name=artifact_name, data=data, devicetype=dev.device_type) as art:
             ac = SimpleArtifactsClient()
@@ -241,7 +241,7 @@ class TestDeployment(DeploymentsClient):
         self.inventory_add_dev(dev)
 
         data = b'foo_bar'
-        artifact_name = 'hammer-update ' + str(uuid4())
+        artifact_name = 'hammer-update-' + str(uuid4())
         # come up with an artifact
         with artifact_from_data(name=artifact_name, data=data, devicetype=dev.device_type) as art:
             ac = SimpleArtifactsClient()
@@ -277,7 +277,7 @@ class TestDeployment(DeploymentsClient):
         self.inventory_add_dev(dev)
 
         data = b'foo_bar'
-        artifact_name = 'hammer-update ' + str(uuid4())
+        artifact_name = 'hammer-update-' + str(uuid4())
         # come up with an artifact
         with artifact_from_data(name=artifact_name, data=data, devicetype=dev.device_type) as art:
             ac = SimpleArtifactsClient()
@@ -373,7 +373,7 @@ class TestDeployment(DeploymentsClient):
         self.inventory_add_dev(dev)
 
         data = b'foo_bar'
-        artifact_name = 'hammer-update ' + str(uuid4())
+        artifact_name = 'hammer-update-' + str(uuid4())
         # come up with an artifact
         with artifact_from_data(name=artifact_name, data=data, devicetype=dev.device_type) as art:
             ac = SimpleArtifactsClient()
