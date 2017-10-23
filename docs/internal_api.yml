@@ -49,7 +49,39 @@ paths:
             $ref: "#/definitions/StorageLimit"
         500:
           $ref: "#/responses/InternalServerError"
+  /tenants:
+    post:
+      summary: Provision a new tenant
+      description: |
+          Sets up all tenant-related infrastructure, e.g. a migrated tenant's database.
+      parameters:
+        - name: tenant
+          in: body
+          description: New tenant descriptor.
+          required: true
+          schema:
+            $ref: "#/definitions/NewTenant"
+      responses:
+        201:
+          description: Tenant was successfully provisioned.
+        400:
+          description: Bad request.
+        500:
+          description: Internal server error.
+          schema:
+           $ref: "#/definitions/Error"
 definitions:
+  NewTenant:
+    description: New tenant descriptor.
+    type: object
+    properties:
+      tenant_id:
+        description: New tenant's ID.
+        type: string
+    example:
+      application/json:
+          tenant_id: "58be8208dd77460001fe0d78"
+
   Error:
     description: Error descriptor.
     type: object
