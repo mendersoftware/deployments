@@ -23,5 +23,6 @@ py.test-3 -s --tb=short --host $HOST \
           --inventory-host $INVENTORY_HOST \
           --spec $DIR/management_api.yml \
           --device-spec $DIR/devices_api.yml \
+          --internal-spec $DIR/internal_api.yml \
           --verbose --junitxml=$DIR/results.xml \
           $DIR/tests/test_*.py "$@"

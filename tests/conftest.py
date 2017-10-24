@@ -21,6 +21,7 @@ def pytest_addoption(parser):
                      help="host running API")
     parser.addoption("--spec", default="../docs/management_api.yml")
     parser.addoption("--device-spec", default="../docs/devices_api.yml")
+    parser.addoption("--internal-spec", default="../docs/internal_api.yml")
 
 
 def pytest_configure(config):
