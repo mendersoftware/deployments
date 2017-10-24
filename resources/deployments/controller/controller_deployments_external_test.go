@@ -443,7 +443,8 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 	t.Parallel()
 
 	type report struct {
-		Status string `json:"status"`
+		Status   string `json:"status"`
+		SubState string `json:"substate,omitempty"`
 	}
 
 	testCases := []struct {
@@ -453,7 +454,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 
 		InputModelDeploymentID string
 		InputModelDeviceID     string
-		InputModelStatus       string
+		InputModelStatus       deployments.DeviceDeploymentStatus
 		InputModelError        error
 
 		Headers map[string]string
@@ -464,7 +465,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-1",
-			InputModelStatus:       "none",
+			InputModelStatus:       deployments.DeviceDeploymentStatus{Status: "none"},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
@@ -479,7 +480,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			InputBodyObject:        &report{Status: "installing"},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-2",
-			InputModelStatus:       "installing",
+			InputModelStatus:       deployments.DeviceDeploymentStatus{Status: "installing"},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusNoContent,
@@ -494,7 +495,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			InputBodyObject:        &report{Status: "installing"},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-3",
-			InputModelStatus:       "installing",
+			InputModelStatus:       deployments.DeviceDeploymentStatus{Status: "installing"},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
@@ -506,7 +507,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			InputBodyObject:        &report{Status: "success"},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-4",
-			InputModelStatus:       "success",
+			InputModelStatus:       deployments.DeviceDeploymentStatus{Status: "success"},
 			InputModelError:        errors.New("model error"),
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -522,7 +523,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			InputBodyObject:        &report{Status: "installing"},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-2",
-			InputModelStatus:       "installing",
+			InputModelStatus:       deployments.DeviceDeploymentStatus{Status: "installing"},
 			InputModelError:        ErrDeploymentAborted,
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -538,11 +539,32 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			InputBodyObject:        &report{Status: "aborted"},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-2",
-			InputModelStatus:       "aborted",
+			InputModelStatus:       deployments.DeviceDeploymentStatus{Status: "aborted"},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
 				OutputBodyObject: h.ErrorToErrStruct(ErrBadStatus),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
+			},
+		},
+		{
+			// all correct
+			InputBodyObject: &report{
+				Status:   "installing",
+				SubState: "foobar;installing",
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
+			InputModelDeviceID:     "device-id-2",
+			InputModelStatus: deployments.DeviceDeploymentStatus{
+				Status:   "installing",
+				SubState: StringToPointer("foobar;installing"),
+			},
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusNoContent,
+				OutputBodyObject: nil,
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
@@ -559,7 +581,11 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			deploymentModel.On("UpdateDeviceDeploymentStatus",
 				h.ContextMatcher(),
 				testCase.InputModelDeploymentID,
-				testCase.InputModelDeviceID, testCase.InputModelStatus).
+				testCase.InputModelDeviceID,
+				mock.MatchedBy(func(ddStatus deployments.DeviceDeploymentStatus) bool {
+					return assert.Equal(t, testCase.InputModelStatus,
+						ddStatus)
+				})).
 				Return(testCase.InputModelError)
 
 			router, err := rest.MakeRouter(

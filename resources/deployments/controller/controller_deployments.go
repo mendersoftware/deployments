@@ -245,9 +245,12 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 		return
 	}
 
-	status := report.Status
+	l.Infof("status: %+v", report)
 	if err := d.model.UpdateDeviceDeploymentStatus(ctx, did,
-		idata.Subject, status); err != nil {
+		idata.Subject, deployments.DeviceDeploymentStatus{
+			Status:   report.Status,
+			SubState: report.SubState,
+		}); err != nil {
 
 		if err == ErrDeploymentAborted || err == ErrDeviceDecommissioned {
 			d.view.RenderError(w, r, err, http.StatusConflict, l)

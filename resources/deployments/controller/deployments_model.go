@@ -46,7 +46,7 @@ type DeploymentsModel interface {
 	HasDeploymentForDevice(ctx context.Context, deploymentID string,
 		deviceID string) (bool, error)
 	UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
-		deviceID string, status string) error
+		deviceID string, status deployments.DeviceDeploymentStatus) error
 	GetDeviceStatusesForDeployment(ctx context.Context,
 		deploymentID string) ([]deployments.DeviceDeployment, error)
 	LookupDeployment(ctx context.Context,

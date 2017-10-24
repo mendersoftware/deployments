@@ -27,7 +27,8 @@ var (
 )
 
 type statusReport struct {
-	Status string
+	Status   string
+	SubState *string `json:"substate"`
 }
 
 func containsString(what string, in []string) bool {
@@ -65,6 +66,7 @@ func (s *statusReport) UnmarshalJSON(raw []byte) error {
 
 	// all good
 	s.Status = temp.Status
+	s.SubState = temp.SubState
 
 	return nil
 }
