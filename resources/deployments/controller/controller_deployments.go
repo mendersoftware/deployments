@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
-	"github.com/mendersoftware/deployments/resources/deployments/mongo"
 )
 
 // Errors
@@ -422,7 +421,7 @@ func (d *DeploymentsController) DecommissionDevice(w rest.ResponseWriter, r *res
 	err := d.model.DecommissionDevice(ctx, id)
 
 	switch err {
-	case nil, mongo.ErrStorageNotFound:
+	case nil, ErrStorageNotFound:
 		d.view.RenderEmptySuccessResponse(w)
 	default:
 		d.view.RenderInternalError(w, r, err, l)
