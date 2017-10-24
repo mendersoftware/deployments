@@ -42,6 +42,14 @@ import (
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 )
 
+const (
+	ApiUrlInternal   = "/api/internal/v1/deployments"
+	ApiUrlManagement = "/api/management/v1/deployments"
+	ApiUrlDevices    = "/api/devices/v1/deployments"
+
+	ApiUrlManagementArtifacts = ApiUrlManagement + "/artifacts"
+)
+
 func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
 
 	bucket := c.GetString(SettingAwsS3Bucket)
@@ -174,14 +182,14 @@ func NewImagesResourceRoutes(controller *imagesController.SoftwareImagesControll
 	}
 
 	return []*rest.Route{
-		rest.Post("/api/0.0.1/artifacts", controller.NewImage),
-		rest.Get("/api/0.0.1/artifacts", controller.ListImages),
+		rest.Post(ApiUrlManagementArtifacts, controller.NewImage),
+		rest.Get(ApiUrlManagementArtifacts, controller.ListImages),
 
-		rest.Get("/api/0.0.1/artifacts/:id", controller.GetImage),
-		rest.Delete("/api/0.0.1/artifacts/:id", controller.DeleteImage),
-		rest.Put("/api/0.0.1/artifacts/:id", controller.EditImage),
+		rest.Get(ApiUrlManagement+"/artifacts/:id", controller.GetImage),
+		rest.Delete(ApiUrlManagement+"/artifacts/:id", controller.DeleteImage),
+		rest.Put(ApiUrlManagement+"/artifacts/:id", controller.EditImage),
 
-		rest.Get("/api/0.0.1/artifacts/:id/download", controller.DownloadLink),
+		rest.Get(ApiUrlManagement+"/artifacts/:id/download", controller.DownloadLink),
 	}
 }
 
@@ -194,23 +202,23 @@ func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsC
 	return []*rest.Route{
 
 		// Deployments
-		rest.Post("/api/0.0.1/deployments", controller.PostDeployment),
-		rest.Get("/api/0.0.1/deployments", controller.LookupDeployment),
-		rest.Get("/api/0.0.1/deployments/:id", controller.GetDeployment),
-		rest.Get("/api/0.0.1/deployments/:id/statistics", controller.GetDeploymentStats),
-		rest.Put("/api/0.0.1/deployments/:id/status", controller.AbortDeployment),
-		rest.Get("/api/0.0.1/deployments/:id/devices",
+		rest.Post(ApiUrlManagement+"/deployments", controller.PostDeployment),
+		rest.Get(ApiUrlManagement+"/deployments", controller.LookupDeployment),
+		rest.Get(ApiUrlManagement+"/deployments/:id", controller.GetDeployment),
+		rest.Get(ApiUrlManagement+"/deployments/:id/statistics", controller.GetDeploymentStats),
+		rest.Put(ApiUrlManagement+"/deployments/:id/status", controller.AbortDeployment),
+		rest.Get(ApiUrlManagement+"/deployments/:id/devices",
 			controller.GetDeviceStatusesForDeployment),
-		rest.Get("/api/0.0.1/deployments/:id/devices/:devid/log",
+		rest.Get(ApiUrlManagement+"/deployments/:id/devices/:devid/log",
 			controller.GetDeploymentLogForDevice),
-		rest.Delete("/api/0.0.1/deployments/devices/:id",
+		rest.Delete(ApiUrlManagement+"/deployments/devices/:id",
 			controller.DecommissionDevice),
 
 		// Devices
-		rest.Get("/api/0.0.1/device/deployments/next", controller.GetDeploymentForDevice),
-		rest.Put("/api/0.0.1/device/deployments/:id/status",
+		rest.Get(ApiUrlDevices+"/device/deployments/next", controller.GetDeploymentForDevice),
+		rest.Put(ApiUrlDevices+"/device/deployments/:id/status",
 			controller.PutDeploymentStatusForDevice),
-		rest.Put("/api/0.0.1/device/deployments/:id/log",
+		rest.Put(ApiUrlDevices+"/device/deployments/:id/log",
 			controller.PutDeploymentLogForDevice),
 	}
 }
@@ -223,7 +231,7 @@ func NewLimitsResourceRoutes(controller *limitsController.LimitsController) []*r
 
 	return []*rest.Route{
 		// limits
-		rest.Get("/api/0.0.1/limits/:name", controller.GetLimit),
+		rest.Get(ApiUrlManagement+"/limits/:name", controller.GetLimit),
 	}
 }
 
