@@ -30,7 +30,7 @@ var (
 	ErrStorageInvalidLog       = errors.New("Invalid deployment log")
 	ErrStorageNotFound         = errors.New("Not found")
 	ErrDeploymentAborted       = errors.New("Deployment aborted")
-	ErrDeviceDecommissioned    = errors.New("Device decomissioned")
+	ErrDeviceDecommissioned    = errors.New("Device decommissioned")
 )
 
 // Domain model for deployment
