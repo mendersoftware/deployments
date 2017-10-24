@@ -280,6 +280,7 @@ class CliClient:
 class InternalApiClient(SwaggerApiClient):
     spec_option = 'internal_spec'
     logger_tag = 'client.InternalApiClient'
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "internal")
 
     def __init__(self):
         self.setup_swagger()
