@@ -247,7 +247,10 @@ func (d *DeploymentsModel) assignArtifact(
 	// If not having appropriate image, set noartifact status
 	if artifact == nil {
 		if err := d.UpdateDeviceDeploymentStatus(ctx, *deviceDeployment.DeploymentId,
-			*deviceDeployment.DeviceId, deployments.DeviceDeploymentStatusNoArtifact); err != nil {
+			*deviceDeployment.DeviceId,
+			deployments.DeviceDeploymentStatus{
+				Status: deployments.DeviceDeploymentStatusNoArtifact,
+			}); err != nil {
 			return errors.Wrap(err, "Failed to update deployment status")
 		}
 		return nil
@@ -295,7 +298,9 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context
 		// its status to already installed first
 
 		if err := d.UpdateDeviceDeploymentStatus(ctx, *deviceDeployment.DeploymentId, deviceID,
-			deployments.DeviceDeploymentStatusAlreadyInst); err != nil {
+			deployments.DeviceDeploymentStatus{
+				Status: deployments.DeviceDeploymentStatusAlreadyInst,
+			}); err != nil {
 
 			return nil, errors.Wrap(err, "Failed to update deployment status")
 		}
@@ -335,14 +340,14 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context
 // UpdateDeviceDeploymentStatus will update the deployment status for device of
 // ID `deviceID`. Returns nil if update was successful.
 func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
-	deviceID string, status string) error {
+	deviceID string, ddStatus deployments.DeviceDeploymentStatus) error {
 
 	l := log.FromContext(ctx)
 
-	l.Infof("New status: %s for device %s deployment: %v", status, deviceID, deploymentID)
+	l.Infof("New status: %s for device %s deployment: %v", ddStatus.Status, deviceID, deploymentID)
 
 	var finishTime *time.Time = nil
-	if deployments.IsDeviceDeploymentStatusFinished(status) {
+	if deployments.IsDeviceDeploymentStatusFinished(ddStatus.Status) {
 		now := time.Now()
 		finishTime = &now
 	}
@@ -362,18 +367,20 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(ctx context.Context, dep
 	}
 
 	// nothing to do
-	if status == currentStatus {
+	if ddStatus.Status == currentStatus {
 		return nil
 	}
 
+	// update finish time
+	ddStatus.FinishTime = finishTime
+
 	old, err := d.deviceDeploymentsStorage.UpdateDeviceDeploymentStatus(ctx,
-		deviceID, deploymentID,
-		status, finishTime)
+		deviceID, deploymentID, ddStatus)
 	if err != nil {
 		return err
 	}
 
-	if err = d.deploymentsStorage.UpdateStats(ctx, deploymentID, old, status); err != nil {
+	if err = d.deploymentsStorage.UpdateStats(ctx, deploymentID, old, ddStatus.Status); err != nil {
 		return err
 	}
 
