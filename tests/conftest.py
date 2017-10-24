@@ -15,8 +15,6 @@
 import logging
 
 def pytest_addoption(parser):
-    parser.addoption("--api", action="store", default="0.1.0",
-                     help="API version used in HTTP requests")
     parser.addoption("--host", action="store", default="localhost",
                      help="host running API")
     parser.addoption("--inventory-host", action="store", default="mender-inventory:8080",
