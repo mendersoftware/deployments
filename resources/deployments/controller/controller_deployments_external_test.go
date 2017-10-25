@@ -570,6 +570,25 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
 			},
 		},
+		{
+			// substate too long
+			InputBodyObject: &report{
+				Status: "installing",
+				// 202 chars
+				SubState: "ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppff",
+			},
+			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
+			InputModelDeviceID:     "device-id-2",
+			InputModelStatus:       deployments.DeviceDeploymentStatus{},
+
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("SubState: ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppff does not validate as length(0|200);")),
+			},
+			Headers: map[string]string{
+				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
+			},
+		},
 	}
 
 	for testCaseNumber, testCase := range testCases {
