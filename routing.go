@@ -35,6 +35,9 @@ import (
 	limitsController "github.com/mendersoftware/deployments/resources/limits/controller"
 	limitsModel "github.com/mendersoftware/deployments/resources/limits/model"
 	limitsMongo "github.com/mendersoftware/deployments/resources/limits/mongo"
+	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
+	tenantsModel "github.com/mendersoftware/deployments/resources/tenants/model"
+	tenantsStore "github.com/mendersoftware/deployments/resources/tenants/store"
 	"github.com/mendersoftware/deployments/utils/restutil"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 )
@@ -126,6 +129,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
 	limitsStorage := limitsMongo.NewLimitsStorage(dbSession)
+	tenantsStorage := tenantsStore.NewStore(dbSession)
 
 	// Domain Models
 	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{
@@ -139,6 +143,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
 	limitsModel := limitsModel.NewLimitsModel(limitsStorage)
+	tenantsModel := tenantsModel.NewModel(tenantsStorage)
 
 	// Controllers
 	imagesController := imagesController.NewSoftwareImagesController(imagesModel,
@@ -147,14 +152,17 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 		new(deploymentsView.DeploymentsView))
 	limitsController := limitsController.NewLimitsController(limitsModel,
 		new(view.RESTView))
+	tenantsController := tenantsController.NewController(tenantsModel)
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)
 	deploymentsRoutes := NewDeploymentsResourceRoutes(deploymentsController)
 	limitsRoutes := NewLimitsResourceRoutes(limitsController)
+	tenantsRoutes := NewTenantsResourceRoutes(tenantsController)
 
 	routes := append(imageRoutes, deploymentsRoutes...)
 	routes = append(routes, limitsRoutes...)
+	routes = append(routes, tenantsRoutes...)
 
 	return rest.MakeRouter(restutil.AutogenOptionsRoutes(restutil.NewOptionsHandler, routes...)...)
 }
@@ -216,5 +224,16 @@ func NewLimitsResourceRoutes(controller *limitsController.LimitsController) []*r
 	return []*rest.Route{
 		// limits
 		rest.Get("/api/0.0.1/limits/:name", controller.GetLimit),
+	}
+}
+
+func NewTenantsResourceRoutes(controller *tenantsController.Controller) []*rest.Route {
+
+	if controller == nil {
+		return []*rest.Route{}
+	}
+
+	return []*rest.Route{
+		rest.Get("/api/internal/v1/deployments/tenants", controller.ProvisionTenantsHandler),
 	}
 }
