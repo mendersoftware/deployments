@@ -602,10 +602,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 					h.ContextMatcher(),
 					testCase.InputModelDeploymentID,
 					testCase.InputModelDeviceID,
-					mock.MatchedBy(func(ddStatus deployments.DeviceDeploymentStatus) bool {
-						return assert.Equal(t, *testCase.InputModelStatus,
-							ddStatus)
-					})).
+					*testCase.InputModelStatus).
 					Return(testCase.InputModelError)
 			}
 
