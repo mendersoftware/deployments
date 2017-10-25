@@ -37,6 +37,17 @@ const (
 	DeviceDeploymentStatusDecommissioned = "decommissioned"
 )
 
+// DeviceDeploymentStatus is a helper type for reporting status changes through
+// the layers
+type DeviceDeploymentStatus struct {
+	// status reported by device
+	Status string `valid:"required"`
+	// substate reported by device
+	SubState *string
+	// finish time
+	FinishTime *time.Time
+}
+
 type DeviceDeployment struct {
 	// Internal field of initial creation of deployment
 	Created *time.Time `json:"created" valid:"required"`
@@ -64,6 +75,9 @@ type DeviceDeployment struct {
 
 	// Presence of deployment log
 	IsLogAvailable bool `json:"log" valid:"-" bson:"log"`
+
+	// Device reported substate
+	SubState *string `json:"substate,omitempty" valid:"-" bson:"substate"`
 }
 
 func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {

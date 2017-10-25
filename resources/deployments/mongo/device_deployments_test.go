@@ -28,6 +28,7 @@ import (
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
+	"github.com/mendersoftware/deployments/utils/pointers"
 )
 
 func TestDeviceDeploymentStorageInsert(t *testing.T) {
@@ -140,6 +141,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		InputDeviceID         string
 		InputDeploymentID     string
 		InputStatus           string
+		InputSubState         *string
 		InputDeviceDeployment []*deployments.DeviceDeployment
 		InputFinishTime       *time.Time
 		InputTenant           string
@@ -151,7 +153,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			// null status
 			InputDeviceID:     "123",
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			OutputError:       ErrStorageInvalidID,
+			OutputError:       ErrStorageInvalidInput,
 			OutputOldStatus:   "",
 		},
 		{
@@ -207,6 +209,17 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputTenant:     "acme",
 			OutputOldStatus: "pending",
 		},
+		{
+			InputDeviceID:     "12345",
+			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397e",
+			InputStatus:       deployments.DeviceDeploymentStatusInstalling,
+			InputSubState:     pointers.StringToPointer("foobar 123"),
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				deployments.NewDeviceDeployment("12345", "30b3e62c-9ec2-4312-a7fa-cff24cc7397e"),
+			},
+			OutputError:     nil,
+			OutputOldStatus: "pending",
+		},
 	}
 
 	for testCaseNumber, testCase := range testCases {
@@ -235,7 +248,11 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 
 			old, err := store.UpdateDeviceDeploymentStatus(ctx,
 				testCase.InputDeviceID, testCase.InputDeploymentID,
-				testCase.InputStatus, testCase.InputFinishTime)
+				deployments.DeviceDeploymentStatus{
+					Status:     testCase.InputStatus,
+					SubState:   testCase.InputSubState,
+					FinishTime: testCase.InputFinishTime,
+				})
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -249,7 +266,11 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 					// in tenant's DB only
 					_, err := store.UpdateDeviceDeploymentStatus(context.Background(),
 						testCase.InputDeviceID, testCase.InputDeploymentID,
-						testCase.InputStatus, testCase.InputFinishTime)
+						deployments.DeviceDeploymentStatus{
+							Status:     testCase.InputStatus,
+							FinishTime: testCase.InputFinishTime,
+							SubState:   testCase.InputSubState,
+						})
 					t.Logf("error: %+v", err)
 					assert.EqualError(t, err, ErrStorageNotFound.Error())
 				}
@@ -265,11 +286,14 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 				}
 				err := dep.Find(query).One(&deployment)
 				assert.NoError(t, err)
-
 				if testCase.OutputError != nil {
 					// status must be unchanged in case of errors
 					assert.Equal(t, deployments.DeviceDeploymentStatusPending, deployment.Status)
 				} else {
+					if !assert.NotNil(t, deployment) {
+						return
+					}
+
 					assert.Equal(t, testCase.InputStatus, *deployment.Status)
 					assert.Equal(t, testCase.OutputOldStatus, old)
 					// verify deployment finish time
@@ -279,6 +303,10 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 						// we are within a 1s range
 						assert.WithinDuration(t, *testCase.InputFinishTime,
 							*deployment.Finished, time.Second)
+					}
+
+					if testCase.InputSubState != nil {
+						assert.Equal(t, *testCase.InputSubState, *deployment.SubState)
 					}
 				}
 			}

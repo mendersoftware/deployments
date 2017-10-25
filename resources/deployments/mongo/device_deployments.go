@@ -16,7 +16,6 @@ package mongo
 
 import (
 	"context"
-	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/go-lib-micro/store"
@@ -40,6 +39,7 @@ const (
 	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + imagesMongo.StorageKeySoftwareImageId
 	StorageKeyDeviceDeploymentDeviceId        = "deviceid"
 	StorageKeyDeviceDeploymentStatus          = "status"
+	StorageKeyDeviceDeploymentSubState        = "substate"
 	StorageKeyDeviceDeploymentDeploymentID    = "deploymentid"
 	StorageKeyDeviceDeploymentFinished        = "finished"
 	StorageKeyDeviceDeploymentIsLogAvailable  = "log"
@@ -192,13 +192,16 @@ func (d *DeviceDeploymentsStorage) FindAllDeploymentsForDeviceIDWithStatuses(ctx
 }
 
 func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(ctx context.Context,
-	deviceID string, deploymentID string, status string, finishTime *time.Time) (string, error) {
+	deviceID string, deploymentID string, ddStatus deployments.DeviceDeploymentStatus) (string, error) {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) ||
-		govalidator.IsNull(deploymentID) ||
-		govalidator.IsNull(status) {
+		govalidator.IsNull(deploymentID) {
 		return "", ErrStorageInvalidID
+	}
+
+	if ok, _ := govalidator.ValidateStruct(ddStatus); !ok {
+		return "", ErrStorageInvalidInput
 	}
 
 	session := d.session.Copy()
@@ -212,11 +215,15 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentStatus(ctx context.Cont
 
 	// update status field
 	set := bson.M{
-		StorageKeyDeviceDeploymentStatus: status,
+		StorageKeyDeviceDeploymentStatus: ddStatus.Status,
 	}
 	// and finish time if provided
-	if finishTime != nil {
-		set[StorageKeyDeviceDeploymentFinished] = finishTime
+	if ddStatus.FinishTime != nil {
+		set[StorageKeyDeviceDeploymentFinished] = ddStatus.FinishTime
+	}
+
+	if ddStatus.SubState != nil {
+		set[StorageKeyDeviceDeploymentSubState] = *ddStatus.SubState
 	}
 
 	update := bson.M{

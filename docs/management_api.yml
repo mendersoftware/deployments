@@ -757,6 +757,12 @@ definitions:
       log:
         type: boolean
         description: Availability of the device's deployment log.
+      state:
+        type: string
+        description: State reported by device
+      substate:
+        type: string
+        description: Additional state information
     required:
       - id
       - status
@@ -765,10 +771,12 @@ definitions:
       application/json:
         - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
           finished: 2016-03-11T13:03:17.063493443Z
-          status: pending
+          status: inprogress
           created: 2016-02-11T13:03:17.063493443Z
           device_type: Raspberry Pi 3
           log: false
+          state: installing
+          substate: installing.enter;script:foo-bar
   ArtifactUpdate:
     description: Artifact information update.
     type: object

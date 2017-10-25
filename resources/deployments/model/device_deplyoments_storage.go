@@ -16,7 +16,6 @@ package model
 
 import (
 	"context"
-	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/images"
@@ -32,8 +31,10 @@ type DeviceDeploymentStorage interface {
 		deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
 	FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
 		deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error)
+
 	UpdateDeviceDeploymentStatus(ctx context.Context, deviceID string,
-		deploymentID string, status string, finishTime *time.Time) (string, error)
+		deploymentID string, status deployments.DeviceDeploymentStatus) (string, error)
+
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
 	AssignArtifact(ctx context.Context, deviceID string,

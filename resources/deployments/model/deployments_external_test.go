@@ -372,7 +372,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
 				h.ContextMatcher(),
 				mock.AnythingOfType("string"), mock.AnythingOfType("string"),
-				mock.AnythingOfType("string"), mock.AnythingOfType("*time.Time")).
+				mock.AnythingOfType("deployments.DeviceDeploymentStatus")).
 				Return("dontcare", nil)
 			deviceDeploymentStorage.On("GetDeviceDeploymentStatus",
 				h.ContextMatcher(),
@@ -762,8 +762,19 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 				deviceDeploymentStorage.On("UpdateDeviceDeploymentStatus",
 					h.ContextMatcher(),
 					testCase.InputDeviceID, *testCase.InputDeployment.Id,
-					mock.AnythingOfType("string"), mock.AnythingOfType("*time.Time")).
+					mock.MatchedBy(func(ddStatus deployments.DeviceDeploymentStatus) bool {
+
+						statusOk := assert.Equal(t, testCase.InputStatus, ddStatus.Status)
+						finishOk := true
+						if testCase.isFinished {
+							finishOk = assert.NotNil(t, ddStatus.FinishTime) &&
+								assert.WithinDuration(t, time.Now(),
+									*ddStatus.FinishTime, time.Second)
+						}
+						return statusOk && finishOk
+					})).
 					Return("dontcare", testCase.InputDevsStorageError)
+
 				deploymentStorage.On("UpdateStats",
 					h.ContextMatcher(),
 					*testCase.InputDeployment.Id, mock.AnythingOfType("string"),
@@ -793,7 +804,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 
 			err := model.UpdateDeviceDeploymentStatus(context.Background(),
 				*testCase.InputDeployment.Id,
-				testCase.InputDeviceID, testCase.InputStatus)
+				testCase.InputDeviceID,
+				deployments.DeviceDeploymentStatus{
+					Status: testCase.InputStatus,
+				})
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {

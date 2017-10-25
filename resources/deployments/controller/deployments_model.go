@@ -28,8 +28,9 @@ var (
 	ErrModelDeploymentNotFound = errors.New("Deployment not found")
 	ErrModelInternal           = errors.New("Internal error")
 	ErrStorageInvalidLog       = errors.New("Invalid deployment log")
+	ErrStorageNotFound         = errors.New("Not found")
 	ErrDeploymentAborted       = errors.New("Deployment aborted")
-	ErrDeviceDecommissioned    = errors.New("Device decomissioned")
+	ErrDeviceDecommissioned    = errors.New("Device decommissioned")
 )
 
 // Domain model for deployment
@@ -45,7 +46,7 @@ type DeploymentsModel interface {
 	HasDeploymentForDevice(ctx context.Context, deploymentID string,
 		deviceID string) (bool, error)
 	UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
-		deviceID string, status string) error
+		deviceID string, status deployments.DeviceDeploymentStatus) error
 	GetDeviceStatusesForDeployment(ctx context.Context,
 		deploymentID string) ([]deployments.DeviceDeployment, error)
 	LookupDeployment(ctx context.Context,

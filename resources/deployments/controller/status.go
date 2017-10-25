@@ -17,6 +17,7 @@ package controller
 import (
 	"encoding/json"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
@@ -27,7 +28,8 @@ var (
 )
 
 type statusReport struct {
-	Status string
+	Status   string
+	SubState *string `json:"substate" valid:"length(0|200)"`
 }
 
 func containsString(what string, in []string) bool {
@@ -63,8 +65,13 @@ func (s *statusReport) UnmarshalJSON(raw []byte) error {
 		return ErrBadStatus
 	}
 
+	if ok, err := govalidator.ValidateStruct(temp); !ok {
+		return err
+	}
+
 	// all good
 	s.Status = temp.Status
+	s.SubState = temp.SubState
 
 	return nil
 }

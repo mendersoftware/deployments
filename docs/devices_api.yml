@@ -114,6 +114,9 @@ paths:
                   - success
                   - failure
                   - already-installed
+              substate:
+                type: string
+                description: Additional state information
             required:
               - status
       produces:
