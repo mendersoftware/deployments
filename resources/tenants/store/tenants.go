@@ -19,6 +19,7 @@ import (
 	"gopkg.in/mgo.v2"
 
 	"github.com/mendersoftware/deployments/migrations"
+	mstore "github.com/mendersoftware/go-lib-micro/store"
 )
 
 type Store interface {
@@ -39,5 +40,7 @@ func (ts *store) ProvisionTenant(ctx context.Context, tenantId string) error {
 	session := ts.session.Copy()
 	defer session.Close()
 
-	return migrations.MigrateSingle(ctx, migrations.DbName, migrations.DbVersion, session, true)
+	dbname := mstore.DbNameForTenant(tenantId, migrations.DbName)
+
+	return migrations.MigrateSingle(ctx, dbname, migrations.DbVersion, session, true)
 }
