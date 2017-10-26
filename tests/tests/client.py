@@ -29,17 +29,16 @@ from bravado.swagger_model import load_file
 from bravado.client import SwaggerClient, RequestsClient
 from bravado.exception import HTTPUnprocessableEntity
 
-API_URL = "http://%s/api/%s/" % \
-          (pytest.config.getoption("host"), \
-           pytest.config.getoption("api"))
-
+DEPLOYMENTS_BASE_URL = "http://{}/api/{}/v1/deployments"
 
 class BaseApiClient:
-    api_url = API_URL
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
 
-    def make_api_url(self, path):
-        return os.path.join(self.api_url,
-                            path if not path.startswith("/") else path[1:])
+    def make_api_url(self, path=None):
+        if path is not None:
+            return os.path.join(self.api_url,
+                                path if not path.startswith("/") else path[1:])
+        return self.api_url
 
 
 class RequestsApiClient(requests.Session):
@@ -72,7 +71,7 @@ class SwaggerApiClient(BaseApiClient):
         self.client = SwaggerClient.from_spec(load_file(spec),
                                               config=self.config,
                                               http_client=self.http_client)
-        self.client.swagger_spec.api_url = self.api_url
+        self.client.swagger_spec.api_url = self.make_api_url()
 
 
 class ArtifactsClientError(Exception):
@@ -82,6 +81,8 @@ class ArtifactsClientError(Exception):
 
 
 class ArtifactsClient(SwaggerApiClient):
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
+
     @staticmethod
     def make_upload_meta(meta):
         order = ['description', 'size', 'artifact']
@@ -144,6 +145,8 @@ class SimpleArtifactsClient(ArtifactsClient):
 
 
 class DeploymentsClient(SwaggerApiClient):
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
+
     def make_new_deployment(self, *args, **kwargs):
         NewDeployment = self.client.get_model('NewDeployment')
         return NewDeployment(*args, **kwargs)
@@ -194,6 +197,7 @@ class DeviceClient(SwaggerApiClient):
     """Swagger based device API client. Can be used a Pytest base class"""
     spec_option = 'device_spec'
     logger_tag = 'client.DeviceClient'
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "devices")
 
     def get_next_deployment(self, token='', artifact_name='', device_type=''):
         """Obtain next deployment"""
