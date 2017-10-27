@@ -192,7 +192,6 @@ class DeploymentsClient(SwaggerApiClient):
             current = getattr(stats, s) or 0
             assert exp == current
 
-
 class DeviceClient(SwaggerApiClient):
     """Swagger based device API client. Can be used a Pytest base class"""
     spec_option = 'device_spec'
@@ -276,3 +275,16 @@ class CliClient:
             args.extend(['--tenant', tenant])
 
         subprocess.run(args, check=True)
+
+
+class InternalApiClient(SwaggerApiClient):
+    spec_option = 'internal_spec'
+    logger_tag = 'client.InternalApiClient'
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "internal")
+
+    def __init__(self):
+        self.setup_swagger()
+
+    def create_tenant(self, tenant_id):
+        return self.client.tenants.post_tenants(tenant={
+                    "tenant_id": tenant_id}).result()

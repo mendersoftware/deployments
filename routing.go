@@ -242,6 +242,6 @@ func NewTenantsResourceRoutes(controller *tenantsController.Controller) []*rest.
 	}
 
 	return []*rest.Route{
-		rest.Get("/api/internal/v1/deployments/tenants", controller.ProvisionTenantsHandler),
+		rest.Post(ApiUrlInternal+"/tenants", controller.ProvisionTenantsHandler),
 	}
 }

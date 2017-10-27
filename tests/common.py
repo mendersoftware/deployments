@@ -26,7 +26,7 @@ import pytest
 from hashlib import sha256
 from contextlib import contextmanager
 from base64 import urlsafe_b64encode
-from client import CliClient
+from client import CliClient, InternalApiClient
 from pymongo import MongoClient
 
 DB_NAME = "deployment_service"
@@ -156,7 +156,7 @@ def mongo():
 @pytest.yield_fixture(scope='function')
 def clean_db(mongo):
     mongo_cleanup(mongo)
-    yield
+    yield mongo
     mongo_cleanup(mongo)
 
 def mongo_cleanup(mongo):
@@ -164,6 +164,10 @@ def mongo_cleanup(mongo):
     dbs = [d for d in dbs if d not in ['local', 'admin']]
     for d in dbs:
         mongo.drop_database(d)
+
+@pytest.fixture(scope="session")
+def api_client_int():
+    return InternalApiClient()
 
 def make_tenant_db(tenant_id):
     return '{}-{}'.format(DB_NAME, tenant_id)
