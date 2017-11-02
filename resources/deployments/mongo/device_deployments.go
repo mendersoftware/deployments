@@ -87,7 +87,10 @@ func (d *DeviceDeploymentsStorage) InsertMany(ctx context.Context,
 		list = append(list, deployment)
 	}
 
-	if err := d.session.DB(store.DbFromContext(ctx, DatabaseName)).
+	session := d.session.Copy()
+	defer session.Close()
+
+	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDevices).Insert(list...); err != nil {
 		return err
 	}
