@@ -29,7 +29,7 @@ responses:
       $ref: "#/definitions/Error"
 
 paths:
-  /tenants/:id/limits/storage:
+  /tenants/{id}/limits/storage:
     get:
       summary: Get storage limit and current storage usage for given tenant
       description: |
@@ -40,15 +40,44 @@ paths:
           in: path
           type: string
           description: Tenant ID
+          required: true
       produces:
         - application/json
       responses:
         200:
           description: Successful response.
           schema:
-            $ref: "#/definitions/StorageLimit"
+            $ref: "#/definitions/StorageUsage"
         500:
           $ref: "#/responses/InternalServerError"
+    put:
+      summary: Set storage limit for given tenant
+      description: |
+        Set storage limit for given tenant.
+        If the limit value is 0 it means storage space is unlimited
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Tenant ID
+          required: true
+        - name: limit
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/StorageLimit"
+      responses:
+        204:
+          description: Limit information updated.
+        400:
+          description: |
+              The request body is malformed.
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: Internal server error.
+          schema:
+            $ref: "#/definitions/Error"
   /tenants:
     post:
       summary: Provision a new tenant
@@ -96,7 +125,7 @@ definitions:
       application/json:
           error: "failed to decode device group data: JSON payload is empty"
           request_id: "f7881e82-0492-49fb-b459-795654e7188a"
-  StorageLimit:
+  StorageUsage:
     description: Tenant account storage limit and storage usage.
     type: object
     properties:
@@ -115,3 +144,16 @@ definitions:
       application/json:
         limit: 1073741824
         usage: 536870912
+  StorageLimit:
+    description: Tenant account storage limit
+    type: object
+    properties:
+      limit:
+        type: integer
+        description: |
+            Storage limit in bytes. If set to 0 - there is no limit for storage.
+    required:
+      - limit
+    example:
+      application/json:
+        limit: 1073741824
