@@ -120,7 +120,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 	if err != nil {
 		pW.Close()
 		<-ch
-		return "", errors.Wrap(controller.ErrModelParsingArtifactFailed, err.Error())
+		return artifactID, errors.Wrap(controller.ErrModelParsingArtifactFailed, err.Error())
 	}
 
 	// read the rest of the data,
