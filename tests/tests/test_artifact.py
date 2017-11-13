@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import io
-
+import pytest
 from os.path import basename
 from uuid import uuid4
 from hashlib import sha256
@@ -22,10 +22,11 @@ import bravado
 import requests
 
 from client import ArtifactsClient
-from common import artifact_from_raw_data, artifact_from_data
+from common import artifact_from_raw_data, artifact_from_data, clean_minio, MinioClient
 
 
 class TestArtifact(ArtifactsClient):
+    m = MinioClient()
 
     def setup(self):
         self.setup_swagger()
@@ -34,6 +35,7 @@ class TestArtifact(ArtifactsClient):
         res = self.client.artifacts.get_artifacts().result()
         self.log.debug('result: %s', res)
 
+    @pytest.mark.usefixtures("clean_minio")
     def test_artifacts_new_bogus_empty(self):
         # try bogus image data
         try:
@@ -42,10 +44,13 @@ class TestArtifact(ArtifactsClient):
                                                        artifact=''.encode(),
                                                        description="bar").result()
         except bravado.exception.HTTPError as e:
+
+            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
             assert e.response.status_code == 400
         else:
             raise AssertionError('expected to fail')
 
+    @pytest.mark.usefixtures("clean_minio")
     def test_artifacts_new_bogus_data(self):
         with artifact_from_raw_data(b'foo_bar') as art:
             files = ArtifactsClient.make_upload_meta({
@@ -56,8 +61,12 @@ class TestArtifact(ArtifactsClient):
 
             rsp = requests.post(self.make_api_url('/artifacts'), files=files)
 
+            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
             assert rsp.status_code == 400
 
+
+
+    @pytest.mark.usefixtures("clean_minio")
     def test_artifacts_valid(self):
         artifact_name = str(uuid4())
         description = 'description for foo ' + artifact_name
@@ -101,6 +110,7 @@ class TestArtifact(ArtifactsClient):
             rsp = requests.get(res.uri, verify=False, stream=True)
 
             assert rsp.status_code == 200
+            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
 
             # receive artifact and compare its checksum
             dig = sha256()
