@@ -22,6 +22,7 @@ import random
 import string
 import json
 import pytest
+import minio
 
 from hashlib import sha256
 from contextlib import contextmanager
@@ -85,6 +86,16 @@ class FileArtifact(io.RawIOBase, Artifact):
     @property
     def checksum(self):
         return self._checksum
+
+class MinioClient():
+    access_key = "minio"
+    secret_key = "minio123"
+
+    def __new__(self):
+        return minio.Minio("minio:9000",
+                            access_key="minio",
+                            secret_key="minio123",
+                            secure=False)
 
 
 @contextmanager
@@ -158,6 +169,13 @@ def clean_db(mongo):
     mongo_cleanup(mongo)
     yield mongo
     mongo_cleanup(mongo)
+
+@pytest.fixture(scope="function")
+def clean_minio():
+    m = MinioClient()
+
+    for obj in m.list_objects("mender-artifact-storage"):
+        m.remove_object("mender-artifact-storage", obj.object_name)
 
 def mongo_cleanup(mongo):
     dbs = mongo.database_names()
