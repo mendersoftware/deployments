@@ -98,6 +98,15 @@ aws:
 
     # uri: example.com
 
+
+    # Artifact Tagging
+    # Defaults to: false
+    #
+    # Set to 'true' if you want to tag artifacts on S3 with tenant_id:<tenant_id>
+    # Note that this does not work on minio, and actually overwrites artifacts to an XML file
+    #
+    # tag_artifact: false
+    #
     # Authentication credentials for AWS.
     # AWS role requires READ/WRITE permissions for configured S3 bucket.
     #

@@ -46,13 +46,14 @@ const (
 // Data layer for file storage.
 // Implements model.FileStorage interface
 type SimpleStorageService struct {
-	client *s3.S3
-	bucket string
+	client      *s3.S3
+	bucket      string
+	tagArtifact bool
 }
 
 // NewSimpleStorageServiceStatic create new S3 client model.
 // AWS authentication keys are automatically reloaded from env variables.
-func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string) (*SimpleStorageService, error) {
+func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string, tag_artifact bool) (*SimpleStorageService, error) {
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
 
@@ -217,7 +218,7 @@ func (s *SimpleStorageService) UploadArtifact(ctx context.Context,
 			"Artifact upload failed with HTTP status %v", resp.Status)
 	}
 
-	if id := identity.FromContext(ctx); len(id.Tenant) > 0 {
+	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 && s.tagArtifact {
 		input := &s3.PutObjectTaggingInput{
 			Bucket: params.Bucket,
 			Key:    params.Key,

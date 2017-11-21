@@ -63,6 +63,7 @@ func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
 			region,
 			c.GetString(SettingAwsAuthToken),
 			c.GetString(SettingAwsURI),
+			c.GetBool(SettingsAwsTagArtifact),
 		)
 	}
 
