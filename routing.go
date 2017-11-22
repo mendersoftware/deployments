@@ -54,6 +54,7 @@ func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
 
 	bucket := c.GetString(SettingAwsS3Bucket)
 	region := c.GetString(SettingAwsS3Region)
+
 	if c.IsSet(SettingsAwsAuth) || (c.IsSet(SettingAwsAuthKeyId) && c.IsSet(SettingAwsAuthSecret) && c.IsSet(SettingAwsURI)) {
 		return s3.NewSimpleStorageServiceStatic(
 			bucket,
@@ -62,6 +63,7 @@ func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
 			region,
 			c.GetString(SettingAwsAuthToken),
 			c.GetString(SettingAwsURI),
+			c.GetBool(SettingsAwsTagArtifact),
 		)
 	}
 

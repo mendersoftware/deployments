@@ -28,12 +28,14 @@ const (
 	SettingListen        = "listen"
 	SettingListenDefault = ":8080"
 
-	SettingsAws               = "aws"
-	SettingAwsS3Region        = SettingsAws + ".region"
-	SettingAwsS3RegionDefault = "us-east-1"
-	SettingAwsS3Bucket        = SettingsAws + ".bucket"
-	SettingAwsS3BucketDefault = "mender-artifact-storage"
-	SettingAwsURI             = SettingsAws + ".uri"
+	SettingsAws                   = "aws"
+	SettingAwsS3Region            = SettingsAws + ".region"
+	SettingAwsS3RegionDefault     = "us-east-1"
+	SettingAwsS3Bucket            = SettingsAws + ".bucket"
+	SettingAwsS3BucketDefault     = "mender-artifact-storage"
+	SettingAwsURI                 = SettingsAws + ".uri"
+	SettingsAwsTagArtifact        = SettingsAws + ".tag_artifact"
+	SettingsAwsTagArtifactDefault = false
 
 	SettingsAwsAuth      = SettingsAws + ".auth"
 	SettingAwsAuthKeyId  = SettingsAwsAuth + ".key"
@@ -117,5 +119,6 @@ var (
 		{Key: SettingDbSSL, Value: SettingDbSSLDefault},
 		{Key: SettingDbSSLSkipVerify, Value: SettingDbSSLSkipVerifyDefault},
 		{Key: SettingGateway, Value: SettingGatewayDefault},
+		{Key: SettingsAwsTagArtifact, Value: SettingsAwsTagArtifactDefault},
 	}
 )

@@ -31,6 +31,9 @@ import (
 
 	"github.com/mendersoftware/deployments/resources/images"
 	"github.com/mendersoftware/deployments/resources/images/model"
+	"github.com/mendersoftware/go-lib-micro/identity"
+
+	"github.com/mendersoftware/go-lib-micro/log"
 )
 
 const (
@@ -43,14 +46,14 @@ const (
 // Data layer for file storage.
 // Implements model.FileStorage interface
 type SimpleStorageService struct {
-	client *s3.S3
-	bucket string
+	client      *s3.S3
+	bucket      string
+	tagArtifact bool
 }
 
 // NewSimpleStorageServiceStatic create new S3 client model.
 // AWS authentication keys are automatically reloaded from env variables.
-func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string) (*SimpleStorageService, error) {
-
+func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string, tag_artifact bool) (*SimpleStorageService, error) {
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
 
@@ -112,9 +115,18 @@ func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageServi
 	}, nil
 }
 
+func getArtifactByTenant(ctx context.Context, objectID string) string {
+	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 {
+		return fmt.Sprintf("%s/%s", id.Tenant, objectID)
+	}
+
+	return objectID
+}
+
 // Delete removes delected file from storage.
 // Noop if ID does not exist.
 func (s *SimpleStorageService) Delete(ctx context.Context, objectID string) error {
+	objectID = getArtifactByTenant(ctx, objectID)
 
 	params := &s3.DeleteObjectInput{
 		// Required
@@ -137,6 +149,7 @@ func (s *SimpleStorageService) Delete(ctx context.Context, objectID string) erro
 
 // Exists check if selected object exists in the storage
 func (s *SimpleStorageService) Exists(ctx context.Context, objectID string) (bool, error) {
+	objectID = getArtifactByTenant(ctx, objectID)
 
 	params := &s3.ListObjectsInput{
 		// Required
@@ -169,6 +182,7 @@ func (s *SimpleStorageService) Exists(ctx context.Context, objectID string) (boo
 // using objectID as a key
 func (s *SimpleStorageService) UploadArtifact(ctx context.Context,
 	objectID string, size int64, artifact io.Reader, contentType string) error {
+	objectID = getArtifactByTenant(ctx, objectID)
 
 	params := &s3.PutObjectInput{
 		// Required
@@ -204,12 +218,33 @@ func (s *SimpleStorageService) UploadArtifact(ctx context.Context,
 			"Artifact upload failed with HTTP status %v", resp.Status)
 	}
 
+	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 && s.tagArtifact {
+		input := &s3.PutObjectTaggingInput{
+			Bucket: params.Bucket,
+			Key:    params.Key,
+			Tagging: &s3.Tagging{
+				TagSet: []*s3.Tag{
+					{
+						Key:   aws.String("tenant_id"),
+						Value: aws.String(id.Tenant),
+					},
+				},
+			},
+		}
+		if _, err := s.client.PutObjectTagging(input); err != nil {
+			l := log.FromContext(r.Context())
+			l.Warnf("failed to tag artifact : %s\n", objectID)
+		}
+	}
+
 	return nil
 }
 
 // PutRequest duration is limited to 7 days (AWS limitation)
 func (s *SimpleStorageService) PutRequest(ctx context.Context, objectID string,
 	duration time.Duration) (*images.Link, error) {
+
+	objectID = getArtifactByTenant(ctx, objectID)
 
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
@@ -239,6 +274,8 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
 	}
+
+	objectID = getArtifactByTenant(ctx, objectID)
 
 	params := &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
@@ -272,6 +309,8 @@ func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) er
 // LastModified returns last file modification time.
 // If object not found return ErrFileStorageFileNotFound
 func (s *SimpleStorageService) LastModified(ctx context.Context, objectID string) (time.Time, error) {
+
+	objectID = getArtifactByTenant(ctx, objectID)
 
 	params := &s3.ListObjectsInput{
 		// Required
