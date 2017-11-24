@@ -82,8 +82,9 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 	}
 
 	return &SimpleStorageService{
-		client: client,
-		bucket: bucket,
+		client:      client,
+		bucket:      bucket,
+		tagArtifact: tag_artifact,
 	}, nil
 }
 
