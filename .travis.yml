@@ -159,7 +159,7 @@ before_deploy:
     # Upload image to docker registry only on PUSH
     - if [ "$JOB_TYPE" = compile_and_basic_tests ]; then
         docker tag $DOCKER_REPOSITORY:pr $DOCKER_REPOSITORY:$IMAGE_TAG;
-        docker login --email=$DOCKER_HUB_EMAIL --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD;
+        docker login --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD;
         docker push $DOCKER_REPOSITORY:$IMAGE_TAG;
 
         if [ "$TRAVIS_BRANCH" = master ]; then
