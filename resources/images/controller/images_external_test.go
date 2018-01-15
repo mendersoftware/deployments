@@ -208,6 +208,15 @@ func TestControllerEditImage(t *testing.T) {
 			map[string]string{"name": "myImage"}))
 	recorded.CodeIs(http.StatusInternalServerError)
 
+	// correct id; correct payload; image in use
+	id = uuid.NewV4().String()
+	imagesModel.On("EditImage", h.ContextMatcher(), id, mock.Anything).
+		Return(false, ErrModelImageUsedInAnyDeployment)
+	recorded = test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id,
+			map[string]string{"name": "myImage"}))
+	recorded.CodeIs(http.StatusUnprocessableEntity)
+
 	// correct id; correct payload; edit no image
 	id = uuid.NewV4().String()
 	imagesModel.On("EditImage", h.ContextMatcher(), id, mock.Anything).
