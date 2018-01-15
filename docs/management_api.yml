@@ -512,6 +512,8 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         404:
           $ref: "#/responses/NotFoundError"
+        422:
+          $ref: "#/responses/UnprocessableEntityError"
         500:
           $ref: "#/responses/InternalServerError"
 

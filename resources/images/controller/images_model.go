@@ -33,7 +33,7 @@ var (
 	ErrModelArtifactFileTooLarge        = errors.New("Artifact file too large")
 	ErrModelArtifactUploadFailed        = errors.New("Failed to upload the artifact")
 	ErrModelImageInActiveDeployment     = errors.New("Image is used in active deployment and cannot be removed")
-	ErrModelImageUsedInAnyDeployment    = errors.New("Image have been already used in deployment")
+	ErrModelImageUsedInAnyDeployment    = errors.New("Image has already been used in deployment")
 	ErrModelParsingArtifactFailed       = errors.New("Cannot parse artifact file")
 )
 

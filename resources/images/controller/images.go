@@ -171,6 +171,10 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 
 	found, err := s.model.EditImage(r.Context(), id, constructor)
 	if err != nil {
+		if err == ErrModelImageUsedInAnyDeployment {
+			s.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
+			return
+		}
 		s.view.RenderInternalError(w, r, err, l)
 		return
 	}
