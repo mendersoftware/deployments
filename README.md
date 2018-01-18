@@ -18,6 +18,7 @@ and comprises several repositories.
 
 The Deployment Service manages artifacts, deployments, and reports of outcome of deployments.
 
+Change just to trigger integration tests with PR.
 
 ![Mender logo](https://mender.io/user/pages/04.resources/_logos/logoS.png)
 
