@@ -446,12 +446,29 @@ func (d *DeploymentsStorage) Find(ctx context.Context,
 			"$and": andq,
 		}
 	}
+
+	if match.CreatedAfter != nil && match.CreatedBefore != nil {
+		query["created"] = bson.M{
+			"$gte": match.CreatedAfter,
+			"$lte": match.CreatedBefore,
+		}
+	} else if match.CreatedAfter != nil {
+		query["created"] = bson.M{
+			"$gte": match.CreatedAfter,
+		}
+	} else if match.CreatedBefore != nil {
+		query["created"] = bson.M{
+			"$lte": match.CreatedBefore,
+		}
+	}
+
 	var deployment []*deployments.Deployment
 	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDeployments).
 		Find(&query).Sort("-created").
 		Skip(match.Skip).Limit(match.Limit).
 		All(&deployment)
+
 	if err != nil {
 		return nil, err
 	}

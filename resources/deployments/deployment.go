@@ -218,4 +218,7 @@ type Query struct {
 	Status StatusQuery
 	Limit  int
 	Skip   int
+	// only return deployments between timestamp range
+	CreatedAfter  *time.Time
+	CreatedBefore *time.Time
 }

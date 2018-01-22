@@ -25,6 +25,8 @@ import (
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
 
+	"time"
+
 	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
@@ -297,6 +299,24 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 		query.SearchText = search
 	}
 
+	createdBefore := vals.Get("created_before")
+	if createdBefore != "" {
+		if createdBeforeTime, err := parseEpochToTimestamp(createdBefore); err != nil {
+			return query, err
+		} else {
+			query.CreatedBefore = &createdBeforeTime
+		}
+	}
+
+	createdAfter := vals.Get("created_after")
+	if createdAfter != "" {
+		if createdAfterTime, err := parseEpochToTimestamp(createdAfter); err != nil {
+			return query, err
+		} else {
+			query.CreatedAfter = &createdAfterTime
+		}
+	}
+
 	status := vals.Get("status")
 	switch status {
 	case "inprogress":
@@ -315,6 +335,14 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 	}
 
 	return query, nil
+}
+
+func parseEpochToTimestamp(epoch string) (time.Time, error) {
+	if epochInt64, err := strconv.ParseInt(epoch, 10, 64); err != nil {
+		return time.Time{}, errors.Errorf("invalid timestamp: " + epoch)
+	} else {
+		return time.Unix(epochInt64, 0).UTC(), nil
+	}
 }
 
 func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.Request) {
