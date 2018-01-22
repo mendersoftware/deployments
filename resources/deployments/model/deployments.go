@@ -451,6 +451,15 @@ func (d *DeploymentsModel) LookupDeployment(ctx context.Context,
 		return make([]*deployments.Deployment, 0), nil
 	}
 
+	for _, deployment := range list {
+		if deviceCount, err := d.deploymentsStorage.DeviceCountByDeployment(ctx,
+			*deployment.Id); err != nil {
+			return nil, errors.Wrap(err, "counting device deployments")
+		} else {
+			deployment.DeviceCount = deviceCount
+		}
+	}
+
 	return list, nil
 }
 

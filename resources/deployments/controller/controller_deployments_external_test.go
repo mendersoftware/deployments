@@ -18,13 +18,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"strconv"
-	"testing"
-	"time"
-
 	"github.com/Sirupsen/logrus"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
@@ -33,6 +26,12 @@ import (
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"strconv"
+	"testing"
+	"time"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/controller"
@@ -823,10 +822,16 @@ func TestControllerLookupDeployment(t *testing.T) {
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("foo"),
 				ArtifactName: StringToPointer("bar"),
-				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+				Devices:      []string{"device0001", "device0002", "device0003"},
 			},
 			Id: StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c130"),
 		},
+	}
+
+	statuses := []deployments.DeviceDeployment{
+		*deployments.NewDeviceDeployment("device0001", "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+		*deployments.NewDeviceDeployment("device0002", "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+		*deployments.NewDeviceDeployment("device0003", "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 	}
 
 	testCases := []struct {
@@ -837,6 +842,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 		InputModelQuery       deployments.Query
 		InputModelError       error
 		InputModelDeployments []*deployments.Deployment
+		DeviceStatuses        []deployments.DeviceDeployment
 	}{
 		{
 			InputModelQuery: deployments.Query{
@@ -917,6 +923,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 			},
 			SearchStatus:          "inprogress",
 			InputModelDeployments: someDeployments,
+			DeviceStatuses:        statuses,
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
@@ -949,6 +956,10 @@ func TestControllerLookupDeployment(t *testing.T) {
 				h.ContextMatcher(), mock.AnythingOfType("deployments.Query")).
 				Return(testCase.InputModelDeployments, testCase.InputModelError)
 
+			deploymentModel.On("GetDeviceStatusesForDeployment",
+				h.ContextMatcher(), mock.AnythingOfType("string")).
+				Return(testCase.DeviceStatuses, nil)
+
 			router, err := rest.MakeRouter(
 				rest.Get("/r",
 					NewDeploymentsController(deploymentModel,
@@ -973,15 +984,13 @@ func TestControllerLookupDeployment(t *testing.T) {
 				createdBeforeStr := strconv.FormatInt(testCase.InputModelQuery.CreatedBefore.Unix(), 10)
 				q.Set("created_before", createdBeforeStr)
 			}
-			fmt.Println(q)
+
 			q.Set("per_page", strconv.Itoa(testCase.InputModelQuery.Limit))
 			u.RawQuery = q.Encode()
 
-			fmt.Println(u.String())
 			req := test.MakeSimpleRequest("GET", u.String(), nil)
 			req.Header.Add(requestid.RequestIdHeader, "test")
 			recorded := test.RunRequest(t, api.MakeHandler(), req)
-
 			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 		})
 	}

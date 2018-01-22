@@ -1654,7 +1654,7 @@ func TestDeploymentFiltering(t *testing.T) {
 	}
 
 	for idx, tc := range testCases {
-		t.Run(fmt.Sprintf("tet_%d", idx), func(t *testing.T) {
+		t.Run(fmt.Sprintf("test_%d", idx), func(t *testing.T) {
 			db.Wipe()
 			session := db.Session()
 
@@ -1679,6 +1679,73 @@ func TestDeploymentFiltering(t *testing.T) {
 			deps, err := store.Find(ctx, *tc.InputQuery)
 			assert.NoError(t, err)
 			assert.Len(t, deps, tc.returnsResult)
+		})
+	}
+}
+
+func TestDeviceDeploymentCounting(t *testing.T) {
+	testCases := []struct {
+		InputDeploymentID     string
+		InputDeviceDeployment []*deployments.DeviceDeployment
+		DeviceCount           int
+	}{
+		{
+			InputDeploymentID: "foo",
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				&deployments.DeviceDeployment{
+					Id:           StringToPointer("foo"),
+					DeploymentId: StringToPointer("foo"),
+				},
+			},
+			DeviceCount: 1,
+		},
+		{
+			InputDeploymentID: "bar",
+			InputDeviceDeployment: []*deployments.DeviceDeployment{
+				&deployments.DeviceDeployment{
+					Id:           StringToPointer("996cf733-a7d9-4e8c-823e-122be04d9e39"),
+					DeploymentId: StringToPointer("bar"),
+				},
+				&deployments.DeviceDeployment{
+					Id:           StringToPointer("ced2feba-d0a9-4f89-8cda-dd6f749c67a1"),
+					DeploymentId: StringToPointer("bar"),
+				},
+				&deployments.DeviceDeployment{
+					Id:           StringToPointer("9d333d96-80ee-45d3-96ef-1dd2776e0994"),
+					DeploymentId: StringToPointer("bar"),
+				},
+				&deployments.DeviceDeployment{
+					Id:           StringToPointer("bba8dd14-7980-474f-a791-449f4dc67cf6"),
+					DeploymentId: StringToPointer("bar"),
+				},
+			},
+			DeviceCount: 4,
+		},
+		{
+			InputDeploymentID:     "notfound",
+			InputDeviceDeployment: []*deployments.DeviceDeployment{},
+			DeviceCount:           0,
+		},
+	}
+
+	for idx, tc := range testCases {
+		t.Run(fmt.Sprintf("test_%d", idx), func(t *testing.T) {
+			db.Wipe()
+			session := db.Session()
+
+			defer session.Close()
+			store := NewDeploymentsStorage(session)
+			ctx := context.Background()
+
+			for _, d := range tc.InputDeviceDeployment {
+				dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+					C(CollectionDevices).Insert(d)
+				assert.NoError(t, dep)
+			}
+
+			actualCount, err := store.DeviceCountByDeployment(ctx, tc.InputDeploymentID)
+			assert.Nil(t, err)
+			assert.Equal(t, tc.DeviceCount, actualCount)
 		})
 	}
 }

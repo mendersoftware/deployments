@@ -39,6 +39,27 @@ func (_m *DeploymentsStorage) Delete(ctx context.Context, id string) error {
 	return r0
 }
 
+// DeviceCountByDeployment provides a mock function with given fields: ctx, id
+func (_m *DeploymentsStorage) DeviceCountByDeployment(ctx context.Context, id string) (int, error) {
+	ret := _m.Called(ctx, id)
+
+	var r0 int
+	if rf, ok := ret.Get(0).(func(context.Context, string) int); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ExistByArtifactId provides a mock function with given fields: ctx, id
 func (_m *DeploymentsStorage) ExistByArtifactId(ctx context.Context, id string) (bool, error) {
 	ret := _m.Called(ctx, id)

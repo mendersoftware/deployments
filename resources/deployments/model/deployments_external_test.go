@@ -1175,6 +1175,10 @@ func TestDeploymentModelLookupDeployment(t *testing.T) {
 				h.ContextMatcher(), mock.AnythingOfType("deployments.Query")).
 				Return(testCase.MockDeployments, testCase.MockError)
 
+			deploymentStorage.On("DeviceCountByDeployment",
+				h.ContextMatcher(), mock.AnythingOfType("string")).
+				Return(0, nil)
+
 			model := NewDeploymentModel(DeploymentsModelConfig{DeploymentsStorage: deploymentStorage})
 
 			deployments, err := model.LookupDeployment(context.Background(),

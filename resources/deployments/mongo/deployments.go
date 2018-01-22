@@ -211,6 +211,26 @@ func (d *DeploymentsStorage) FindUnfinishedByID(ctx context.Context,
 	return deployment, nil
 }
 
+func (d *DeploymentsStorage) DeviceCountByDeployment(ctx context.Context,
+	id string) (int, error) {
+
+	session := d.session.Copy()
+	defer session.Close()
+
+	filter := bson.M{
+		"deploymentid": id,
+	}
+
+	deviceCount, err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+		C(CollectionDevices).Find(filter).Count()
+
+	if err != nil {
+		return 0, err
+	}
+
+	return deviceCount, nil
+}
+
 func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(ctx context.Context,
 	id string, stats deployments.Stats) error {
 

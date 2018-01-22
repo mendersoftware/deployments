@@ -17,17 +17,16 @@ package controller
 import (
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
-
-	"time"
-
-	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 // Errors
@@ -302,7 +301,7 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 	createdBefore := vals.Get("created_before")
 	if createdBefore != "" {
 		if createdBeforeTime, err := parseEpochToTimestamp(createdBefore); err != nil {
-			return query, err
+			return query, errors.Wrap(err, "timestamp parsing failed")
 		} else {
 			query.CreatedBefore = &createdBeforeTime
 		}
@@ -311,7 +310,7 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 	createdAfter := vals.Get("created_after")
 	if createdAfter != "" {
 		if createdAfterTime, err := parseEpochToTimestamp(createdAfter); err != nil {
-			return query, err
+			return query, errors.Wrap(err, "timestamp parsing failed")
 		} else {
 			query.CreatedAfter = &createdAfterTime
 		}
