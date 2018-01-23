@@ -49,6 +49,10 @@ import (
 
 const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
 
+func TimePtr(t time.Time) *time.Time {
+	return &t
+}
+
 func makeDeviceAuthHeader(claim string) string {
 	return fmt.Sprintf("Bearer foo.%s.bar",
 		base64.StdEncoding.EncodeToString([]byte(claim)))
@@ -811,7 +815,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 			DeploymentConstructor: &deployments.DeploymentConstructor{
 				Name:         StringToPointer("zen"),
 				ArtifactName: StringToPointer("baz"),
-				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+				Devices:      []string{"device0001", "device0002", "device0003"},
 			},
 			Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 		},
@@ -964,8 +968,16 @@ func TestControllerLookupDeployment(t *testing.T) {
 			if testCase.SearchStatus != "" {
 				q.Set("status", testCase.SearchStatus)
 			}
+
+			if testCase.InputModelQuery.CreatedBefore != nil {
+				createdBeforeStr := strconv.FormatInt(testCase.InputModelQuery.CreatedBefore.Unix(), 10)
+				q.Set("created_before", createdBeforeStr)
+			}
+			fmt.Println(q)
 			q.Set("per_page", strconv.Itoa(testCase.InputModelQuery.Limit))
 			u.RawQuery = q.Encode()
+
+			fmt.Println(u.String())
 			req := test.MakeSimpleRequest("GET", u.String(), nil)
 			req.Header.Add(requestid.RequestIdHeader, "test")
 			recorded := test.RunRequest(t, api.MakeHandler(), req)
@@ -1041,6 +1053,36 @@ func TestParseLookupQuery(t *testing.T) {
 			query: deployments.Query{
 				SearchText: "",
 				Status:     deployments.StatusQueryPending,
+			},
+		},
+		{
+			vals: url.Values{
+				"created_after":  []string{"100"},
+				"created_before": []string{"x"},
+			},
+			query: deployments.Query{
+				CreatedAfter:  nil,
+				CreatedBefore: nil,
+			},
+		},
+		{
+			vals: url.Values{
+				"created_after":  []string{"x"},
+				"created_before": []string{"x"},
+			},
+			query: deployments.Query{
+				CreatedAfter:  nil,
+				CreatedBefore: nil,
+			},
+		},
+		{
+			vals: url.Values{
+				"created_before": []string{"111111111111"},
+				"created_after":  []string{"111111111111"},
+			},
+			query: deployments.Query{
+				CreatedBefore: TimePtr(time.Unix(111111111111, 0).UTC()),
+				CreatedAfter:  TimePtr(time.Unix(111111111111, 0).UTC()),
 			},
 		},
 	}

@@ -30,6 +30,10 @@ import (
 	. "github.com/mendersoftware/deployments/utils/pointers"
 )
 
+func TimePtr(t time.Time) *time.Time {
+	return &t
+}
+
 func TestDeploymentStorageInsert(t *testing.T) {
 
 	if testing.Short() {
@@ -1541,6 +1545,140 @@ func TestDeploymentFinish(t *testing.T) {
 			}
 			// Need to close all sessions to be able to call wipe at next test case
 			session.Close()
+		})
+	}
+}
+
+func TestDeploymentFiltering(t *testing.T) {
+	testCases := []struct {
+		InputDeployment []*deployments.Deployment
+		InputQuery      *deployments.Query
+		returnsResult   int
+	}{
+		{
+			InputDeployment: []*deployments.Deployment{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("NYC Production"),
+						ArtifactName: StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
+					Created: TimePtr(time.Now()),
+				},
+			},
+			InputQuery:    &deployments.Query{CreatedBefore: TimePtr(time.Now().Add(1 * time.Hour).UTC())},
+			returnsResult: 1,
+		},
+		{
+			InputDeployment: []*deployments.Deployment{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("MTL Production"),
+						ArtifactName: StringToPointer("App 514"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
+					Created: TimePtr(time.Now()),
+				},
+			},
+			InputQuery:    &deployments.Query{CreatedAfter: TimePtr(time.Now().Add(-1 * time.Hour).UTC())},
+			returnsResult: 1,
+		},
+		{
+			InputDeployment: []*deployments.Deployment{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("Foo"),
+						ArtifactName: StringToPointer("Foo2"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
+					Created: TimePtr(time.Now()),
+				},
+			},
+			InputQuery:    &deployments.Query{CreatedAfter: TimePtr(time.Now().AddDate(-1, 0, 0).UTC())},
+			returnsResult: 1,
+		},
+		{
+			InputDeployment: []*deployments.Deployment{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("Foo"),
+						ArtifactName: StringToPointer("Foo2"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
+					Created: TimePtr(time.Now()),
+				},
+			},
+			InputQuery:    &deployments.Query{CreatedAfter: TimePtr(time.Now().AddDate(1, 0, 0).UTC())},
+			returnsResult: 0,
+		},
+		{
+			InputDeployment: []*deployments.Deployment{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("Foo"),
+						ArtifactName: StringToPointer("Foo2"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
+					Created: TimePtr(time.Now()),
+				},
+			},
+			InputQuery: &deployments.Query{
+				CreatedAfter:  TimePtr(time.Now().AddDate(-1, 0, 0).UTC()),
+				CreatedBefore: TimePtr(time.Now().AddDate(1, 0, 0).UTC()),
+			},
+			returnsResult: 1,
+		},
+		{
+			InputDeployment: []*deployments.Deployment{
+				&deployments.Deployment{
+					DeploymentConstructor: &deployments.DeploymentConstructor{
+						Name:         StringToPointer("Foo"),
+						ArtifactName: StringToPointer("Foo2"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
+					Created: TimePtr(time.Now()),
+				},
+			},
+			InputQuery: &deployments.Query{
+				CreatedAfter:  TimePtr(time.Now().AddDate(-1, 0, 0).UTC()),
+				CreatedBefore: TimePtr(time.Now().AddDate(0, 0, -1).UTC()),
+			},
+			returnsResult: 0,
+		},
+	}
+
+	for idx, tc := range testCases {
+		t.Run(fmt.Sprintf("tet_%d", idx), func(t *testing.T) {
+			db.Wipe()
+			session := db.Session()
+
+			defer session.Close()
+			store := NewDeploymentsStorage(session)
+
+			ctx := context.Background()
+
+			if tc.InputDeployment != nil {
+				for _, d := range tc.InputDeployment {
+					dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
+						C(CollectionDeployments)
+					assert.NoError(t, dep.Insert(d))
+				}
+			}
+
+			for _, d := range tc.InputDeployment {
+				err := store.Finish(ctx, *d.Id, time.Now().UTC())
+				assert.NoError(t, err)
+			}
+
+			deps, err := store.Find(ctx, *tc.InputQuery)
+			assert.NoError(t, err)
+			assert.Len(t, deps, tc.returnsResult)
 		})
 	}
 }
