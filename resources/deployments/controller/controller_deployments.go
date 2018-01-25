@@ -301,7 +301,7 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 	createdBefore := vals.Get("created_before")
 	if createdBefore != "" {
 		if createdBeforeTime, err := parseEpochToTimestamp(createdBefore); err != nil {
-			return query, errors.Wrap(err, "timestamp parsing failed")
+			return query, errors.Wrap(err, "timestamp parsing failed for created_before parameter")
 		} else {
 			query.CreatedBefore = &createdBeforeTime
 		}
@@ -310,7 +310,7 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 	createdAfter := vals.Get("created_after")
 	if createdAfter != "" {
 		if createdAfterTime, err := parseEpochToTimestamp(createdAfter); err != nil {
-			return query, errors.Wrap(err, "timestamp parsing failed")
+			return query, errors.Wrap(err, "timestamp parsing failed created_after parameter")
 		} else {
 			query.CreatedAfter = &createdAfterTime
 		}
