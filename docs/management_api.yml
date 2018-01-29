@@ -73,6 +73,18 @@ paths:
           format: integer
           default: 20
           maximum: 500
+        - name: created_before
+          in: query
+          description: List only deployments created before and equal to Unix timestamp (UTC)
+          required: false
+          type: number
+          format: integer
+        - name: created_after
+          in: query
+          description: List only deployments created after and equal to Unix timestamp (UTC)
+          required: false
+          type: number
+          format: integer
       produces:
         - application/json
       responses:
@@ -86,6 +98,7 @@ paths:
                 artifact_name: Application 0.0.1
                 id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
                 finished: 2016-03-11T13:03:17.063493443Z
+                device_count: 10
           schema:
             type: array
             items:
@@ -663,6 +676,8 @@ definitions:
           - inprogress
           - pending
           - finished
+      device_count:
+        type: integer
       artifacts:
         type: array
         items:
@@ -674,6 +689,7 @@ definitions:
       - artifact_name
       - id
       - status
+      - device_count
     example:
       application/json:
         created: 2016-02-11T13:03:17.063493443Z
@@ -919,3 +935,4 @@ definitions:
       application/json:
         limit: 1073741824
         usage: 536870912
+

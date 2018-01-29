@@ -99,6 +99,73 @@ paths:
           description: Internal server error.
           schema:
            $ref: "#/definitions/Error"
+  /tenants/{id}/deployments:
+    get:
+      summary: Get all deployments for specific tenant
+      description: |
+        Returns a filtered collection of deployments in the system,
+        including active and historical. If both 'status' and 'query' are
+        not specified, all devices are listed.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Tenant ID
+          required: true
+        - name: status
+          in: query
+          description: Deployment status filter.
+          required: false
+          type: string
+          enum:
+            - inprogress
+            - finished
+            - pending
+        - name: search
+          in: query
+          description: Deployment name or description filter.
+          required: false
+          type: string
+        - name: page
+          in: query
+          description: Results page number
+          required: false
+          type: number
+          format: integer
+          default: 1
+        - name: created_before
+          in: query
+          description: List only deployments created before and equal to Unix timestamp (UTC)
+          required: false
+          type: number
+          format: integer
+        - name: created_after
+          in: query
+          description: List only deployments created after and equal to Unix timestamp (UTC)
+          required: false
+          type: number
+          format: integer
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response.
+          examples:
+            application/json:
+              - created: 2016-02-11T13:03:17.063493443Z
+                status: finished
+                name: production
+                artifact_name: Application 0.0.1
+                id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+                finished: 2016-03-11T13:03:17.063493443Z
+                device_count: 10
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Deployment'
+        400:
+          $ref: "#/responses/InvalidRequestError"
+
 definitions:
   NewTenant:
     description: New tenant descriptor.
@@ -157,3 +224,45 @@ definitions:
     example:
       application/json:
         limit: 1073741824
+  Deployment:
+    type: object
+    properties:
+      created:
+        type: string
+        format: date-time
+      name:
+        type: string
+      artifact_name:
+        type: string
+      id:
+        type: string
+      finished:
+        type: string
+        format: date-time
+      status:
+        type: string
+        enum:
+          - inprogress
+          - pending
+          - finished
+      device_count:
+        type: integer
+      artifacts:
+        type: array
+        items:
+          type: string
+          description: An array of artifact's identifiers.
+    required:
+      - created
+      - name
+      - artifact_name
+      - id
+      - status
+    example:
+      application/json:
+        created: 2016-02-11T13:03:17.063493443Z
+        status: finished
+        name: production
+        artifact_name: Application 0.0.1
+        id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+        finished: 2016-03-11T13:03:17.063493443Z
