@@ -36,4 +36,5 @@ type DeploymentsStorage interface {
 	Finish(ctx context.Context, id string, when time.Time) error
 	ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error)
 	ExistByArtifactId(ctx context.Context, id string) (bool, error)
+	DeviceCountByDeployment(ctx context.Context, id string) (int, error)
 }

@@ -174,6 +174,7 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 	dep.ArtifactName = StringToPointer("App 123")
 	dep.Devices = []string{"Device 123"}
 	dep.Id = StringToPointer("14ddec54-30be-49bf-aa6b-97ce271d71f5")
+	dep.DeviceCount = 1337
 
 	dep.Stats = map[string]int{
 		DeviceDeploymentStatusInstalling:  1,
@@ -196,8 +197,9 @@ func TestDeploymentMarshalJSON(t *testing.T) {
         "name": "Region: NYC",
         "artifact_name": "App 123",
         "created":"` + dep.Created.Format(time.RFC3339Nano) + `",
+        "device_count": 1337,
         "id":"14ddec54-30be-49bf-aa6b-97ce271d71f5",
-		"status": "inprogress"
+        "status": "inprogress"
     }`
 
 	assert.JSONEq(t, expectedJSON, string(j))

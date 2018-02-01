@@ -17,15 +17,16 @@ package controller
 import (
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
-
-	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 // Errors
@@ -297,6 +298,24 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 		query.SearchText = search
 	}
 
+	createdBefore := vals.Get("created_before")
+	if createdBefore != "" {
+		if createdBeforeTime, err := parseEpochToTimestamp(createdBefore); err != nil {
+			return query, errors.Wrap(err, "timestamp parsing failed for created_before parameter")
+		} else {
+			query.CreatedBefore = &createdBeforeTime
+		}
+	}
+
+	createdAfter := vals.Get("created_after")
+	if createdAfter != "" {
+		if createdAfterTime, err := parseEpochToTimestamp(createdAfter); err != nil {
+			return query, errors.Wrap(err, "timestamp parsing failed created_after parameter")
+		} else {
+			query.CreatedAfter = &createdAfterTime
+		}
+	}
+
 	status := vals.Get("status")
 	switch status {
 	case "inprogress":
@@ -315,6 +334,14 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 	}
 
 	return query, nil
+}
+
+func parseEpochToTimestamp(epoch string) (time.Time, error) {
+	if epochInt64, err := strconv.ParseInt(epoch, 10, 64); err != nil {
+		return time.Time{}, errors.Errorf("invalid timestamp: " + epoch)
+	} else {
+		return time.Unix(epochInt64, 0).UTC(), nil
+	}
 }
 
 func (d *DeploymentsController) LookupDeployment(w rest.ResponseWriter, r *rest.Request) {

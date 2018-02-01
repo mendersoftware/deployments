@@ -18,19 +18,23 @@ import (
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
+	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
+	"github.com/mendersoftware/deployments/resources/tenants/model"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
-
-	"github.com/mendersoftware/deployments/resources/tenants/model"
 )
 
 type Controller struct {
 	model model.Model
+	depsModel deploymentsModel.DeploymentsModel
 }
 
-func NewController(model model.Model) *Controller {
+func NewController(model model.Model, depsModel *deploymentsModel.DeploymentsModel) *Controller {
 	return &Controller{
 		model: model,
+		depsModel: *depsModel,
 	}
 }
 
@@ -53,4 +57,31 @@ func (c *Controller) ProvisionTenantsHandler(w rest.ResponseWriter, r *rest.Requ
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (c *Controller) DeploymentsPerTenantHandler(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := log.FromContext(ctx)
+	defer r.Body.Close()
+
+	tenantID := r.PathParam("tenant")
+
+	if tenantID == "" {
+		rest_utils.RestErrWithLog(w, r, l, nil, http.StatusBadRequest)
+	}
+
+	query, err := deploymentsController.ParseLookupQuery(r.URL.Query())
+
+	if err != nil {
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
+	}
+
+	ident := &identity.Identity{Tenant: tenantID}
+	ctx = identity.WithContext(r.Context(), ident)
+
+	if deps, err := c.depsModel.LookupDeployment(ctx, query); err != nil {
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
+	} else {
+		w.WriteJson(deps)
+	}
 }

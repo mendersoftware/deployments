@@ -80,6 +80,9 @@ type Deployment struct {
 	// Initialized with the "pending" counter set to total device count for deployment.
 	// Individual counter incremented/decremented according to device status updates.
 	Stats map[string]int `json:"-"`
+
+	// Total number of devices targeted
+	DeviceCount int `json:"device_count" bson:"-"`
 }
 
 // NewDeployment creates new deployment object, sets create data by default.
@@ -214,8 +217,12 @@ const (
 type Query struct {
 	// match deployments by text by looking at deployment name and artifact name
 	SearchText string
+
 	// deployment status
 	Status StatusQuery
 	Limit  int
 	Skip   int
+	// only return deployments between timestamp range
+	CreatedAfter  *time.Time
+	CreatedBefore *time.Time
 }
