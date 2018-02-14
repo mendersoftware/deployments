@@ -24,11 +24,14 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	mt "github.com/mendersoftware/go-lib-micro/testing"
 	"github.com/stretchr/testify/mock"
-	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
+
+	imageController "github.com/mendersoftware/deployments/resources/images/controller"
+	imageModel "github.com/mendersoftware/deployments/resources/images/model"
 
 	"github.com/mendersoftware/deployments/resources/tenants/model/mocks"
 )
@@ -91,9 +94,11 @@ func TestProvisionTenant(t *testing.T) {
 		t.Run(fmt.Sprintf("%s", i), func(t *testing.T) {
 			m := &mocks.Model{}
 			deps := &deploymentsModel.DeploymentsModel{}
+			imgModel := &imageModel.ImagesModel{}
+			imgCtrl := &imageController.SoftwareImagesController{}
 
 			m.On("ProvisionTenant", contextMatcher(), mock.AnythingOfType("string")).Return(tc.modelErr)
-			c := NewController(m, deps)
+			c := NewController(m, deps, imgModel, imgCtrl)
 
 			api := setUpRestTest("/api/internal/v1/deployments/tenants", rest.Post, c.ProvisionTenantsHandler)
 

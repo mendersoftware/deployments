@@ -218,7 +218,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 
 	mr := multipart.NewReader(r.Body, params["boundary"])
 	// parse multipart message
-	multipartUploadMsg, err := s.parseMultipart(mr, DefaultMaxMetaSize)
+	multipartUploadMsg, err := s.ParseMultipart(mr, DefaultMaxMetaSize)
 	if err != nil {
 		s.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
@@ -244,8 +244,8 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	return
 }
 
-// parseMultipart parses multipart/form-data message.
-func (s *SoftwareImagesController) parseMultipart(mr *multipart.Reader, maxMetaSize int64) (*MultipartUploadMsg, error) {
+// ParseMultipart parses multipart/form-data message.
+func (s *SoftwareImagesController) ParseMultipart(mr *multipart.Reader, maxMetaSize int64) (*MultipartUploadMsg, error) {
 	multipartUploadMsg := &MultipartUploadMsg{
 		MetaConstructor: &images.SoftwareImageMetaConstructor{},
 	}

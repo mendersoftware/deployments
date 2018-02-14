@@ -163,7 +163,11 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	limitsController := limitsController.NewLimitsController(limitsModel,
 		new(view.RESTView))
 
-	tenantsController := tenantsController.NewController(tenantsModel, deploymentModel)
+	tenantsController := tenantsController.NewController(tenantsModel,
+		deploymentModel,
+		imagesModel,
+		imagesController,
+		new(view.RESTView))
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)
@@ -246,5 +250,6 @@ func TenantRoutes(controller *tenantsController.Controller) []*rest.Route {
 	return []*rest.Route{
 		rest.Post(ApiUrlInternal+"/tenants", controller.ProvisionTenantsHandler),
 		rest.Get(ApiUrlInternal+"/tenants/:tenant/deployments", controller.DeploymentsPerTenantHandler),
+		rest.Post(ApiUrlInternal+"/tenants/:tenant/artifacts", controller.NewImageForTenantHandler),
 	}
 }

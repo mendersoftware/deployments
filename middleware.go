@@ -17,6 +17,7 @@ package main
 import (
 	"mime"
 	"net/http"
+	"regexp"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/accesslog"
@@ -100,6 +101,10 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 	api.Use(&rest.IfMiddleware{
 		Condition: func(r *rest.Request) bool {
 			if r.URL.Path == ApiUrlManagementArtifacts && r.Method == http.MethodPost {
+				return true
+			} else if match, _ := regexp.MatchString(
+				ApiUrlInternal+"/tenants/([a-z0-9]+)/artifacts", r.URL.Path); match &&
+				r.Method == http.MethodPost {
 				return true
 			} else {
 				return false
