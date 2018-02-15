@@ -15,6 +15,7 @@
 package controller
 
 import (
+	"fmt"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -107,7 +108,7 @@ func (c *Controller) NewImageForTenantHandler(w rest.ResponseWriter, r *rest.Req
 	tenantID := r.PathParam("tenant")
 
 	if tenantID == "" {
-		rest_utils.RestErrWithLog(w, r, l, nil, http.StatusBadRequest)
+		rest_utils.RestErrWithLog(w, r, l, fmt.Errorf("missing tenant id in path"), http.StatusBadRequest)
 		return
 	}
 
