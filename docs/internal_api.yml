@@ -166,6 +166,54 @@ paths:
         400:
           $ref: "#/responses/InvalidRequestError"
 
+  /tenants/{id}/artifacts:
+    post:
+      summary: Upload mender artifact
+      description: |
+        Upload mender artifact to a specific tenant. Multipart request with meta and artifact.
+        Supports artifact (versions v1, v2)[https://docs.mender.io/development/architecture/mender-artifacts#versions].
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Tenant ID
+          required: true
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
+        - name: size
+          in: formData
+          description: Size of the artifact file in bytes.
+          required: true
+          type: integer
+          format: long
+        - name: description
+          in: formData
+          required: false
+          type: string
+        - name: artifact
+          in: formData
+          description: Artifact. It has to be the last part of request.
+          required: true
+          type: file
+      produces:
+        - application/json
+      responses:
+        201:
+          description: Artifact uploaded.
+          headers:
+            Location:
+              description: URL of the newly uploaded artifact.
+              type: string
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        500:
+          $ref: "#/responses/InternalServerError"
 definitions:
   NewTenant:
     description: New tenant descriptor.
