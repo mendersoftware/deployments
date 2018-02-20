@@ -406,7 +406,7 @@ paths:
     post:
       summary: Upload mender artifact
       description: |
-        Upload medner artifact. Multipart request with meta and artifact.
+        Upload mender artifact. Multipart request with meta and artifact.
         
         Supports artifact (versions v1, v2)[https://docs.mender.io/development/architecture/mender-artifacts#versions].
       consumes:
