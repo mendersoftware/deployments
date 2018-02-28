@@ -15,14 +15,10 @@
 package controller_test
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"mime/multipart"
 	"net/http"
-	"net/textproto"
 	"os"
 	"strconv"
 	"testing"
@@ -50,13 +46,6 @@ import (
 //			testing actuall HTTP endpoint input/reponse
 
 const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
-
-type Part struct {
-	ContentType string
-	ImageData   []byte
-	FieldName   string
-	FieldValue  string
-}
 
 type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.Route
 
@@ -242,7 +231,7 @@ func TestControllerEditImage(t *testing.T) {
 func TestSoftwareImagesControllerNewImage(t *testing.T) {
 	t.Parallel()
 
-	file := createValidImageFile()
+	file := h.CreateValidImageFile()
 	imageBody, err := ioutil.ReadAll(file)
 	assert.NoError(t, err)
 	assert.NotNil(t, imageBody)
@@ -252,7 +241,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 	testCases := []struct {
 		h.JSONResponseParams
 
-		InputBodyObject []Part
+		InputBodyObject []h.Part
 
 		InputContentType string
 		InputModelID     string
@@ -266,7 +255,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject:  []Part{},
+			InputBodyObject:  []h.Part{},
 			InputContentType: "multipart/form-data",
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
@@ -274,7 +263,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: []Part{
+			InputBodyObject: []h.Part{
 				{
 					FieldName:  "size",
 					FieldValue: "1",
@@ -294,7 +283,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: []Part{
+			InputBodyObject: []h.Part{
 				{
 					FieldName:  "description",
 					FieldValue: "dt",
@@ -307,7 +296,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: []Part{
+			InputBodyObject: []h.Part{
 				{
 					FieldName:  "size",
 					FieldValue: "123",
@@ -324,7 +313,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: []Part{
+			InputBodyObject: []h.Part{
 				{
 					FieldName:  "size",
 					FieldValue: strconv.Itoa(len(imageBody)),
@@ -344,7 +333,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: []Part{
+			InputBodyObject: []h.Part{
 				{
 					FieldName:  "size",
 					FieldValue: strconv.Itoa(len(imageBody)),
@@ -364,7 +353,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: []Part{
+			InputBodyObject: []h.Part{
 				{
 					FieldName:  "size",
 					FieldValue: strconv.Itoa(len(imageBody)),
@@ -398,7 +387,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			api := setUpRestTest("/r", rest.Post,
 				NewSoftwareImagesController(model, new(view.RESTView)).NewImage)
 
-			req := MakeMultipartRequest("POST", "http://localhost/r",
+			req := h.MakeMultipartRequest("POST", "http://localhost/r",
 				testCase.InputContentType, testCase.InputBodyObject)
 			req.Header.Add(requestid.RequestIdHeader, "test")
 			recorded := test.RunRequest(t, api.MakeHandler(), req)
@@ -406,51 +395,6 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
 		})
 	}
-}
-
-// MakeMultipartRequest returns a http.Request.
-func MakeMultipartRequest(method string, urlStr string, contentType string, payload []Part) *http.Request {
-	body_buf := new(bytes.Buffer)
-	body_writer := multipart.NewWriter(body_buf)
-	for _, part := range payload {
-		mh := make(textproto.MIMEHeader)
-		mh.Set("Content-Type", part.ContentType)
-		if part.ContentType == "" && part.ImageData == nil {
-			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"")
-		} else {
-			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"; filename=\"artifact-213.tar.gz\"")
-		}
-		part_writer, err := body_writer.CreatePart(mh)
-		if nil != err {
-			panic(err.Error())
-		}
-		if part.ContentType == "" && part.ImageData == nil {
-			b := []byte(part.FieldValue)
-			io.Copy(part_writer, bytes.NewReader(b))
-		} else {
-			io.Copy(part_writer, bytes.NewReader(part.ImageData))
-		}
-	}
-	body_writer.Close()
-
-	r, err := http.NewRequest(method, urlStr, bytes.NewReader(body_buf.Bytes()))
-	if err != nil {
-		panic(err)
-	}
-	r.Header.Set("Accept-Encoding", "gzip")
-	if payload != nil {
-		r.Header.Set("Content-Type", contentType+";boundary="+body_writer.Boundary())
-	}
-
-	return r
-}
-
-func createValidImageFile() *os.File {
-	someData := []byte{115, 111, 109, 101, 10, 11}
-	tmpfile, _ := ioutil.TempFile("", "artifact-")
-	tmpfile.Write(someData)
-	tmpfile.Seek(0, 0)
-	return tmpfile
 }
 
 func TestSoftwareImagesControllerDownloadLink(t *testing.T) {

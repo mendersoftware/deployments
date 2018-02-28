@@ -16,21 +16,31 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strconv"
+	//	"strconv"
 	"testing"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
+	"github.com/mendersoftware/deployments/utils/restutil/view"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	mt "github.com/mendersoftware/go-lib-micro/testing"
-	"github.com/stretchr/testify/mock"
-	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
+	"github.com/stretchr/testify/assert"
 
+	imageController "github.com/mendersoftware/deployments/resources/images/controller"
+
+	imageMock "github.com/mendersoftware/deployments/resources/images/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/tenants/model/mocks"
+	h "github.com/mendersoftware/deployments/utils/testing"
+	"github.com/stretchr/testify/mock"
 )
 
 type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.Route
@@ -93,7 +103,12 @@ func TestProvisionTenant(t *testing.T) {
 			deps := &deploymentsModel.DeploymentsModel{}
 
 			m.On("ProvisionTenant", contextMatcher(), mock.AnythingOfType("string")).Return(tc.modelErr)
-			c := NewController(m, deps)
+
+			imageModelMock := &imageMock.ImagesModel{}
+			restView := new(view.RESTView)
+			imgCtrl := imageController.NewSoftwareImagesController(imageModelMock, restView)
+
+			c := NewController(m, deps, imageModelMock, imgCtrl, restView)
 
 			api := setUpRestTest("/api/internal/v1/deployments/tenants", rest.Post, c.ProvisionTenantsHandler)
 
@@ -106,4 +121,94 @@ func TestProvisionTenant(t *testing.T) {
 
 func restError(status string) map[string]interface{} {
 	return map[string]interface{}{"error": status, "request_id": "test"}
+}
+
+func TestInteralTenantNewImage(t *testing.T) {
+	t.Parallel()
+
+	file := h.CreateValidImageFile()
+	imageBody, err := ioutil.ReadAll(file)
+	assert.NoError(t, err)
+	assert.NotNil(t, imageBody)
+	defer os.Remove(file.Name())
+	defer file.Close()
+
+	testCases := []struct {
+		h.JSONResponseParams
+
+		InputBodyObject []h.Part
+		Tenant          string
+
+		InputContentType string
+		InputModelID     string
+		InputModelError  error
+	}{
+		{
+			InputBodyObject: nil,
+			Tenant:          "foo",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("mime: no media type")),
+			},
+		},
+		{
+			InputBodyObject: []h.Part{
+				{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
+				{
+					FieldName:   "artifact",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			Tenant:           "foo",
+			InputContentType: "multipart/form-data",
+			InputModelID:     "1234",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusCreated,
+				OutputBodyObject: nil,
+				OutputHeaders:    map[string]string{"Location": "./r/tenants/foo/artifacts/1234"},
+			},
+		},
+		{
+			InputBodyObject:  []h.Part{},
+			Tenant:           "",
+			InputContentType: "multipart/form-data",
+			InputModelID:     "1234",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("missing tenant id in path")),
+			},
+		},
+	}
+
+	for testCaseNumber, testCase := range testCases {
+
+		t.Run(fmt.Sprintf("Test case number: %v", testCaseNumber+1), func(t *testing.T) {
+
+			m := &mocks.Model{}
+			imageModelMock := &imageMock.ImagesModel{}
+
+			imageModelMock.On("CreateImage", h.ContextMatcher(),
+				mock.AnythingOfType("*controller.MultipartUploadMsg")).
+				Return(testCase.InputModelID, testCase.InputModelError)
+
+			deps := &deploymentsModel.DeploymentsModel{}
+			restView := new(view.RESTView)
+			imgCtrl := imageController.NewSoftwareImagesController(imageModelMock, nil)
+			c := NewController(m, deps, imageModelMock, imgCtrl, restView)
+
+			api := setUpRestTest("/r/tenants/:tenant/artifacts", rest.Post, c.NewImageForTenantHandler)
+
+			req := h.MakeMultipartRequest("POST", fmt.Sprintf("http://localhost/r/tenants/%s/artifacts", testCase.Tenant),
+				testCase.InputContentType, testCase.InputBodyObject)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+
+			recorded := test.RunRequest(t, api, req)
+
+			h.CheckRecordedResponse(t, recorded, testCase.JSONResponseParams)
+		})
+	}
 }
