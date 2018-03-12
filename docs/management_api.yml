@@ -73,32 +73,18 @@ paths:
           format: integer
           default: 20
           maximum: 500
-        - name: created_before
-          in: query
-          description: List only deployments created before and equal to Unix timestamp (UTC)
-          required: false
-          type: number
-          format: integer
-        - name: created_after
-          in: query
-          description: List only deployments created after and equal to Unix timestamp (UTC)
-          required: false
-          type: number
-          format: integer
       produces:
         - application/json
       responses:
         200:
           description: Successful response.
           examples:
-            application/json:
-              - created: 2016-02-11T13:03:17.063493443Z
-                status: finished
-                name: production
-                artifact_name: Application 0.0.1
-                id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-                finished: 2016-03-11T13:03:17.063493443Z
-                device_count: 10
+            - created: 2016-02-11T13:03:17.063493443Z
+              status: finished
+              name: production
+              artifact_name: Application 0.0.1
+              id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+              finished: 2016-03-11T13:03:17.063493443Z
           schema:
             type: array
             items:
@@ -174,12 +160,11 @@ paths:
         200:
           description: Successful response.
           examples:
-            application/json:
-              created: 2016-02-11T13:03:17.063493443Z
-              name: production
-              artifact_name: Application 0.0.1
-              id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-              finished: 2016-03-11T13:03:17.063493443Z
+            created: 2016-02-11T13:03:17.063493443Z
+            name: production
+            artifact_name: Application 0.0.1
+            id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+            finished: 2016-03-11T13:03:17.063493443Z
           schema:
             $ref: "#/definitions/Deployment"
         404:
@@ -257,16 +242,15 @@ paths:
         200:
           description: OK
           examples:
-            application/json:
-              success: 3
-              pending: 1
-              failure: 0
-              downloading: 1
-              installing: 2
-              rebooting: 3
-              noartifact: 0
-              already-installed: 0
-              aborted: 0
+            success: 3
+            pending: 1
+            failure: 0
+            downloading: 1
+            installing: 2
+            rebooting: 3
+            noartifact: 0
+            already-installed: 0
+            aborted: 0
           schema:
             $ref: "#/definitions/DeploymentStatistics"
         404:
@@ -297,12 +281,11 @@ paths:
         200:
           description: OK
           examples:
-            application/json:
-              - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-                finished: 2016-03-11T13:03:17.063493443Z
-                status: pending
-                created: 2016-02-11T13:03:17.063493443Z
-                device_type: Raspberry Pi 3
+            - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+              finished: 2016-03-11T13:03:17.063493443Z
+              status: pending
+              created: 2016-02-11T13:03:17.063493443Z
+              device_type: Raspberry Pi 3
           schema:
             type: array
             items:
@@ -379,22 +362,21 @@ paths:
         200:
           description: OK
           examples:
-            application/json:
-              - name: Application 1.0.0
-                description: Johns Monday test build
-                device_types_compatible: [Beagle Bone]
-                id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-                signed: false
-                modified: "2016-03-11T13:03:17.063493443Z"
-                info:
-                    type_info:
-                        type: rootfs
-                files:
-                  - name: rootfs-image-1
-                    checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                    size: 123
-                    date: 2016-03-11T13:03:17.063+0000
-                metadata: {}
+            - name: Application 1.0.0
+              description: Johns Monday test build
+              device_types_compatible: [Beagle Bone]
+              id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+              signed: false
+              modified: "2016-03-11T13:03:17.063493443Z"
+              info:
+                  type_info:
+                      type: rootfs
+              files:
+                - name: rootfs-image-1
+                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                  size: 123
+                  date: 2016-03-11T13:03:17.063+0000
+              metadata: {}
           schema:
             type: array
             items:
@@ -406,8 +388,8 @@ paths:
     post:
       summary: Upload mender artifact
       description: |
-        Upload mender artifact. Multipart request with meta and artifact.
-        
+        Upload medner artifact. Multipart request with meta and artifact.
+
         Supports artifact (versions v1, v2)[https://docs.mender.io/development/architecture/mender-artifacts#versions].
       consumes:
         - multipart/form-data
@@ -470,22 +452,21 @@ paths:
         200:
           description: Successful response.
           examples:
-            application/json:
-              name: Application 1.0.0
-              description: Johns Monday test build
-              device_types_compatible: [Beagle Bone]
-              id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-              signed: false
-              modified: "2016-03-11T13:03:17.063493443Z"
-              info:
-                  type_info:
-                      type: rootfs
-              files:
-                - name: rootfs-image-1
-                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                  size: 123
-                  date: 2016-03-11T13:03:17.063+0000
-              metadata: {}
+            name: Application 1.0.0
+            description: Johns Monday test build
+            device_types_compatible: [Beagle Bone]
+            id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+            signed: false
+            modified: "2016-03-11T13:03:17.063493443Z"
+            info:
+                type_info:
+                    type: rootfs
+            files:
+              - name: rootfs-image-1
+                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                size: 123
+                date: 2016-03-11T13:03:17.063+0000
+            metadata: {}
           schema:
             $ref: "#/definitions/Artifact"
         400:
@@ -525,8 +506,6 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         404:
           $ref: "#/responses/NotFoundError"
-        422:
-          $ref: "#/responses/UnprocessableEntityError"
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -630,9 +609,8 @@ definitions:
         description: Request ID (same as in X-MEN-RequestID header).
         type: string
     example:
-      application/json:
-          error: "failed to decode device group data: JSON payload is empty"
-          request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+      error: "failed to decode device group data: JSON payload is empty"
+      request_id: "f7881e82-0492-49fb-b459-795654e7188a"
   NewDeployment:
     type: object
     properties:
@@ -650,11 +628,10 @@ definitions:
       - artifact_name
       - devices
     example:
-      application/json:
-        - name: production
-          artifact_name: Application 0.0.1
-          devices:
-            - 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+      - name: production
+        artifact_name: Application 0.0.1
+        devices:
+          - 00a0c91e6-7dec-11d0-a765-f81d4faebf6
   Deployment:
     type: object
     properties:
@@ -676,8 +653,6 @@ definitions:
           - inprogress
           - pending
           - finished
-      device_count:
-        type: integer
       artifacts:
         type: array
         items:
@@ -689,15 +664,13 @@ definitions:
       - artifact_name
       - id
       - status
-      - device_count
     example:
-      application/json:
-        created: 2016-02-11T13:03:17.063493443Z
-        status: finished
-        name: production
-        artifact_name: Application 0.0.1
-        id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-        finished: 2016-03-11T13:03:17.063493443Z
+      created: 2016-02-11T13:03:17.063493443Z
+      status: finished
+      name: production
+      artifact_name: Application 0.0.1
+      id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+      finished: 2016-03-11T13:03:17.063493443Z
   DeploymentStatistics:
     type: object
     properties:
@@ -739,16 +712,15 @@ definitions:
       - already-installed
       - aborted
     example:
-      application/json:
-        success: 3
-        pending: 1
-        failure: 0
-        downloading: 1
-        installing: 2
-        rebooting: 3
-        noartifact: 0
-        already-installed: 0
-        aborted: 0
+      success: 3
+      pending: 1
+      failure: 0
+      downloading: 1
+      installing: 2
+      rebooting: 3
+      noartifact: 0
+      already-installed: 0
+      aborted: 0
   Device:
     type: object
     properties:
@@ -786,15 +758,14 @@ definitions:
       - status
       - log
     example:
-      application/json:
-        - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-          finished: 2016-03-11T13:03:17.063493443Z
-          status: inprogress
-          created: 2016-02-11T13:03:17.063493443Z
-          device_type: Raspberry Pi 3
-          log: false
-          state: installing
-          substate: installing.enter;script:foo-bar
+      - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+        finished: 2016-03-11T13:03:17.063493443Z
+        status: inprogress
+        created: 2016-02-11T13:03:17.063493443Z
+        device_type: Raspberry Pi 3
+        log: false
+        state: installing
+        substate: installing.enter;script:foo-bar
   ArtifactUpdate:
     description: Artifact information update.
     type: object
@@ -884,22 +855,21 @@ definitions:
       - id
       - modified
     example:
-      application/json:
-        name: Application 1.0.0
-        description: Johns Monday test build
-        device_types_compatible: [Beagle Bone]
-        id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-        signed: false
-        modified: "2016-03-11T13:03:17.063493443Z"
-        info:
-            type_info:
-                type: rootfs
-        files:
-          - name: rootfs-image-1
-            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-            size: 123
-            date: 2016-03-11T13:03:17.063+0000
-        metadata: {}
+      name: Application 1.0.0
+      description: Johns Monday test build
+      device_types_compatible: [Beagle Bone]
+      id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+      signed: false
+      modified: "2016-03-11T13:03:17.063493443Z"
+      info:
+          type_info:
+              type: rootfs
+      files:
+        - name: rootfs-image-1
+          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+          size: 123
+          date: 2016-03-11T13:03:17.063+0000
+      metadata: {}
   ArtifactLink:
     description: URL for artifact file download.
     type: object
@@ -913,9 +883,8 @@ definitions:
       - uri
       - expire
     example:
-      application/json:
-        uri: http://mender.io/artifact.tar.gz.mender
-        expire: 2016-10-29T10:45:34Z
+      uri: http://mender.io/artifact.tar.gz.mender
+      expire: 2016-10-29T10:45:34Z
   StorageLimit:
     description: Tenant account storage limit and storage usage.
     type: object
@@ -932,7 +901,5 @@ definitions:
       - limit
       - usage
     example:
-      application/json:
-        limit: 1073741824
-        usage: 536870912
-
+      limit: 1073741824
+      usage: 536870912

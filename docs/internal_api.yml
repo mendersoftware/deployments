@@ -151,14 +151,13 @@ paths:
         200:
           description: Successful response.
           examples:
-            application/json:
-              - created: 2016-02-11T13:03:17.063493443Z
-                status: finished
-                name: production
-                artifact_name: Application 0.0.1
-                id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-                finished: 2016-03-11T13:03:17.063493443Z
-                device_count: 10
+            - created: 2016-02-11T13:03:17.063493443Z
+              status: finished
+              name: production
+              artifact_name: Application 0.0.1
+              id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+              finished: 2016-03-11T13:03:17.063493443Z
+              device_count: 10
           schema:
             type: array
             items:
@@ -223,8 +222,7 @@ definitions:
         description: New tenant's ID.
         type: string
     example:
-      application/json:
-          tenant_id: "58be8208dd77460001fe0d78"
+      tenant_id: "58be8208dd77460001fe0d78"
 
   Error:
     description: Error descriptor.
@@ -237,9 +235,8 @@ definitions:
         description: Request ID (same as in X-MEN-RequestID header).
         type: string
     example:
-      application/json:
-          error: "failed to decode device group data: JSON payload is empty"
-          request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+      error: "failed to decode device group data: JSON payload is empty"
+      request_id: "f7881e82-0492-49fb-b459-795654e7188a"
   StorageUsage:
     description: Tenant account storage limit and storage usage.
     type: object
@@ -256,9 +253,8 @@ definitions:
       - limit
       - usage
     example:
-      application/json:
-        limit: 1073741824
-        usage: 536870912
+      limit: 1073741824
+      usage: 536870912
   StorageLimit:
     description: Tenant account storage limit
     type: object
@@ -270,8 +266,7 @@ definitions:
     required:
       - limit
     example:
-      application/json:
-        limit: 1073741824
+      limit: 1073741824
   Deployment:
     type: object
     properties:
@@ -307,10 +302,9 @@ definitions:
       - id
       - status
     example:
-      application/json:
-        created: 2016-02-11T13:03:17.063493443Z
-        status: finished
-        name: production
-        artifact_name: Application 0.0.1
-        id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-        finished: 2016-03-11T13:03:17.063493443Z
+      created: 2016-02-11T13:03:17.063493443Z
+      status: finished
+      name: production
+      artifact_name: Application 0.0.1
+      id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+      finished: 2016-03-11T13:03:17.063493443Z
