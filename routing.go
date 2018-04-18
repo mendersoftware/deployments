@@ -35,6 +35,8 @@ import (
 	limitsController "github.com/mendersoftware/deployments/resources/limits/controller"
 	limitsModel "github.com/mendersoftware/deployments/resources/limits/model"
 	limitsMongo "github.com/mendersoftware/deployments/resources/limits/mongo"
+	releasesController "github.com/mendersoftware/deployments/resources/releases/controller"
+	releasesStore "github.com/mendersoftware/deployments/resources/releases/store"
 	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
 	tenantsModel "github.com/mendersoftware/deployments/resources/tenants/model"
 	tenantsStore "github.com/mendersoftware/deployments/resources/tenants/store"
@@ -140,6 +142,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
 	limitsStorage := limitsMongo.NewLimitsStorage(dbSession)
 	tenantsStorage := tenantsStore.NewStore(dbSession)
+	releasesStorage := releasesStore.NewStore(dbSession)
 
 	// Domain Models
 	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{
@@ -169,15 +172,19 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 		imagesController,
 		new(view.RESTView))
 
+	releasesController := releasesController.NewReleasesController(releasesStorage, new(view.RESTView))
+
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)
 	deploymentsRoutes := NewDeploymentsResourceRoutes(deploymentsController)
 	limitsRoutes := NewLimitsResourceRoutes(limitsController)
 	tenantsRoutes := TenantRoutes(tenantsController)
+	releasesRoutes := ReleasesRoutes(releasesController)
 
 	routes := append(imageRoutes, deploymentsRoutes...)
 	routes = append(routes, limitsRoutes...)
 	routes = append(routes, tenantsRoutes...)
+	routes = append(routes, releasesRoutes...)
 
 	return rest.MakeRouter(restutil.AutogenOptionsRoutes(restutil.NewOptionsHandler, routes...)...)
 }
@@ -251,5 +258,15 @@ func TenantRoutes(controller *tenantsController.Controller) []*rest.Route {
 		rest.Post(ApiUrlInternal+"/tenants", controller.ProvisionTenantsHandler),
 		rest.Get(ApiUrlInternal+"/tenants/:tenant/deployments", controller.DeploymentsPerTenantHandler),
 		rest.Post(ApiUrlInternal+"/tenants/:tenant/artifacts", controller.NewImageForTenantHandler),
+	}
+}
+
+func ReleasesRoutes(controller *releasesController.ReleasesController) []*rest.Route {
+	if controller == nil {
+		return []*rest.Route{}
+	}
+
+	return []*rest.Route{
+		rest.Get(ApiUrlManagement+"/deployments/releases", controller.GetReleases),
 	}
 }
