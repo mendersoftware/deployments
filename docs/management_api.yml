@@ -368,6 +368,86 @@ paths:
           schema:
               $ref: "#/definitions/Error"
 
+  /deployments/releases:
+    get:
+      summary: List releases
+      description: |
+        Returns a collection of releases, allows filtering by release name.
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
+        - name: name
+          in: query
+          description: Release name filter.
+          required: false
+          type: string
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response.
+          examples:
+            application/json:
+              - name: my-app-v1.0.1
+                artifacts:
+                  - name: my-app-v1.0.1
+                    description: Application v1.0.1
+                    device_types_compatible: [Beagle Bone]
+                    id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                    signed: false
+                    modified: "2016-03-11T13:03:17.063493443Z"
+                    info:
+                      type_info:
+                        type: rootfs
+                    files:
+                      - name: rootfs-image-1
+                        checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                        size: 23421351
+                        date: 2016-03-11T13:03:17.063+0000
+                    metadata: {}
+                  - name: my-app-v1.0.1
+                    description: Application v1.0.1
+                    device_types_compatible: [Raspberry Pi]
+                    id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                    signed: false
+                    modified: "2016-03-11T13:03:17.063493443Z"
+                    info:
+                      type_info:
+                        type: rootfs
+                    files:
+                      - name: rootfs-image-1
+                        checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                        size: 23421351
+                        date: 2016-03-11T13:03:17.063+0000
+                    metadata: {}
+              - name: my-app-v2.0.0
+                artifacts:
+                  - name: my-app-v2.0.0
+                    description: Application v2.0.0
+                    device_types_compatible: [Beagle Bone]
+                    id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                    signed: false
+                    modified: "2016-03-11T13:03:17.063493443Z"
+                    info:
+                      type_info:
+                        type: rootfs
+                    files:
+                      - name: rootfs-image-1
+                        checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                        size: 23421351
+                        date: 2016-03-11T13:03:17.063+0000
+                    metadata: {}
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Release'
+        500:
+          $ref: "#/responses/InternalServerError"
+
   /artifacts:
     get:
       summary: List known artifacts
@@ -407,7 +487,7 @@ paths:
       summary: Upload mender artifact
       description: |
         Upload mender artifact. Multipart request with meta and artifact.
-        
+
         Supports artifact (versions v1, v2)[https://docs.mender.io/development/architecture/mender-artifacts#versions].
       consumes:
         - multipart/form-data
@@ -935,4 +1015,51 @@ definitions:
       application/json:
         limit: 1073741824
         usage: 536870912
-
+  Release:
+    description: Groups artifacts with the same release name into a single resource.
+    type: object
+    properties:
+      name:
+        type: string
+        description: |
+            release name.
+      artifacts:
+        type: array
+        items:
+          $ref: "#/definitions/Artifact"
+        description: |
+            list of artifacts for this release.
+    example:
+      application/json:
+        name: my-app-v1.0.1
+        artifacts:
+          - name: my-app-v1.0.1
+            description: Application v1.0.1
+            device_types_compatible: [Beagle Bone]
+            id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+            signed: false
+            modified: "2016-03-11T13:03:17.063493443Z"
+            info:
+              type_info:
+                type: rootfs
+            files:
+              - name: rootfs-image-1
+                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                size: 23421351
+                date: 2016-03-11T13:03:17.063+0000
+            metadata: {}
+          - name: my-app-v1.0.1
+            description: Application v1.0.1
+            device_types_compatible: [Raspberry Pi]
+            id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+            signed: false
+            modified: "2016-03-11T13:03:17.063493443Z"
+            info:
+              type_info:
+                type: rootfs
+            files:
+              - name: rootfs-image-1
+                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                size: 23421351
+                date: 2016-03-11T13:03:17.063+0000
+            metadata: {}
