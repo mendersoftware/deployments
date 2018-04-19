@@ -1,4 +1,5 @@
 # Deployments
+# testing acceptance tests
 [![Build Status](https://travis-ci.org/mendersoftware/deployments.svg?branch=master)](https://travis-ci.org/mendersoftware/deployments)
 [![codecov](https://codecov.io/gh/mendersoftware/deployments/branch/master/graph/badge.svg)](https://codecov.io/gh/mendersoftware/deployments)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mendersoftware/deployments)](https://goreportcard.com/report/github.com/mendersoftware/deployments)
