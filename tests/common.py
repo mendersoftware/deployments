@@ -27,7 +27,7 @@ import minio
 from hashlib import sha256
 from contextlib import contextmanager
 from base64 import urlsafe_b64encode
-from client import CliClient, InternalApiClient
+from client import CliClient, InternalApiClient, ArtifactsClient
 from pymongo import MongoClient
 
 DB_NAME = "deployment_service"
@@ -137,6 +137,24 @@ def artifact_from_data(name='foo', data=None, devicetype='hammer'):
             # bring up temp mender artifact
             with artifact_from_mender_file(tmender.name) as fa:
                 yield fa
+
+@contextmanager
+def artifacts_added_from_data(artifacts):
+    data = b'foo_bar'
+    out_artifacts = []
+    ac = ArtifactsClient()
+
+    for (name, device_type) in artifacts:
+        # generate artifact
+        with artifact_from_data(name=name, data=data, devicetype=device_type) as art:
+            logging.info("uploading artifact")
+            artid = ac.add_artifact('foo', art.size, art)
+            out_artifacts.append(artid)
+
+    yield out_artifacts
+
+    for artid in out_artifacts:
+        ac.delete_artifact(artid)
 
 
 class Device:
