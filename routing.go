@@ -181,10 +181,10 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	tenantsRoutes := TenantRoutes(tenantsController)
 	releasesRoutes := ReleasesRoutes(releasesController)
 
-	routes := append(imageRoutes, deploymentsRoutes...)
+	routes := append(releasesRoutes, deploymentsRoutes...)
 	routes = append(routes, limitsRoutes...)
 	routes = append(routes, tenantsRoutes...)
-	routes = append(routes, releasesRoutes...)
+	routes = append(routes, imageRoutes...)
 
 	return rest.MakeRouter(restutil.AutogenOptionsRoutes(restutil.NewOptionsHandler, routes...)...)
 }
