@@ -76,6 +76,7 @@ before_script:
     - echo $TRAVIS_BRANCH
     - echo $TRAVIS_BUILD_NUMBER
     - echo $TRAVIS_REPO_SLUG
+    - echo $PATH
 
     # Rename the branch we're on, so that it's not in the way for the
     # subsequent fetch. It's ok if this fails, it just means we're not on any
@@ -126,13 +127,20 @@ script:
         mv integration_new/extra/travis-testing/* tests;
       fi
 
+    - CGO_ENABLED=0 go get -u github.com/mendersoftware/mender-artifact
+    - go install github.com/mendersoftware/mender-artifact/cli/mender-artifact
+
+    - which mender-artifact
+
+    - ls $GOPATH/bin
+    - ls $GOBIN
+
     # acceptance tests
     # NOTE: the tests require mender-artifact binary to be available
     - if [[ "$JOB_TYPE" = compile_and_acceptance_tests ]]; then
-        CGO_ENABLED=0 go test -c -o deployments-test -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,);
-        sudo docker build -f Dockerfile.acceptance-testing -t $DOCKER_REPOSITORY:prtest .;
-        CGO_ENABLED=0 go build;
-        CGO_ENABLED=0 go get -u -v github.com/mendersoftware/mender-artifact &&
+        CGO_ENABLED=0 go test -c -o deployments-test -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,) &&
+        sudo docker build -f Dockerfile.acceptance-testing -t $DOCKER_REPOSITORY:prtest . &&
+        CGO_ENABLED=0 go build &&
         ( ./tests/build-acceptance ./tests ./docs/management_api.yml ./docs/devices_api.yml ./docs/internal_api.yml `which mender-artifact` deployments &&
         TESTS_DIR=$PWD/tests ./tests/run-test-environment "acceptance" $PWD/integration_new ./tests/docker-compose-acceptance.yml &&
         TESTS_DIR=$PWD/tests ./tests/run-test-environment "acceptance" $PWD/integration_new ./tests/docker-compose-acceptance.mt.yml);
