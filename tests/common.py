@@ -180,7 +180,7 @@ def cli():
 
 @pytest.fixture(scope="session")
 def mongo():
-    return MongoClient('mender-mongo-deployments:27017')
+    return MongoClient('mender-mongo:27017')
 
 @pytest.yield_fixture(scope='function')
 def clean_db(mongo):

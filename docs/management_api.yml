@@ -841,12 +841,16 @@ definitions:
       status:
         type: string
         enum:
-          - inprogress
+          - downloading
+          - installing
+          - rebooting
           - pending
           - success
           - failure
           - noartifact
+          - already-installed
           - aborted
+          - decommissioned
       created:
         type: string
         format: date-time
