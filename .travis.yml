@@ -132,7 +132,7 @@ script:
         CGO_ENABLED=0 go test -c -o deployments-test -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,) &&
         sudo docker build -f Dockerfile.acceptance-testing -t $DOCKER_REPOSITORY:prtest . &&
         CGO_ENABLED=0 go build &&
-        CGO_ENABLED=0 go get -u -v github.com/mendersoftware/mender-artifact &&
+        CGO_ENABLED=0 go get -u -v github.com/mendersoftware/mender-artifact && go install github.com/mendersoftware/mender-artifact/cli/mender-artifact &&
         ( ./tests/build-acceptance ./tests ./docs/management_api.yml ./docs/devices_api.yml ./docs/internal_api.yml `which mender-artifact` deployments &&
         TESTS_DIR=$PWD/tests ./tests/run-test-environment "acceptance" $PWD/integration_new ./tests/docker-compose-acceptance.yml &&
         TESTS_DIR=$PWD/tests ./tests/run-test-environment "acceptance" $PWD/integration_new ./tests/docker-compose-acceptance.mt.yml);
