@@ -13,9 +13,13 @@ b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1  vendor/github.
 # BSD-2-Clause
 1e0222fa00c5a5356489185f78758e8ce8352c44e992486136b605f8ef7ee657  vendor/github.com/magiconair/properties/LICENSE
 192def682f6846c6a57e20cf044e224fa467948358163a18dd37bfe14578e6ab  vendor/github.com/pkg/errors/LICENSE
+4367cb0287ad1fb0676409ba770bb50be231ab573c212bca7327c23191e1eac2  vendor/github.com/globalsign/mgo/LICENSE
+150ff9d2cacd75cb54bd69c0c5cbcb17aff49b2a24ee7b3d83981228c55d7006  vendor/github.com/globalsign/mgo/bson/LICENSE
+dd26a7abddd02e2d0aba97805b31f248ef7835d9e10da289b22e3b8ab78b324d  vendor/github.com/globalsign/mgo/internal/json/LICENSE
 4367cb0287ad1fb0676409ba770bb50be231ab573c212bca7327c23191e1eac2  vendor/gopkg.in/mgo.v2/LICENSE
 86258a47c5340187ef120b9c20e5427a84d3040ecab3243315692862e07dedae  vendor/gopkg.in/mgo.v2/bson/LICENSE
 dd26a7abddd02e2d0aba97805b31f248ef7835d9e10da289b22e3b8ab78b324d  vendor/gopkg.in/mgo.v2/internal/json/LICENSE
+
 #
 # BSD-3-Clause
 b8514c577c1c4b46cee454d5a882b15fa411e72c5bd7f801f241591789fce61a  vendor/github.com/spf13/pflag/LICENSE
