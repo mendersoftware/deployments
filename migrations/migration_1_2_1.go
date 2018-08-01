@@ -14,8 +14,8 @@
 package migrations
 
 import (
+	"github.com/globalsign/mgo"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
-	"gopkg.in/mgo.v2"
 
 	deployments_mongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
 )

@@ -16,9 +16,9 @@ package store
 import (
 	"context"
 
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 
 	mimages "github.com/mendersoftware/deployments/resources/images/mongo"
 	. "github.com/mendersoftware/deployments/resources/releases"

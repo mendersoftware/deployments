@@ -17,9 +17,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/globalsign/mgo"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/mgo.v2"
 
 	d "github.com/mendersoftware/deployments/resources/deployments"
 	dm "github.com/mendersoftware/deployments/resources/deployments/mongo"

@@ -16,7 +16,7 @@ package store
 import (
 	"context"
 
-	"gopkg.in/mgo.v2"
+	"github.com/globalsign/mgo"
 
 	"github.com/mendersoftware/deployments/migrations"
 	mstore "github.com/mendersoftware/go-lib-micro/store"

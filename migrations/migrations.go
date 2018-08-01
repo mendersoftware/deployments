@@ -16,11 +16,11 @@ package migrations
 import (
 	"context"
 
+	"github.com/globalsign/mgo"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	ctx_store "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
-	"gopkg.in/mgo.v2"
 )
 
 const (

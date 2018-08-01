@@ -17,8 +17,8 @@ package mongo
 import (
 	"context"
 
+	"github.com/globalsign/mgo"
 	"github.com/mendersoftware/go-lib-micro/store"
-	"gopkg.in/mgo.v2"
 
 	"github.com/mendersoftware/deployments/resources/limits"
 	"github.com/mendersoftware/deployments/resources/limits/model"
