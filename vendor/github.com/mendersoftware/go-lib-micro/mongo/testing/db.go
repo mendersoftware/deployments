@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2018 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/dbtest"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/dbtest"
 )
 
 // TestDBRunner exports selected calls of dbtest.DBServer API, just the ones

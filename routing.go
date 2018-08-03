@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/globalsign/mgo"
 	"github.com/pkg/errors"
-	"gopkg.in/mgo.v2"
 
 	"github.com/mendersoftware/deployments/config"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
