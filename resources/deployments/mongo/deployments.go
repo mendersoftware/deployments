@@ -319,6 +319,7 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 
 	gt0 := bson.M{"$gt": 0}
 	eq0 := bson.M{"$eq": 0}
+	notNull := bson.M{"$ne": nil}
 
 	// empty query, catches StatusQueryAny
 	stq := bson.M{}
@@ -406,23 +407,7 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 		}
 	case deployments.StatusQueryFinished:
 		{
-			// downloading, installing, rebooting, pending status counters are 0
-			stq = bson.M{
-				"$and": []bson.M{
-					{
-						buildStatusKey(deployments.DeviceDeploymentStatusDownloading): eq0,
-					},
-					{
-						buildStatusKey(deployments.DeviceDeploymentStatusInstalling): eq0,
-					},
-					{
-						buildStatusKey(deployments.DeviceDeploymentStatusRebooting): eq0,
-					},
-					{
-						buildStatusKey(deployments.DeviceDeploymentStatusPending): eq0,
-					},
-				},
-			}
+			stq = bson.M{StorageKeyDeploymentFinished: notNull}
 		}
 	}
 
