@@ -1004,6 +1004,8 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		t.Skip("skipping TestDeploymentStorageFindBy in short mode.")
 	}
 
+	now := time.Now()
+
 	someDeployments := []*deployments.Deployment{
 		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
@@ -1015,6 +1017,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 			}),
+			Finished: &now,
 		},
 		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
@@ -1026,6 +1029,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 			}),
+			Finished: &now,
 		},
 		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
@@ -1037,6 +1041,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusFailure: 2,
 			}),
+			Finished: &now,
 		},
 		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
@@ -1048,6 +1053,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 			}),
+			Finished: &now,
 		},
 		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
@@ -1094,6 +1100,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				deployments.DeviceDeploymentStatusNoArtifact: 1,
 				deployments.DeviceDeploymentStatusSuccess:    1,
 			}),
+			Finished: &now,
 		},
 		{
 			DeploymentConstructor: &deployments.DeploymentConstructor{
@@ -1105,6 +1112,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusAborted: 1,
 			}),
+			Finished: &now,
 		},
 
 		//in progress deployment, with only pending and already-installed counters > 0
@@ -1170,6 +1178,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(deployments.Stats{
 				deployments.DeviceDeploymentStatusAlreadyInst: 1,
 			}),
+			Finished: &now,
 		},
 	}
 
@@ -1415,6 +1424,10 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Len(t, deps, len(testCase.OutputID))
+				if out := assert.Len(t, deps, len(testCase.OutputID)); !out {
+					session.Close()
+					t.FailNow()
+				}
 
 				// verify that order is as expected
 				for idx, dep := range deps {
