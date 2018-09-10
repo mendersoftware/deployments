@@ -21,6 +21,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -234,14 +235,35 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 	case ErrModelArtifactNotUnique:
 		l.Error(err.Error())
 		s.view.RenderError(w, r, cause, http.StatusUnprocessableEntity, l)
+	case ErrModelParsingArtifactFailed:
+		l.Error(err.Error())
+		s.view.RenderError(w, r, formatArtifactUploadError(err), http.StatusBadRequest, l)
 	case ErrModelMissingInputMetadata, ErrModelMissingInputArtifact,
 		ErrModelInvalidMetadata, ErrModelMultipartUploadMsgMalformed,
-		ErrModelArtifactFileTooLarge, ErrModelParsingArtifactFailed:
+		ErrModelArtifactFileTooLarge:
 		l.Error(err.Error())
 		s.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 	}
 
 	return
+}
+
+func formatArtifactUploadError(err error) error {
+	// remove generic message
+	errMsg := strings.TrimSuffix(err.Error(), ": "+ErrModelParsingArtifactFailed.Error())
+
+	// handle specific cases
+
+	if strings.Contains(errMsg, "invalid checksum") {
+		return errors.New(errMsg[strings.Index(errMsg, "invalid checksum"):])
+	}
+
+	if strings.Contains(errMsg, "unsupported version") {
+		return errors.New(errMsg[strings.Index(errMsg, "unsupported version"):] +
+			"; supported versions are: 1, 2")
+	}
+
+	return errors.New(errMsg)
 }
 
 // ParseMultipart parses multipart/form-data message.
