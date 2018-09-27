@@ -64,14 +64,14 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 				badDeviceDepl,
 				badDeviceDepl,
 			},
-			OutputError: errors.New("Validating device deployment: DeploymentId: bad bad bad does not validate as uuidv4;"),
+			OutputError: errors.New("Validating device deployment: DeploymentId: bad bad bad does not validate as uuidv4"),
 		},
 		{
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
 				deviceDepl1,
 				badDeviceDepl,
 			},
-			OutputError: errors.New("Validating device deployment: DeploymentId: bad bad bad does not validate as uuidv4;"),
+			OutputError: errors.New("Validating device deployment: DeploymentId: bad bad bad does not validate as uuidv4"),
 		},
 		{
 			InputDeviceDeployment: []*deployments.DeviceDeployment{

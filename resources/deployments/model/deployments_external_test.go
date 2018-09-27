@@ -492,7 +492,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		},
 		{
 			InputConstructor: deployments.NewDeploymentConstructor(),
-			OutputError:      errors.New("Validating deployment: Name: non zero value required;ArtifactName: non zero value required;Devices: non zero value required;"),
+			OutputError:      errors.New("Validating deployment: name: non zero value required;artifact_name: non zero value required;devices: non zero value required"),
 		},
 		{
 			InputConstructor: &deployments.DeploymentConstructor{
@@ -1080,7 +1080,7 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 			InputModelError:    nil,
 			InputHasDeployment: true,
 
-			OutputError: errors.New("Invalid deployment log: DeploymentID: ID:234 does not validate as uuidv4;Messages: non zero value required;"),
+			OutputError: errors.New("Invalid deployment log: DeploymentID: ID:234 does not validate as uuidv4;messages: non zero value required"),
 		},
 		{
 			InputDeploymentID:  "f826484e-1157-4109-af21-304e6d711561",

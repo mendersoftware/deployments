@@ -62,7 +62,7 @@ func TestDeploymentStorageInsert(t *testing.T) {
 		},
 		{
 			InputDeployment: newDepl,
-			OutputError:     errors.New("DeploymentConstructor: non zero value required;"),
+			OutputError:     errors.New("DeploymentConstructor.name: non zero value required;DeploymentConstructor.artifact_name: non zero value required;DeploymentConstructor.devices: non zero value required;DeploymentConstructor: non zero value required"),
 		},
 		{
 			InputDeployment: newDeplFromConstr,

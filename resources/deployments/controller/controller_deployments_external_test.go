@@ -213,7 +213,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Artifact: non zero value required;")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Artifact: non zero value required")),
 			},
 			Params: url.Values{
 				GetDeploymentForDeviceQueryDeviceType: []string{"hammer"},
@@ -228,7 +228,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("DeviceType: non zero value required;")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("DeviceType: non zero value required")),
 			},
 			Params: url.Values{
 				GetDeploymentForDeviceQueryArtifact: []string{"artifact-name"},
@@ -243,7 +243,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Artifact: non zero value required;DeviceType: non zero value required;")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Artifact: non zero value required;DeviceType: non zero value required")),
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-6"}`),
@@ -385,7 +385,7 @@ func TestControllerPostDeployment(t *testing.T) {
 			InputBodyObject: deployments.NewDeploymentConstructor(),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Validating request body: Name: non zero value required;ArtifactName: non zero value required;Devices: non zero value required;`)),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Validating request body: name: non zero value required;artifact_name: non zero value required;devices: non zero value required`)),
 			},
 		},
 		{
@@ -587,7 +587,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("SubState: ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppff does not validate as length(0|200);")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("substate: ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppff does not validate as length(0|200)")),
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
