@@ -7,7 +7,6 @@
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  vendor/github.com/aws/aws-sdk-go/LICENSE.txt
 98ed35b5a138f58164b5c0dbccd9d7f01ef4d84b9dba01e896f0a3241c50c0f7  vendor/github.com/mendersoftware/mender-artifact/LICENSE
 03cfaf331a260694d06227a589cdd2b5fcfab474697b72e250736696c313655a  vendor/github.com/jmespath/go-jmespath/LICENSE
-73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68  vendor/github.com/aws/aws-sdk-go/vendor/github.com/go-ini/ini/LICENSE
 f6918bd93ffe07f4b2c61b8287c32cb3122e08aed0be50f1c7d0eddc87877a8f  vendor/github.com/go-ini/ini/LICENSE
 98ed35b5a138f58164b5c0dbccd9d7f01ef4d84b9dba01e896f0a3241c50c0f5e3400b93bbb099e83e52bab885e7441750673c21f97988ca3f1240639b63283  vendor/github.com/spf13/afero/LICENSE.txt
 #
