@@ -90,7 +90,10 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context,
 		return "", errors.Wrap(err, "Validating deployment")
 	}
 
-	deployment := deployments.NewDeploymentFromConstructor(constructor)
+	deployment, err := deployments.NewDeploymentFromConstructor(constructor)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create deployment")
+	}
 
 	// Assign artifacts to the deployment.
 	// Only artifacts present in the system at the moment of deployment creation
@@ -112,7 +115,11 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context,
 	// information provided by the device in the update request.
 	deviceDeployments := make([]*deployments.DeviceDeployment, 0, len(constructor.Devices))
 	for _, id := range constructor.Devices {
-		deviceDeployment := deployments.NewDeviceDeployment(id, *deployment.Id)
+		deviceDeployment, err := deployments.NewDeviceDeployment(id, *deployment.Id)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to create device deployment")
+		}
+
 		deviceDeployment.Created = deployment.Created
 		deviceDeployments = append(deviceDeployments, deviceDeployment)
 	}

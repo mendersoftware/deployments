@@ -726,12 +726,22 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 	t.Parallel()
 
-	// common device status list for all tests
+	statuses := []deployments.DeviceDeployment{}
 
-	statuses := []deployments.DeviceDeployment{
-		*deployments.NewDeviceDeployment("device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		*deployments.NewDeviceDeployment("device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		*deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+	// common device status list for all tests
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		statuses = append(statuses, *newdd)
 	}
 
 	testCases := map[string]struct {
@@ -829,10 +839,21 @@ func TestControllerLookupDeployment(t *testing.T) {
 		},
 	}
 
-	statuses := []deployments.DeviceDeployment{
-		*deployments.NewDeviceDeployment("device0001", "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-		*deployments.NewDeviceDeployment("device0002", "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-		*deployments.NewDeviceDeployment("device0003", "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+	statuses := []deployments.DeviceDeployment{}
+
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		statuses = append(statuses, *newdd)
 	}
 
 	testCases := []struct {

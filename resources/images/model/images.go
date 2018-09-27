@@ -96,7 +96,12 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 	lr := io.LimitReader(multipartUploadMsg.ArtifactReader, multipartUploadMsg.ArtifactSize)
 	tee := io.TeeReader(lr, pW)
 
-	artifactID := uuid.NewV4().String()
+	uid, err := uuid.NewV4()
+	if err != nil {
+		return "", errors.New("failed to generate new uuid")
+	}
+
+	artifactID := uid.String()
 
 	ch := make(chan error)
 	// create goroutine for artifact upload

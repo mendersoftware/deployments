@@ -75,7 +75,11 @@ func TestControllerGetImage(t *testing.T) {
 	recorded.CodeIs(http.StatusBadRequest)
 
 	//have correct id, but no image
-	id := uuid.NewV4().String()
+	uid, err := uuid.NewV4()
+	assert.NoError(t, err)
+
+	id := uid.String()
+
 	imagesModel.On("GetImage", h.ContextMatcher(), id).
 		Return(nil, nil)
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -83,7 +87,11 @@ func TestControllerGetImage(t *testing.T) {
 	recorded.CodeIs(http.StatusNotFound)
 
 	//have correct id, but error getting image
-	id = uuid.NewV4().String()
+	uid, err = uuid.NewV4()
+	assert.NoError(t, err)
+
+	id = uid.String()
+
 	imagesModel.On("GetImage", h.ContextMatcher(), id).
 		Return(nil, errors.New("error"))
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -91,7 +99,11 @@ func TestControllerGetImage(t *testing.T) {
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	// have image, get OK
-	id = uuid.NewV4().String()
+	uid, err = uuid.NewV4()
+	assert.NoError(t, err)
+
+	id = uid.String()
+
 	imageMeta := images.NewSoftwareImageMetaConstructor()
 	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
 	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
@@ -152,7 +164,11 @@ func TestControllerDeleteImage(t *testing.T) {
 	recorded.CodeIs(http.StatusBadRequest)
 
 	// valid id; doesn't exist
-	id := uuid.NewV4().String()
+	uid, err := uuid.NewV4()
+	assert.NoError(t, err)
+
+	id := uid.String()
+
 	imagesModel.On("DeleteImage", h.ContextMatcher(), id).
 		Return(ErrImageMetaNotFound)
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -160,7 +176,11 @@ func TestControllerDeleteImage(t *testing.T) {
 	recorded.CodeIs(http.StatusNotFound)
 
 	// valid id; image exists
-	id = uuid.NewV4().String()
+	uid, err = uuid.NewV4()
+	assert.NoError(t, err)
+
+	id = uid.String()
+
 	imagesModel.On("DeleteImage", h.ContextMatcher(), id).Return(nil)
 	imagesModel.On("GetImage", h.ContextMatcher(), id).
 		Return(constructorImage, nil)
@@ -183,13 +203,21 @@ func TestControllerEditImage(t *testing.T) {
 	recorded.CodeIs(http.StatusBadRequest)
 
 	// correct id; no payload
-	id := uuid.NewV4().String()
+	uid, err := uuid.NewV4()
+	assert.NoError(t, err)
+
+	id := uid.String()
+
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("PUT", "http://localhost/api/0.0.1/images/"+id, nil))
 	recorded.CodeIs(http.StatusBadRequest)
 
 	// correct id; correct payload; edit error
-	id = uuid.NewV4().String()
+	uid, err = uuid.NewV4()
+	assert.NoError(t, err)
+
+	id = uid.String()
+
 	imagesModel.On("EditImage", h.ContextMatcher(), id, mock.Anything).
 		Return(false, errors.New("error"))
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -198,7 +226,11 @@ func TestControllerEditImage(t *testing.T) {
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	// correct id; correct payload; image in use
-	id = uuid.NewV4().String()
+	uid, err = uuid.NewV4()
+	assert.NoError(t, err)
+
+	id = uid.String()
+
 	imagesModel.On("EditImage", h.ContextMatcher(), id, mock.Anything).
 		Return(false, ErrModelImageUsedInAnyDeployment)
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -207,7 +239,11 @@ func TestControllerEditImage(t *testing.T) {
 	recorded.CodeIs(http.StatusUnprocessableEntity)
 
 	// correct id; correct payload; edit no image
-	id = uuid.NewV4().String()
+	uid, err = uuid.NewV4()
+	assert.NoError(t, err)
+
+	id = uid.String()
+
 	imagesModel.On("EditImage", h.ContextMatcher(), id, mock.Anything).
 		Return(false, nil)
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -216,7 +252,11 @@ func TestControllerEditImage(t *testing.T) {
 	recorded.CodeIs(http.StatusNotFound)
 
 	// correct id; correct payload; have image
-	id = uuid.NewV4().String()
+	uid, err = uuid.NewV4()
+	assert.NoError(t, err)
+
+	id = uid.String()
+
 	imagesModel.On("EditImage", h.ContextMatcher(), id, mock.Anything).
 		Return(true, nil)
 

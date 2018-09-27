@@ -40,6 +40,17 @@ func TestDeploymentStorageInsert(t *testing.T) {
 		t.Skip("skipping TestDeploymentStorageInsert in short mode.")
 	}
 
+	newDepl, err := deployments.NewDeployment()
+	assert.NoError(t, err)
+
+	newDeplFromConstr, err := deployments.NewDeploymentFromConstructor(&deployments.DeploymentConstructor{
+
+		Name:         StringToPointer("NYC Production"),
+		ArtifactName: StringToPointer("App 123"),
+		Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+	})
+	assert.NoError(t, err)
+
 	testCases := []struct {
 		InputDeployment *deployments.Deployment
 		InputTenant     string
@@ -50,24 +61,16 @@ func TestDeploymentStorageInsert(t *testing.T) {
 			OutputError:     ErrDeploymentStorageInvalidDeployment,
 		},
 		{
-			InputDeployment: deployments.NewDeployment(),
+			InputDeployment: newDepl,
 			OutputError:     errors.New("DeploymentConstructor: non zero value required;"),
 		},
 		{
-			InputDeployment: deployments.NewDeploymentFromConstructor(&deployments.DeploymentConstructor{
-				Name:         StringToPointer("NYC Production"),
-				ArtifactName: StringToPointer("App 123"),
-				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
-			}),
-			OutputError: nil,
+			InputDeployment: newDeplFromConstr,
+			OutputError:     nil,
 		},
 		{
-			InputDeployment: deployments.NewDeploymentFromConstructor(&deployments.DeploymentConstructor{
-				Name:         StringToPointer("NYC Production"),
-				ArtifactName: StringToPointer("App 123"),
-				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
-			}),
-			InputTenant: "acme",
+			InputDeployment: newDeplFromConstr,
+			InputTenant:     "acme",
 		},
 	}
 

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -80,11 +81,17 @@ type DeviceDeployment struct {
 	SubState *string `json:"substate,omitempty" valid:"-" bson:"substate"`
 }
 
-func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
+func NewDeviceDeployment(deviceId, deploymentId string) (*DeviceDeployment, error) {
 
 	now := time.Now()
 	initStatus := DeviceDeploymentStatusPending
-	id := uuid.NewV4().String()
+
+	uid, err := uuid.NewV4()
+	if err != nil {
+		return nil, errors.New("failed to generate uuid")
+	}
+
+	id := uid.String()
 
 	return &DeviceDeployment{
 		Status:         &initStatus,
@@ -93,7 +100,7 @@ func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
 		Id:             &id,
 		Created:        &now,
 		IsLogAvailable: false,
-	}
+	}, nil
 }
 
 func (d *DeviceDeployment) Validate() error {

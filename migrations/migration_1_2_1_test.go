@@ -59,8 +59,8 @@ func TestMigration_1_2_1(t *testing.T) {
 			db:    "deployments_service",
 			dbVer: "0.0.1",
 			deployments: []*d.Deployment{
-				makeDeployment("one", "artifact1"),
-				makeDeployment("two", "artifact2"),
+				makeDeployment(t, "one", "artifact1"),
+				makeDeployment(t, "two", "artifact2"),
 			},
 		},
 		"MT, no index, 0.0.0": {
@@ -138,11 +138,14 @@ func TestMigration_1_2_1(t *testing.T) {
 }
 
 // makeDeployments creates a bare-bones deployment struct
-func makeDeployment(name, artifactName string) *d.Deployment {
-	return d.NewDeploymentFromConstructor(
+func makeDeployment(t *testing.T, name, artifactName string) *d.Deployment {
+	d, err := d.NewDeploymentFromConstructor(
 		&d.DeploymentConstructor{
 			Name:         sptr(name),
 			ArtifactName: sptr(artifactName)})
+
+	assert.NoError(t, err)
+	return d
 }
 
 // insertDeployment mimics the 0.0.1 method of inserting deployments (now deleted)
