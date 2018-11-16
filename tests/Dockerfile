@@ -5,7 +5,7 @@ RUN apt-get -y -qq update && apt-get -qq -y install \
     python3-pytest python3-crypto python3-twisted python3-requests python3-yaml \
     python3-tz && \
     rm -rf /var/lib/apt/lists/* && \
-    pip3 install --quiet bravado==9.2.2 pymongo==3.6.1 pytest-ordering minio
+    pip3 install --quiet bravado==9.2.2 pymongo==3.6.1 pytest-ordering==0.5 minio
 
 RUN mkdir -p /testing
 ENTRYPOINT ["bash", "/testing/run.sh"]
