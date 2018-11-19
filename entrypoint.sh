@@ -14,4 +14,6 @@ if [ -n "$STORAGE_BACKEND_CERT" -a -e "$STORAGE_BACKEND_CERT" ]; then
     c_rehash $CERTS_DIR
 fi
 
+/wait-for-mongo
+
 exec /usr/bin/deployments "$@"
