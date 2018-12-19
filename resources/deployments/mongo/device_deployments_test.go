@@ -260,6 +260,8 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			db.Wipe()
 
 			session := db.Session()
+			defer session.Close()
+
 			store := NewDeviceDeploymentsStorage(session)
 
 			ctx := context.Background()
@@ -337,9 +339,6 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 					}
 				}
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			session.Close()
 		})
 	}
 }
