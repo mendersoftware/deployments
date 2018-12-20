@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2018 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -560,17 +560,17 @@ func MakeRootfsImageArtifact(version int, signed bool) (*bytes.Buffer, error) {
 	art := bytes.NewBuffer(nil)
 	var aw *awriter.Writer
 	if !signed {
-		aw = awriter.NewWriter(art)
+		aw = awriter.NewWriter(art, artifact.NewCompressorGzip())
 	} else {
 		s := artifact.NewSigner([]byte(PrivateKey))
-		aw = awriter.NewWriterSigned(art, s)
+		aw = awriter.NewWriterSigned(art, artifact.NewCompressorGzip(), s)
 	}
 	var u handlers.Composer
 	switch version {
 	case 1:
-		u = handlers.NewRootfsV1(upd)
+		u = handlers.NewRootfsV1(upd, artifact.NewCompressorGzip())
 	case 2:
-		u = handlers.NewRootfsV2(upd)
+		u = handlers.NewRootfsV2(upd, artifact.NewCompressorGzip())
 	}
 
 	updates := &awriter.Updates{U: []handlers.Composer{u}}
