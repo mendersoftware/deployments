@@ -51,3 +51,6 @@ a94710b55e03b5285f77d048c5ba61bb9d6ee04a06c0eb90e68821e11b0c707a  vendor/gopkg.i
 #
 # MPL 2.0
 bef1747eda88b9ed46e94830b0d978c3499dad5dfe38d364971760881901dadd  vendor/github.com/hashicorp/hcl/LICENSE
+
+# OpenLDAP Public License
+a284e538f3e5649ae6a8f32da2bbd18e9daabf2c1ebbfb99ed92e797b159be1a  vendor/github.com/mendersoftware/go-liblzma/LICENSE
