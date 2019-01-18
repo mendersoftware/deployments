@@ -597,34 +597,44 @@
 			"revisionTime": "2018-07-05T08:32:26Z"
 		},
 		{
-			"checksumSHA1": "pribDK+v+aydTC4fC2LeIBAtcpI=",
+			"checksumSHA1": "NH/E/+GFtMjxQ1vuus5y2yko17A=",
 			"path": "github.com/mendersoftware/mender-artifact",
-			"revision": "7438c80d73c6470395d394eae714a376ff7a50a3",
-			"revisionTime": "2018-12-06T07:04:35Z"
+			"revision": "09e213244bfec8cfe87746d08a331c2622e88bc1",
+			"revisionTime": "2019-01-16T09:05:48Z",
+			"version": "mender-artifact-v3",
+			"versionExact": "mender-artifact-v3"
 		},
 		{
-			"checksumSHA1": "vmqI9rcdSFCFMEyP1ztTnI5382A=",
+			"checksumSHA1": "KxXbWHzw1PtBiyXWlttGxw23SYU=",
 			"path": "github.com/mendersoftware/mender-artifact/areader",
-			"revision": "7438c80d73c6470395d394eae714a376ff7a50a3",
-			"revisionTime": "2018-12-06T07:04:35Z"
+			"revision": "09e213244bfec8cfe87746d08a331c2622e88bc1",
+			"revisionTime": "2019-01-16T09:05:48Z",
+			"version": "mender-artifact-v3",
+			"versionExact": "mender-artifact-v3"
 		},
 		{
-			"checksumSHA1": "z2okuSdYHmfdRP/cJ6wPStsdhCA=",
+			"checksumSHA1": "ePaktoA5yz8SpZ8spY1k8HleLz0=",
 			"path": "github.com/mendersoftware/mender-artifact/artifact",
-			"revision": "7438c80d73c6470395d394eae714a376ff7a50a3",
-			"revisionTime": "2018-12-06T07:04:35Z"
+			"revision": "09e213244bfec8cfe87746d08a331c2622e88bc1",
+			"revisionTime": "2019-01-16T09:05:48Z",
+			"version": "mender-artifact-v3",
+			"versionExact": "mender-artifact-v3"
 		},
 		{
-			"checksumSHA1": "I2Bm+rsg1k2GUDd8Iabh7hIrTL4=",
+			"checksumSHA1": "JabjQyJDYwKMQKG/miyvr4aEu5c=",
 			"path": "github.com/mendersoftware/mender-artifact/awriter",
-			"revision": "7438c80d73c6470395d394eae714a376ff7a50a3",
-			"revisionTime": "2018-12-06T07:04:35Z"
+			"revision": "09e213244bfec8cfe87746d08a331c2622e88bc1",
+			"revisionTime": "2019-01-16T09:05:48Z",
+			"version": "mender-artifact-v3",
+			"versionExact": "mender-artifact-v3"
 		},
 		{
-			"checksumSHA1": "xijaaVPHIWpgHZV2gCaEU3woTog=",
+			"checksumSHA1": "dKpPd+5QFBmSXDKkwKnkHP+AZZQ=",
 			"path": "github.com/mendersoftware/mender-artifact/handlers",
-			"revision": "7438c80d73c6470395d394eae714a376ff7a50a3",
-			"revisionTime": "2018-12-06T07:04:35Z"
+			"revision": "09e213244bfec8cfe87746d08a331c2622e88bc1",
+			"revisionTime": "2019-01-16T09:05:48Z",
+			"version": "mender-artifact-v3",
+			"versionExact": "mender-artifact-v3"
 		},
 		{
 			"checksumSHA1": "8VREmaKpYjppYOd/OEl0RN5VEdU=",

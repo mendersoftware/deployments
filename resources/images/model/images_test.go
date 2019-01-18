@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -560,22 +560,25 @@ func MakeRootfsImageArtifact(version int, signed bool) (*bytes.Buffer, error) {
 	art := bytes.NewBuffer(nil)
 	var aw *awriter.Writer
 	if !signed {
-		aw = awriter.NewWriter(art, artifact.NewCompressorGzip())
+		aw = awriter.NewWriter(art)
 	} else {
 		s := artifact.NewSigner([]byte(PrivateKey))
-		aw = awriter.NewWriterSigned(art, artifact.NewCompressorGzip(), s)
+		aw = awriter.NewWriterSigned(art, s)
 	}
 	var u handlers.Composer
 	switch version {
 	case 1:
-		u = handlers.NewRootfsV1(upd, artifact.NewCompressorGzip())
+		u = handlers.NewRootfsV1(upd)
 	case 2:
-		u = handlers.NewRootfsV2(upd, artifact.NewCompressorGzip())
+		u = handlers.NewRootfsV2(upd)
+	case 3:
+		u = handlers.NewRootfsV3(upd)
 	}
 
-	updates := &awriter.Updates{U: []handlers.Composer{u}}
-	err = aw.WriteArtifact("mender", version, []string{"vexpress-qemu"},
-		"mender-1.1", updates, nil)
+	updates := &awriter.Updates{Updates: []handlers.Composer{u}}
+	artifactArgs := &awriter.WriteArtifactArgs{Format: "mender", Version: version,
+		Devices: []string{"vexpress-qemu"}, Name: "mender-1.1", Updates: updates}
+	err = aw.WriteArtifact(artifactArgs)
 	if err != nil {
 		return nil, err
 	}
