@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2018 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -28,7 +28,8 @@ func TestNewDeviceDeployment(t *testing.T) {
 
 	t.Parallel()
 
-	dd := NewDeviceDeployment("device_123", "deployment_123")
+	dd, err := NewDeviceDeployment("device_123", "deployment_123")
+	assert.NoError(t, err)
 
 	assert.Equal(t, DeviceDeploymentStatusPending, *dd.Status)
 	assert.Equal(t, "device_123", *dd.DeviceId)
@@ -109,13 +110,15 @@ func TestDeviceDeploymentValidate(t *testing.T) {
 
 	for _, test := range testCases {
 
-		dd := NewDeviceDeployment("", "")
+		dd, err := NewDeviceDeployment("", "")
+		assert.NoError(t, err)
+
 		dd.Created = test.InputCreated
 		dd.Id = test.InputID
 		dd.DeviceId = test.InputDeviceID
 		dd.DeploymentId = test.InputDeploymentID
 
-		err := dd.Validate()
+		err = dd.Validate()
 
 		if !test.IsValid {
 			assert.Error(t, err)

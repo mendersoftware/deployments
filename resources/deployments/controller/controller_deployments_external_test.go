@@ -213,7 +213,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Artifact: non zero value required;")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Artifact: non zero value required")),
 			},
 			Params: url.Values{
 				GetDeploymentForDeviceQueryDeviceType: []string{"hammer"},
@@ -228,7 +228,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("DeviceType: non zero value required;")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("DeviceType: non zero value required")),
 			},
 			Params: url.Values{
 				GetDeploymentForDeviceQueryArtifact: []string{"artifact-name"},
@@ -243,7 +243,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("Artifact: non zero value required;DeviceType: non zero value required;")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Artifact: non zero value required;DeviceType: non zero value required")),
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-6"}`),
@@ -385,7 +385,7 @@ func TestControllerPostDeployment(t *testing.T) {
 			InputBodyObject: deployments.NewDeploymentConstructor(),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Validating request body: Name: non zero value required;ArtifactName: non zero value required;Devices: non zero value required;`)),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Validating request body: name: non zero value required;artifact_name: non zero value required;devices: non zero value required`)),
 			},
 		},
 		{
@@ -587,7 +587,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
-				OutputBodyObject: h.ErrorToErrStruct(errors.New("SubState: ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppff does not validate as length(0|200);")),
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("substate: ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppff does not validate as length(0|200)")),
 			},
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
@@ -726,12 +726,22 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 	t.Parallel()
 
-	// common device status list for all tests
+	statuses := []deployments.DeviceDeployment{}
 
-	statuses := []deployments.DeviceDeployment{
-		*deployments.NewDeviceDeployment("device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		*deployments.NewDeviceDeployment("device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		*deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+	// common device status list for all tests
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		statuses = append(statuses, *newdd)
 	}
 
 	testCases := map[string]struct {
@@ -829,10 +839,21 @@ func TestControllerLookupDeployment(t *testing.T) {
 		},
 	}
 
-	statuses := []deployments.DeviceDeployment{
-		*deployments.NewDeviceDeployment("device0001", "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-		*deployments.NewDeviceDeployment("device0002", "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-		*deployments.NewDeviceDeployment("device0003", "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+	statuses := []deployments.DeviceDeployment{}
+
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		statuses = append(statuses, *newdd)
 	}
 
 	testCases := []struct {

@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2018 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -96,7 +96,12 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 	lr := io.LimitReader(multipartUploadMsg.ArtifactReader, multipartUploadMsg.ArtifactSize)
 	tee := io.TeeReader(lr, pW)
 
-	artifactID := uuid.NewV4().String()
+	uid, err := uuid.NewV4()
+	if err != nil {
+		return "", errors.New("failed to generate new uuid")
+	}
+
+	artifactID := uid.String()
 
 	ch := make(chan error)
 	// create goroutine for artifact upload

@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2018 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -30,15 +30,21 @@ type RequestIdMiddleware struct {
 // MiddlewareFunc makes RequestIdMiddleware implement the Middleware interface.
 func (mw *RequestIdMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc {
 	return func(w rest.ResponseWriter, r *rest.Request) {
+		logger := requestlog.GetRequestLogger(r)
+
 		reqId := r.Header.Get(RequestIdHeader)
 		if reqId == "" {
-			reqId = uuid.NewV4().String()
+			uid, err := uuid.NewV4()
+			if err != nil && logger != nil {
+				logger.Errorf("failed to assign request_id: %v", err)
+				return
+			}
+			reqId = uid.String()
 		}
 
 		r = SetReqId(r, reqId)
 
 		// enrich log context
-		logger := requestlog.GetRequestLogger(r)
 		if logger != nil {
 			logger = logger.F(log.Ctx{"request_id": reqId})
 			r = requestlog.SetRequestLogger(r, logger)

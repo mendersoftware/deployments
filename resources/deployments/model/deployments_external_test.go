@@ -492,7 +492,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		},
 		{
 			InputConstructor: deployments.NewDeploymentConstructor(),
-			OutputError:      errors.New("Validating deployment: Name: non zero value required;ArtifactName: non zero value required;Devices: non zero value required;"),
+			OutputError:      errors.New("Validating deployment: name: non zero value required;artifact_name: non zero value required;devices: non zero value required"),
 		},
 		{
 			InputConstructor: &deployments.DeploymentConstructor{
@@ -933,6 +933,24 @@ func TestGetDeploymentStats(t *testing.T) {
 func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 	//t.Parallel()
 
+	statuses := []deployments.DeviceDeployment{}
+
+	// common device status list for all tests
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		statuses = append(statuses, *newdd)
+	}
+
 	testCases := map[string]struct {
 		inDeploymentId string
 
@@ -947,12 +965,8 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 		"existing deployment with statuses": {
 			inDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
 
-			devsStorageStatuses: []deployments.DeviceDeployment{
-				*deployments.NewDeviceDeployment("dev0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
-				*deployments.NewDeviceDeployment("dev0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
-				*deployments.NewDeviceDeployment("dev0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
-			},
-			devsStorageErr: nil,
+			devsStorageStatuses: statuses,
+			devsStorageErr:      nil,
 
 			depsStorageDeployment: &deployments.Deployment{},
 			depsStorageErr:        nil,
@@ -960,12 +974,8 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 			modelErr: nil,
 		},
 		"deployment doesn't exist": {
-			devsStorageStatuses: []deployments.DeviceDeployment{
-				*deployments.NewDeviceDeployment("dev0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
-				*deployments.NewDeviceDeployment("dev0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
-				*deployments.NewDeviceDeployment("dev0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
-			},
-			devsStorageErr: nil,
+			devsStorageStatuses: statuses,
+			devsStorageErr:      nil,
 
 			depsStorageDeployment: nil,
 			depsStorageErr:        nil,
@@ -1070,7 +1080,7 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 			InputModelError:    nil,
 			InputHasDeployment: true,
 
-			OutputError: errors.New("Invalid deployment log: DeploymentID: ID:234 does not validate as uuidv4;Messages: non zero value required;"),
+			OutputError: errors.New("Invalid deployment log: DeploymentID: ID:234 does not validate as uuidv4;messages: non zero value required"),
 		},
 		{
 			InputDeploymentID:  "f826484e-1157-4109-af21-304e6d711561",
@@ -1317,6 +1327,9 @@ func TestDeploymentModelAbortDeployment(t *testing.T) {
 func TestDeploymentModelDecommissionDevice(t *testing.T) {
 	//t.Parallel()
 
+	deviceDeployment, err := deployments.NewDeviceDeployment("foo", "bar")
+	assert.NoError(t, err)
+
 	testCases := map[string]struct {
 		InputDeviceId string
 
@@ -1336,21 +1349,21 @@ func TestDeploymentModelDecommissionDevice(t *testing.T) {
 		},
 		"AggregateDeviceDeploymentByStatus error": {
 			InputDeviceId: "foo",
-			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deployments.NewDeviceDeployment("foo", "bar")},
+			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deviceDeployment},
 			AggregateDeviceDeploymentByStatusError:               errors.New("AggregateDeviceDeploymentByStatusError"),
 			AggregateDeviceDeploymentByStatusStats:               deployments.Stats{},
 			OutputError:                                          errors.New("AggregateDeviceDeploymentByStatusError"),
 		},
 		"UpdateStatsAndFinishDeployment error": {
 			InputDeviceId: "foo",
-			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deployments.NewDeviceDeployment("foo", "bar")},
+			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deviceDeployment},
 			AggregateDeviceDeploymentByStatusStats:               deployments.Stats{"aaa": 1},
 			UpdateStatsAndFinishDeploymentError:                  errors.New("UpdateStatsAndFinishDeploymentError"),
 			OutputError:                                          errors.New("UpdateStatsAndFinishDeploymentError"),
 		},
 		"all correct": {
 			InputDeviceId: "foo",
-			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deployments.NewDeviceDeployment("foo", "bar")},
+			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deviceDeployment},
 			AggregateDeviceDeploymentByStatusStats:               deployments.Stats{"aaa": 1},
 		},
 	}

@@ -67,7 +67,7 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 				DeviceID: "456",
 				Messages: messages,
 			},
-			OutputError: errors.New("DeploymentID: non zero value required;"),
+			OutputError: errors.New("DeploymentID: non zero value required"),
 		},
 		{
 			// null device ID
@@ -75,7 +75,7 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 				Messages:     messages,
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			},
-			OutputError: errors.New("DeviceID: non zero value required;"),
+			OutputError: errors.New("DeviceID: non zero value required"),
 		},
 		{
 			InputDeviceDeploymentLog: deployments.DeploymentLog{
@@ -83,7 +83,7 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 				Messages:     []deployments.LogMessage{},
 			},
-			OutputError: errors.New("Messages: non zero value required;"),
+			OutputError: errors.New("messages: non zero value required"),
 		},
 		{
 			InputDeviceDeploymentLog: deployments.DeploymentLog{

@@ -37,6 +37,15 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 		t.Skip("skipping TestDeviceDeploymentStorageInsert in short mode.")
 	}
 
+	deviceDepl1, err := deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a")
+	assert.NoError(t, err)
+
+	deviceDepl2, err := deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a")
+	assert.NoError(t, err)
+
+	badDeviceDepl, err := deployments.NewDeviceDeployment("bad bad", "bad bad bad")
+	assert.NoError(t, err)
+
 	testCases := []struct {
 		InputDeviceDeployment []*deployments.DeviceDeployment
 		InputTenant           string
@@ -52,30 +61,30 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 		},
 		{
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("bad bad", "bad bad bad"),
-				deployments.NewDeviceDeployment("bad bad", "bad bad bad"),
+				badDeviceDepl,
+				badDeviceDepl,
 			},
-			OutputError: errors.New("Validating device deployment: DeploymentId: bad bad bad does not validate as uuidv4;"),
+			OutputError: errors.New("Validating device deployment: DeploymentId: bad bad bad does not validate as uuidv4"),
 		},
 		{
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-				deployments.NewDeviceDeployment("bad bad", "bad bad bad"),
+				deviceDepl1,
+				badDeviceDepl,
 			},
-			OutputError: errors.New("Validating device deployment: DeploymentId: bad bad bad does not validate as uuidv4;"),
+			OutputError: errors.New("Validating device deployment: DeploymentId: bad bad bad does not validate as uuidv4"),
 		},
 		{
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-				deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+				deviceDepl1,
+				deviceDepl2,
 			},
 			OutputError: nil,
 		},
 		{
 			// same as previous case, but this time with tenant DB
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-				deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+				deviceDepl1,
+				deviceDepl2,
 			},
 			InputTenant: "acme",
 			OutputError: nil,
@@ -137,6 +146,24 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 
 	now := time.Now()
 
+	deviceDeployments := []deployments.DeviceDeployment{}
+
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"678", "30b3e62c-9ec2-4312-a7fa-cff24cc7397d"},
+		{"12345", "30b3e62c-9ec2-4312-a7fa-cff24cc7397e"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		deviceDeployments = append(deviceDeployments, *newdd)
+	}
+
 	testCases := []struct {
 		InputDeviceID         string
 		InputDeploymentID     string
@@ -183,7 +210,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputStatus:       deployments.DeviceDeploymentStatusInstalling,
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+				&deviceDeployments[0],
 			},
 			OutputError:     nil,
 			OutputOldStatus: "pending",
@@ -193,7 +220,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputStatus:       deployments.DeviceDeploymentStatusFailure,
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+				&deviceDeployments[1],
 			},
 			InputFinishTime: &now,
 			OutputError:     nil,
@@ -204,7 +231,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397d",
 			InputStatus:       deployments.DeviceDeploymentStatusInstalling,
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("678", "30b3e62c-9ec2-4312-a7fa-cff24cc7397d"),
+				&deviceDeployments[2],
 			},
 			InputTenant:     "acme",
 			OutputOldStatus: "pending",
@@ -215,7 +242,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputStatus:       deployments.DeviceDeploymentStatusInstalling,
 			InputSubState:     pointers.StringToPointer("foobar 123"),
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("12345", "30b3e62c-9ec2-4312-a7fa-cff24cc7397e"),
+				&deviceDeployments[3],
 			},
 			OutputError:     nil,
 			OutputOldStatus: "pending",
@@ -233,6 +260,8 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			db.Wipe()
 
 			session := db.Session()
+			defer session.Close()
+
 			store := NewDeviceDeploymentsStorage(session)
 
 			ctx := context.Background()
@@ -310,9 +339,6 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 					}
 				}
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			session.Close()
 		})
 	}
 }
@@ -322,6 +348,9 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestUpdateDeviceDeploymentLogAvailability in short mode.")
 	}
+
+	dd, err := deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a")
+	assert.NoError(t, err)
 
 	testCases := []struct {
 		InputDeviceID         string
@@ -354,7 +383,7 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputLog:          true,
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+				dd,
 			},
 			OutputError: nil,
 		},
@@ -363,7 +392,7 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputLog:          false,
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+				dd,
 			},
 			InputTenant: "acme",
 		},
@@ -430,8 +459,10 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 	}
 }
 
-func newDeviceDeploymentWithStatus(deviceID string, deploymentID string, status string) *deployments.DeviceDeployment {
-	d := deployments.NewDeviceDeployment(deviceID, deploymentID)
+func newDeviceDeploymentWithStatus(t *testing.T, deviceID string, deploymentID string, status string) *deployments.DeviceDeployment {
+	d, err := deployments.NewDeviceDeployment(deviceID, deploymentID)
+	assert.NoError(t, err)
+
 	d.Status = &status
 	return d
 }
@@ -458,20 +489,20 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 		{
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				newDeviceDeploymentWithStatus("123", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				newDeviceDeploymentWithStatus(t, "123", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 					deployments.DeviceDeploymentStatusFailure),
-				newDeviceDeploymentWithStatus("234", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				newDeviceDeploymentWithStatus(t, "234", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 					deployments.DeviceDeploymentStatusFailure),
-				newDeviceDeploymentWithStatus("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				newDeviceDeploymentWithStatus(t, "456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 					deployments.DeviceDeploymentStatusSuccess),
 
 				// these 2 count as in progress
-				newDeviceDeploymentWithStatus("567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				newDeviceDeploymentWithStatus(t, "567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 					deployments.DeviceDeploymentStatusDownloading),
-				newDeviceDeploymentWithStatus("678", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				newDeviceDeploymentWithStatus(t, "678", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 					deployments.DeviceDeploymentStatusRebooting),
 
-				newDeviceDeploymentWithStatus("789", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				newDeviceDeploymentWithStatus(t, "789", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 					deployments.DeviceDeploymentStatusPending),
 			},
 			OutputError: nil,
@@ -491,9 +522,9 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 		{
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				newDeviceDeploymentWithStatus("123", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				newDeviceDeploymentWithStatus(t, "123", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 					deployments.DeviceDeploymentStatusFailure),
-				newDeviceDeploymentWithStatus("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+				newDeviceDeploymentWithStatus(t, "456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 					deployments.DeviceDeploymentStatusSuccess),
 			},
 			InputTenant: "acme",
@@ -559,12 +590,23 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 		t.Skip("skipping GetDeviceStatusesForDeployment in short mode.")
 	}
 
-	input := []*deployments.DeviceDeployment{
-		deployments.NewDeviceDeployment("device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		deployments.NewDeviceDeployment("device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		deployments.NewDeviceDeployment("device0004", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
-		deployments.NewDeviceDeployment("device0005", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"),
+	input := []*deployments.DeviceDeployment{}
+
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0004", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"},
+		{"device0005", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		input = append(input, newdd)
 	}
 
 	testCases := map[string]struct {
@@ -642,10 +684,21 @@ func TestHasDeploymentForDevice(t *testing.T) {
 		t.Skip("skipping GetDeviceStatusesForDeployment in short mode.")
 	}
 
-	input := []*deployments.DeviceDeployment{
-		deployments.NewDeviceDeployment("device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		deployments.NewDeviceDeployment("device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+	input := []*deployments.DeviceDeployment{}
+
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		input = append(input, newdd)
 	}
 
 	testCases := []struct {
@@ -737,10 +790,21 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 		t.Skip("skipping GetDeviceDeploymentStatus in short mode.")
 	}
 
-	input := []*deployments.DeviceDeployment{
-		deployments.NewDeviceDeployment("device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		deployments.NewDeviceDeployment("device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-		deployments.NewDeviceDeployment("device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
+	input := []*deployments.DeviceDeployment{}
+
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		input = append(input, newdd)
 	}
 
 	testCases := map[string]struct {
@@ -820,6 +884,22 @@ func TestAbortDeviceDeployments(t *testing.T) {
 		t.Skip("skipping TestAbortDeviceDeployments in short mode.")
 	}
 
+	input := []*deployments.DeviceDeployment{}
+
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		input = append(input, newdd)
+	}
+
 	testCases := map[string]struct {
 		InputDeploymentID     string
 		InputDeviceDeployment []*deployments.DeviceDeployment
@@ -830,12 +910,9 @@ func TestAbortDeviceDeployments(t *testing.T) {
 			OutputError: ErrStorageInvalidID,
 		},
 		"all correct": {
-			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-				deployments.NewDeviceDeployment("567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-			},
-			OutputError: nil,
+			InputDeploymentID:     "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			InputDeviceDeployment: []*deployments.DeviceDeployment{},
+			OutputError:           nil,
 		},
 	}
 
@@ -895,6 +972,22 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 		t.Skip("skipping TestDecommissionDeviceDeployments in short mode.")
 	}
 
+	input := []*deployments.DeviceDeployment{}
+
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"foo", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"bar", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+	}
+
+	for _, dd := range dds {
+		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		assert.NoError(t, err)
+		input = append(input, newdd)
+	}
+
 	testCases := map[string]struct {
 		InputDeviceId         string
 		InputDeviceDeployment []*deployments.DeviceDeployment
@@ -905,12 +998,9 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 			OutputError: ErrStorageInvalidID,
 		},
 		"all correct": {
-			InputDeviceId: "foo",
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
-				deployments.NewDeviceDeployment("foo", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-				deployments.NewDeviceDeployment("bar", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"),
-			},
-			OutputError: nil,
+			InputDeviceId:         "foo",
+			InputDeviceDeployment: input,
+			OutputError:           nil,
 		},
 	}
 

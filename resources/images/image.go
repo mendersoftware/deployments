@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2018 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ type SoftwareImageMetaArtifactConstructor struct {
 	DeviceTypesCompatible []string `json:"device_types_compatible" bson:"device_types_compatible" valid:"length(1|4096),required"`
 
 	// Artifact version info
-	Info *ArtifactInfo `json:"info" valid:"required"`
+	Info *ArtifactInfo `json:"info"`
 
 	// Flag that indicates if artifact is signed or not
 	Signed bool `json:"signed" bson:"signed"`
@@ -88,7 +88,7 @@ type SoftwareImage struct {
 	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
 
 	// Last modification time, including image upload time
-	Modified *time.Time `json:"modified" valid:"_"`
+	Modified *time.Time `json:"modified" valid:"-"`
 }
 
 // NewSoftwareImage creates new software image object.

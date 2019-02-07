@@ -16,7 +16,7 @@ package deployments
 
 import (
 	"encoding/json"
-	"errors"
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -86,25 +86,35 @@ type Deployment struct {
 }
 
 // NewDeployment creates new deployment object, sets create data by default.
-func NewDeployment() *Deployment {
+func NewDeployment() (*Deployment, error) {
 	now := time.Now()
-	id := uuid.NewV4().String()
+
+	uid, err := uuid.NewV4()
+	if err != nil {
+		return nil, errors.New("failed to generate uuid")
+	}
+
+	id := uid.String()
 
 	return &Deployment{
 		Created: &now,
 		Id:      &id,
 		DeploymentConstructor: NewDeploymentConstructor(),
 		Stats: NewDeviceDeploymentStats(),
-	}
+	}, nil
 }
 
 // NewDeploymentFromConstructor creates new Deployments object based on constructor data
-func NewDeploymentFromConstructor(constructor *DeploymentConstructor) *Deployment {
+func NewDeploymentFromConstructor(constructor *DeploymentConstructor) (*Deployment, error) {
 
-	deployment := NewDeployment()
+	deployment, err := NewDeployment()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create deployment from constructor")
+	}
+
 	deployment.DeploymentConstructor = constructor
 
-	return deployment
+	return deployment, nil
 }
 
 // Validate checkes structure according to valid tags
