@@ -130,6 +130,20 @@ func createValidImageMetaArtifact() *images.SoftwareImageMetaArtifactConstructor
 	return imageMetaArtifact
 }
 
+func createValidImageMetaDataArtifact() *images.SoftwareImageMetaArtifactConstructor {
+	imageMetaArtifact := createValidImageMetaArtifact()
+	metaData := map[string]interface{}{
+		"foo": "bar",
+		"image": "alpine:sha123",
+	}
+	imageMetaArtifact.Updates = append(
+		imageMetaArtifact.Updates,
+		images.Update{
+			MetaData: metaData,
+		})
+	return imageMetaArtifact
+}
+
 func TestCreateImageInsertError(t *testing.T) {
 	fakeIS := new(FakeImageStorage)
 	fakeIS.insertError = errors.New("insert error")
@@ -220,6 +234,29 @@ func TestCreateSignedImageCreateOK(t *testing.T) {
 
 		t.FailNow()
 	}
+}
+
+func TestCreateImageMetaDataOK(t *testing.T) {
+	imageMeta := createValidImageMeta()
+	imageMetaArtifact := createValidImageMetaDataArtifact()
+	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
+	now := time.Now()
+	constructorImage.Modified = &now
+
+	fakeIS := new(FakeImageStorage)
+	fakeIS.findByIdImage = constructorImage
+	fakeFS := new(FakeFileStorage)
+	fakeFS.lastModifiedTime = time.Now()
+
+	iModel := NewImagesModel(fakeFS, nil, fakeIS)
+	image, err := iModel.GetImage(context.Background(), "")
+	if err != nil || image == nil {
+		t.FailNow()
+	}
+	if image.Updates == nil || image.Updates[0].MetaData == nil {
+		t.FailNow()
+	}
+	assert.Equal(t, image.Updates[0].MetaData.(map[string]interface{})["foo"], "bar")
 }
 
 func TestGetImageFindByIDError(t *testing.T) {

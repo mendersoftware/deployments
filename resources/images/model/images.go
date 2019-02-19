@@ -356,6 +356,11 @@ func getMetaFromArchive(r *io.Reader) (*images.SoftwareImageMetaArtifactConstruc
 			return nil, errors.Wrap(err, "Cannot get update files:")
 		}
 
+		uMetadata, err := p.GetUpdateMetaData()
+		if err != nil {
+			return nil, errors.Wrap(err, "Cannot get update metadata")
+		}
+
 		metaArtifact.Updates = append(
 			metaArtifact.Updates,
 			images.Update{
@@ -363,6 +368,7 @@ func getMetaFromArchive(r *io.Reader) (*images.SoftwareImageMetaArtifactConstruc
 					Type: p.GetUpdateType(),
 				},
 				Files: uFiles,
+				MetaData: uMetadata,
 			})
 	}
 
