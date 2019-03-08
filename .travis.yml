@@ -121,21 +121,25 @@ script:
     # Exexutes acceptance/integration tasts with branch: master
     - git clone -b master https://github.com/mendersoftware/integration.git integration_new
 
-    # Move script to testing directory
-    - if [[ "$JOB_TYPE" = compile_and_acceptance_tests ]]; then
-        mv integration_new/extra/travis-testing/* tests;
-      fi
-
     # acceptance tests
     # NOTE: the tests require mender-artifact binary to be available
     - if [[ "$JOB_TYPE" = compile_and_acceptance_tests ]]; then
-        CGO_ENABLED=0 go test -c -o deployments-test -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,);
-        sudo docker build -f Dockerfile.acceptance-testing -t $DOCKER_REPOSITORY:prtest .;
-        CGO_ENABLED=0 go build;
-        CGO_ENABLED=0 go get -u -v github.com/mendersoftware/mender-artifact &&
-        ( ./tests/build-acceptance ./tests ./docs/management_api.yml ./docs/devices_api.yml ./docs/internal_api.yml `which mender-artifact` deployments &&
-        TESTS_DIR=$PWD/tests ./tests/run-test-environment "acceptance" $PWD/integration_new ./tests/docker-compose-acceptance.yml &&
-        TESTS_DIR=$PWD/tests ./tests/run-test-environment "acceptance" $PWD/integration_new ./tests/docker-compose-acceptance.mt.yml);
+        RELEASE_TOOL_CMD="./integration_new/extra/release_tool.py --integration-versions-including deployments --version $TRAVIS_BRANCH";
+        RELEASES=$(eval $RELEASE_TOOL_CMD);
+        if [ $? -ne 0 ]; then echo $RELEASES; exit 1; fi;
+        for release in $RELEASES; do
+            cd integration_new;
+            git checkout $release;
+            cd ..;
+            mv integration_new/extra/travis-testing/* tests/ ;
+            CGO_ENABLED=0 go test -c -o deployments-test -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,);
+            sudo docker build -f Dockerfile.acceptance-testing -t $DOCKER_REPOSITORY:prtest .;
+            CGO_ENABLED=0 go build;
+            CGO_ENABLED=0 go get -u -v github.com/mendersoftware/mender-artifact &&
+            ( ./tests/build-acceptance ./tests ./docs/management_api.yml ./docs/devices_api.yml ./docs/internal_api.yml `which mender-artifact` deployments &&
+            TESTS_DIR=$PWD/tests ./tests/run-test-environment "acceptance" $PWD/integration_new ./tests/docker-compose-acceptance.yml &&
+            TESTS_DIR=$PWD/tests ./tests/run-test-environment "acceptance" $PWD/integration_new ./tests/docker-compose-acceptance.mt.yml);
+        done;
       fi
 
     - if [ "$JOB_TYPE" = compile_and_basic_tests ]; then
