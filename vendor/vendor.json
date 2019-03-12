@@ -621,6 +621,12 @@
 			"revisionTime": "2018-09-26T09:45:58Z"
 		},
 		{
+			"checksumSHA1": "Uh9wFcTmKv1Y91zro3XPdKr0z1M=",
+			"path": "github.com/mendersoftware/go-liblzma",
+			"revision": "7c43a54b162c2031114bdeb3be8d64e3f507e73b",
+			"revisionTime": "2018-12-18T07:42:49Z"
+		},
+		{
 			"checksumSHA1": "NH/E/+GFtMjxQ1vuus5y2yko17A=",
 			"path": "github.com/mendersoftware/mender-artifact",
 			"revision": "09e213244bfec8cfe87746d08a331c2622e88bc1",
