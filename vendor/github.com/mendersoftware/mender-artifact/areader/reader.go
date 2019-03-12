@@ -17,12 +17,12 @@ package areader
 import (
 	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -42,16 +42,18 @@ type Reader struct {
 	IsSigned                  bool
 	ForbidUnknownHandlers     bool
 
-	shouldBeSigned bool
-	hInfo          artifact.HeaderInfoer
-	augmentedhInfo artifact.HeaderInfoer
-	info           *artifact.Info
-	r              io.Reader
-	files          []handlers.DataFile
-	augmentFiles   []handlers.DataFile
-	handlers       map[string]handlers.Installer
-	installers     map[int]handlers.Installer
-	updateStorers  map[int]handlers.UpdateStorer
+	shouldBeSigned  bool
+	hInfo           artifact.HeaderInfoer
+	augmentedhInfo  artifact.HeaderInfoer
+	info            *artifact.Info
+	r               io.Reader
+	files           []handlers.DataFile
+	augmentFiles    []handlers.DataFile
+	handlers        map[string]handlers.Installer
+	installers      map[int]handlers.Installer
+	updateStorers   map[int]handlers.UpdateStorer
+	manifest        *artifact.ChecksumStore
+	menderTarReader *tar.Reader
 }
 
 func NewReader(r io.Reader) *Reader {
@@ -109,13 +111,14 @@ func readStateScripts(tr *tar.Reader, header *tar.Header, cb ScriptsReadFn) erro
 	return nil
 }
 
-func (ar *Reader) readHeader(tReader io.Reader, headerSum []byte) error {
+func (ar *Reader) readHeader(headerSum []byte, comp artifact.Compressor) error {
 
-	r := getReader(tReader, headerSum)
+	r := getReader(ar.menderTarReader, headerSum)
 	// header MUST be compressed
-	gz, err := gzip.NewReader(r)
+	gz, err := comp.NewReader(r)
 	if err != nil {
-		return errors.Wrapf(err, "readHeader: error opening compressed header")
+		return errors.Wrapf(err, "readHeader: error opening %s header",
+			comp.GetFileExtension())
 	}
 	defer gz.Close()
 	tr := tar.NewReader(gz)
@@ -175,12 +178,13 @@ func (ar *Reader) populateArtifactInfo(version int, tr *tar.Reader) error {
 	return nil
 }
 
-func (ar *Reader) readAugmentedHeader(tReader io.Reader, headerSum []byte) error {
-	r := getReader(tReader, headerSum)
+func (ar *Reader) readAugmentedHeader(headerSum []byte, comp artifact.Compressor) error {
+	r := getReader(ar.menderTarReader, headerSum)
 	// header MUST be compressed
-	gz, err := gzip.NewReader(r)
+	gz, err := comp.NewReader(r)
 	if err != nil {
-		return errors.Wrapf(err, "reader: error opening compressed header")
+		return errors.Wrapf(err, "reader: error opening %s header",
+			comp.GetFileExtension())
 	}
 	defer gz.Close()
 	tr := tar.NewReader(gz)
@@ -248,35 +252,41 @@ func (ar *Reader) GetHandlers() map[int]handlers.Installer {
 	return ar.installers
 }
 
-func (ar *Reader) readHeaderV1(tReader *tar.Reader) error {
+func (ar *Reader) readHeaderV1() error {
 	if ar.shouldBeSigned {
 		return errors.New("reader: expecting signed artifact; " +
 			"v1 is not supporting signatures")
 	}
-	hdr, err := getNext(tReader)
+	hdr, err := getNext(ar.menderTarReader)
 	if err != nil {
 		return errors.New("reader: error reading header")
 	}
-	if !strings.HasPrefix(hdr.Name, "header.tar.") {
+	if !strings.HasPrefix(hdr.Name, "header.tar") {
 		return errors.Errorf("reader: invalid header element: %v", hdr.Name)
 	}
 
-	if err = ar.readHeader(tReader, nil); err != nil {
+	comp, err := artifact.NewCompressorFromFileName(hdr.Name)
+	if err != nil {
+		return errors.New("reader: can't get compressor")
+	}
+
+	if err = ar.readHeader(nil, comp); err != nil {
 		return err
 	}
 	return nil
 }
 
-func readManifest(tReader *tar.Reader, name string) (*artifact.ChecksumStore, error) {
+func (ar *Reader) readManifest(name string) error {
 	buf := bytes.NewBuffer(nil)
-	if err := readNext(tReader, buf, name); err != nil {
-		return nil, errors.Wrap(err, "reader: can not buffer manifest")
+	if err := readNext(ar.menderTarReader, buf, name); err != nil {
+		return errors.Wrap(err, "reader: can not buffer manifest")
 	}
 	manifest := artifact.NewChecksumStore()
 	if err := manifest.ReadRaw(buf.Bytes()); err != nil {
-		return nil, errors.Wrap(err, "reader: can not read manifest")
+		return errors.Wrap(err, "reader: can not read manifest")
 	}
-	return manifest, nil
+	ar.manifest = manifest
+	return nil
 }
 
 func signatureReadAndVerify(tReader *tar.Reader, message []byte,
@@ -312,10 +322,18 @@ func verifyVersion(ver []byte, manifest *artifact.ChecksumStore) error {
 // the artifact version 3.
 var artifactV3ParseGrammar = [][]string{
 	// Version is already read in ReadArtifact().
-	{"manifest", "header.tar.gz"},                                                              // Unsigned.
-	{"manifest", "manifest.sig", "header.tar.gz"},                                              // Signed.
-	{"manifest", "manifest-augment", "header.tar.gz", "header-augment.tar.gz"},                 // Unsigned, with augment header
-	{"manifest", "manifest.sig", "manifest-augment", "header.tar.gz", "header-augment.tar.gz"}, // Signed, with augment header
+	{"manifest", "header.tar"},                                                                 // Unsigned, uncompressed
+	{"manifest", "manifest.sig", "header.tar"},                                                 // Signed, uncompressed
+	{"manifest", "manifest-augment", "header.tar", "header-augment.tar"},                       // Unsigned, uncompressed, with augment header
+	{"manifest", "manifest.sig", "manifest-augment", "header.tar", "header-augment.tar"},       // Signed, uncompressed, with augment header
+	{"manifest", "header.tar.gz"},                                                              // Unsigned, gzipped
+	{"manifest", "manifest.sig", "header.tar.gz"},                                              // Signed, gzipped
+	{"manifest", "manifest-augment", "header.tar.gz", "header-augment.tar.gz"},                 // Unsigned, gzipped, with augment header
+	{"manifest", "manifest.sig", "manifest-augment", "header.tar.gz", "header-augment.tar.gz"}, // Signed, gzipped, with augment header
+	{"manifest", "header.tar.xz"},                                                              // Unsigned, lzma-zipped
+	{"manifest", "manifest.sig", "header.tar.xz"},                                              // Signed, lzma-zipped
+	{"manifest", "manifest-augment", "header.tar.xz", "header-augment.tar.xz"},                 // Unsigned, lzma-zipped, with augment header
+	{"manifest", "manifest.sig", "manifest-augment", "header.tar.xz", "header-augment.tar.xz"}, // Signed, lzma-zipped, with augment header
 	// Data is processed in ReadArtifact()
 }
 
@@ -345,34 +363,33 @@ func verifyParseOrder(parseOrder []string) (validToken string, validPath bool, e
 	return "", false, errParseOrder
 }
 
-func (ar *Reader) readHeaderV3(tReader *tar.Reader,
-	version []byte) (*artifact.ChecksumStore, error) {
-	manifestChecksumStore := artifact.NewChecksumStore()
+func (ar *Reader) readHeaderV3(version []byte) error {
+
+	ar.manifest = artifact.NewChecksumStore()
 	parsePath := []string{}
 
 	for {
-		hdr, err := tReader.Next()
+		hdr, err := ar.menderTarReader.Next()
 		if err == io.EOF {
-			return nil, errors.New("The artifact does not contain all required fields")
+			return errors.New("The artifact does not contain all required fields")
 		}
 		if err != nil {
-			return nil, errors.Wrap(err, "readHeaderV3")
+			return errors.Wrap(err, "readHeaderV3")
 		}
 		parsePath = append(parsePath, hdr.Name)
 		nextParseToken, validPath, err := verifyParseOrder(parsePath)
 		// Only error returned is errParseOrder.
 		if err != nil {
-			return nil, fmt.Errorf("Invalid structure: %s, wrong element: %s", parsePath, parsePath[len(parsePath)-1])
+			return fmt.Errorf("Invalid structure: %s, wrong element: %s", parsePath, parsePath[len(parsePath)-1])
 		}
-		err = ar.handleHeaderReads(nextParseToken, tReader, manifestChecksumStore, version)
+		err = ar.handleHeaderReads(nextParseToken, version)
 		if err != nil {
-			return nil, errors.Wrap(err, "readHeaderV3")
+			return errors.Wrap(err, "readHeaderV3")
 		}
 		if validPath {
 			// Artifact should be signed, but isn't, so do not process the update.
 			if ar.shouldBeSigned && !ar.IsSigned {
-				return nil,
-					errors.New("reader: expecting signed artifact, but no signature file found")
+				return errors.New("reader: expecting signed artifact, but no signature file found")
 			}
 			break // return and process the /data records in ReadArtifact()
 		}
@@ -381,51 +398,62 @@ func (ar *Reader) readHeaderV3(tReader *tar.Reader,
 	// Now assign all the files we got in the manifest to the correct
 	// installers. The files are indexed by their `data/xxxx` prefix.
 	if err := ar.assignUpdateFiles(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return manifestChecksumStore, nil
+	return nil
 }
 
-func (ar *Reader) handleHeaderReads(headerName string, tReader *tar.Reader, manifestChecksumStore *artifact.ChecksumStore, version []byte) error {
+func (ar *Reader) handleHeaderReads(headerName string, version []byte) error {
 	var err error
 	switch headerName {
 	case "manifest":
 		// Get the data from the manifest.
-		ar.files, err = readManifestHeader(ar, tReader, manifestChecksumStore)
+		ar.files, err = readManifestHeader(ar, ar.menderTarReader)
 		// verify checksums of version
-		if err = verifyVersion(version, manifestChecksumStore); err != nil {
+		if err = verifyVersion(version, ar.manifest); err != nil {
 			return err
 		}
 		return err
 	case "manifest.sig":
 		ar.IsSigned = true
 		// First read and verify signature
-		if err = signatureReadAndVerify(tReader, manifestChecksumStore.GetRaw(),
+		if err = signatureReadAndVerify(ar.menderTarReader, ar.manifest.GetRaw(),
 			ar.VerifySignatureCallback, ar.shouldBeSigned); err != nil {
 			return err
 		}
 	case "manifest-augment":
 		// Get the data from the augmented manifest.
-		ar.augmentFiles, err = readManifestHeader(ar, tReader, manifestChecksumStore)
+		ar.augmentFiles, err = readManifestHeader(ar, ar.menderTarReader)
 		return err
-	case "header.tar.gz":
+	case "header.tar", "header.tar.gz", "header.tar.xz":
 		// Get and verify checksums of header.
-		hc, err := manifestChecksumStore.GetAndMark("header.tar.gz")
+		hc, err := ar.manifest.GetAndMark(headerName)
 		if err != nil {
 			return err
 		}
 
-		if err := ar.readHeader(tReader, hc); err != nil {
+		comp, err := artifact.NewCompressorFromFileName(headerName)
+		if err != nil {
+			return errors.New("reader: can't get compressor")
+		}
+
+		if err := ar.readHeader(hc, comp); err != nil {
 			return errors.Wrap(err, "handleHeaderReads")
 		}
-	case "header-augment.tar.gz":
+	case "header-augment.tar", "header-augment.tar.gz", "header-augment.tar.xz":
 		// Get and verify checksums of the augmented header.
-		hc, err := manifestChecksumStore.GetAndMark("header-augment.tar.gz")
+		hc, err := ar.manifest.GetAndMark(headerName)
 		if err != nil {
 			return err
 		}
-		if err := ar.readAugmentedHeader(tReader, hc); err != nil {
+
+		comp, err := artifact.NewCompressorFromFileName(headerName)
+		if err != nil {
+			return errors.New("reader: can't get compressor")
+		}
+
+		if err := ar.readAugmentedHeader(hc, comp); err != nil {
 			return errors.Wrap(err, "handleHeaderReads: Failed to read the augmented header")
 		}
 	default:
@@ -435,13 +463,13 @@ func (ar *Reader) handleHeaderReads(headerName string, tReader *tar.Reader, mani
 	return nil
 }
 
-func readManifestHeader(ar *Reader, tReader *tar.Reader, manifestChecksumStore *artifact.ChecksumStore) ([]handlers.DataFile, error) {
+func readManifestHeader(ar *Reader, tReader *tar.Reader) ([]handlers.DataFile, error) {
 	buf := bytes.NewBuffer(nil)
 	_, err := io.Copy(buf, tReader)
 	if err != nil {
 		return nil, errors.Wrap(err, "readHeaderV3: Failed to copy to the byte buffer, from the tar reader")
 	}
-	err = manifestChecksumStore.ReadRaw(buf.Bytes())
+	err = ar.manifest.ReadRaw(buf.Bytes())
 	if err != nil {
 		return nil, errors.Wrap(err, "readHeaderV3: Failed to populate the manifest's checksum store")
 	}
@@ -460,114 +488,134 @@ func readManifestHeader(ar *Reader, tReader *tar.Reader, manifestChecksumStore *
 	return files, nil
 }
 
-func (ar *Reader) readHeaderV2(tReader *tar.Reader,
-	version []byte) (*artifact.ChecksumStore, error) {
+func (ar *Reader) readHeaderV2(version []byte) error {
+
 	// first file after version MUST contain all the checksums
-	manifest, err := readManifest(tReader, "manifest")
+	err := ar.readManifest("manifest")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// check what is the next file in the artifact
 	// depending if artifact is signed or not we can have
 	// either header or signature file
-	hdr, err := getNext(tReader)
+	hdr, err := getNext(ar.menderTarReader)
 	if err != nil {
-		return nil, errors.Wrapf(err, "reader: error reading file after manifest")
+		return errors.Wrapf(err, "reader: error reading file after manifest")
 	}
 
 	// we are expecting to have a signed artifact, but the signature is missing
 	if ar.shouldBeSigned && (hdr.FileInfo().Name() != "manifest.sig") {
-		return nil,
-			errors.New("reader: expecting signed artifact, but no signature file found")
+		return errors.New("reader: expecting signed artifact, but no signature file found")
 	}
 
-	switch hdr.FileInfo().Name() {
-	case "manifest.sig":
+	name := hdr.FileInfo().Name()
+	switch {
+	case name == "manifest.sig":
 		ar.IsSigned = true
 		// firs read and verify signature
-		if err = signatureReadAndVerify(tReader, manifest.GetRaw(),
+		if err = signatureReadAndVerify(ar.menderTarReader, ar.manifest.GetRaw(),
 			ar.VerifySignatureCallback, ar.shouldBeSigned); err != nil {
-			return nil, err
+			return err
 		}
 		// verify checksums of version
-		if err = verifyVersion(version, manifest); err != nil {
-			return nil, err
+		if err = verifyVersion(version, ar.manifest); err != nil {
+			return err
 		}
 
 		// ...and then header
-		hdr, err = getNext(tReader)
+		hdr, err = getNext(ar.menderTarReader)
 		if err != nil {
-			return nil, errors.New("reader: error reading header")
+			return errors.New("reader: error reading header")
 		}
-		if !strings.HasPrefix(hdr.Name, "header.tar.gz") {
-			return nil, errors.Errorf("reader: invalid header element: %v", hdr.Name)
+		name = hdr.FileInfo().Name()
+		if !strings.HasPrefix(name, "header.tar") {
+			return errors.Errorf("reader: invalid header element: %v", hdr.Name)
 		}
 		fallthrough
 
-	case "header.tar.gz":
+	case strings.HasPrefix(name, "header.tar"):
 		// get and verify checksums of header
-		hc, err := manifest.GetAndMark("header.tar.gz")
+		hc, err := ar.manifest.GetAndMark(name)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		// verify checksums of version
-		if err = verifyVersion(version, manifest); err != nil {
-			return nil, err
+		if err = verifyVersion(version, ar.manifest); err != nil {
+			return err
 		}
 
-		if err := ar.readHeader(tReader, hc); err != nil {
-			return nil, err
+		comp, err := artifact.NewCompressorFromFileName(name)
+		if err != nil {
+			return errors.New("reader: can't get compressor")
+		}
+
+		if err := ar.readHeader(hc, comp); err != nil {
+			return err
 		}
 
 	default:
-		return nil, errors.Errorf("reader: found unexpected file in artifact: %v",
+		return errors.Errorf("reader: found unexpected file in artifact: %v",
 			hdr.FileInfo().Name())
 	}
-	return manifest, nil
+	return nil
 }
 
 func (ar *Reader) ReadArtifact() error {
+	err := ar.ReadArtifactHeaders()
+	if err != nil {
+		return err
+	}
+
+	return ar.ReadArtifactData()
+}
+
+func (ar *Reader) ReadArtifactHeaders() error {
 	// each artifact is tar archive
 	if ar.r == nil {
 		return errors.New("reader: read artifact called on invalid stream")
 	}
-	tReader := tar.NewReader(ar.r)
+	ar.menderTarReader = tar.NewReader(ar.r)
 
 	// first file inside the artifact MUST be version
-	ver, vRaw, err := ReadVersion(tReader)
+	ver, vRaw, err := ReadVersion(ar.menderTarReader)
 	if err != nil {
 		return errors.Wrapf(err, "reader: can not read version file")
 	}
 	ar.info = ver
 
-	var s *artifact.ChecksumStore
-
 	switch ver.Version {
 	case 1:
-		if err = ar.readHeaderV1(tReader); err != nil {
-			return err
-		}
+		err = ar.readHeaderV1()
 	case 2:
-		s, err = ar.readHeaderV2(tReader, vRaw)
-		if err != nil {
-			return err
-		}
+		err = ar.readHeaderV2(vRaw)
 	case 3:
-		s, err = ar.readHeaderV3(tReader, vRaw)
-		if err != nil {
-			return err
-		}
+		err = ar.readHeaderV3(vRaw)
 	default:
 		return errors.Errorf("reader: unsupported version: %d", ver.Version)
 	}
-	err = ar.readData(tReader, s)
 	if err != nil {
 		return err
 	}
-	if s != nil {
-		notMarked := s.FilesNotMarked()
+
+	for no, us := range ar.updateStorers {
+		err = us.Initialize(ar.hInfo, ar.augmentedhInfo, ar.installers[no])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ar *Reader) ReadArtifactData() error {
+	err := ar.readData(ar.menderTarReader)
+	if err != nil {
+		return err
+	}
+	if ar.manifest != nil {
+		notMarked := ar.manifest.FilesNotMarked()
 		if len(notMarked) > 0 {
 			return fmt.Errorf("Files found in manifest(s), that were not part of artifact: %s", strings.Join(notMarked, ", "))
 		}
@@ -650,6 +698,12 @@ func (ar *Reader) setInstallers(upd []artifact.UpdateType, augmented bool) error
 			// For older versions, use GenericV1V2, which is a stub.
 			ar.installers[i] = handlers.NewGenericV1V2(update.Type)
 		}
+
+		var err error
+		ar.updateStorers[i], err = ar.installers[i].NewUpdateStorer(update.Type, i)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -705,8 +759,8 @@ func getUpdateNoFromHeaderPath(path string) (int, error) {
 }
 
 // should be 0000.tar.gz
-func getUpdateNoFromDataPath(path string) (int, error) {
-	no := strings.TrimSuffix(filepath.Base(path), ".tar.gz")
+func getUpdateNoFromDataPath(comp artifact.Compressor, path string) (int, error) {
+	no := strings.TrimSuffix(filepath.Base(path), ".tar"+comp.GetFileExtension())
 	return strconv.Atoi(no)
 }
 
@@ -759,8 +813,7 @@ func (ar *Reader) readHeaderUpdate(tr *tar.Reader, hdr *tar.Header, augmented bo
 	}
 }
 
-func (ar *Reader) readNextDataFile(tr *tar.Reader,
-	manifest *artifact.ChecksumStore) error {
+func (ar *Reader) readNextDataFile(tr *tar.Reader) error {
 	hdr, err := getNext(tr)
 	if err == io.EOF {
 		return io.EOF
@@ -770,7 +823,11 @@ func (ar *Reader) readNextDataFile(tr *tar.Reader,
 	if filepath.Dir(hdr.Name) != "data" {
 		return errors.New("reader: invalid data file name: " + hdr.Name)
 	}
-	updNo, err := getUpdateNoFromDataPath(hdr.Name)
+	comp, err := artifact.NewCompressorFromFileName(hdr.Name)
+	if err != nil {
+		return errors.New("reader: can't get compressor")
+	}
+	updNo, err := getUpdateNoFromDataPath(comp, hdr.Name)
 	if err != nil {
 		return errors.Wrapf(err, "reader: error getting data Payload number")
 	}
@@ -779,12 +836,12 @@ func (ar *Reader) readNextDataFile(tr *tar.Reader,
 		return errors.Wrapf(err,
 			"reader: can not find parser for parsing data file [%v]", hdr.Name)
 	}
-	return ar.readAndInstall(tr, inst, manifest, updNo)
+	return ar.readAndInstall(tr, inst, updNo, comp)
 }
 
-func (ar *Reader) readData(tr *tar.Reader, manifest *artifact.ChecksumStore) error {
+func (ar *Reader) readData(tr *tar.Reader) error {
 	for {
-		err := ar.readNextDataFile(tr, manifest)
+		err := ar.readNextDataFile(tr)
 		if err == io.EOF {
 			break
 		} else if err != nil {
@@ -831,22 +888,40 @@ func getDataFile(i handlers.Installer, name string) *handlers.DataFile {
 	return nil
 }
 
-func (ar *Reader) readAndInstall(r io.Reader, i handlers.Installer,
-	manifest *artifact.ChecksumStore, no int) error {
+func (ar *Reader) readAndInstall(r io.Reader, i handlers.Installer, no int,
+	comp artifact.Compressor) error {
+
 	// each data file is stored in tar.gz format
-	gz, err := gzip.NewReader(r)
+	gz, err := comp.NewReader(r)
 	if err != nil {
-		return errors.Wrapf(err, "Payload: can not open gz for reading data")
+		return errors.Wrapf(err, "Payload: can not open %s file for reading data",
+			comp.GetFileExtension())
 	}
 	defer gz.Close()
 
-	updateStorer, err := i.NewUpdateStorer(i.GetUpdateType(), no)
+	updateStorer := ar.updateStorers[no]
+
+	tar := tar.NewReader(gz)
+
+	err = updateStorer.PrepareStoreUpdate()
 	if err != nil {
 		return err
 	}
-	ar.updateStorers[no] = updateStorer
 
-	tar := tar.NewReader(gz)
+	instErr := ar.readAndInstallDataFiles(tar, i, no, comp, updateStorer)
+	err = updateStorer.FinishStoreUpdate()
+	if instErr != nil {
+		if err != nil {
+			return errors.Wrap(instErr, err.Error())
+		} else {
+			return instErr
+		}
+	}
+	return err
+}
+
+func (ar *Reader) readAndInstallDataFiles(tar *tar.Reader, i handlers.Installer,
+	no int, comp artifact.Compressor, updateStorer handlers.UpdateStorer) error {
 
 	for {
 		hdr, err := tar.Next()
@@ -861,6 +936,18 @@ func (ar *Reader) readAndInstall(r io.Reader, i handlers.Installer,
 			return errors.Errorf("Payload: can not find data file: %s", hdr.Name)
 		}
 
+		matched, err := regexp.MatchString(`^[\w\-.,]+$`, filepath.Base(hdr.Name))
+
+		if err != nil {
+			return errors.Wrapf(err, "Payload: invalid regular expression pattern")
+		}
+
+		if !matched {
+			message := "Payload: data file " + hdr.Name + " contains forbidden characters"
+			info := "Only letters, digits and characters in the set \".,_-\" are allowed"
+			return fmt.Errorf("%s. %s", message, info)
+		}
+
 		// fill in needed data
 		info := hdr.FileInfo()
 		df.Size = info.Size()
@@ -870,8 +957,8 @@ func (ar *Reader) readAndInstall(r io.Reader, i handlers.Installer,
 		// or it needs to be pre-filled after reading header
 		// all the names of the data files in manifest are written with the
 		// archive relative path: data/0000/update.ext4
-		if manifest != nil {
-			df.Checksum, err = manifest.GetAndMark(filepath.Join(artifact.UpdatePath(no),
+		if ar.manifest != nil {
+			df.Checksum, err = ar.manifest.GetAndMark(filepath.Join(artifact.UpdatePath(no),
 				hdr.FileInfo().Name()))
 			if err != nil {
 				return errors.Wrapf(err, "Payload: checksum missing")
@@ -885,7 +972,7 @@ func (ar *Reader) readAndInstall(r io.Reader, i handlers.Installer,
 		ch := artifact.NewReaderChecksum(tar, df.Checksum)
 
 		if err = updateStorer.StoreUpdate(ch, info); err != nil {
-			return errors.Wrapf(err, "Payload: can not install Payload: %v", hdr)
+			return errors.Wrapf(err, "Payload: can not install Payload: %s", hdr.Name)
 		}
 
 		if err = ch.Verify(); err != nil {

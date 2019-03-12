@@ -16,12 +16,12 @@ package awriter
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/mendersoftware/mender-artifact/artifact"
 	"github.com/mendersoftware/mender-artifact/handlers"
@@ -33,17 +33,20 @@ import (
 type Writer struct {
 	w      io.Writer // underlying writer
 	signer artifact.Signer
+	c      artifact.Compressor
 }
 
-func NewWriter(w io.Writer) *Writer {
+func NewWriter(w io.Writer, c artifact.Compressor) *Writer {
 	return &Writer{
 		w: w,
+		c: c,
 	}
 }
 
-func NewWriterSigned(w io.Writer, manifestChecksumStore artifact.Signer) *Writer {
+func NewWriterSigned(w io.Writer, c artifact.Compressor, manifestChecksumStore artifact.Signer) *Writer {
 	return &Writer{
 		w:      w,
+		c:      c,
 		signer: manifestChecksumStore,
 	}
 }
@@ -93,7 +96,9 @@ func calcDataHash(manifestChecksumStore *artifact.ChecksumStore, upd *Updates, a
 }
 
 // writeTempHeader can write both the standard and the augmented header
-func writeTempHeader(manifestChecksumStore *artifact.ChecksumStore, name string, args *WriteArtifactArgs, augmented bool) (*os.File, error) {
+func writeTempHeader(c artifact.Compressor, manifestChecksumStore *artifact.ChecksumStore,
+	name string, args *WriteArtifactArgs, augmented bool) (*os.File, error) {
+
 	// create temporary header file
 	f, err := ioutil.TempFile("", name)
 	if err != nil {
@@ -104,7 +109,10 @@ func writeTempHeader(manifestChecksumStore *artifact.ChecksumStore, name string,
 	// use function to make sure to close gz and tar before
 	// calculating checksum
 	err = func() error {
-		gz := gzip.NewWriter(ch)
+		gz, err := c.NewWriter(ch)
+		if err != nil {
+			return errors.Wrapf(err, "writer: can not open compressor")
+		}
 		defer gz.Close()
 
 		htw := tar.NewWriter(gz)
@@ -120,7 +128,8 @@ func writeTempHeader(manifestChecksumStore *artifact.ChecksumStore, name string,
 	if err != nil {
 		return nil, err
 	}
-	manifestChecksumStore.Add(name+".tar.gz", ch.Checksum())
+	fullName := fmt.Sprintf("%s.tar%s", name, c.GetFileExtension())
+	manifestChecksumStore.Add(fullName, ch.Checksum())
 
 	return f, nil
 }
@@ -185,7 +194,7 @@ func (aw *Writer) writeArtifactV1V2(args *WriteArtifactArgs) error {
 	tw := tar.NewWriter(aw.w)
 	defer tw.Close()
 
-	tmpHdr, err := writeTempHeader(manifestChecksumStore, "header", args, false)
+	tmpHdr, err := writeTempHeader(aw.c, manifestChecksumStore, "header", args, false)
 
 	if err != nil {
 		return err
@@ -211,12 +220,12 @@ func (aw *Writer) writeArtifactV1V2(args *WriteArtifactArgs) error {
 		return errors.Wrapf(err, "writer: error preparing tmp header for writing")
 	}
 	fw := artifact.NewTarWriterFile(tw)
-	if err := fw.Write(tmpHdr, "header.tar.gz"); err != nil {
+	if err := fw.Write(tmpHdr, "header.tar"+aw.c.GetFileExtension()); err != nil {
 		return errors.Wrapf(err, "writer: can not tar header")
 	}
 
 	// write data files
-	return writeData(tw, args.Updates)
+	return writeData(tw, aw.c, args.Updates)
 }
 
 func (aw *Writer) writeArtifactV3(args *WriteArtifactArgs) (err error) {
@@ -239,7 +248,7 @@ func (aw *Writer) writeArtifactV3(args *WriteArtifactArgs) (err error) {
 	defer tw.Close()
 
 	// The header in version 3 will have the original rootfs-checksum in type-info!
-	tmpHdr, err := writeTempHeader(manifestChecksumStore, "header", args, false)
+	tmpHdr, err := writeTempHeader(aw.c, manifestChecksumStore, "header", args, false)
 	if err != nil {
 		return errors.Wrap(err, "writeArtifactV3: writing header")
 	}
@@ -247,7 +256,7 @@ func (aw *Writer) writeArtifactV3(args *WriteArtifactArgs) (err error) {
 
 	var tmpAugHdr *os.File
 	if augmentedDataPresent {
-		tmpAugHdr, err = writeTempHeader(augManifestChecksumStore, "header-augment", args, true)
+		tmpAugHdr, err = writeTempHeader(aw.c, augManifestChecksumStore, "header-augment", args, true)
 		if err != nil {
 			return errors.Wrap(err, "writeArtifactV3: writing augmented header")
 		}
@@ -282,7 +291,7 @@ func (aw *Writer) writeArtifactV3(args *WriteArtifactArgs) (err error) {
 		return errors.Wrapf(err, "writer: error preparing tmp header for writing")
 	}
 	fw := artifact.NewTarWriterFile(tw)
-	if err := fw.Write(tmpHdr, "header.tar.gz"); err != nil {
+	if err := fw.Write(tmpHdr, "header.tar"+aw.c.GetFileExtension()); err != nil {
 		return errors.Wrapf(err, "writer: can not tar header")
 	}
 
@@ -294,7 +303,7 @@ func (aw *Writer) writeArtifactV3(args *WriteArtifactArgs) (err error) {
 			return errors.Wrapf(err, "writer: error preparing tmp augment-header for writing")
 		}
 		fw = artifact.NewTarWriterFile(tw)
-		if err := fw.Write(tmpAugHdr, "header-augment.tar.gz"); err != nil {
+		if err := fw.Write(tmpAugHdr, "header-augment.tar"+aw.c.GetFileExtension()); err != nil {
 			return errors.Wrapf(err, "writer: can not tar augmented-header")
 		}
 	}
@@ -302,7 +311,7 @@ func (aw *Writer) writeArtifactV3(args *WriteArtifactArgs) (err error) {
 	//////////////////////////
 	// Write the datafiles  //
 	//////////////////////////
-	return writeData(tw, args.Updates)
+	return writeData(tw, aw.c, args.Updates)
 }
 
 // writeArtifactVersion writes version specific artifact records.
@@ -437,20 +446,22 @@ func writeHeader(tarWriter *tar.Writer, args *WriteArtifactArgs, augmented bool)
 	return nil
 }
 
-func writeData(tw *tar.Writer, updates *Updates) error {
+func writeData(tw *tar.Writer, comp artifact.Compressor, updates *Updates) error {
 	for i, upd := range updates.Updates {
 		var augment handlers.Composer = nil
 		if i < len(updates.Augments) {
 			augment = updates.Augments[i]
 		}
-		if err := writeOneDataTar(tw, i, upd, augment); err != nil {
+		if err := writeOneDataTar(tw, comp, i, upd, augment); err != nil {
 			return errors.Wrapf(err, "writer: error writing data files")
 		}
 	}
 	return nil
 }
 
-func writeOneDataTar(tw *tar.Writer, no int, baseUpdate, augmentUpdate handlers.Composer) error {
+func writeOneDataTar(tw *tar.Writer, comp artifact.Compressor, no int,
+	baseUpdate, augmentUpdate handlers.Composer) error {
+
 	f, ferr := ioutil.TempFile("", "data")
 	if ferr != nil {
 		return errors.New("Payload: can not create temporary data file")
@@ -458,14 +469,17 @@ func writeOneDataTar(tw *tar.Writer, no int, baseUpdate, augmentUpdate handlers.
 	defer os.Remove(f.Name())
 
 	err := func() error {
-		gz := gzip.NewWriter(f)
+		gz, err := comp.NewWriter(f)
+		if err != nil {
+			return errors.Wrap(err, "Could not open compressor")
+		}
 		defer gz.Close()
 
 		tarw := tar.NewWriter(gz)
 		defer tarw.Close()
 
 		for _, file := range baseUpdate.GetUpdateFiles() {
-			err := writeOneDataFile(tarw, file)
+			err = writeOneDataFile(tarw, file)
 			if err != nil {
 				return err
 			}
@@ -475,7 +489,7 @@ func writeOneDataTar(tw *tar.Writer, no int, baseUpdate, augmentUpdate handlers.
 		}
 
 		for _, file := range augmentUpdate.GetUpdateAugmentFiles() {
-			err := writeOneDataFile(tarw, file)
+			err = writeOneDataFile(tarw, file)
 			if err != nil {
 				return err
 			}
@@ -492,13 +506,25 @@ func writeOneDataTar(tw *tar.Writer, no int, baseUpdate, augmentUpdate handlers.
 	}
 
 	dfw := artifact.NewTarWriterFile(tw)
-	if err = dfw.Write(f, artifact.UpdateDataPath(no)); err != nil {
+	if err = dfw.Write(f, artifact.UpdateDataPath(no)+comp.GetFileExtension()); err != nil {
 		return errors.Wrap(err, "Payload: can not write tar data header")
 	}
 	return nil
 }
 
 func writeOneDataFile(tarw *tar.Writer, file *handlers.DataFile) error {
+	matched, err := regexp.MatchString(`^[\w\-.,]+$`, filepath.Base(file.Name))
+
+	if err != nil {
+		return errors.Wrapf(err, "Payload: invalid regular expression pattern")
+	}
+
+	if !matched {
+		message := "Payload: data file " + file.Name + " contains forbidden characters"
+		info := "Only letters, digits and characters in the set \".,_-\" are allowed"
+		return fmt.Errorf("%s. %s", message, info)
+	}
+
 	df, err := os.Open(file.Name)
 	if err != nil {
 		return errors.Wrapf(err, "Payload: can not open data file: %s", file.Name)

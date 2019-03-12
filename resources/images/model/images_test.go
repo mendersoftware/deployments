@@ -595,12 +595,13 @@ func MakeRootfsImageArtifact(version int, signed bool) (*bytes.Buffer, error) {
 	defer os.Remove(upd)
 
 	art := bytes.NewBuffer(nil)
+	comp := artifact.NewCompressorGzip()
 	var aw *awriter.Writer
 	if !signed {
-		aw = awriter.NewWriter(art)
+		aw = awriter.NewWriter(art, comp)
 	} else {
 		s := artifact.NewSigner([]byte(PrivateKey))
-		aw = awriter.NewWriterSigned(art, s)
+		aw = awriter.NewWriterSigned(art, comp, s)
 	}
 	var u handlers.Composer
 	switch version {

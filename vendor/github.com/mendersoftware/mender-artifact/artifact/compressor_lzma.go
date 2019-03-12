@@ -11,27 +11,36 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+// +build !nolzma,cgo
 
 package artifact
 
 import (
-	"fmt"
-	"path/filepath"
+	"io"
+
+	"github.com/mendersoftware/go-liblzma"
 )
 
-const (
-	HeaderDirectory = "headers"
-	DataDirectory   = "data"
-)
-
-func UpdatePath(no int) string {
-	return filepath.Join(DataDirectory, fmt.Sprintf("%04d", no))
+type CompressorLzma struct {
+	c Compressor
 }
 
-func UpdateHeaderPath(no int) string {
-	return filepath.Join(HeaderDirectory, fmt.Sprintf("%04d", no))
+func NewCompressorLzma() Compressor {
+	return &CompressorLzma{}
 }
 
-func UpdateDataPath(no int) string {
-	return filepath.Join(DataDirectory, fmt.Sprintf("%04d.tar", no))
+func (c *CompressorLzma) GetFileExtension() string {
+	return ".xz"
+}
+
+func (c *CompressorLzma) NewReader(r io.Reader) (io.ReadCloser, error) {
+	return xz.NewReader(r)
+}
+
+func (c *CompressorLzma) NewWriter(w io.Writer) (io.WriteCloser, error) {
+	return xz.NewWriter(w, xz.Level9)
+}
+
+func init() {
+	RegisterCompressor("lzma", &CompressorLzma{})
 }

@@ -15,23 +15,30 @@
 package artifact
 
 import (
-	"fmt"
-	"path/filepath"
+	"compress/gzip"
+	"io"
 )
 
-const (
-	HeaderDirectory = "headers"
-	DataDirectory   = "data"
-)
-
-func UpdatePath(no int) string {
-	return filepath.Join(DataDirectory, fmt.Sprintf("%04d", no))
+type CompressorGzip struct {
+	c Compressor
 }
 
-func UpdateHeaderPath(no int) string {
-	return filepath.Join(HeaderDirectory, fmt.Sprintf("%04d", no))
+func NewCompressorGzip() Compressor {
+	return &CompressorGzip{}
 }
 
-func UpdateDataPath(no int) string {
-	return filepath.Join(DataDirectory, fmt.Sprintf("%04d.tar", no))
+func (c *CompressorGzip) GetFileExtension() string {
+	return ".gz"
+}
+
+func (c *CompressorGzip) NewReader(r io.Reader) (io.ReadCloser, error) {
+	return gzip.NewReader(r)
+}
+
+func (c *CompressorGzip) NewWriter(w io.Writer) (io.WriteCloser, error) {
+	return gzip.NewWriter(w), nil
+}
+
+func init() {
+	RegisterCompressor("gzip", &CompressorGzip{})
 }
