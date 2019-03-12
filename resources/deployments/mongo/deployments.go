@@ -240,7 +240,12 @@ func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(ctx context.Context,
 
 	session := d.session.Copy()
 	defer session.Close()
-	deployment := deployments.NewDeployment()
+
+	deployment, err := deployments.NewDeployment()
+	if err != nil {
+		return errors.Wrap(err, "failed to create deployment")
+	}
+
 	deployment.Stats = stats
 	var update bson.M
 	if deployment.IsFinished() {
@@ -260,7 +265,7 @@ func (d *DeploymentsStorage) UpdateStatsAndFinishDeployment(ctx context.Context,
 		}
 	}
 
-	err := session.DB(store.DbFromContext(ctx, DatabaseName)).
+	err = session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDeployments).UpdateId(id, update)
 	if err == mgo.ErrNotFound {
 		return ErrStorageInvalidID

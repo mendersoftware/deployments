@@ -107,10 +107,15 @@ func TestNewDeploymentFromConstructor(t *testing.T) {
 
 	t.Parallel()
 
-	assert.NotNil(t, NewDeploymentFromConstructor(nil))
+	dep, err := NewDeploymentFromConstructor(nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, dep)
 
 	con := NewDeploymentConstructor()
-	dep := NewDeploymentFromConstructor(con)
+
+	dep, err = NewDeploymentFromConstructor(con)
+	assert.NoError(t, err)
+
 	assert.NotNil(t, dep)
 	assert.Equal(t, con, dep.DeploymentConstructor)
 }
@@ -152,9 +157,10 @@ func TestDeploymentValidate(t *testing.T) {
 		pub.ArtifactName = test.InputArtifactName
 		pub.Devices = test.InputDevices
 
-		dep := NewDeploymentFromConstructor(pub)
+		dep, err := NewDeploymentFromConstructor(pub)
+		assert.NoError(t, err)
 
-		err := dep.Validate()
+		err = dep.Validate()
 
 		if !test.IsValid {
 			assert.Error(t, err)
@@ -169,7 +175,8 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 
 	t.Parallel()
 
-	dep := NewDeployment()
+	dep, err := NewDeployment()
+	assert.NoError(t, err)
 	dep.Name = StringToPointer("Region: NYC")
 	dep.ArtifactName = StringToPointer("App 123")
 	dep.Devices = []string{"Device 123"}
@@ -206,7 +213,8 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 }
 
 func TestDeploymentIs(t *testing.T) {
-	d := NewDeployment()
+	d, err := NewDeployment()
+	assert.NoError(t, err)
 
 	// should not be in progress, no downloading/installing/rebooting
 	assert.False(t, d.IsInProgress())
@@ -357,7 +365,9 @@ func TestDeploymentGetStatus(t *testing.T) {
 
 		t.Log(name)
 
-		dep := NewDeployment()
+		dep, err := NewDeployment()
+		assert.NoError(t, err)
+
 		dep.Stats = test.Stats
 
 		assert.Equal(t, test.OutputStatus, dep.GetStatus())
@@ -375,7 +385,9 @@ func TestFuzzyGetStatus(t *testing.T) {
 	max := 3
 
 	for i := 0; i < 1000; i++ {
-		dep := NewDeployment()
+		dep, err := NewDeployment()
+		assert.NoError(t, err)
+
 		dep.Stats[DeviceDeploymentStatusDownloading] = rand(0, max)
 		dep.Stats[DeviceDeploymentStatusInstalling] = rand(0, max)
 		dep.Stats[DeviceDeploymentStatusRebooting] = rand(0, max)
