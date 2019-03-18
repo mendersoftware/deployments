@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -163,7 +163,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 	}
 
 	image := images.NewSoftwareImage(
-		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor)
+		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor, multipartUploadMsg.ArtifactSize)
 
 	// save image structure in the system
 	if err = i.imagesStorage.Insert(ctx, image); err != nil {
