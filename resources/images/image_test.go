@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@ package images
 
 import "testing"
 
-const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+const (
+	validUUIDv4  = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+	artifactSize = 10000
+)
 
 func TestValidateEmptyImageMeta(t *testing.T) {
 	image := NewSoftwareImageMetaConstructor()
@@ -66,7 +69,8 @@ func TestValidateCorrectImage(t *testing.T) {
 	imageMetaArtifact.Name = required
 	imageMetaArtifact.DeviceTypesCompatible = []string{"required"}
 
-	image := NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
+	image := NewSoftwareImage(
+		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 
 	if err := image.Validate(); err != nil {
 		t.Errorf("%v", err)

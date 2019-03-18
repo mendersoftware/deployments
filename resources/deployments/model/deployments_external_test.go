@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -33,7 +33,10 @@ import (
 	h "github.com/mendersoftware/deployments/utils/testing"
 )
 
-const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+const (
+	validUUIDv4  = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+	artifactSize = 10000
+)
 
 func TestDeploymentModelGetDeployment(t *testing.T) {
 
@@ -177,20 +180,20 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 		OutputBool  bool
 	}{
 		{
-			InputID: "ID:1234",
+			InputID:                         "ID:1234",
 			InputImageUsedInDeploymentError: errors.New("Storage error"),
 
 			OutputError: errors.New("Checking if image is used in deployment: Storage error"),
 		},
 		{
-			InputID: "ID:1234",
+			InputID:                         "ID:1234",
 			InputImageUsedInDeploymentError: errors.New("Storage error"),
 			InputImageUsedInDeploymentFound: true,
 
 			OutputError: errors.New("Checking if image is used in deployment: Storage error"),
 		},
 		{
-			InputID: "ID:1234",
+			InputID:                         "ID:1234",
 			InputImageUsedInDeploymentFound: true,
 
 			OutputBool: true,
@@ -245,7 +248,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			DeviceTypesCompatible: []string{
 				"hammer",
 			},
-		})
+		}, artifactSize)
 
 	testCases := []struct {
 		InputID string
@@ -271,7 +274,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		OutputDeploymentInstructions *deployments.DeploymentInstructions
 	}{
 		{
-			InputID: "ID:123",
+			InputID:                           "ID:123",
 			InputOlderstDeviceDeploymentError: errors.New("storage issue"),
 
 			OutputError: errors.New("Searching for oldest active deployment for the device: storage issue"),
@@ -293,7 +296,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 						DeviceTypesCompatible: []string{
 							"hammer",
 						},
-					}),
+					}, artifactSize),
 				DeviceId:     StringToPointer("ID:123"),
 				DeploymentId: StringToPointer("ID:678"),
 			},
@@ -305,7 +308,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 					DeviceTypesCompatible: []string{
 						"hammer",
 					},
-				}),
+				}, artifactSize),
 			InputInstalledDeployment: deployments.InstalledDeviceDeployment{
 				Artifact:   "different-artifact",
 				DeviceType: "hammer",
@@ -578,7 +581,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 							DeviceTypesCompatible: []string{
 								"hammer",
 							},
-						})},
+						}, artifactSize)},
 					testCase.InputImagesByNameError)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{
