@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -87,6 +87,9 @@ type SoftwareImage struct {
 	// Image ID
 	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
 
+	// Artifact total size
+	Size int64 `json:"size" bson:"size" valid:"-"`
+
 	// Last modification time, including image upload time
 	Modified *time.Time `json:"modified" valid:"-"`
 }
@@ -95,15 +98,17 @@ type SoftwareImage struct {
 func NewSoftwareImage(
 	id string,
 	metaConstructor *SoftwareImageMetaConstructor,
-	metaArtifactConstructor *SoftwareImageMetaArtifactConstructor) *SoftwareImage {
+	metaArtifactConstructor *SoftwareImageMetaArtifactConstructor,
+	artifactSize int64) *SoftwareImage {
 
 	now := time.Now()
 
 	return &SoftwareImage{
 		SoftwareImageMetaConstructor:         *metaConstructor,
 		SoftwareImageMetaArtifactConstructor: *metaArtifactConstructor,
-		Modified: &now,
-		Id:       id,
+		Modified:                             &now,
+		Id:                                   id,
+		Size:                                 artifactSize,
 	}
 }
 

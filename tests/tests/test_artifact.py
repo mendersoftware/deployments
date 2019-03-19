@@ -91,6 +91,7 @@ class TestArtifact(ArtifactsClient):
             assert res.id == artid
             assert res.name == artifact_name
             assert res.description == description
+            assert res.size == int(art.size)
             assert device_type in res.device_types_compatible
             assert len(res.updates) == 1
             update = res.updates[0]

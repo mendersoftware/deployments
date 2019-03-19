@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -45,7 +45,10 @@ import (
 // 			they are more of integration test beween controller and view
 //			testing actuall HTTP endpoint input/reponse
 
-const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+const (
+	validUUIDv4  = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+	artifactSize = 10000
+)
 
 type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.Route
 
@@ -106,7 +109,8 @@ func TestControllerGetImage(t *testing.T) {
 
 	imageMeta := images.NewSoftwareImageMetaConstructor()
 	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
-	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(
+		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	imagesModel.On("GetImage", h.ContextMatcher(), id).
 		Return(constructorImage, nil)
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -139,7 +143,8 @@ func TestControllerListImages(t *testing.T) {
 	api = setUpRestTest("/api/0.0.1/images", rest.Get, controller.ListImages)
 	imageMeta := images.NewSoftwareImageMetaConstructor()
 	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
-	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(
+		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	imagesModel.On("ListImages", h.ContextMatcher(), mock.Anything).
 		Return([]*images.SoftwareImage{constructorImage}, nil)
 	recorded = test.RunRequest(t, api.MakeHandler(),
@@ -156,7 +161,8 @@ func TestControllerDeleteImage(t *testing.T) {
 
 	imageMeta := images.NewSoftwareImageMetaConstructor()
 	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
-	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(
+		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 
 	// wrong id
 	recorded := test.RunRequest(t, api.MakeHandler(),
