@@ -163,7 +163,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 	}
 
 	image := images.NewSoftwareImage(
-		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor)
+		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor, multipartUploadMsg.ArtifactSize)
 
 	// save image structure in the system
 	if err = i.imagesStorage.Insert(ctx, image); err != nil {

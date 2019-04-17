@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			DeviceTypesCompatible: []string{
 				"hammer",
 			},
-		})
+		}, 10000)
 
 	testCases := []struct {
 		h.JSONResponseParams
@@ -188,7 +188,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			},
 		},
 		{
-			InputID: "device-id-3",
+			InputID:                          "device-id-3",
 			InputModelDeploymentInstructions: nil,
 
 			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
@@ -208,7 +208,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			},
 		},
 		{
-			InputID: "device-id-4",
+			InputID:                          "device-id-4",
 			InputModelDeploymentInstructions: nil,
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -223,7 +223,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			},
 		},
 		{
-			InputID: "device-id-5",
+			InputID:                          "device-id-5",
 			InputModelDeploymentInstructions: nil,
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -238,7 +238,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			},
 		},
 		{
-			InputID: "device-id-6",
+			InputID:                          "device-id-6",
 			InputModelDeploymentInstructions: nil,
 
 			JSONResponseParams: h.JSONResponseParams{

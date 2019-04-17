@@ -955,6 +955,12 @@ definitions:
         format: date-time
         description: |
             Represents creation / last edition of any of the artifact properties.
+      size:
+        required: false
+        type: number
+        format: integer
+        description: |
+            Artifact total size in bytes - the size of the actual file that will be transferred to the device (compressed).
       info:
         $ref: "#/definitions/ArtifactInfo"
       updates:
@@ -970,6 +976,7 @@ definitions:
     example:
       application/json:
         name: Application 1.0.0
+        size: 36891648
         description: Johns Monday test build
         device_types_compatible: [Beagle Bone]
         id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff

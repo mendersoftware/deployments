@@ -35,7 +35,10 @@ import (
 	"github.com/mendersoftware/deployments/resources/images/controller"
 )
 
-const validUUIDv4 = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+const (
+	validUUIDv4  = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
+	artifactSize = 10000
+)
 
 func TestCreateImageEmptyMessage(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
@@ -328,7 +331,8 @@ func (fis *FakeFileStorage) UploadArtifact(ctx context.Context, id string,
 func TestGetImageOK(t *testing.T) {
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaArtifact()
-	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(
+		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -365,7 +369,8 @@ func (fus *FakeUseChecker) ImageUsedInDeployment(ctx context.Context, imageId st
 func TestDeleteImage(t *testing.T) {
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaArtifact()
-	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(
+		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 
 	fakeFS := new(FakeFileStorage)
 	fakeChecker := new(FakeUseChecker)
@@ -439,7 +444,8 @@ func TestListImages(t *testing.T) {
 	//have some valid image
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaArtifact()
-	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(
+		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -490,7 +496,8 @@ func TestEditImage(t *testing.T) {
 	}
 
 	// image does not exists
-	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(
+		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	fakeIS.findByIdImage = constructorImage
 	fakeIS.updateError = errors.New("error")
 	if _, err := iModel.EditImage(context.Background(),
