@@ -17,7 +17,6 @@ package model
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -29,6 +28,7 @@ import (
 	"github.com/mendersoftware/mender-artifact/awriter"
 	"github.com/mendersoftware/mender-artifact/handlers"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/resources/images"
@@ -209,6 +209,61 @@ func TestCreateImageCreateOK(t *testing.T) {
 	if _, err := iModel.CreateImage(context.Background(),
 		multipartUploadMessage); err != nil {
 
+		t.FailNow()
+	}
+}
+
+func TestCreateImageArtifactNotUnique(t *testing.T) {
+	fakeIS := new(FakeImageStorage)
+	fakeIS.insertError = nil
+	fakeIS.isArtifactUnique = false
+	fakeFS := new(FakeFileStorage)
+
+	iModel := NewImagesModel(fakeFS, nil, fakeIS)
+
+	td, _ := ioutil.TempDir("", "mender-install-update-")
+	defer os.RemoveAll(td)
+	upd, err := MakeRootfsImageArtifact(1, false)
+	assert.NoError(t, err)
+
+	multipartUploadMessage := &controller.MultipartUploadMsg{
+		MetaConstructor: createValidImageMeta(),
+		ArtifactSize:    int64(upd.Len()),
+		ArtifactReader:  upd,
+	}
+
+	if _, err := iModel.CreateImage(context.Background(),
+		multipartUploadMessage); err != controller.ErrModelArtifactNotUnique {
+
+		t.FailNow()
+	}
+}
+
+func TestCreateImageArtifactNotUniqueCleanupError(t *testing.T) {
+	fakeIS := new(FakeImageStorage)
+	fakeIS.insertError = nil
+	fakeIS.isArtifactUnique = false
+	fakeFS := new(FakeFileStorage)
+	deleteErr := errors.New("expected error")
+	fakeFS.deleteError = deleteErr
+
+	iModel := NewImagesModel(fakeFS, nil, fakeIS)
+
+	td, _ := ioutil.TempDir("", "mender-install-update-")
+	defer os.RemoveAll(td)
+	upd, err := MakeRootfsImageArtifact(1, false)
+	assert.NoError(t, err)
+
+	multipartUploadMessage := &controller.MultipartUploadMsg{
+		MetaConstructor: createValidImageMeta(),
+		ArtifactSize:    int64(upd.Len()),
+		ArtifactReader:  upd,
+	}
+
+	_, err = iModel.CreateImage(context.Background(), multipartUploadMessage)
+	cause := errors.Cause(err)
+	expectedErr := errors.Wrap(controller.ErrModelArtifactNotUnique, deleteErr.Error())
+	if cause != controller.ErrModelArtifactNotUnique || err.Error() != expectedErr.Error() {
 		t.FailNow()
 	}
 }
