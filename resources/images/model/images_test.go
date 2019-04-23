@@ -242,7 +242,7 @@ func TestCreateSignedImageCreateOK(t *testing.T) {
 func TestCreateImageMetaDataOK(t *testing.T) {
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaDataArtifact()
-	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact)
+	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	now := time.Now()
 	constructorImage.Modified = &now
 
