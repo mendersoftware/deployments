@@ -10,7 +10,7 @@ RUN cd /go/src/github.com/mendersoftware/deployments && env CGO_ENABLED=1 go bui
 
 FROM alpine:3.6
 RUN apk update && apk upgrade && \
-     apk add --no-cache ca-certificates
+     apk add --no-cache ca-certificates xz
 RUN mkdir -p /etc/deployments
 EXPOSE 8080
 COPY ./config.yaml /etc/deployments
