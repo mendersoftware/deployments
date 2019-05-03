@@ -14,4 +14,14 @@ if [ -n "$STORAGE_BACKEND_CERT" -a -e "$STORAGE_BACKEND_CERT" ]; then
     c_rehash $CERTS_DIR
 fi
 
+# Check if we are using Docker secrets
+if [ -n "$DEPLOYMENTS_AWS_AUTH_KEY_FILE" ];
+then
+  export DEPLOYMENTS_AWS_AUTH_KEY="$(cat $DEPLOYMENTS_AWS_AUTH_KEY_FILE)"
+fi
+if [ -n "$DEPLOYMENTS_AWS_AUTH_SECRET_FILE" ];
+then
+  export DEPLOYMENTS_AWS_AUTH_SECRET="$(cat $DEPLOYMENTS_AWS_AUTH_SECRET_FILE)"
+fi
+
 exec deployments "$@"
