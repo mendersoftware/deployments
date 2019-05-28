@@ -40,10 +40,6 @@ type DeploymentConstructor struct {
 	Devices []string `json:"devices,omitempty" valid:"required" bson:"-"`
 }
 
-func NewDeploymentConstructor() *DeploymentConstructor {
-	return &DeploymentConstructor{}
-}
-
 // Validate checkes structure according to valid tags
 // TODO: Add custom validator to check devices array content (such us UUID formatting)
 func (c *DeploymentConstructor) Validate() error {
@@ -97,10 +93,10 @@ func NewDeployment() (*Deployment, error) {
 	id := uid.String()
 
 	return &Deployment{
-		Created: &now,
-		Id:      &id,
-		DeploymentConstructor: NewDeploymentConstructor(),
-		Stats: NewDeviceDeploymentStats(),
+		Created:               &now,
+		Id:                    &id,
+		DeploymentConstructor: &DeploymentConstructor{},
+		Stats:                 NewDeviceDeploymentStats(),
 	}, nil
 }
 

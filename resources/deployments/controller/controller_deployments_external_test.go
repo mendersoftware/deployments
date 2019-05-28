@@ -382,7 +382,7 @@ func TestControllerPostDeployment(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: deployments.NewDeploymentConstructor(),
+			InputBodyObject: &deployments.DeploymentConstructor{},
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
 				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Validating request body: name: non zero value required;artifact_name: non zero value required;devices: non zero value required`)),

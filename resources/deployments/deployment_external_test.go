@@ -87,7 +87,7 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 
 	for _, test := range testCases {
 
-		dep := NewDeploymentConstructor()
+		dep := &DeploymentConstructor{}
 		dep.Name = test.InputName
 		dep.ArtifactName = test.InputArtifactName
 		dep.Devices = test.InputDevices
@@ -111,7 +111,7 @@ func TestNewDeploymentFromConstructor(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, dep)
 
-	con := NewDeploymentConstructor()
+	con := &DeploymentConstructor{}
 
 	dep, err = NewDeploymentFromConstructor(con)
 	assert.NoError(t, err)
@@ -152,7 +152,7 @@ func TestDeploymentValidate(t *testing.T) {
 
 	for _, test := range testCases {
 
-		pub := NewDeploymentConstructor()
+		pub := &DeploymentConstructor{}
 		pub.Name = test.InputName
 		pub.ArtifactName = test.InputArtifactName
 		pub.Devices = test.InputDevices

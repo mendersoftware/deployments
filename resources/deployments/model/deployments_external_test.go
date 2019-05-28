@@ -494,7 +494,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			OutputError: controller.ErrModelMissingInput,
 		},
 		{
-			InputConstructor: deployments.NewDeploymentConstructor(),
+			InputConstructor: &deployments.DeploymentConstructor{},
 			OutputError:      errors.New("Validating deployment: name: non zero value required;artifact_name: non zero value required;devices: non zero value required"),
 		},
 		{
