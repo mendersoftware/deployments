@@ -123,7 +123,7 @@ def artifact_from_data(name='foo', data=None, devicetype='hammer'):
             tdata.flush()
 
             cmd = 'mender-artifact write rootfs-image --device-type "{}" ' \
-                  '--update "{}" --artifact-name "{}" --output-path "{}"'.format(
+                  '--file "{}" --artifact-name "{}" --output-path "{}"'.format(
                       devicetype,
                       tdata.name,
                       name,

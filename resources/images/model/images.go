@@ -134,7 +134,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 	if err != nil {
 		pW.Close()
 		<-ch
-		return "", err
+		return artifactID, err
 	}
 
 	// close the pipe
@@ -142,12 +142,12 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 
 	// collect output from the goroutine
 	if uploadResponseErr := <-ch; uploadResponseErr != nil {
-		return "", uploadResponseErr
+		return artifactID, uploadResponseErr
 	}
 
 	// validate artifact metadata
 	if err = metaArtifactConstructor.Validate(); err != nil {
-		return "", controller.ErrModelInvalidMetadata
+		return artifactID, controller.ErrModelInvalidMetadata
 	}
 
 	// check if artifact is unique
@@ -156,10 +156,10 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 	isArtifactUnique, err := i.imagesStorage.IsArtifactUnique(ctx,
 		metaArtifactConstructor.Name, metaArtifactConstructor.DeviceTypesCompatible)
 	if err != nil {
-		return "", errors.Wrap(err, "Fail to check if artifact is unique")
+		return artifactID, errors.Wrap(err, "Fail to check if artifact is unique")
 	}
 	if !isArtifactUnique {
-		return "", controller.ErrModelArtifactNotUnique
+		return artifactID, controller.ErrModelArtifactNotUnique
 	}
 
 	image := images.NewSoftwareImage(
@@ -167,7 +167,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 
 	// save image structure in the system
 	if err = i.imagesStorage.Insert(ctx, image); err != nil {
-		return "", errors.Wrap(err, "Fail to store the metadata")
+		return artifactID, errors.Wrap(err, "Fail to store the metadata")
 	}
 
 	return artifactID, nil
