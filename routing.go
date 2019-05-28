@@ -36,10 +36,10 @@ import (
 	limitsModel "github.com/mendersoftware/deployments/resources/limits/model"
 	limitsMongo "github.com/mendersoftware/deployments/resources/limits/mongo"
 	releasesController "github.com/mendersoftware/deployments/resources/releases/controller"
-	releasesStore "github.com/mendersoftware/deployments/resources/releases/store"
 	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
 	tenantsModel "github.com/mendersoftware/deployments/resources/tenants/model"
 	tenantsStore "github.com/mendersoftware/deployments/resources/tenants/store"
+	"github.com/mendersoftware/deployments/store/mongo"
 	"github.com/mendersoftware/deployments/utils/restutil"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 )
@@ -142,7 +142,7 @@ func NewRouter(c config.ConfigReader) (rest.App, error) {
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
 	limitsStorage := limitsMongo.NewLimitsStorage(dbSession)
 	tenantsStorage := tenantsStore.NewStore(dbSession)
-	releasesStorage := releasesStore.NewStore(dbSession)
+	releasesStorage := mongo.NewDataStoreMongoWithSession(dbSession)
 
 	// Domain Models
 	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{

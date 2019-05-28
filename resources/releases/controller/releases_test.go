@@ -25,7 +25,7 @@ import (
 
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/images"
-	store_mocks "github.com/mendersoftware/deployments/resources/releases/store/mocks"
+	store_mocks "github.com/mendersoftware/deployments/store/mocks"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	deployments_testing "github.com/mendersoftware/deployments/utils/testing"
 	mt "github.com/mendersoftware/go-lib-micro/testing"

@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package store
+package mongo
 
 import (
 	"context"
@@ -24,25 +24,21 @@ import (
 	mimages "github.com/mendersoftware/deployments/resources/images/mongo"
 )
 
-type Store interface {
-	GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error)
-}
-
-type store struct {
+type DataStoreMongo struct {
 	session *mgo.Session
 }
 
-func NewStore(session *mgo.Session) *store {
-	return &store{
+func NewDataStoreMongoWithSession(session *mgo.Session) *DataStoreMongo {
+	return &DataStoreMongo{
 		session: session,
 	}
 }
 
-func (s *store) GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error) {
-	session := s.session.Copy()
+func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error) {
+	session := db.session.Copy()
 	defer session.Close()
 
-	match := s.matchFromFilt(filt)
+	match := db.matchFromFilt(filt)
 
 	group := bson.M{
 		"$group": bson.M{
@@ -91,7 +87,7 @@ func (s *store) GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]m
 	return results, nil
 }
 
-func (s *store) matchFromFilt(f *model.ReleaseFilter) bson.M {
+func (db *DataStoreMongo) matchFromFilt(f *model.ReleaseFilter) bson.M {
 	if f == nil {
 		return nil
 	}

@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package store
+package mongo
 
 import (
 	"context"
@@ -221,7 +221,7 @@ func TestGetReleases(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db.Wipe()
 
-			s := NewStore(db.Session())
+			s := NewDataStoreMongoWithSession(db.Session())
 			defer s.session.Close()
 
 			sess := s.session.Copy()
