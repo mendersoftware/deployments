@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import (
 	"github.com/ant0ine/go-json-rest/rest/test"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/images"
-	. "github.com/mendersoftware/deployments/resources/releases"
 	store_mocks "github.com/mendersoftware/deployments/resources/releases/store/mocks"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	deployments_testing "github.com/mendersoftware/deployments/utils/testing"
@@ -34,14 +34,14 @@ import (
 func TestGetReleases(t *testing.T) {
 
 	testCases := map[string]struct {
-		filter        *ReleaseFilter
-		storeReleases []Release
+		filter        *model.ReleaseFilter
+		storeReleases []model.Release
 		storeErr      error
 		checker       mt.ResponseChecker
 	}{
 		"ok": {
-			storeReleases: []Release{
-				Release{
+			storeReleases: []model.Release{
+				model.Release{
 					Artifacts: []images.SoftwareImage{
 						images.SoftwareImage{
 							Id: "1",
@@ -50,7 +50,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name: "App1 v1.0",
+								Name:                  "App1 v1.0",
 								DeviceTypesCompatible: []string{"bar", "baz"},
 								Updates:               []images.Update{},
 							},
@@ -61,8 +61,8 @@ func TestGetReleases(t *testing.T) {
 			checker: mt.NewJSONResponse(
 				http.StatusOK,
 				nil,
-				[]Release{
-					Release{
+				[]model.Release{
+					model.Release{
 						Artifacts: []images.SoftwareImage{
 							images.SoftwareImage{
 								Id: "1",
@@ -71,7 +71,7 @@ func TestGetReleases(t *testing.T) {
 								},
 
 								SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-									Name: "App1 v1.0",
+									Name:                  "App1 v1.0",
 									DeviceTypesCompatible: []string{"bar", "baz"},
 									Updates:               []images.Update{},
 								},
@@ -81,19 +81,19 @@ func TestGetReleases(t *testing.T) {
 				}),
 		},
 		"ok, empty": {
-			storeReleases: []Release{},
+			storeReleases: []model.Release{},
 			checker: mt.NewJSONResponse(
 				http.StatusOK,
 				nil,
-				[]Release{}),
+				[]model.Release{}),
 		},
 		"ok, filter": {
-			filter:        &ReleaseFilter{Name: "foo"},
-			storeReleases: []Release{},
+			filter:        &model.ReleaseFilter{Name: "foo"},
+			storeReleases: []model.Release{},
 			checker: mt.NewJSONResponse(
 				http.StatusOK,
 				nil,
-				[]Release{}),
+				[]model.Release{}),
 		},
 		"error: generic": {
 			storeReleases: nil,

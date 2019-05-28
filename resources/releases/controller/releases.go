@@ -17,7 +17,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 
-	"github.com/mendersoftware/deployments/resources/releases"
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/releases/store"
 )
 
@@ -36,12 +36,12 @@ func NewReleasesController(store store.Store, view RESTView) *ReleasesController
 func (c *ReleasesController) GetReleases(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
-	var filt *releases.ReleaseFilter
+	var filt *model.ReleaseFilter
 
 	name := r.URL.Query().Get("name")
 
 	if name != "" {
-		filt = &releases.ReleaseFilter{
+		filt = &model.ReleaseFilter{
 			Name: name,
 		}
 	}

@@ -20,12 +20,12 @@ import (
 	"github.com/globalsign/mgo/bson"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 
+	"github.com/mendersoftware/deployments/model"
 	mimages "github.com/mendersoftware/deployments/resources/images/mongo"
-	. "github.com/mendersoftware/deployments/resources/releases"
 )
 
 type Store interface {
-	GetReleases(ctx context.Context, filt *ReleaseFilter) ([]Release, error)
+	GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error)
 }
 
 type store struct {
@@ -38,7 +38,7 @@ func NewStore(session *mgo.Session) *store {
 	}
 }
 
-func (s *store) GetReleases(ctx context.Context, filt *ReleaseFilter) ([]Release, error) {
+func (s *store) GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error) {
 	session := s.session.Copy()
 	defer session.Close()
 
@@ -77,7 +77,7 @@ func (s *store) GetReleases(ctx context.Context, filt *ReleaseFilter) ([]Release
 		}
 	}
 
-	results := []Release{}
+	results := []model.Release{}
 
 	err := session.DB(mstore.DbFromContext(ctx, mimages.DatabaseName)).
 		C(mimages.CollectionImages).Pipe(&pipe).All(&results)
@@ -91,7 +91,7 @@ func (s *store) GetReleases(ctx context.Context, filt *ReleaseFilter) ([]Release
 	return results, nil
 }
 
-func (s *store) matchFromFilt(f *ReleaseFilter) bson.M {
+func (s *store) matchFromFilt(f *model.ReleaseFilter) bson.M {
 	if f == nil {
 		return nil
 	}

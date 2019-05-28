@@ -19,9 +19,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/mendersoftware/deployments/model"
 	images "github.com/mendersoftware/deployments/resources/images"
 	mimages "github.com/mendersoftware/deployments/resources/images/mongo"
-	. "github.com/mendersoftware/deployments/resources/releases"
 )
 
 func TestGetReleases(t *testing.T) {
@@ -37,7 +37,7 @@ func TestGetReleases(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				Name: "App1 v1.0",
+				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []images.Update{},
 			},
@@ -49,7 +49,7 @@ func TestGetReleases(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				Name: "App2 v0.1",
+				Name:                  "App2 v0.1",
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []images.Update{},
 			},
@@ -61,7 +61,7 @@ func TestGetReleases(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				Name: "App1 v1.0",
+				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"bar, baz"},
 				Updates:               []images.Update{},
 			},
@@ -73,7 +73,7 @@ func TestGetReleases(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				Name: "App1 v1.0",
+				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"bork"},
 				Updates:               []images.Update{},
 			},
@@ -85,7 +85,7 @@ func TestGetReleases(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				Name: "App2 v0.1",
+				Name:                  "App2 v0.1",
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []images.Update{},
 			},
@@ -93,14 +93,14 @@ func TestGetReleases(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		releaseFilt *ReleaseFilter
+		releaseFilt *model.ReleaseFilter
 
-		releases []Release
+		releases []model.Release
 		err      error
 	}{
 		"ok, all": {
-			releases: []Release{
-				Release{
+			releases: []model.Release{
+				model.Release{
 					Name: "App2 v0.1",
 					Artifacts: []images.SoftwareImage{
 						images.SoftwareImage{
@@ -110,7 +110,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name: "App2 v0.1",
+								Name:                  "App2 v0.1",
 								DeviceTypesCompatible: []string{"foo"},
 								Updates:               []images.Update{},
 							},
@@ -122,14 +122,14 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name: "App2 v0.1",
+								Name:                  "App2 v0.1",
 								DeviceTypesCompatible: []string{"bar", "baz"},
 								Updates:               []images.Update{},
 							},
 						},
 					},
 				},
-				Release{
+				model.Release{
 					Name: "App1 v1.0",
 					Artifacts: []images.SoftwareImage{
 						images.SoftwareImage{
@@ -139,7 +139,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name: "App1 v1.0",
+								Name:                  "App1 v1.0",
 								DeviceTypesCompatible: []string{"foo"},
 								Updates:               []images.Update{},
 							},
@@ -151,7 +151,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name: "App1 v1.0",
+								Name:                  "App1 v1.0",
 								DeviceTypesCompatible: []string{"bar, baz"},
 								Updates:               []images.Update{},
 							},
@@ -163,7 +163,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name: "App1 v1.0",
+								Name:                  "App1 v1.0",
 								DeviceTypesCompatible: []string{"bork"},
 								Updates:               []images.Update{},
 							},
@@ -173,11 +173,11 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		"ok, by name": {
-			releaseFilt: &ReleaseFilter{
+			releaseFilt: &model.ReleaseFilter{
 				Name: "App2 v0.1",
 			},
-			releases: []Release{
-				Release{
+			releases: []model.Release{
+				model.Release{
 					Name: "App2 v0.1",
 					Artifacts: []images.SoftwareImage{
 						images.SoftwareImage{
@@ -187,7 +187,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name: "App2 v0.1",
+								Name:                  "App2 v0.1",
 								DeviceTypesCompatible: []string{"foo"},
 								Updates:               []images.Update{},
 							},
@@ -199,7 +199,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name: "App2 v0.1",
+								Name:                  "App2 v0.1",
 								DeviceTypesCompatible: []string{"bar", "baz"},
 								Updates:               []images.Update{},
 							},
@@ -209,10 +209,10 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		"ok, not found": {
-			releaseFilt: &ReleaseFilter{
+			releaseFilt: &model.ReleaseFilter{
 				Name: "App3 v1.0",
 			},
-			releases: []Release{},
+			releases: []model.Release{},
 		},
 	}
 
