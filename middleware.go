@@ -26,7 +26,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 
-	"github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/go-lib-micro/config"
 )
 
 const (
@@ -74,7 +74,7 @@ var defaultProdStack = []rest.Middleware{
 	&rest.GzipMiddleware{},
 }
 
-func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
+func SetupMiddleware(c config.Reader, api *rest.Api) {
 
 	api.Use(&customheader.CustomHeaderMiddleware{
 		HeaderName:  "X-DEPLOYMENTS-VERSION",

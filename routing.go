@@ -23,7 +23,8 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/go-lib-micro/config"
+
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
 	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	deploymentsMongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
@@ -52,7 +53,7 @@ const (
 	ApiUrlManagementArtifacts = ApiUrlManagement + "/artifacts"
 )
 
-func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
+func SetupS3(c config.Reader) (imagesModel.FileStorage, error) {
 
 	bucket := c.GetString(SettingAwsS3Bucket)
 	region := c.GetString(SettingAwsS3Region)
@@ -72,7 +73,7 @@ func SetupS3(c config.ConfigReader) (imagesModel.FileStorage, error) {
 	return s3.NewSimpleStorageServiceDefaults(bucket, region)
 }
 
-func NewMongoSession(c config.ConfigReader) (*mgo.Session, error) {
+func NewMongoSession(c config.Reader) (*mgo.Session, error) {
 
 	dialInfo, err := mgo.ParseURL(c.GetString(SettingMongo))
 	if err != nil {
@@ -124,7 +125,7 @@ func NewMongoSession(c config.ConfigReader) (*mgo.Session, error) {
 }
 
 // NewRouter defines all REST API routes.
-func NewRouter(c config.ConfigReader) (rest.App, error) {
+func NewRouter(c config.Reader) (rest.App, error) {
 
 	dbSession, err := NewMongoSession(c)
 	if err != nil {

@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/log"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/urfave/cli"
 
-	"github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/migrations"
 )
 

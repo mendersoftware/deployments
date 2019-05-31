@@ -19,10 +19,10 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/go-lib-micro/config"
 )
 
-func RunServer(c config.ConfigReader) error {
+func RunServer(c config.Reader) error {
 	router, err := NewRouter(c)
 	if err != nil {
 		return err

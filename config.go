@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/go-lib-micro/config"
 )
 
 const (
@@ -62,7 +62,7 @@ const (
 )
 
 // ValidateAwsAuth validates configuration of SettingsAwsAuth section if provided.
-func ValidateAwsAuth(c config.ConfigReader) error {
+func ValidateAwsAuth(c config.Reader) error {
 
 	if c.IsSet(SettingsAwsAuth) {
 		required := []string{SettingAwsAuthKeyId, SettingAwsAuthSecret}
@@ -81,7 +81,7 @@ func ValidateAwsAuth(c config.ConfigReader) error {
 }
 
 // ValidateHttps validates configuration of SettingHttps section if provided.
-func ValidateHttps(c config.ConfigReader) error {
+func ValidateHttps(c config.Reader) error {
 
 	if c.IsSet(SettingHttps) {
 		required := []string{SettingHttpsCertificate, SettingHttpsKey}
