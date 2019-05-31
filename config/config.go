@@ -11,7 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package main
+package config
 
 import (
 	"fmt"
@@ -21,6 +21,9 @@ import (
 )
 
 const (
+	EnvProd = "prod"
+	EnvDev  = "dev"
+
 	SettingHttps            = "https"
 	SettingHttpsCertificate = SettingHttps + ".certificate"
 	SettingHttpsKey         = SettingHttps + ".key"
@@ -110,8 +113,8 @@ func MissingOptionError(option string) error {
 }
 
 var (
-	configValidators = []config.Validator{ValidateAwsAuth, ValidateHttps}
-	configDefaults   = []config.Default{
+	Validators = []config.Validator{ValidateAwsAuth, ValidateHttps}
+	Defaults   = []config.Default{
 		{Key: SettingListen, Value: SettingListenDefault},
 		{Key: SettingAwsS3Region, Value: SettingAwsS3RegionDefault},
 		{Key: SettingAwsS3Bucket, Value: SettingAwsS3BucketDefault},

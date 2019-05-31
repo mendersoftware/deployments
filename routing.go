@@ -25,6 +25,7 @@ import (
 
 	"github.com/mendersoftware/go-lib-micro/config"
 
+	dconfig "github.com/mendersoftware/deployments/config"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
 	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	deploymentsMongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
@@ -55,18 +56,18 @@ const (
 
 func SetupS3(c config.Reader) (imagesModel.FileStorage, error) {
 
-	bucket := c.GetString(SettingAwsS3Bucket)
-	region := c.GetString(SettingAwsS3Region)
+	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
+	region := c.GetString(dconfig.SettingAwsS3Region)
 
-	if c.IsSet(SettingsAwsAuth) || (c.IsSet(SettingAwsAuthKeyId) && c.IsSet(SettingAwsAuthSecret) && c.IsSet(SettingAwsURI)) {
+	if c.IsSet(dconfig.SettingsAwsAuth) || (c.IsSet(dconfig.SettingAwsAuthKeyId) && c.IsSet(dconfig.SettingAwsAuthSecret) && c.IsSet(dconfig.SettingAwsURI)) {
 		return s3.NewSimpleStorageServiceStatic(
 			bucket,
-			c.GetString(SettingAwsAuthKeyId),
-			c.GetString(SettingAwsAuthSecret),
+			c.GetString(dconfig.SettingAwsAuthKeyId),
+			c.GetString(dconfig.SettingAwsAuthSecret),
 			region,
-			c.GetString(SettingAwsAuthToken),
-			c.GetString(SettingAwsURI),
-			c.GetBool(SettingsAwsTagArtifact),
+			c.GetString(dconfig.SettingAwsAuthToken),
+			c.GetString(dconfig.SettingAwsURI),
+			c.GetBool(dconfig.SettingsAwsTagArtifact),
 		)
 	}
 
@@ -75,7 +76,7 @@ func SetupS3(c config.Reader) (imagesModel.FileStorage, error) {
 
 func NewMongoSession(c config.Reader) (*mgo.Session, error) {
 
-	dialInfo, err := mgo.ParseURL(c.GetString(SettingMongo))
+	dialInfo, err := mgo.ParseURL(c.GetString(dconfig.SettingMongo))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to open mgo session")
 	}
@@ -83,22 +84,22 @@ func NewMongoSession(c config.Reader) (*mgo.Session, error) {
 	// Set 10s timeout - same as set by Dial
 	dialInfo.Timeout = 10 * time.Second
 
-	username := c.GetString(SettingDbUsername)
+	username := c.GetString(dconfig.SettingDbUsername)
 	if username != "" {
 		dialInfo.Username = username
 	}
 
-	passward := c.GetString(SettingDbPassword)
+	passward := c.GetString(dconfig.SettingDbPassword)
 	if passward != "" {
 		dialInfo.Password = passward
 	}
 
-	if c.GetBool(SettingDbSSL) {
+	if c.GetBool(dconfig.SettingDbSSL) {
 		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
 
 			// Setup TLS
 			tlsConfig := &tls.Config{}
-			tlsConfig.InsecureSkipVerify = c.GetBool(SettingDbSSLSkipVerify)
+			tlsConfig.InsecureSkipVerify = c.GetBool(dconfig.SettingDbSSLSkipVerify)
 
 			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
 			return conn, err

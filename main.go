@@ -24,6 +24,7 @@ import (
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/urfave/cli"
 
+	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/migrations"
 )
 
@@ -77,7 +78,7 @@ func doMain(args []string) {
 	app.Action = cmdServer
 	app.Before = func(args *cli.Context) error {
 
-		err := config.FromConfigFile(configPath, configDefaults)
+		err := config.FromConfigFile(configPath, dconfig.Defaults)
 		if err != nil {
 			return cli.NewExitError(
 				fmt.Sprintf("error loading configuration: %s", err),
@@ -97,7 +98,7 @@ func cmdServer(args *cli.Context) error {
 
 	if devSetup {
 		l.Infof("setting up development configuration")
-		config.Config.Set(SettingMiddleware, EnvDev)
+		config.Config.Set(dconfig.SettingMiddleware, dconfig.EnvDev)
 	}
 
 	l.Printf("Deployments Service, version %s starting up",

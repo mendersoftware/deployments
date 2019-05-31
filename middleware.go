@@ -21,12 +21,13 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/accesslog"
+	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/customheader"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 
-	"github.com/mendersoftware/go-lib-micro/config"
+	dconfig "github.com/mendersoftware/deployments/config"
 )
 
 const (
@@ -42,9 +43,6 @@ const (
 	HttpHeaderLink                        string = "Link"
 	HttpHeaderAllow                       string = "Allow"
 	HttpHeaderAccept                      string = "Accept"
-
-	EnvProd string = "prod"
-	EnvDev  string = "dev"
 )
 
 var commonLoggingAccessStack = []rest.Middleware{
@@ -83,8 +81,8 @@ func SetupMiddleware(c config.Reader, api *rest.Api) {
 
 	api.Use(commonLoggingAccessStack...)
 
-	mwtype := c.GetString(SettingMiddleware)
-	if mwtype == EnvDev {
+	mwtype := c.GetString(dconfig.SettingMiddleware)
+	if mwtype == dconfig.EnvDev {
 		api.Use(defaultDevStack...)
 	} else {
 		api.Use(defaultProdStack...)
