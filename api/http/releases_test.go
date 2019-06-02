@@ -11,7 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package controller
+package http
 
 import (
 	"errors"
@@ -109,14 +109,14 @@ func TestGetReleases(t *testing.T) {
 		tc := testCases[name]
 
 		t.Run(fmt.Sprintf("%s", name), func(t *testing.T) {
-			store := &store_mocks.Store{}
+			store := &store_mocks.DataStore{}
 
 			store.On("GetReleases", deployments_testing.ContextMatcher(), tc.filter).
 				Return(tc.storeReleases, tc.storeErr)
 
 			restView := new(view.RESTView)
 
-			c := NewReleasesController(store, restView)
+			c := NewDeploymentsApiHandlers(store, restView)
 
 			api := deployments_testing.SetUpTestApi("/api/management/v1/deployments/releases", rest.Get, c.GetReleases)
 

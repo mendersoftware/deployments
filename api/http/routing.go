@@ -37,7 +37,6 @@ import (
 	limitsController "github.com/mendersoftware/deployments/resources/limits/controller"
 	limitsModel "github.com/mendersoftware/deployments/resources/limits/model"
 	limitsMongo "github.com/mendersoftware/deployments/resources/limits/mongo"
-	releasesController "github.com/mendersoftware/deployments/resources/releases/controller"
 	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
 	tenantsModel "github.com/mendersoftware/deployments/resources/tenants/model"
 	tenantsStore "github.com/mendersoftware/deployments/resources/tenants/store"
@@ -144,7 +143,7 @@ func NewRouter(c config.Reader) (rest.App, error) {
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
 	limitsStorage := limitsMongo.NewLimitsStorage(dbSession)
 	tenantsStorage := tenantsStore.NewStore(dbSession)
-	releasesStorage := mongo.NewDataStoreMongoWithSession(dbSession)
+	mongoStorage := mongo.NewDataStoreMongoWithSession(dbSession)
 
 	// Domain Models
 	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{
@@ -174,7 +173,7 @@ func NewRouter(c config.Reader) (rest.App, error) {
 		imagesController,
 		new(view.RESTView))
 
-	releasesController := releasesController.NewReleasesController(releasesStorage, new(view.RESTView))
+	releasesController := NewDeploymentsApiHandlers(mongoStorage, new(view.RESTView))
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)
@@ -263,7 +262,7 @@ func TenantRoutes(controller *tenantsController.Controller) []*rest.Route {
 	}
 }
 
-func ReleasesRoutes(controller *releasesController.ReleasesController) []*rest.Route {
+func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	if controller == nil {
 		return []*rest.Route{}
 	}

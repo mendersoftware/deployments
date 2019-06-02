@@ -11,7 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package controller
+package http
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
@@ -21,19 +21,19 @@ import (
 	"github.com/mendersoftware/deployments/store"
 )
 
-type ReleasesController struct {
+type DeploymentsApiHandlers struct {
 	view  RESTView
 	store store.DataStore
 }
 
-func NewReleasesController(store store.DataStore, view RESTView) *ReleasesController {
-	return &ReleasesController{
+func NewDeploymentsApiHandlers(store store.DataStore, view RESTView) *DeploymentsApiHandlers {
+	return &DeploymentsApiHandlers{
 		store: store,
 		view:  view,
 	}
 }
 
-func (c *ReleasesController) GetReleases(w rest.ResponseWriter, r *rest.Request) {
+func (c *DeploymentsApiHandlers) GetReleases(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
 	var filt *model.ReleaseFilter
