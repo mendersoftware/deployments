@@ -21,11 +21,12 @@ import (
 
 	"github.com/mendersoftware/go-lib-micro/config"
 
+	api_http "github.com/mendersoftware/deployments/api/http"
 	dconfig "github.com/mendersoftware/deployments/config"
 )
 
 func RunServer(c config.Reader) error {
-	router, err := NewRouter(c)
+	router, err := api_http.NewRouter(c)
 	if err != nil {
 		return err
 	}

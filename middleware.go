@@ -27,6 +27,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 
+	api_http "github.com/mendersoftware/deployments/api/http"
 	dconfig "github.com/mendersoftware/deployments/config"
 )
 
@@ -98,10 +99,10 @@ func SetupMiddleware(c config.Reader, api *rest.Api) {
 	// For the rest of the requests expected Content-Type is 'application/json'.
 	api.Use(&rest.IfMiddleware{
 		Condition: func(r *rest.Request) bool {
-			if r.URL.Path == ApiUrlManagementArtifacts && r.Method == http.MethodPost {
+			if r.URL.Path == api_http.ApiUrlManagementArtifacts && r.Method == http.MethodPost {
 				return true
 			} else if match, _ := regexp.MatchString(
-				ApiUrlInternal+"/tenants/([a-z0-9]+)/artifacts", r.URL.Path); match &&
+				api_http.ApiUrlInternal+"/tenants/([a-z0-9]+)/artifacts", r.URL.Path); match &&
 				r.Method == http.MethodPost {
 				return true
 			} else {
