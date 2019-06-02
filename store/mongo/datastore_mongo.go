@@ -15,11 +15,17 @@ package mongo
 
 import (
 	"context"
+	"crypto/tls"
+	"net"
+	"time"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/mendersoftware/go-lib-micro/config"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
+	"github.com/pkg/errors"
 
+	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
 	mimages "github.com/mendersoftware/deployments/resources/images/mongo"
 )
@@ -32,6 +38,57 @@ func NewDataStoreMongoWithSession(session *mgo.Session) *DataStoreMongo {
 	return &DataStoreMongo{
 		session: session,
 	}
+}
+
+func NewMongoSession(c config.Reader) (*mgo.Session, error) {
+
+	dialInfo, err := mgo.ParseURL(c.GetString(dconfig.SettingMongo))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to open mgo session")
+	}
+
+	// Set 10s timeout - same as set by Dial
+	dialInfo.Timeout = 10 * time.Second
+
+	username := c.GetString(dconfig.SettingDbUsername)
+	if username != "" {
+		dialInfo.Username = username
+	}
+
+	passward := c.GetString(dconfig.SettingDbPassword)
+	if passward != "" {
+		dialInfo.Password = passward
+	}
+
+	if c.GetBool(dconfig.SettingDbSSL) {
+		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+
+			// Setup TLS
+			tlsConfig := &tls.Config{}
+			tlsConfig.InsecureSkipVerify = c.GetBool(dconfig.SettingDbSSLSkipVerify)
+
+			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
+			return conn, err
+		}
+	}
+
+	masterSession, err := mgo.DialWithInfo(dialInfo)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to open mgo session")
+	}
+
+	// Validate connection
+	if err := masterSession.Ping(); err != nil {
+		return nil, errors.Wrap(err, "failed to open mgo session")
+	}
+
+	// force write ack with immediate journal file fsync
+	masterSession.SetSafe(&mgo.Safe{
+		W: 1,
+		J: true,
+	})
+
+	return masterSession, nil
 }
 
 func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error) {

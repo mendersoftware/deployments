@@ -26,6 +26,7 @@ import (
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/migrations"
+	"github.com/mendersoftware/deployments/store/mongo"
 )
 
 func main() {
@@ -104,7 +105,7 @@ func cmdServer(args *cli.Context) error {
 	l.Printf("Deployments Service, version %s starting up",
 		CreateVersionString())
 
-	dbSession, err := NewMongoSession(config.Config)
+	dbSession, err := mongo.NewMongoSession(config.Config)
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to connect to db: %v", err),
@@ -133,7 +134,7 @@ func cmdMigrate(args *cli.Context) error {
 	tenant := args.String("tenant")
 	db := mstore.DbNameForTenant(tenant, migrations.DbName)
 
-	dbSession, err := NewMongoSession(config.Config)
+	dbSession, err := mongo.NewMongoSession(config.Config)
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to connect to db: %v", err),
