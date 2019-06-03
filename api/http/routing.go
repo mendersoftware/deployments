@@ -35,7 +35,6 @@ import (
 	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/mendersoftware/deployments/resources/images/s3"
-	limitsController "github.com/mendersoftware/deployments/resources/limits/controller"
 	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
 	tenantsModel "github.com/mendersoftware/deployments/resources/tenants/model"
 	tenantsStore "github.com/mendersoftware/deployments/resources/tenants/store"
@@ -162,8 +161,6 @@ func NewRouter(c config.Reader) (rest.App, error) {
 		new(view.RESTView))
 	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel,
 		new(deploymentsView.DeploymentsView))
-	limitsController := limitsController.NewLimitsController(app,
-		new(view.RESTView))
 
 	tenantsController := tenantsController.NewController(tenantsModel,
 		deploymentModel,
@@ -171,14 +168,14 @@ func NewRouter(c config.Reader) (rest.App, error) {
 		imagesController,
 		new(view.RESTView))
 
-	releasesController := NewDeploymentsApiHandlers(mongoStorage, new(view.RESTView))
+	deploymentsHandlers := NewDeploymentsApiHandlers(mongoStorage, new(view.RESTView), app)
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(imagesController)
 	deploymentsRoutes := NewDeploymentsResourceRoutes(deploymentsController)
-	limitsRoutes := NewLimitsResourceRoutes(limitsController)
+	limitsRoutes := NewLimitsResourceRoutes(deploymentsHandlers)
 	tenantsRoutes := TenantRoutes(tenantsController)
-	releasesRoutes := ReleasesRoutes(releasesController)
+	releasesRoutes := ReleasesRoutes(deploymentsHandlers)
 
 	routes := append(releasesRoutes, deploymentsRoutes...)
 	routes = append(routes, limitsRoutes...)
@@ -236,7 +233,7 @@ func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsC
 	}
 }
 
-func NewLimitsResourceRoutes(controller *limitsController.LimitsController) []*rest.Route {
+func NewLimitsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 
 	if controller == nil {
 		return []*rest.Route{}

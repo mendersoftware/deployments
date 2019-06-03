@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/model"
-	lmodel "github.com/mendersoftware/deployments/resources/limits/model"
 )
 
 // db and test management funcs
@@ -80,12 +79,12 @@ func TestGetLimit(t *testing.T) {
 
 	// try with something that does not exist
 	lim, err = db.GetLimit(dbCtx, "nonexistent-foo")
-	assert.EqualError(t, err, lmodel.ErrLimitNotFound.Error())
+	assert.EqualError(t, err, ErrLimitNotFound.Error())
 	assert.Nil(t, lim)
 
 	// switch tenants
 	lim, err = db.GetLimit(dbCtxOtherTenant, "foo")
-	assert.EqualError(t, err, lmodel.ErrLimitNotFound.Error())
+	assert.EqualError(t, err, ErrLimitNotFound.Error())
 
 	lim, err = db.GetLimit(dbCtxOtherTenant, "bar")
 	assert.NoError(t, err)

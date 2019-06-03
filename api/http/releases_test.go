@@ -23,6 +23,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest/test"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 
+	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/images"
 	store_mocks "github.com/mendersoftware/deployments/store/mocks"
@@ -50,7 +51,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name:                  "App1 v1.0",
+								Name: "App1 v1.0",
 								DeviceTypesCompatible: []string{"bar", "baz"},
 								Updates:               []images.Update{},
 							},
@@ -71,7 +72,7 @@ func TestGetReleases(t *testing.T) {
 								},
 
 								SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-									Name:                  "App1 v1.0",
+									Name: "App1 v1.0",
 									DeviceTypesCompatible: []string{"bar", "baz"},
 									Updates:               []images.Update{},
 								},
@@ -115,8 +116,9 @@ func TestGetReleases(t *testing.T) {
 				Return(tc.storeReleases, tc.storeErr)
 
 			restView := new(view.RESTView)
+			app := app.NewDeployments(store)
 
-			c := NewDeploymentsApiHandlers(store, restView)
+			c := NewDeploymentsApiHandlers(store, restView, app)
 
 			api := deployments_testing.SetUpTestApi("/api/management/v1/deployments/releases", rest.Get, c.GetReleases)
 

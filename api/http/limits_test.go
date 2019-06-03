@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package controller_test
+package http
 
 import (
 	"context"
@@ -30,9 +30,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	app_mocks "github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
-	. "github.com/mendersoftware/deployments/resources/limits/controller"
-	"github.com/mendersoftware/deployments/resources/limits/controller/mocks"
+	store_mocks "github.com/mendersoftware/deployments/store/mocks"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 )
 
@@ -93,13 +93,16 @@ func TestGetLimits(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			limitsModel := &mocks.LimitsModel{}
-			controller := NewLimitsController(limitsModel, new(view.RESTView))
+			store := &store_mocks.DataStore{}
+			restView := new(view.RESTView)
+			app := &app_mocks.App{}
 
-			api := setUpRestTest("/api/0.0.1/limits/:name", rest.Get, controller.GetLimit)
+			d := NewDeploymentsApiHandlers(store, restView, app)
+
+			api := setUpRestTest("/api/0.0.1/limits/:name", rest.Get, d.GetLimit)
 
 			if tc.err != nil || tc.limit != nil {
-				limitsModel.On("GetLimit", contextMatcher(), tc.name).
+				app.On("GetLimit", contextMatcher(), tc.name).
 					Return(tc.limit, tc.err)
 			}
 
@@ -110,7 +113,7 @@ func TestGetLimits(t *testing.T) {
 			if tc.code == http.StatusOK {
 				assert.JSONEq(t, tc.body, recorded.Recorder.Body.String())
 			}
-			limitsModel.AssertExpectations(t)
+			app.AssertExpectations(t)
 
 		})
 	}
