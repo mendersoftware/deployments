@@ -25,6 +25,7 @@ import (
 
 	"github.com/mendersoftware/go-lib-micro/config"
 
+	"github.com/mendersoftware/deployments/app"
 	dconfig "github.com/mendersoftware/deployments/config"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
 	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
@@ -35,7 +36,6 @@ import (
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/mendersoftware/deployments/resources/images/s3"
 	limitsController "github.com/mendersoftware/deployments/resources/limits/controller"
-	limitsModel "github.com/mendersoftware/deployments/resources/limits/model"
 	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
 	tenantsModel "github.com/mendersoftware/deployments/resources/tenants/model"
 	tenantsStore "github.com/mendersoftware/deployments/resources/tenants/store"
@@ -154,7 +154,7 @@ func NewRouter(c config.Reader) (rest.App, error) {
 	})
 
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
-	limitsModel := limitsModel.NewLimitsModel(mongoStorage)
+	app := app.NewDeployments(mongoStorage)
 	tenantsModel := tenantsModel.NewModel(tenantsStorage)
 
 	// Controllers
@@ -162,7 +162,7 @@ func NewRouter(c config.Reader) (rest.App, error) {
 		new(view.RESTView))
 	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel,
 		new(deploymentsView.DeploymentsView))
-	limitsController := limitsController.NewLimitsController(limitsModel,
+	limitsController := limitsController.NewLimitsController(app,
 		new(view.RESTView))
 
 	tenantsController := tenantsController.NewController(tenantsModel,

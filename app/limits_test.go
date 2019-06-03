@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package model_test
+package app
 
 import (
 	"context"
@@ -24,8 +24,8 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/mendersoftware/deployments/model"
-	. "github.com/mendersoftware/deployments/resources/limits/model"
 	"github.com/mendersoftware/deployments/store/mocks"
+	"github.com/mendersoftware/deployments/store/mongo"
 )
 
 func TestGetLimit(t *testing.T) {
@@ -51,7 +51,7 @@ func TestGetLimit(t *testing.T) {
 		},
 		{
 			name:   "not-found",
-			getErr: ErrLimitNotFound,
+			getErr: mongo.ErrLimitNotFound,
 			expected: &model.Limit{
 				Name:  "not-found",
 				Value: 0,
@@ -68,18 +68,18 @@ func TestGetLimit(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ls := mocks.DataStore{}
-			ls.On("GetLimit",
+			db := mocks.DataStore{}
+			db.On("GetLimit",
 				mock.MatchedBy(
 					func(_ context.Context) bool {
 						return true
 					}),
 				tc.name).Return(tc.getLimit, tc.getErr)
 
-			lm := NewLimitsModel(&ls)
+			d := NewDeployments(&db)
 
 			ctx := context.Background()
-			lim, err := lm.GetLimit(ctx, tc.name)
+			lim, err := d.GetLimit(ctx, tc.name)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 			} else {
@@ -89,7 +89,7 @@ func TestGetLimit(t *testing.T) {
 				assert.Equal(t, tc.expected, lim)
 			}
 
-			ls.AssertExpectations(t)
+			db.AssertExpectations(t)
 		})
 	}
 }

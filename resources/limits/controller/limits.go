@@ -21,20 +21,21 @@ import (
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/pkg/errors"
 
+	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/model"
 )
 
 var ()
 
 type LimitsController struct {
-	view  RESTView
-	model LimitsModel
+	view RESTView
+	app  app.App
 }
 
-func NewLimitsController(model LimitsModel, view RESTView) *LimitsController {
+func NewLimitsController(app app.App, view RESTView) *LimitsController {
 	return &LimitsController{
-		model: model,
-		view:  view,
+		app:  app,
+		view: view,
 	}
 }
 
@@ -55,7 +56,7 @@ func (s *LimitsController) GetLimit(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	limit, err := s.model.GetLimit(r.Context(), name)
+	limit, err := s.app.GetLimit(r.Context(), name)
 	if err != nil {
 		s.view.RenderInternalError(w, r, err, l)
 		return
