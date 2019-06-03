@@ -34,13 +34,14 @@ import (
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	mt "github.com/mendersoftware/go-lib-micro/testing"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	imageController "github.com/mendersoftware/deployments/resources/images/controller"
 
 	"github.com/mendersoftware/deployments/app/mocks"
+	"github.com/mendersoftware/deployments/model"
 	imageMock "github.com/mendersoftware/deployments/resources/images/controller/mocks"
 	h "github.com/mendersoftware/deployments/utils/testing"
-	"github.com/stretchr/testify/mock"
 )
 
 type routerTypeHandler func(pathExp string, handlerFunc rest.HandlerFunc) *rest.Route
@@ -78,7 +79,7 @@ func TestProvisionTenant(t *testing.T) {
 		"ok": {
 			req: test.MakeSimpleRequest("POST",
 				"http://1.2.3.4/api/internal/v1/deployments/tenants",
-				&NewTenantReq{TenantId: "foo"}),
+				&model.NewTenantReq{TenantId: "foo"}),
 			checker: mt.NewJSONResponse(
 				http.StatusCreated,
 				nil,
@@ -87,7 +88,7 @@ func TestProvisionTenant(t *testing.T) {
 		"error: bad request": {
 			req: test.MakeSimpleRequest("POST",
 				"http://1.2.3.4/api/internal/v1/deployments/tenants",
-				&NewTenantReq{}),
+				&model.NewTenantReq{}),
 			checker: mt.NewJSONResponse(
 				http.StatusBadRequest,
 				nil,

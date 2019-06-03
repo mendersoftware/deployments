@@ -25,9 +25,10 @@ import (
 	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	"github.com/pkg/errors"
 
+	"github.com/mendersoftware/deployments/app"
+	"github.com/mendersoftware/deployments/model"
 	imageController "github.com/mendersoftware/deployments/resources/images/controller"
 
-	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
@@ -60,7 +61,7 @@ func (c *Controller) ProvisionTenantsHandler(w rest.ResponseWriter, r *rest.Requ
 
 	defer r.Body.Close()
 
-	tenant, err := ParseNewTenantReq(r.Body)
+	tenant, err := model.ParseNewTenantReq(r.Body)
 	if err != nil {
 		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
 		return
