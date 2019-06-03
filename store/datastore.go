@@ -22,4 +22,5 @@ import (
 type DataStore interface {
 	GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error)
 	GetLimit(ctx context.Context, name string) (*model.Limit, error)
+	ProvisionTenant(ctx context.Context, tenantId string) error
 }

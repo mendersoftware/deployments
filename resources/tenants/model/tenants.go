@@ -19,7 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/deployments/resources/tenants/store"
+	"github.com/mendersoftware/deployments/store"
 )
 
 type Model interface {
@@ -27,10 +27,10 @@ type Model interface {
 }
 
 type model struct {
-	store store.Store
+	store store.DataStore
 }
 
-func NewModel(store store.Store) *model {
+func NewModel(store store.DataStore) *model {
 	return &model{
 		store: store,
 	}

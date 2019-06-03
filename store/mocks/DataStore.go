@@ -67,3 +67,17 @@ func (_m *DataStore) GetReleases(ctx context.Context, filt *model.ReleaseFilter)
 
 	return r0, r1
 }
+
+// ProvisionTenant provides a mock function with given fields: ctx, tenantId
+func (_m *DataStore) ProvisionTenant(ctx context.Context, tenantId string) error {
+	ret := _m.Called(ctx, tenantId)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, tenantId)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}

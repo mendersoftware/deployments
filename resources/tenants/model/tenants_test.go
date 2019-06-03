@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	. "github.com/mendersoftware/deployments/resources/tenants/model"
-	mstore "github.com/mendersoftware/deployments/resources/tenants/store/mocks"
+	mstore "github.com/mendersoftware/deployments/store/mocks"
 )
 
 func TestProvisionTenant(t *testing.T) {
@@ -49,7 +49,7 @@ func TestProvisionTenant(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			s := mstore.Store{}
+			s := mstore.DataStore{}
 			s.On("ProvisionTenant",
 				mock.MatchedBy(
 					func(_ context.Context) bool {

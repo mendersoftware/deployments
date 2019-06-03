@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 
 	dconfig "github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/deployments/migrations"
 	"github.com/mendersoftware/deployments/model"
 	mimages "github.com/mendersoftware/deployments/resources/images/mongo"
 )
@@ -182,4 +183,13 @@ func (db *DataStoreMongo) GetLimit(ctx context.Context, name string) (*model.Lim
 	}
 
 	return &limit, nil
+}
+
+func (db *DataStoreMongo) ProvisionTenant(ctx context.Context, tenantId string) error {
+	session := db.session.Copy()
+	defer session.Close()
+
+	dbname := mstore.DbNameForTenant(tenantId, migrations.DbName)
+
+	return migrations.MigrateSingle(ctx, dbname, migrations.DbVersion, session, true)
 }

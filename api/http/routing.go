@@ -37,7 +37,6 @@ import (
 	"github.com/mendersoftware/deployments/resources/images/s3"
 	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
 	tenantsModel "github.com/mendersoftware/deployments/resources/tenants/model"
-	tenantsStore "github.com/mendersoftware/deployments/resources/tenants/store"
 	"github.com/mendersoftware/deployments/store/mongo"
 	"github.com/mendersoftware/deployments/utils/restutil"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
@@ -139,7 +138,6 @@ func NewRouter(c config.Reader) (rest.App, error) {
 	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
 	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
-	tenantsStorage := tenantsStore.NewStore(dbSession)
 	mongoStorage := mongo.NewDataStoreMongoWithSession(dbSession)
 
 	// Domain Models
@@ -154,7 +152,7 @@ func NewRouter(c config.Reader) (rest.App, error) {
 
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
 	app := app.NewDeployments(mongoStorage)
-	tenantsModel := tenantsModel.NewModel(tenantsStorage)
+	tenantsModel := tenantsModel.NewModel(mongoStorage)
 
 	// Controllers
 	imagesController := imagesController.NewSoftwareImagesController(imagesModel,
