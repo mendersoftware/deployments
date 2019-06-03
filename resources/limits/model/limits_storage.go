@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mendersoftware/deployments/resources/limits"
+	"github.com/mendersoftware/deployments/model"
 )
 
 var (
@@ -26,5 +26,5 @@ var (
 )
 
 type LimitsStorage interface {
-	GetLimit(ctx context.Context, name string) (*limits.Limit, error)
+	GetLimit(ctx context.Context, name string) (*model.Limit, error)
 }

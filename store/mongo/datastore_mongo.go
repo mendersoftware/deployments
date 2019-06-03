@@ -30,6 +30,15 @@ import (
 	mimages "github.com/mendersoftware/deployments/resources/images/mongo"
 )
 
+const (
+	DatabaseName     = "deployment_service"
+	CollectionLimits = "limits"
+)
+
+var (
+	ErrLimitNotFound = errors.New("limit not found")
+)
+
 type DataStoreMongo struct {
 	session *mgo.Session
 }
@@ -154,4 +163,23 @@ func (db *DataStoreMongo) matchFromFilt(f *model.ReleaseFilter) bson.M {
 			mimages.StorageKeySoftwareImageName: f.Name,
 		},
 	}
+}
+
+// limits
+//
+func (db *DataStoreMongo) GetLimit(ctx context.Context, name string) (*model.Limit, error) {
+
+	session := db.session.Copy()
+	defer session.Close()
+
+	var limit model.Limit
+	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
+		C(CollectionLimits).FindId(name).One(&limit); err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return nil, ErrLimitNotFound
+		}
+		return nil, err
+	}
+
+	return &limit, nil
 }

@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/mendersoftware/deployments/resources/limits"
+	"github.com/mendersoftware/deployments/model"
 	. "github.com/mendersoftware/deployments/resources/limits/controller"
 	"github.com/mendersoftware/deployments/resources/limits/controller/mocks"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
@@ -67,13 +67,13 @@ func TestGetLimits(t *testing.T) {
 		code  int
 		body  string
 		err   error
-		limit *limits.Limit
+		limit *model.Limit
 	}{
 		{
 			name: "storage",
 			code: http.StatusOK,
 			body: `{"limit":200,"usage":0}`,
-			limit: &limits.Limit{
+			limit: &model.Limit{
 				Name:  "storage",
 				Value: 200,
 			},

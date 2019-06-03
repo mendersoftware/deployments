@@ -17,12 +17,12 @@ package controller
 import (
 	"context"
 
-	"github.com/mendersoftware/deployments/resources/limits"
+	"github.com/mendersoftware/deployments/model"
 )
 
 // Errors expected from interface
 var ()
 
 type LimitsModel interface {
-	GetLimit(ctx context.Context, name string) (*limits.Limit, error)
+	GetLimit(ctx context.Context, name string) (*model.Limit, error)
 }

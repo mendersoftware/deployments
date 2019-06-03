@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -12,16 +12,30 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package limits
+package model
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+const (
+	LimitStorage = "storage"
 )
 
-func TestValidLimit(t *testing.T) {
-	assert.False(t, IsValidLimit("foo"))
-	assert.False(t, IsValidLimit("bar"))
-	assert.True(t, IsValidLimit(LimitStorage))
+var (
+	ValidLimits = []string{LimitStorage}
+)
+
+type Limit struct {
+	Name  string `bson:"_id"`
+	Value uint64 `bson:"value" json:"value"`
+}
+
+func (l Limit) IsLess(what uint64) bool {
+	return what < l.Value
+}
+
+func IsValidLimit(name string) bool {
+	for _, n := range ValidLimits {
+		if name == n {
+			return true
+		}
+	}
+	return false
 }

@@ -21,7 +21,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/deployments/resources/limits"
+	"github.com/mendersoftware/deployments/model"
 )
 
 var ()
@@ -48,7 +48,7 @@ func (s *LimitsController) GetLimit(w rest.ResponseWriter, r *rest.Request) {
 
 	name := r.PathParam("name")
 
-	if !limits.IsValidLimit(name) {
+	if !model.IsValidLimit(name) {
 		s.view.RenderError(w, r,
 			errors.Errorf("unsupported limit %s", name),
 			http.StatusBadRequest, l)

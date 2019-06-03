@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -22,15 +22,15 @@ import (
 	ctxstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/mendersoftware/deployments/resources/limits"
-	model "github.com/mendersoftware/deployments/resources/limits/model"
+	"github.com/mendersoftware/deployments/model"
+	lmodel "github.com/mendersoftware/deployments/resources/limits/model"
 )
 
 // db and test management funcs
-func getDb(ctx context.Context) *LimitsStorage {
+func getDb(ctx context.Context) *DataStoreMongo {
 	db.Wipe()
 
-	ds := NewLimitsStorage(db.Session())
+	ds := NewDataStoreMongoWithSession(db.Session())
 
 	return ds
 }
@@ -40,15 +40,15 @@ func TestGetLimit(t *testing.T) {
 		t.Skip("skipping TestGetLimit in short mode.")
 	}
 
-	lim1 := limits.Limit{
+	lim1 := model.Limit{
 		Name:  "foo",
 		Value: 123,
 	}
-	lim2 := limits.Limit{
+	lim2 := model.Limit{
 		Name:  "bar",
 		Value: 456,
 	}
-	lim3OtherTenant := limits.Limit{
+	lim3OtherTenant := model.Limit{
 		Name:  "bar",
 		Value: 920,
 	}
@@ -80,12 +80,12 @@ func TestGetLimit(t *testing.T) {
 
 	// try with something that does not exist
 	lim, err = db.GetLimit(dbCtx, "nonexistent-foo")
-	assert.EqualError(t, err, model.ErrLimitNotFound.Error())
+	assert.EqualError(t, err, lmodel.ErrLimitNotFound.Error())
 	assert.Nil(t, lim)
 
 	// switch tenants
 	lim, err = db.GetLimit(dbCtxOtherTenant, "foo")
-	assert.EqualError(t, err, model.ErrLimitNotFound.Error())
+	assert.EqualError(t, err, lmodel.ErrLimitNotFound.Error())
 
 	lim, err = db.GetLimit(dbCtxOtherTenant, "bar")
 	assert.NoError(t, err)

@@ -36,7 +36,6 @@ import (
 	"github.com/mendersoftware/deployments/resources/images/s3"
 	limitsController "github.com/mendersoftware/deployments/resources/limits/controller"
 	limitsModel "github.com/mendersoftware/deployments/resources/limits/model"
-	limitsMongo "github.com/mendersoftware/deployments/resources/limits/mongo"
 	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
 	tenantsModel "github.com/mendersoftware/deployments/resources/tenants/model"
 	tenantsStore "github.com/mendersoftware/deployments/resources/tenants/store"
@@ -141,7 +140,6 @@ func NewRouter(c config.Reader) (rest.App, error) {
 	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
 	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
 	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
-	limitsStorage := limitsMongo.NewLimitsStorage(dbSession)
 	tenantsStorage := tenantsStore.NewStore(dbSession)
 	mongoStorage := mongo.NewDataStoreMongoWithSession(dbSession)
 
@@ -156,7 +154,7 @@ func NewRouter(c config.Reader) (rest.App, error) {
 	})
 
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
-	limitsModel := limitsModel.NewLimitsModel(limitsStorage)
+	limitsModel := limitsModel.NewLimitsModel(mongoStorage)
 	tenantsModel := tenantsModel.NewModel(tenantsStorage)
 
 	// Controllers

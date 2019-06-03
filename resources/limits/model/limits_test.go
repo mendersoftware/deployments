@@ -23,28 +23,28 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/mendersoftware/deployments/resources/limits"
+	"github.com/mendersoftware/deployments/model"
 	. "github.com/mendersoftware/deployments/resources/limits/model"
-	"github.com/mendersoftware/deployments/resources/limits/model/mocks"
+	"github.com/mendersoftware/deployments/store/mocks"
 )
 
 func TestGetLimit(t *testing.T) {
 	testCases := []struct {
 		name string
 
-		getLimit *limits.Limit
+		getLimit *model.Limit
 		getErr   error
 
-		expected *limits.Limit
+		expected *model.Limit
 		err      error
 	}{
 		{
 			name: "foo",
-			getLimit: &limits.Limit{
+			getLimit: &model.Limit{
 				Name:  "foo",
 				Value: 123,
 			},
-			expected: &limits.Limit{
+			expected: &model.Limit{
 				Name:  "foo",
 				Value: 123,
 			},
@@ -52,7 +52,7 @@ func TestGetLimit(t *testing.T) {
 		{
 			name:   "not-found",
 			getErr: ErrLimitNotFound,
-			expected: &limits.Limit{
+			expected: &model.Limit{
 				Name:  "not-found",
 				Value: 0,
 			},
@@ -68,7 +68,7 @@ func TestGetLimit(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ls := mocks.LimitsStorage{}
+			ls := mocks.DataStore{}
 			ls.On("GetLimit",
 				mock.MatchedBy(
 					func(_ context.Context) bool {

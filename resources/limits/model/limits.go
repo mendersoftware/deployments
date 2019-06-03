@@ -19,23 +19,24 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/deployments/resources/limits"
+	lmodel "github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/deployments/store"
 )
 
 type LimitsModel struct {
 	storage LimitsStorage
 }
 
-func NewLimitsModel(storage LimitsStorage) *LimitsModel {
+func NewLimitsModel(storage store.DataStore) *LimitsModel {
 	return &LimitsModel{
 		storage: storage,
 	}
 }
 
-func (lm *LimitsModel) GetLimit(ctx context.Context, name string) (*limits.Limit, error) {
+func (lm *LimitsModel) GetLimit(ctx context.Context, name string) (*lmodel.Limit, error) {
 	limit, err := lm.storage.GetLimit(ctx, name)
 	if err == ErrLimitNotFound {
-		return &limits.Limit{
+		return &lmodel.Limit{
 			Name:  name,
 			Value: 0,
 		}, nil
