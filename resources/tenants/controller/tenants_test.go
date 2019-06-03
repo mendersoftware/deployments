@@ -37,8 +37,8 @@ import (
 
 	imageController "github.com/mendersoftware/deployments/resources/images/controller"
 
+	"github.com/mendersoftware/deployments/app/mocks"
 	imageMock "github.com/mendersoftware/deployments/resources/images/controller/mocks"
-	"github.com/mendersoftware/deployments/resources/tenants/model/mocks"
 	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/stretchr/testify/mock"
 )
@@ -99,7 +99,7 @@ func TestProvisionTenant(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(fmt.Sprintf("%s", i), func(t *testing.T) {
-			m := &mocks.Model{}
+			m := &mocks.App{}
 			deps := &deploymentsModel.DeploymentsModel{}
 
 			m.On("ProvisionTenant", contextMatcher(), mock.AnythingOfType("string")).Return(tc.modelErr)
@@ -188,7 +188,7 @@ func TestInteralTenantNewImage(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Test case number: %v", testCaseNumber+1), func(t *testing.T) {
 
-			m := &mocks.Model{}
+			m := &mocks.App{}
 			imageModelMock := &imageMock.ImagesModel{}
 
 			imageModelMock.On("CreateImage", h.ContextMatcher(),

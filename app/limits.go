@@ -26,20 +26,21 @@ import (
 
 type App interface {
 	GetLimit(ctx context.Context, name string) (*model.Limit, error)
+	ProvisionTenant(ctx context.Context, tenant_id string) error
 }
 
 type Deployments struct {
-	storage store.DataStore
+	db store.DataStore
 }
 
 func NewDeployments(storage store.DataStore) *Deployments {
 	return &Deployments{
-		storage: storage,
+		db: storage,
 	}
 }
 
 func (d *Deployments) GetLimit(ctx context.Context, name string) (*model.Limit, error) {
-	limit, err := d.storage.GetLimit(ctx, name)
+	limit, err := d.db.GetLimit(ctx, name)
 	if err == mongo.ErrLimitNotFound {
 		return &model.Limit{
 			Name:  name,
@@ -50,4 +51,12 @@ func (d *Deployments) GetLimit(ctx context.Context, name string) (*model.Limit, 
 		return nil, errors.Wrap(err, "failed to obtain limit from storage")
 	}
 	return limit, nil
+}
+
+func (d *Deployments) ProvisionTenant(ctx context.Context, tenant_id string) error {
+	if err := d.db.ProvisionTenant(ctx, tenant_id); err != nil {
+		return errors.Wrap(err, "failed to provision tenant")
+	}
+
+	return nil
 }

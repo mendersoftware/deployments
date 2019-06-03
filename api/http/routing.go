@@ -36,7 +36,6 @@ import (
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/mendersoftware/deployments/resources/images/s3"
 	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
-	tenantsModel "github.com/mendersoftware/deployments/resources/tenants/model"
 	"github.com/mendersoftware/deployments/store/mongo"
 	"github.com/mendersoftware/deployments/utils/restutil"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
@@ -152,7 +151,6 @@ func NewRouter(c config.Reader) (rest.App, error) {
 
 	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
 	app := app.NewDeployments(mongoStorage)
-	tenantsModel := tenantsModel.NewModel(mongoStorage)
 
 	// Controllers
 	imagesController := imagesController.NewSoftwareImagesController(imagesModel,
@@ -160,7 +158,7 @@ func NewRouter(c config.Reader) (rest.App, error) {
 	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel,
 		new(deploymentsView.DeploymentsView))
 
-	tenantsController := tenantsController.NewController(tenantsModel,
+	tenantsController := tenantsController.NewController(app,
 		deploymentModel,
 		imagesModel,
 		imagesController,

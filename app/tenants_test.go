@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package model_test
+package app
 
 import (
 	"context"
@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	. "github.com/mendersoftware/deployments/resources/tenants/model"
 	mstore "github.com/mendersoftware/deployments/store/mocks"
 )
 
@@ -49,19 +48,19 @@ func TestProvisionTenant(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			s := mstore.DataStore{}
-			s.On("ProvisionTenant",
+			db := mstore.DataStore{}
+			db.On("ProvisionTenant",
 				mock.MatchedBy(
 					func(_ context.Context) bool {
 						return true
 					}),
 				tc.id).Return(tc.storeErr)
 
-			m := NewModel(&s)
+			d := NewDeployments(&db)
 
 			ctx := context.Background()
 
-			err := m.ProvisionTenant(ctx, tc.id)
+			err := d.ProvisionTenant(ctx, tc.id)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 			} else {

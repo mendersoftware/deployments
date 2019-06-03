@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -27,21 +27,21 @@ import (
 
 	imageController "github.com/mendersoftware/deployments/resources/images/controller"
 
-	"github.com/mendersoftware/deployments/resources/tenants/model"
+	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 )
 
 type Controller struct {
-	model      model.Model
+	model      app.App
 	depsModel  deploymentsModel.DeploymentsModel
 	imageModel imageController.ImagesModel
 	imageCtrl  imageController.SoftwareImagesController
 	restView   imageController.RESTView
 }
 
-func NewController(model model.Model, depsModel *deploymentsModel.DeploymentsModel,
+func NewController(model app.App, depsModel *deploymentsModel.DeploymentsModel,
 	imgModel imageController.ImagesModel, imgCtrl *imageController.SoftwareImagesController,
 	restView imageController.RESTView) *Controller {
 
