@@ -31,7 +31,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/images/controller"
 )
 
@@ -59,7 +59,7 @@ func TestCreateImageEmptyMetaConstructor(t *testing.T) {
 func TestCreateImageMissingFields(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
 	multipartUploadMessage := &controller.MultipartUploadMsg{
-		MetaConstructor: images.NewSoftwareImageMetaConstructor(),
+		MetaConstructor: model.NewSoftwareImageMetaConstructor(),
 	}
 
 	if _, err := iModel.CreateImage(context.Background(),
@@ -71,9 +71,9 @@ func TestCreateImageMissingFields(t *testing.T) {
 type FakeImageStorage struct {
 	insertError           error
 	findByIdError         error
-	findByIdImage         *images.SoftwareImage
+	findByIdImage         *model.SoftwareImage
 	deleteError           error
-	findAllImages         []*images.SoftwareImage
+	findAllImages         []*model.SoftwareImage
 	findAllError          error
 	imageExists           bool
 	imageEsistsError      error
@@ -89,17 +89,17 @@ func (fis *FakeImageStorage) Exists(ctx context.Context, id string) (bool, error
 }
 
 func (fis *FakeImageStorage) Update(ctx context.Context,
-	image *images.SoftwareImage) (bool, error) {
+	image *model.SoftwareImage) (bool, error) {
 	return fis.update, fis.updateError
 }
 
 func (fis *FakeImageStorage) Insert(ctx context.Context,
-	image *images.SoftwareImage) error {
+	image *model.SoftwareImage) error {
 	return fis.insertError
 }
 
 func (fis *FakeImageStorage) FindByID(ctx context.Context,
-	id string) (*images.SoftwareImage, error) {
+	id string) (*model.SoftwareImage, error) {
 	return fis.findByIdImage, fis.findByIdError
 }
 
@@ -107,7 +107,7 @@ func (fis *FakeImageStorage) Delete(ctx context.Context, id string) error {
 	return fis.deleteError
 }
 
-func (fis *FakeImageStorage) FindAll(ctx context.Context) ([]*images.SoftwareImage, error) {
+func (fis *FakeImageStorage) FindAll(ctx context.Context) ([]*model.SoftwareImage, error) {
 	return fis.findAllImages, fis.findAllError
 }
 
@@ -116,32 +116,32 @@ func (fis *FakeImageStorage) IsArtifactUnique(ctx context.Context,
 	return fis.isArtifactUnique, fis.isArtifactUniqueError
 }
 
-func createValidImageMeta() *images.SoftwareImageMetaConstructor {
-	return images.NewSoftwareImageMetaConstructor()
+func createValidImageMeta() *model.SoftwareImageMetaConstructor {
+	return model.NewSoftwareImageMetaConstructor()
 }
 
-func createValidImageMetaArtifact() *images.SoftwareImageMetaArtifactConstructor {
-	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+func createValidImageMetaArtifact() *model.SoftwareImageMetaArtifactConstructor {
+	imageMetaArtifact := model.NewSoftwareImageMetaArtifactConstructor()
 	required := "required"
 
 	imageMetaArtifact.DeviceTypesCompatible = []string{"required"}
 	imageMetaArtifact.Name = required
-	imageMetaArtifact.Info = &images.ArtifactInfo{
+	imageMetaArtifact.Info = &model.ArtifactInfo{
 		Format:  required,
 		Version: 1,
 	}
 	return imageMetaArtifact
 }
 
-func createValidImageMetaDataArtifact() *images.SoftwareImageMetaArtifactConstructor {
+func createValidImageMetaDataArtifact() *model.SoftwareImageMetaArtifactConstructor {
 	imageMetaArtifact := createValidImageMetaArtifact()
 	metaData := map[string]interface{}{
-		"foo": "bar",
+		"foo":   "bar",
 		"image": "alpine:sha123",
 	}
 	imageMetaArtifact.Updates = append(
 		imageMetaArtifact.Updates,
-		images.Update{
+		model.Update{
 			MetaData: metaData,
 		})
 	return imageMetaArtifact
@@ -297,7 +297,7 @@ func TestCreateSignedImageCreateOK(t *testing.T) {
 func TestCreateImageMetaDataOK(t *testing.T) {
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaDataArtifact()
-	constructorImage := images.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
+	constructorImage := model.NewSoftwareImage(validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	now := time.Now()
 	constructorImage.Modified = &now
 
@@ -345,9 +345,9 @@ type FakeFileStorage struct {
 	deleteError         error
 	imageExists         bool
 	imageEsistsError    error
-	putReq              *images.Link
+	putReq              *model.Link
 	putError            error
-	getReq              *images.Link
+	getReq              *model.Link
 	getError            error
 	uploadArtifactError error
 }
@@ -366,12 +366,12 @@ func (ffs *FakeFileStorage) LastModified(ctx context.Context,
 }
 
 func (ffs *FakeFileStorage) PutRequest(ctx context.Context, objectId string,
-	duration time.Duration) (*images.Link, error) {
+	duration time.Duration) (*model.Link, error) {
 	return ffs.putReq, ffs.putError
 }
 
 func (ffs *FakeFileStorage) GetRequest(ctx context.Context, objectId string,
-	duration time.Duration, responseContentType string) (*images.Link, error) {
+	duration time.Duration, responseContentType string) (*model.Link, error) {
 	return ffs.getReq, ffs.getError
 }
 
@@ -386,7 +386,7 @@ func (fis *FakeFileStorage) UploadArtifact(ctx context.Context, id string,
 func TestGetImageOK(t *testing.T) {
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaArtifact()
-	constructorImage := images.NewSoftwareImage(
+	constructorImage := model.NewSoftwareImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	now := time.Now()
 	constructorImage.Modified = &now
@@ -424,7 +424,7 @@ func (fus *FakeUseChecker) ImageUsedInDeployment(ctx context.Context, imageId st
 func TestDeleteImage(t *testing.T) {
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaArtifact()
-	constructorImage := images.NewSoftwareImage(
+	constructorImage := model.NewSoftwareImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 
 	fakeFS := new(FakeFileStorage)
@@ -499,12 +499,12 @@ func TestListImages(t *testing.T) {
 	//have some valid image
 	imageMeta := createValidImageMeta()
 	imageMetaArtifact := createValidImageMetaArtifact()
-	constructorImage := images.NewSoftwareImage(
+	constructorImage := model.NewSoftwareImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	now := time.Now()
 	constructorImage.Modified = &now
 
-	listedImages := []*images.SoftwareImage{constructorImage}
+	listedImages := []*model.SoftwareImage{constructorImage}
 	fakeIS.findAllImages = listedImages
 	if _, err := iModel.ListImages(context.Background(), nil); err != nil {
 		t.FailNow()
@@ -551,7 +551,7 @@ func TestEditImage(t *testing.T) {
 	}
 
 	// image does not exists
-	constructorImage := images.NewSoftwareImage(
+	constructorImage := model.NewSoftwareImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	fakeIS.findByIdImage = constructorImage
 	fakeIS.updateError = errors.New("error")
@@ -608,7 +608,7 @@ func TestDownloadLink(t *testing.T) {
 
 	// upload link generation success
 	fakeFS.getError = nil
-	link := images.NewLink("uri", time.Now())
+	link := model.NewLink("uri", time.Now())
 	fakeFS.getReq = link
 
 	receivedLink, err := iModel.DownloadLink(context.Background(),

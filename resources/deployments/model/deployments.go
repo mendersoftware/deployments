@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import (
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/pkg/errors"
 
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/deployments/controller"
-	"github.com/mendersoftware/deployments/resources/images"
 )
 
 // Defaults
@@ -33,11 +33,11 @@ const (
 
 type ArtifactGetter interface {
 	ImagesByName(ctx context.Context,
-		artifactName string) ([]*images.SoftwareImage, error)
+		artifactName string) ([]*model.SoftwareImage, error)
 	ImageByIdsAndDeviceType(ctx context.Context,
-		ids []string, deviceType string) (*images.SoftwareImage, error)
+		ids []string, deviceType string) (*model.SoftwareImage, error)
 	ImageByNameAndDeviceType(ctx context.Context,
-		name, deviceType string) (*images.SoftwareImage, error)
+		name, deviceType string) (*model.SoftwareImage, error)
 }
 
 type DeploymentsModel struct {
@@ -69,7 +69,7 @@ func NewDeploymentModel(config DeploymentsModelConfig) *DeploymentsModel {
 	}
 }
 
-func getArtifactIDs(artifacts []*images.SoftwareImage) []string {
+func getArtifactIDs(artifacts []*model.SoftwareImage) []string {
 	artifactIDs := make([]string, 0, len(artifacts))
 	for _, artifact := range artifacts {
 		artifactIDs = append(artifactIDs, artifact.Id)
@@ -224,7 +224,7 @@ func (d *DeploymentsModel) assignArtifact(
 	installed deployments.InstalledDeviceDeployment) error {
 
 	// Assign artifact to the device deployment.
-	var artifact *images.SoftwareImage
+	var artifact *model.SoftwareImage
 	var err error
 	// Clear device deployment image
 	// New artifact will be selected for the device deployment

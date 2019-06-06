@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/model"
 )
 
 // Errors specific to interface
@@ -34,9 +34,9 @@ type FileStorage interface {
 	Exists(ctx context.Context, objectId string) (bool, error)
 	LastModified(ctx context.Context, objectId string) (time.Time, error)
 	PutRequest(ctx context.Context, objectId string,
-		duration time.Duration) (*images.Link, error)
+		duration time.Duration) (*model.Link, error)
 	GetRequest(ctx context.Context, objectId string,
-		duration time.Duration, responseContentType string) (*images.Link, error)
+		duration time.Duration, responseContentType string) (*model.Link, error)
 	UploadArtifact(ctx context.Context, objectId string,
 		artifactSize int64, artifact io.Reader, contentType string) error
 }

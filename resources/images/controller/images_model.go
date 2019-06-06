@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/model"
 )
 
 // Errors expected from interface
@@ -39,13 +39,13 @@ var (
 
 type ImagesModel interface {
 	ListImages(ctx context.Context,
-		filters map[string]string) ([]*images.SoftwareImage, error)
+		filters map[string]string) ([]*model.SoftwareImage, error)
 	DownloadLink(ctx context.Context, imageID string,
-		expire time.Duration) (*images.Link, error)
-	GetImage(ctx context.Context, id string) (*images.SoftwareImage, error)
+		expire time.Duration) (*model.Link, error)
+	GetImage(ctx context.Context, id string) (*model.SoftwareImage, error)
 	DeleteImage(ctx context.Context, imageID string) error
 	CreateImage(ctx context.Context,
 		multipartUploadMsg *MultipartUploadMsg) (string, error)
 	EditImage(ctx context.Context, id string,
-		constructorData *images.SoftwareImageMetaConstructor) (bool, error)
+		constructorData *model.SoftwareImageMetaConstructor) (bool, error)
 }

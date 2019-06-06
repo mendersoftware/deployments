@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 
-	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/model"
 )
 
 // Deployment statuses
@@ -69,7 +69,7 @@ type DeviceDeployment struct {
 	Id *string `json:"-" bson:"_id" valid:"uuidv4,required"`
 
 	// Assigned software image
-	Image *images.SoftwareImage `json:"-" valid:"-"`
+	Image *model.SoftwareImage `json:"-" valid:"-"`
 
 	// Target device type
 	DeviceType *string `json:"device_type,omitempty" valid:"-"`

@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import (
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/mendersoftware/deployments/resources/images"
-	model "github.com/mendersoftware/deployments/resources/images/model"
+	"github.com/mendersoftware/deployments/model"
+	dmodel "github.com/mendersoftware/deployments/resources/images/model"
 	. "github.com/mendersoftware/deployments/resources/images/mongo"
 )
 
@@ -33,28 +33,28 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 
 	//image dataset - common for all cases
 	inputImgs := []interface{}{
-		&images.SoftwareImage{
+		&model.SoftwareImage{
 			Id: "1",
-			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
+			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
 				Name: "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
-				Updates:               []images.Update{},
+				Updates:               []model.Update{},
 			},
 		},
-		&images.SoftwareImage{
+		&model.SoftwareImage{
 			Id: "2",
-			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
+			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
 				Name: "App2 v0.1",
 				DeviceTypesCompatible: []string{"bar", "baz"},
-				Updates:               []images.Update{},
+				Updates:               []model.Update{},
 			},
 		},
 	}
@@ -72,21 +72,21 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 		InputDevType   string
 		InputTenant    string
 
-		OutputImage *images.SoftwareImage
+		OutputImage *model.SoftwareImage
 		OutputError error
 	}{
 		"name and dev type ok - single type": {
 			InputImageName: "App1 v1.0",
 			InputDevType:   "foo",
 
-			OutputImage: inputImgs[0].(*images.SoftwareImage),
+			OutputImage: inputImgs[0].(*model.SoftwareImage),
 			OutputError: nil,
 		},
 		"name and dev type ok - multiple types": {
 			InputImageName: "App2 v0.1",
 			InputDevType:   "bar",
 
-			OutputImage: inputImgs[1].(*images.SoftwareImage),
+			OutputImage: inputImgs[1].(*model.SoftwareImage),
 			OutputError: nil,
 		},
 		"name ok, dev type incompatible - single type": {
@@ -115,14 +115,14 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			InputDevType:   "foo",
 
 			OutputImage: nil,
-			OutputError: model.ErrSoftwareImagesStorageInvalidName,
+			OutputError: dmodel.ErrSoftwareImagesStorageInvalidName,
 		},
 		"dev type validation error": {
 			InputImageName: "App2 v0.1",
 			InputDevType:   "",
 
 			OutputImage: nil,
-			OutputError: model.ErrSoftwareImagesStorageInvalidDeviceType,
+			OutputError: dmodel.ErrSoftwareImagesStorageInvalidDeviceType,
 		},
 		"other tenant": {
 			InputImageName: "App1 v1.0",
@@ -169,16 +169,16 @@ func TestIsArtifactUnique(t *testing.T) {
 
 	//image dataset - common for all cases
 	inputImgs := []interface{}{
-		&images.SoftwareImage{
+		&model.SoftwareImage{
 			Id: "1",
-			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
+			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
 				Name: "app1-v1.0",
 				DeviceTypesCompatible: []string{"foo", "bar"},
-				Updates:               []images.Update{},
+				Updates:               []model.Update{},
 			},
 		},
 	}
@@ -223,7 +223,7 @@ func TestIsArtifactUnique(t *testing.T) {
 		"empty artifact name": {
 			InputDevTypes: []string{"baz", "bah"},
 
-			OutputError: model.ErrSoftwareImagesStorageInvalidArtifactName,
+			OutputError: dmodel.ErrSoftwareImagesStorageInvalidArtifactName,
 		},
 		"other tenant": {
 			// is unique because we're using another DB

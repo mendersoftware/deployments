@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/model"
-	images "github.com/mendersoftware/deployments/resources/images"
+	dmodel "github.com/mendersoftware/deployments/model"
 	mimages "github.com/mendersoftware/deployments/resources/images/mongo"
 )
 
@@ -30,142 +30,142 @@ func TestGetReleases(t *testing.T) {
 	}
 
 	inputImgs := []interface{}{
-		images.SoftwareImage{
+		model.SoftwareImage{
 			Id: "1",
-			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				Name:                  "App1 v1.0",
+			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+				Name: "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
-				Updates:               []images.Update{},
+				Updates:               []model.Update{},
 			},
 		},
-		images.SoftwareImage{
+		model.SoftwareImage{
 			Id: "2",
-			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				Name:                  "App2 v0.1",
+			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+				Name: "App2 v0.1",
 				DeviceTypesCompatible: []string{"foo"},
-				Updates:               []images.Update{},
+				Updates:               []model.Update{},
 			},
 		},
-		&images.SoftwareImage{
+		&model.SoftwareImage{
 			Id: "3",
-			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				Name:                  "App1 v1.0",
+			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+				Name: "App1 v1.0",
 				DeviceTypesCompatible: []string{"bar, baz"},
-				Updates:               []images.Update{},
+				Updates:               []model.Update{},
 			},
 		},
-		&images.SoftwareImage{
+		&model.SoftwareImage{
 			Id: "4",
-			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				Name:                  "App1 v1.0",
+			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+				Name: "App1 v1.0",
 				DeviceTypesCompatible: []string{"bork"},
-				Updates:               []images.Update{},
+				Updates:               []model.Update{},
 			},
 		},
-		&images.SoftwareImage{
+		&model.SoftwareImage{
 			Id: "5",
-			SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-				Name:                  "App2 v0.1",
+			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+				Name: "App2 v0.1",
 				DeviceTypesCompatible: []string{"bar", "baz"},
-				Updates:               []images.Update{},
+				Updates:               []model.Update{},
 			},
 		},
 	}
 
 	testCases := map[string]struct {
-		releaseFilt *model.ReleaseFilter
+		releaseFilt *dmodel.ReleaseFilter
 
-		releases []model.Release
+		releases []dmodel.Release
 		err      error
 	}{
 		"ok, all": {
-			releases: []model.Release{
-				model.Release{
+			releases: []dmodel.Release{
+				dmodel.Release{
 					Name: "App2 v0.1",
-					Artifacts: []images.SoftwareImage{
-						images.SoftwareImage{
+					Artifacts: []model.SoftwareImage{
+						model.SoftwareImage{
 							Id: "2",
-							SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+							SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 								Description: "description",
 							},
 
-							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name:                  "App2 v0.1",
+							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+								Name: "App2 v0.1",
 								DeviceTypesCompatible: []string{"foo"},
-								Updates:               []images.Update{},
+								Updates:               []model.Update{},
 							},
 						},
-						images.SoftwareImage{
+						model.SoftwareImage{
 							Id: "5",
-							SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+							SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 								Description: "description",
 							},
 
-							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name:                  "App2 v0.1",
+							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+								Name: "App2 v0.1",
 								DeviceTypesCompatible: []string{"bar", "baz"},
-								Updates:               []images.Update{},
+								Updates:               []model.Update{},
 							},
 						},
 					},
 				},
-				model.Release{
+				dmodel.Release{
 					Name: "App1 v1.0",
-					Artifacts: []images.SoftwareImage{
-						images.SoftwareImage{
+					Artifacts: []model.SoftwareImage{
+						model.SoftwareImage{
 							Id: "1",
-							SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+							SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 								Description: "description",
 							},
 
-							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name:                  "App1 v1.0",
+							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+								Name: "App1 v1.0",
 								DeviceTypesCompatible: []string{"foo"},
-								Updates:               []images.Update{},
+								Updates:               []model.Update{},
 							},
 						},
-						images.SoftwareImage{
+						model.SoftwareImage{
 							Id: "3",
-							SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+							SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 								Description: "description",
 							},
 
-							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name:                  "App1 v1.0",
+							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+								Name: "App1 v1.0",
 								DeviceTypesCompatible: []string{"bar, baz"},
-								Updates:               []images.Update{},
+								Updates:               []model.Update{},
 							},
 						},
-						images.SoftwareImage{
+						model.SoftwareImage{
 							Id: "4",
-							SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+							SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 								Description: "description",
 							},
 
-							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name:                  "App1 v1.0",
+							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+								Name: "App1 v1.0",
 								DeviceTypesCompatible: []string{"bork"},
-								Updates:               []images.Update{},
+								Updates:               []model.Update{},
 							},
 						},
 					},
@@ -173,35 +173,35 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		"ok, by name": {
-			releaseFilt: &model.ReleaseFilter{
+			releaseFilt: &dmodel.ReleaseFilter{
 				Name: "App2 v0.1",
 			},
-			releases: []model.Release{
-				model.Release{
+			releases: []dmodel.Release{
+				dmodel.Release{
 					Name: "App2 v0.1",
-					Artifacts: []images.SoftwareImage{
-						images.SoftwareImage{
+					Artifacts: []model.SoftwareImage{
+						model.SoftwareImage{
 							Id: "2",
-							SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+							SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 								Description: "description",
 							},
 
-							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name:                  "App2 v0.1",
+							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+								Name: "App2 v0.1",
 								DeviceTypesCompatible: []string{"foo"},
-								Updates:               []images.Update{},
+								Updates:               []model.Update{},
 							},
 						},
-						images.SoftwareImage{
+						model.SoftwareImage{
 							Id: "5",
-							SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+							SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 								Description: "description",
 							},
 
-							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
-								Name:                  "App2 v0.1",
+							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+								Name: "App2 v0.1",
 								DeviceTypesCompatible: []string{"bar", "baz"},
-								Updates:               []images.Update{},
+								Updates:               []model.Update{},
 							},
 						},
 					},
@@ -209,10 +209,10 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		"ok, not found": {
-			releaseFilt: &model.ReleaseFilter{
+			releaseFilt: &dmodel.ReleaseFilter{
 				Name: "App3 v1.0",
 			},
-			releases: []model.Release{},
+			releases: []dmodel.Release{},
 		},
 	}
 

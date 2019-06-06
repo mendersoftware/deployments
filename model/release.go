@@ -13,13 +13,9 @@
 //    limitations under the License.
 package model
 
-import (
-	"github.com/mendersoftware/deployments/resources/images"
-)
-
 type Release struct {
 	Name      string
-	Artifacts []images.SoftwareImage
+	Artifacts []SoftwareImage
 }
 
 type ReleaseFilter struct {

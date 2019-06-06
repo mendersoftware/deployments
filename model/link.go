@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -12,23 +12,20 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package images
+package model
 
 import (
-	"testing"
 	"time"
 )
 
-func TestNewLink(t *testing.T) {
-	now := time.Now()
-	uri := "http://example.com"
-	link := NewLink(uri, now)
+type Link struct {
+	Uri    string    `json:"uri"`
+	Expire time.Time `json:"expire,omitempty"`
+}
 
-	if link.Uri != uri {
-		t.FailNow()
-	}
-
-	if link.Expire != now {
-		t.FailNow()
+func NewLink(uri string, expire time.Time) *Link {
+	return &Link{
+		Uri:    uri,
+		Expire: expire,
 	}
 }

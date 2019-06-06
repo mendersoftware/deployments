@@ -25,7 +25,7 @@ import (
 
 	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/resources/images"
+	dmodel "github.com/mendersoftware/deployments/model"
 	store_mocks "github.com/mendersoftware/deployments/store/mocks"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	deployments_testing "github.com/mendersoftware/deployments/utils/testing"
@@ -35,25 +35,25 @@ import (
 func TestGetReleases(t *testing.T) {
 
 	testCases := map[string]struct {
-		filter        *model.ReleaseFilter
-		storeReleases []model.Release
+		filter        *dmodel.ReleaseFilter
+		storeReleases []dmodel.Release
 		storeErr      error
 		checker       mt.ResponseChecker
 	}{
 		"ok": {
-			storeReleases: []model.Release{
-				model.Release{
-					Artifacts: []images.SoftwareImage{
-						images.SoftwareImage{
+			storeReleases: []dmodel.Release{
+				dmodel.Release{
+					Artifacts: []model.SoftwareImage{
+						model.SoftwareImage{
 							Id: "1",
-							SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+							SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 								Description: "description",
 							},
 
-							SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
+							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
 								Name: "App1 v1.0",
 								DeviceTypesCompatible: []string{"bar", "baz"},
-								Updates:               []images.Update{},
+								Updates:               []model.Update{},
 							},
 						},
 					},
@@ -62,19 +62,19 @@ func TestGetReleases(t *testing.T) {
 			checker: mt.NewJSONResponse(
 				http.StatusOK,
 				nil,
-				[]model.Release{
-					model.Release{
-						Artifacts: []images.SoftwareImage{
-							images.SoftwareImage{
+				[]dmodel.Release{
+					dmodel.Release{
+						Artifacts: []model.SoftwareImage{
+							model.SoftwareImage{
 								Id: "1",
-								SoftwareImageMetaConstructor: images.SoftwareImageMetaConstructor{
+								SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
 									Description: "description",
 								},
 
-								SoftwareImageMetaArtifactConstructor: images.SoftwareImageMetaArtifactConstructor{
+								SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
 									Name: "App1 v1.0",
 									DeviceTypesCompatible: []string{"bar", "baz"},
-									Updates:               []images.Update{},
+									Updates:               []model.Update{},
 								},
 							},
 						},
@@ -82,19 +82,19 @@ func TestGetReleases(t *testing.T) {
 				}),
 		},
 		"ok, empty": {
-			storeReleases: []model.Release{},
+			storeReleases: []dmodel.Release{},
 			checker: mt.NewJSONResponse(
 				http.StatusOK,
 				nil,
-				[]model.Release{}),
+				[]dmodel.Release{}),
 		},
 		"ok, filter": {
-			filter:        &model.ReleaseFilter{Name: "foo"},
-			storeReleases: []model.Release{},
+			filter:        &dmodel.ReleaseFilter{Name: "foo"},
+			storeReleases: []dmodel.Release{},
 			checker: mt.NewJSONResponse(
 				http.StatusOK,
 				nil,
-				[]model.Release{}),
+				[]dmodel.Release{}),
 		},
 		"error: generic": {
 			storeReleases: nil,

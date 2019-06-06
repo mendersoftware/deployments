@@ -34,11 +34,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/resources/deployments/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/deployments/view"
-	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	h "github.com/mendersoftware/deployments/utils/testing"
 )
@@ -75,12 +75,12 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 	t.Parallel()
 
-	image := images.NewSoftwareImage(
+	image := model.NewSoftwareImage(
 		validUUIDv4,
-		&images.SoftwareImageMetaConstructor{
+		&model.SoftwareImageMetaConstructor{
 			Description: "foo-image-desc",
 		},
-		&images.SoftwareImageMetaArtifactConstructor{
+		&model.SoftwareImageMetaArtifactConstructor{
 			Name: "artifact-name",
 			DeviceTypesCompatible: []string{
 				"hammer",
@@ -159,7 +159,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 				ID: "foo-1",
 				Artifact: deployments.ArtifactDeploymentInstructions{
 					ArtifactName:          image.Name,
-					Source:                images.Link{},
+					Source:                model.Link{},
 					DeviceTypesCompatible: image.DeviceTypesCompatible,
 				},
 			},
@@ -170,7 +170,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 					ID: "foo-1",
 					Artifact: deployments.ArtifactDeploymentInstructions{
 						ArtifactName:          image.Name,
-						Source:                images.Link{},
+						Source:                model.Link{},
 						DeviceTypesCompatible: image.DeviceTypesCompatible,
 					},
 				},
@@ -188,7 +188,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			},
 		},
 		{
-			InputID:                          "device-id-3",
+			InputID: "device-id-3",
 			InputModelDeploymentInstructions: nil,
 
 			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
@@ -208,7 +208,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			},
 		},
 		{
-			InputID:                          "device-id-4",
+			InputID: "device-id-4",
 			InputModelDeploymentInstructions: nil,
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -223,7 +223,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			},
 		},
 		{
-			InputID:                          "device-id-5",
+			InputID: "device-id-5",
 			InputModelDeploymentInstructions: nil,
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -238,7 +238,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			},
 		},
 		{
-			InputID:                          "device-id-6",
+			InputID: "device-id-6",
 			InputModelDeploymentInstructions: nil,
 
 			JSONResponseParams: h.JSONResponseParams{

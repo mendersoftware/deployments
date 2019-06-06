@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/mendersoftware/go-lib-micro/store"
 
-	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/resources/images/model"
+	"github.com/mendersoftware/deployments/model"
+	dmodel "github.com/mendersoftware/deployments/resources/images/model"
 )
 
 // Database KEYS
@@ -81,13 +81,13 @@ func (i *SoftwareImagesStorage) ensureIndexing(ctx context.Context, session *mgo
 func (i *SoftwareImagesStorage) Exists(ctx context.Context, id string) (bool, error) {
 
 	if govalidator.IsNull(id) {
-		return false, model.ErrSoftwareImagesStorageInvalidID
+		return false, dmodel.ErrSoftwareImagesStorageInvalidID
 	}
 
 	session := i.session.Copy()
 	defer session.Close()
 
-	var image *images.SoftwareImage
+	var image *model.SoftwareImage
 	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).FindId(id).One(&image); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -102,7 +102,7 @@ func (i *SoftwareImagesStorage) Exists(ctx context.Context, id string) (bool, er
 // Update proviced SoftwareImage
 // Return false if not found
 func (i *SoftwareImagesStorage) Update(ctx context.Context,
-	image *images.SoftwareImage) (bool, error) {
+	image *model.SoftwareImage) (bool, error) {
 
 	if err := image.Validate(); err != nil {
 		return false, err
@@ -125,15 +125,15 @@ func (i *SoftwareImagesStorage) Update(ctx context.Context,
 
 // ImageByNameAndDeviceType finds image with speficied application name and targed device type
 func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(ctx context.Context,
-	name, deviceType string) (*images.SoftwareImage, error) {
+	name, deviceType string) (*model.SoftwareImage, error) {
 
 	if govalidator.IsNull(name) {
-		return nil, model.ErrSoftwareImagesStorageInvalidName
+		return nil, dmodel.ErrSoftwareImagesStorageInvalidName
 
 	}
 
 	if govalidator.IsNull(deviceType) {
-		return nil, model.ErrSoftwareImagesStorageInvalidDeviceType
+		return nil, dmodel.ErrSoftwareImagesStorageInvalidDeviceType
 	}
 
 	// equal to device type & software version (application name + version)
@@ -146,7 +146,7 @@ func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(ctx context.Context,
 	defer session.Close()
 
 	// Both we lookup uniqe object, should be one or none.
-	var image images.SoftwareImage
+	var image model.SoftwareImage
 	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).Find(query).One(&image); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -160,14 +160,14 @@ func (i *SoftwareImagesStorage) ImageByNameAndDeviceType(ctx context.Context,
 
 // ImageByIdsAndDeviceType finds image with id from ids and targed device type
 func (i *SoftwareImagesStorage) ImageByIdsAndDeviceType(ctx context.Context,
-	ids []string, deviceType string) (*images.SoftwareImage, error) {
+	ids []string, deviceType string) (*model.SoftwareImage, error) {
 
 	if govalidator.IsNull(deviceType) {
-		return nil, model.ErrSoftwareImagesStorageInvalidDeviceType
+		return nil, dmodel.ErrSoftwareImagesStorageInvalidDeviceType
 	}
 
 	if len(ids) == 0 {
-		return nil, model.ErrSoftwareImagesStorageInvalidID
+		return nil, dmodel.ErrSoftwareImagesStorageInvalidID
 	}
 
 	query := bson.M{
@@ -179,7 +179,7 @@ func (i *SoftwareImagesStorage) ImageByIdsAndDeviceType(ctx context.Context,
 	defer session.Close()
 
 	// Both we lookup uniqe object, should be one or none.
-	var image images.SoftwareImage
+	var image model.SoftwareImage
 	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).Find(query).One(&image); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -193,10 +193,10 @@ func (i *SoftwareImagesStorage) ImageByIdsAndDeviceType(ctx context.Context,
 
 // ImagesByName finds images with speficied artifact name
 func (i *SoftwareImagesStorage) ImagesByName(
-	ctx context.Context, name string) ([]*images.SoftwareImage, error) {
+	ctx context.Context, name string) ([]*model.SoftwareImage, error) {
 
 	if govalidator.IsNull(name) {
-		return nil, model.ErrSoftwareImagesStorageInvalidName
+		return nil, dmodel.ErrSoftwareImagesStorageInvalidName
 
 	}
 
@@ -209,7 +209,7 @@ func (i *SoftwareImagesStorage) ImagesByName(
 	defer session.Close()
 
 	// Both we lookup uniqe object, should be one or none.
-	var images []*images.SoftwareImage
+	var images []*model.SoftwareImage
 	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).Find(query).All(&images); err != nil {
 		return nil, err
@@ -219,10 +219,10 @@ func (i *SoftwareImagesStorage) ImagesByName(
 }
 
 // Insert persists object
-func (i *SoftwareImagesStorage) Insert(ctx context.Context, image *images.SoftwareImage) error {
+func (i *SoftwareImagesStorage) Insert(ctx context.Context, image *model.SoftwareImage) error {
 
 	if image == nil {
-		return model.ErrSoftwareImagesStorageInvalidImage
+		return dmodel.ErrSoftwareImagesStorageInvalidImage
 	}
 
 	if err := image.Validate(); err != nil {
@@ -242,16 +242,16 @@ func (i *SoftwareImagesStorage) Insert(ctx context.Context, image *images.Softwa
 
 // FindByID search storage for image with ID, returns nil if not found
 func (i *SoftwareImagesStorage) FindByID(ctx context.Context,
-	id string) (*images.SoftwareImage, error) {
+	id string) (*model.SoftwareImage, error) {
 
 	if govalidator.IsNull(id) {
-		return nil, model.ErrSoftwareImagesStorageInvalidID
+		return nil, dmodel.ErrSoftwareImagesStorageInvalidID
 	}
 
 	session := i.session.Copy()
 	defer session.Close()
 
-	var image *images.SoftwareImage
+	var image *model.SoftwareImage
 	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).FindId(id).One(&image); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -272,7 +272,7 @@ func (i *SoftwareImagesStorage) IsArtifactUnique(ctx context.Context,
 	artifactName string, deviceTypesCompatible []string) (bool, error) {
 
 	if govalidator.IsNull(artifactName) {
-		return false, model.ErrSoftwareImagesStorageInvalidArtifactName
+		return false, dmodel.ErrSoftwareImagesStorageInvalidArtifactName
 	}
 
 	session := i.session.Copy()
@@ -289,7 +289,7 @@ func (i *SoftwareImagesStorage) IsArtifactUnique(ctx context.Context,
 		},
 	}
 
-	var image *images.SoftwareImage
+	var image *model.SoftwareImage
 	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).Find(query).One(&image); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -306,7 +306,7 @@ func (i *SoftwareImagesStorage) IsArtifactUnique(ctx context.Context,
 func (i *SoftwareImagesStorage) Delete(ctx context.Context, id string) error {
 
 	if govalidator.IsNull(id) {
-		return model.ErrSoftwareImagesStorageInvalidID
+		return dmodel.ErrSoftwareImagesStorageInvalidID
 	}
 
 	session := i.session.Copy()
@@ -324,12 +324,12 @@ func (i *SoftwareImagesStorage) Delete(ctx context.Context, id string) error {
 }
 
 // FindAll lists all images
-func (i *SoftwareImagesStorage) FindAll(ctx context.Context) ([]*images.SoftwareImage, error) {
+func (i *SoftwareImagesStorage) FindAll(ctx context.Context) ([]*model.SoftwareImage, error) {
 
 	session := i.session.Copy()
 	defer session.Close()
 
-	var images []*images.SoftwareImage
+	var images []*model.SoftwareImage
 	if err := session.DB(store.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).Find(nil).All(&images); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {

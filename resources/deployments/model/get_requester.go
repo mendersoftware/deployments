@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,11 +18,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/model"
 )
 
 // Responsible for providing GET method requests to requested artifact
 type GetRequester interface {
 	GetRequest(ctx context.Context, objectId string,
-		duration time.Duration, responseContentType string) (*images.Link, error)
+		duration time.Duration, responseContentType string) (*model.Link, error)
 }

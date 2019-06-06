@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
 
 package deployments
 
-import "github.com/mendersoftware/deployments/resources/images"
+import "github.com/mendersoftware/deployments/model"
 
 type ArtifactDeploymentInstructions struct {
-	ArtifactName          string      `json:"artifact_name"`
-	Source                images.Link `json:"source"`
-	DeviceTypesCompatible []string    `json:"device_types_compatible"`
+	ArtifactName          string     `json:"artifact_name"`
+	Source                model.Link `json:"source"`
+	DeviceTypesCompatible []string   `json:"device_types_compatible"`
 }
 
 type DeploymentInstructions struct {

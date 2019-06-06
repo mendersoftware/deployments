@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package model_test
+package model
 
 import (
 	"context"
@@ -24,11 +24,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/deployments/controller"
-	. "github.com/mendersoftware/deployments/resources/deployments/model"
 	"github.com/mendersoftware/deployments/resources/deployments/model/mocks"
-	"github.com/mendersoftware/deployments/resources/images"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	h "github.com/mendersoftware/deployments/utils/testing"
 )
@@ -240,10 +239,10 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 
 	//t.Parallel()
 
-	image := images.NewSoftwareImage(
+	image := model.NewSoftwareImage(
 		validUUIDv4,
-		&images.SoftwareImageMetaConstructor{},
-		&images.SoftwareImageMetaArtifactConstructor{
+		&model.SoftwareImageMetaConstructor{},
+		&model.SoftwareImageMetaArtifactConstructor{
 			Name: "foo-artifact",
 			DeviceTypesCompatible: []string{
 				"hammer",
@@ -256,12 +255,12 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		InputOlderstDeviceDeployment      *deployments.DeviceDeployment
 		InputOlderstDeviceDeploymentError error
 
-		InputGetRequestLink  *images.Link
+		InputGetRequestLink  *model.Link
 		InputGetRequestError error
 
 		InputInstalledDeployment deployments.InstalledDeviceDeployment
 
-		InputArtifact                      *images.SoftwareImage
+		InputArtifact                      *model.SoftwareImage
 		InputImageByIdsAndDeviceTypeError  error
 		InputImageByNameAndDeviceTypeError error
 
@@ -288,10 +287,10 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		{
 			InputID: "ID:123",
 			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
-				Image: images.NewSoftwareImage(
+				Image: model.NewSoftwareImage(
 					validUUIDv4,
-					&images.SoftwareImageMetaConstructor{},
-					&images.SoftwareImageMetaArtifactConstructor{
+					&model.SoftwareImageMetaConstructor{},
+					&model.SoftwareImageMetaArtifactConstructor{
 						Name: image.Name,
 						DeviceTypesCompatible: []string{
 							"hammer",
@@ -300,10 +299,10 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				DeviceId:     StringToPointer("ID:123"),
 				DeploymentId: StringToPointer("ID:678"),
 			},
-			InputArtifact: images.NewSoftwareImage(
+			InputArtifact: model.NewSoftwareImage(
 				validUUIDv4,
-				&images.SoftwareImageMetaConstructor{},
-				&images.SoftwareImageMetaArtifactConstructor{
+				&model.SoftwareImageMetaConstructor{},
+				&model.SoftwareImageMetaArtifactConstructor{
 					Name: image.Name,
 					DeviceTypesCompatible: []string{
 						"hammer",
@@ -325,13 +324,13 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				DeploymentId: StringToPointer("ID:678"),
 			},
 			InputArtifact:       image,
-			InputGetRequestLink: &images.Link{},
+			InputGetRequestLink: &model.Link{},
 
 			OutputDeploymentInstructions: &deployments.DeploymentInstructions{
 				ID: "ID:678",
 				Artifact: deployments.ArtifactDeploymentInstructions{
 					ArtifactName:          image.Name,
-					Source:                images.Link{},
+					Source:                model.Link{},
 					DeviceTypesCompatible: image.DeviceTypesCompatible,
 				},
 			},
@@ -345,7 +344,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				Image:        image,
 				DeploymentId: StringToPointer("ID:678"),
 			},
-			InputGetRequestLink: &images.Link{},
+			InputGetRequestLink: &model.Link{},
 
 			InputInstalledDeployment: deployments.InstalledDeviceDeployment{
 				Artifact:   image.Name,
@@ -386,7 +385,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				h.ContextMatcher(),
 				mock.AnythingOfType("string"),
 				mock.AnythingOfType("string"),
-				mock.AnythingOfType("*images.SoftwareImage")).
+				mock.AnythingOfType("*model.SoftwareImage")).
 				Return(nil)
 				//Return(testCase.InputAssignArtifactError)
 
@@ -572,10 +571,10 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				h.ContextMatcher(),
 				mock.AnythingOfType("string")).
 				Return(
-					[]*images.SoftwareImage{images.NewSoftwareImage(
+					[]*model.SoftwareImage{model.NewSoftwareImage(
 						validUUIDv4,
-						&images.SoftwareImageMetaConstructor{},
-						&images.SoftwareImageMetaArtifactConstructor{
+						&model.SoftwareImageMetaConstructor{},
+						&model.SoftwareImageMetaArtifactConstructor{
 							//Name: *testCase.InputConstructor.ArtifactName,
 							Name: "App 123",
 							DeviceTypesCompatible: []string{

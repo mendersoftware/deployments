@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ package model
 import (
 	"context"
 
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/deployments"
-	"github.com/mendersoftware/deployments/resources/images"
 )
 
 // Device deployment storage
@@ -38,7 +38,7 @@ type DeviceDeploymentStorage interface {
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
 	AssignArtifact(ctx context.Context, deviceID string,
-		deploymentID string, artifact *images.SoftwareImage) error
+		deploymentID string, artifact *model.SoftwareImage) error
 	AggregateDeviceDeploymentByStatus(ctx context.Context,
 		id string) (deployments.Stats, error)
 	GetDeviceStatusesForDeployment(ctx context.Context,

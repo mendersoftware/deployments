@@ -26,7 +26,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 
-	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/images/controller"
 )
 
@@ -162,7 +162,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 		return artifactID, controller.ErrModelArtifactNotUnique
 	}
 
-	image := images.NewSoftwareImage(
+	image := model.NewSoftwareImage(
 		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor, multipartUploadMsg.ArtifactSize)
 
 	// save image structure in the system
@@ -175,7 +175,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 
 // GetImage allows to fetch image obeject with specified id
 // Nil if not found
-func (i *ImagesModel) GetImage(ctx context.Context, id string) (*images.SoftwareImage, error) {
+func (i *ImagesModel) GetImage(ctx context.Context, id string) (*model.SoftwareImage, error) {
 
 	image, err := i.imagesStorage.FindByID(ctx, id)
 	if err != nil {
@@ -231,7 +231,7 @@ func (i *ImagesModel) DeleteImage(ctx context.Context, imageID string) error {
 
 // ListImages according to specified filers.
 func (i *ImagesModel) ListImages(ctx context.Context,
-	filters map[string]string) ([]*images.SoftwareImage, error) {
+	filters map[string]string) ([]*model.SoftwareImage, error) {
 
 	imageList, err := i.imagesStorage.FindAll(ctx)
 	if err != nil {
@@ -239,7 +239,7 @@ func (i *ImagesModel) ListImages(ctx context.Context,
 	}
 
 	if imageList == nil {
-		return make([]*images.SoftwareImage, 0), nil
+		return make([]*model.SoftwareImage, 0), nil
 	}
 
 	return imageList, nil
@@ -247,7 +247,7 @@ func (i *ImagesModel) ListImages(ctx context.Context,
 
 // EditObject allows editing only if image have not been used yet in any deployment.
 func (i *ImagesModel) EditImage(ctx context.Context, imageID string,
-	constructor *images.SoftwareImageMetaConstructor) (bool, error) {
+	constructor *model.SoftwareImageMetaConstructor) (bool, error) {
 
 	if err := constructor.Validate(); err != nil {
 		return false, errors.Wrap(err, "Validating image metadata")
@@ -285,7 +285,7 @@ func (i *ImagesModel) EditImage(ctx context.Context, imageID string,
 // DownloadLink presigned GET link to download image file.
 // Returns error if image have not been uploaded.
 func (i *ImagesModel) DownloadLink(ctx context.Context, imageID string,
-	expire time.Duration) (*images.Link, error) {
+	expire time.Duration) (*model.Link, error) {
 
 	found, err := i.imagesStorage.Exists(ctx, imageID)
 	if err != nil {
@@ -314,17 +314,17 @@ func (i *ImagesModel) DownloadLink(ctx context.Context, imageID string,
 	return link, nil
 }
 
-func getArtifactInfo(info artifact.Info) *images.ArtifactInfo {
-	return &images.ArtifactInfo{
+func getArtifactInfo(info artifact.Info) *model.ArtifactInfo {
+	return &model.ArtifactInfo{
 		Format:  info.Format,
 		Version: uint(info.Version),
 	}
 }
 
-func getUpdateFiles(uFiles []*handlers.DataFile) ([]images.UpdateFile, error) {
-	var files []images.UpdateFile
+func getUpdateFiles(uFiles []*handlers.DataFile) ([]model.UpdateFile, error) {
+	var files []model.UpdateFile
 	for _, u := range uFiles {
-		files = append(files, images.UpdateFile{
+		files = append(files, model.UpdateFile{
 			Name:     u.Name,
 			Size:     u.Size,
 			Date:     &u.Date,
@@ -334,8 +334,8 @@ func getUpdateFiles(uFiles []*handlers.DataFile) ([]images.UpdateFile, error) {
 	return files, nil
 }
 
-func getMetaFromArchive(r *io.Reader) (*images.SoftwareImageMetaArtifactConstructor, error) {
-	metaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
+func getMetaFromArchive(r *io.Reader) (*model.SoftwareImageMetaArtifactConstructor, error) {
+	metaArtifact := model.NewSoftwareImageMetaArtifactConstructor()
 
 	aReader := areader.NewReader(*r)
 
@@ -368,11 +368,11 @@ func getMetaFromArchive(r *io.Reader) (*images.SoftwareImageMetaArtifactConstruc
 
 		metaArtifact.Updates = append(
 			metaArtifact.Updates,
-			images.Update{
-				TypeInfo: images.ArtifactUpdateTypeInfo{
+			model.Update{
+				TypeInfo: model.ArtifactUpdateTypeInfo{
 					Type: p.GetUpdateType(),
 				},
-				Files: uFiles,
+				Files:    uFiles,
 				MetaData: uMetadata,
 			})
 	}

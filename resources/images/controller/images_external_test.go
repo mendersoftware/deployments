@@ -33,7 +33,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/model"
 	. "github.com/mendersoftware/deployments/resources/images/controller"
 	"github.com/mendersoftware/deployments/resources/images/controller/mocks"
 	"github.com/mendersoftware/deployments/utils/pointers"
@@ -107,9 +107,9 @@ func TestControllerGetImage(t *testing.T) {
 
 	id = uid.String()
 
-	imageMeta := images.NewSoftwareImageMetaConstructor()
-	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
-	constructorImage := images.NewSoftwareImage(
+	imageMeta := model.NewSoftwareImageMetaConstructor()
+	imageMetaArtifact := model.NewSoftwareImageMetaArtifactConstructor()
+	constructorImage := model.NewSoftwareImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	imagesModel.On("GetImage", h.ContextMatcher(), id).
 		Return(constructorImage, nil)
@@ -118,7 +118,7 @@ func TestControllerGetImage(t *testing.T) {
 	recorded.CodeIs(http.StatusOK)
 	recorded.ContentTypeIsJson()
 
-	var receivedImage images.SoftwareImage
+	var receivedImage model.SoftwareImage
 	if err := recorded.DecodeJsonPayload(&receivedImage); err != nil {
 		t.FailNow()
 	}
@@ -141,12 +141,12 @@ func TestControllerListImages(t *testing.T) {
 	imagesModel = &mocks.ImagesModel{}
 	controller = NewSoftwareImagesController(imagesModel, new(view.RESTView))
 	api = setUpRestTest("/api/0.0.1/images", rest.Get, controller.ListImages)
-	imageMeta := images.NewSoftwareImageMetaConstructor()
-	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
-	constructorImage := images.NewSoftwareImage(
+	imageMeta := model.NewSoftwareImageMetaConstructor()
+	imageMetaArtifact := model.NewSoftwareImageMetaArtifactConstructor()
+	constructorImage := model.NewSoftwareImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	imagesModel.On("ListImages", h.ContextMatcher(), mock.Anything).
-		Return([]*images.SoftwareImage{constructorImage}, nil)
+		Return([]*model.SoftwareImage{constructorImage}, nil)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images", nil))
 	recorded.CodeIs(http.StatusOK)
@@ -159,9 +159,9 @@ func TestControllerDeleteImage(t *testing.T) {
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Delete, controller.DeleteImage)
 
-	imageMeta := images.NewSoftwareImageMetaConstructor()
-	imageMetaArtifact := images.NewSoftwareImageMetaArtifactConstructor()
-	constructorImage := images.NewSoftwareImage(
+	imageMeta := model.NewSoftwareImageMetaConstructor()
+	imageMetaArtifact := model.NewSoftwareImageMetaArtifactConstructor()
+	constructorImage := model.NewSoftwareImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 
 	// wrong id
@@ -452,7 +452,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 		InputID          string
 		InputParamExpire *string
 
-		InputModelLink  *images.Link
+		InputModelLink  *model.Link
 		InputModelError error
 	}{
 		{
@@ -466,10 +466,10 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 		{
 			InputID:          "83241c4b-6281-40dd-b6fa-932633e21baa",
 			InputParamExpire: pointers.StringToPointer("1234"),
-			InputModelLink:   images.NewLink("http://come.and.get.me", time.Time{}),
+			InputModelLink:   model.NewLink("http://come.and.get.me", time.Time{}),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusOK,
-				OutputBodyObject: images.NewLink("http://come.and.get.me", time.Time{}),
+				OutputBodyObject: model.NewLink("http://come.and.get.me", time.Time{}),
 			},
 		},
 		{
@@ -490,10 +490,10 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 		},
 		{
 			InputID:        "83241c4b-6281-40dd-b6fa-932633e21bab",
-			InputModelLink: images.NewLink("http://come.and.get.me", time.Time{}),
+			InputModelLink: model.NewLink("http://come.and.get.me", time.Time{}),
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusOK,
-				OutputBodyObject: images.NewLink("http://come.and.get.me", time.Time{}),
+				OutputBodyObject: model.NewLink("http://come.and.get.me", time.Time{}),
 			},
 		},
 	}

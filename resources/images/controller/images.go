@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/model"
 )
 
 // API input validation constants
@@ -55,7 +55,7 @@ type SoftwareImagesController struct {
 // send in the artifact upload request
 type MultipartUploadMsg struct {
 	// user metadata constructor
-	MetaConstructor *images.SoftwareImageMetaConstructor
+	MetaConstructor *model.SoftwareImageMetaConstructor
 	// size of the artifact file
 	ArtifactSize int64
 	// reader pointing to the beginning of the artifact data
@@ -188,9 +188,9 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 	s.view.RenderSuccessPut(w)
 }
 
-func (s SoftwareImagesController) getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*images.SoftwareImageMetaConstructor, error) {
+func (s SoftwareImagesController) getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*model.SoftwareImageMetaConstructor, error) {
 
-	var constructor *images.SoftwareImageMetaConstructor
+	var constructor *model.SoftwareImageMetaConstructor
 
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err
@@ -269,7 +269,7 @@ func formatArtifactUploadError(err error) error {
 // ParseMultipart parses multipart/form-data message.
 func (s *SoftwareImagesController) ParseMultipart(mr *multipart.Reader, maxMetaSize int64) (*MultipartUploadMsg, error) {
 	multipartUploadMsg := &MultipartUploadMsg{
-		MetaConstructor: &images.SoftwareImageMetaConstructor{},
+		MetaConstructor: &model.SoftwareImageMetaConstructor{},
 	}
 	for {
 		p, err := mr.NextPart()

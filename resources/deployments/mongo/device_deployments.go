@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import (
 	"github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/deployments"
-	"github.com/mendersoftware/deployments/resources/images"
 	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 )
 
@@ -294,7 +294,7 @@ func (d *DeviceDeploymentsStorage) UpdateDeviceDeploymentLogAvailability(ctx con
 
 // AssignArtifact assignes artifact to the device deployment
 func (d *DeviceDeploymentsStorage) AssignArtifact(ctx context.Context,
-	deviceID string, deploymentID string, artifact *images.SoftwareImage) error {
+	deviceID string, deploymentID string, artifact *model.SoftwareImage) error {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) ||

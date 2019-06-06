@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -29,8 +29,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/deployments/resources/images"
-	"github.com/mendersoftware/deployments/resources/images/model"
+	"github.com/mendersoftware/deployments/model"
+	dmodel "github.com/mendersoftware/deployments/resources/images/model"
 	"github.com/mendersoftware/go-lib-micro/identity"
 
 	"github.com/mendersoftware/go-lib-micro/log"
@@ -243,7 +243,7 @@ func (s *SimpleStorageService) UploadArtifact(ctx context.Context,
 
 // PutRequest duration is limited to 7 days (AWS limitation)
 func (s *SimpleStorageService) PutRequest(ctx context.Context, objectID string,
-	duration time.Duration) (*images.Link, error) {
+	duration time.Duration) (*model.Link, error) {
 
 	objectID = getArtifactByTenant(ctx, objectID)
 
@@ -265,12 +265,12 @@ func (s *SimpleStorageService) PutRequest(ctx context.Context, objectID string,
 		return nil, errors.Wrap(err, "Signing PUT request")
 	}
 
-	return images.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
+	return model.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
 func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
-	duration time.Duration, responseContentType string) (*images.Link, error) {
+	duration time.Duration, responseContentType string) (*model.Link, error) {
 
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
@@ -295,7 +295,7 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
 		return nil, errors.Wrap(err, "Signing GET request")
 	}
 
-	return images.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
+	return model.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
 }
 
 func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) error {
@@ -328,13 +328,13 @@ func (s *SimpleStorageService) LastModified(ctx context.Context, objectID string
 	}
 
 	if len(resp.Contents) == 0 {
-		return time.Time{}, model.ErrFileStorageFileNotFound
+		return time.Time{}, dmodel.ErrFileStorageFileNotFound
 	}
 
 	// Note: Response should contain max 1 object (MaxKetys=1)
 	// Double check if it's exact match as object search matches prefix.
 	if *resp.Contents[0].Key != objectID {
-		return time.Time{}, model.ErrFileStorageFileNotFound
+		return time.Time{}, dmodel.ErrFileStorageFileNotFound
 	}
 
 	return *resp.Contents[0].LastModified, nil

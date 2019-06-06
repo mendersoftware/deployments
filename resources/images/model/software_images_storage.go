@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mendersoftware/deployments/resources/images"
+	"github.com/mendersoftware/deployments/model"
 )
 
 // Common errors for interface SoftwareImagesStorage
@@ -33,11 +33,11 @@ var (
 // SoftwareImagesStorage allow to store and manage image.SoftwareImages
 type SoftwareImagesStorage interface {
 	Exists(ctx context.Context, id string) (bool, error)
-	Update(ctx context.Context, image *images.SoftwareImage) (bool, error)
-	Insert(ctx context.Context, image *images.SoftwareImage) error
-	FindByID(ctx context.Context, id string) (*images.SoftwareImage, error)
+	Update(ctx context.Context, image *model.SoftwareImage) (bool, error)
+	Insert(ctx context.Context, image *model.SoftwareImage) error
+	FindByID(ctx context.Context, id string) (*model.SoftwareImage, error)
 	IsArtifactUnique(ctx context.Context, artifactName string,
 		deviceTypesCompatible []string) (bool, error)
 	Delete(ctx context.Context, id string) error
-	FindAll(ctx context.Context) ([]*images.SoftwareImage, error)
+	FindAll(ctx context.Context) ([]*model.SoftwareImage, error)
 }
