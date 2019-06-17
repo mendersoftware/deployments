@@ -1,4 +1,4 @@
-image: golang:1.10
+image: golang:1.11
 
 cache:
   paths:
@@ -19,7 +19,6 @@ services:
   - mongo
 
 stages:
-  - test_prep_build
   - test_prep
   - test
   - build
@@ -37,42 +36,32 @@ before_script:
   - go get -u github.com/fzipp/gocyclo
 
 test:build_acceptance:
-  stage: test_prep_build
+  stage: test_prep
   script:
-    - CGO_ENABLED=0 go test -c -o /go/src/github.com/mendersoftware/deployments/deployments-test -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,);
-    - cp /go/src/github.com/mendersoftware/deployments/deployments-test $CI_PROJECT_DIR
+    - CGO_ENABLED=0 go build -o /go/src/github.com/mendersoftware/deployments/deployments
+    - cp /go/src/github.com/mendersoftware/deployments/deployments $CI_PROJECT_DIR
+    - chmod +x $CI_PROJECT_DIR/deployments
   artifacts:
     untracked: true
     paths:
-      - deployments-test
+      - deployments
 
 test:prepare_acceptance:
-  image: docker:git
+  image: docker
   before_script: []
   stage: test_prep
-  dependencies:
-    - test:build_acceptance
   script:
     - docker build -f Dockerfile.acceptance-testing -t $DOCKER_REPOSITORY:prtest .;
     - docker save $DOCKER_REPOSITORY:prtest > tests_image.tar
-    - docker build -t $DOCKER_REPOSITORY:pr .
-    - docker run --rm --entrypoint "/bin/sh" -v $(pwd):/binary $DOCKER_REPOSITORY:pr -c "cp /usr/bin/deployments /binary"
     - docker build -t testing -f tests/Dockerfile tests
     - docker save testing > acceptance_testing_image.tar
-    - git clone https://github.com/mendersoftware/mender-artifact.git mender-artifact-temp
-    - docker build -t testing-artifact -f mender-artifact-temp/Dockerfile mender-artifact-temp
-    - docker run --rm --entrypoint "/bin/sh" -v $(pwd):/binary testing-artifact -c "cp /go/bin/mender-artifact /binary"
-  cache:
-    key: "$CI_COMMIT_REF_SLUG"
-    paths:
-      - /go/src/github.com/mendersoftware/deployments/deployments-test
-    policy: pull
+    - wget https://d1b0l86ne08fsf.cloudfront.net/mender-artifact/master/mender-artifact
+    - chmod +x mender-artifact
   artifacts:
     expire_in: 30min
     paths:
       - tests_image.tar
       - acceptance_testing_image.tar
-      - deployments
       - mender-artifact
 
 test:acceptance_tests:
@@ -94,10 +83,11 @@ test:acceptance_tests:
     - docker load -i tests_image.tar
     - TESTS_DIR=${SHARED_PATH}/tests ${SHARED_PATH}/tests/run-test-environment acceptance ${SHARED_PATH}/mender-integration ${SHARED_PATH}/tests/docker-compose-acceptance.yml ;
     - TESTS_DIR=${SHARED_PATH}/tests ${SHARED_PATH}/tests/run-test-environment acceptance ${SHARED_PATH}/mender-integration ${SHARED_PATH}/tests/docker-compose-acceptance.mt.yml ;
+    - mv ${SHARED_PATH}/tests/coverage-acceptance.txt $CI_PROJECT_DIR
   artifacts:
     expire_in: 30min
     paths:
-      - tests/coverage-acceptance.txt
+      - coverage-acceptance.txt
   tags:
     - docker
 
@@ -132,8 +122,7 @@ test:unit:
   script:
     - apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
     - echo "deb http://repo.mongodb.org/apt/debian stretch/mongodb-org/3.6 main" | tee /etc/apt/sources.list.d/mongodb-org-3.6.list
-    - apt-get -qq update
-    - apt-get install -qy --allow-unauthenticated mongodb-org-server=3.6.11 liblzma-dev
+    - apt-get -qq update && apt-get install -qy --allow-unauthenticated mongodb-org-server=3.6.11  liblzma-dev
     - go list ./... | grep -v vendor | xargs -n1 -I {} -P 4 go test -v -covermode=atomic -coverprofile=../../../{}/coverage.txt {} || exit $? ;
     - mkdir -p tests/unit-coverage && find . -name 'coverage.txt' -exec cp --parents {} ./tests/unit-coverage \;
     - tar -cvf $CI_PROJECT_DIR/unit-coverage.tar tests/unit-coverage

@@ -19,11 +19,6 @@ INVENTORY_HOST=${INVENTORY_HOST="mender-inventory:8080"}
 # mender-artifact)
 export PATH=$PATH:$DIR
 
-ls -asl $DIR
-echo $PATH
-mender-artifact
-file $DIR/mender-artifact
-
 py.test -s --tb=short --host $HOST \
           --inventory-host $INVENTORY_HOST \
           --spec $DIR/management_api.yml \
