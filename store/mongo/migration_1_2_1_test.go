@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package migrations
+package mongo
 
 import (
 	"context"
@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	d "github.com/mendersoftware/deployments/resources/deployments"
-	dm "github.com/mendersoftware/deployments/resources/deployments/mongo"
 )
 
 const (
@@ -111,7 +110,7 @@ func TestMigration_1_2_1(t *testing.T) {
 		//verify
 		// for DBs with data - just in case verify the old/long index was created
 		if tc.deployments != nil {
-			idxs, err := s.DB(tc.db).C(dm.CollectionDeployments).Indexes()
+			idxs, err := s.DB(tc.db).C(CollectionDeployments).Indexes()
 			assert.NoError(t, err)
 			hasOld := hasIndex(OldIndexName, idxs)
 			assert.True(t, hasOld)
@@ -121,14 +120,14 @@ func TestMigration_1_2_1(t *testing.T) {
 		assert.NoError(t, err)
 
 		// verify old index dropped
-		idxs, err := s.DB(tc.db).C(dm.CollectionDeployments).Indexes()
+		idxs, err := s.DB(tc.db).C(CollectionDeployments).Indexes()
 		assert.NoError(t, err)
 		hasOld := hasIndex(OldIndexName, idxs)
 		assert.False(t, hasOld)
 
 		// verify new index present - only if deployment inserted
 		if tc.deployments != nil {
-			hasNew := hasIndex(dm.IndexDeploymentArtifactNameStr, idxs)
+			hasNew := hasIndex(IndexDeploymentArtifactNameStr, idxs)
 			assert.NoError(t, err)
 			assert.True(t, hasNew)
 		}
@@ -152,13 +151,13 @@ func makeDeployment(t *testing.T, name, artifactName string) *d.Deployment {
 // creates the deployment name + artifact name index with a 'long' name
 func insertDeployment(d *d.Deployment, session *mgo.Session, db string) error {
 	err := session.DB(db).
-		C(dm.CollectionDeployments).
-		EnsureIndexKey(dm.StorageIndexes...)
+		C(CollectionDeployments).
+		EnsureIndexKey(StorageIndexes...)
 	if err != nil {
 		return err
 	}
 
-	return session.DB(db).C(dm.CollectionDeployments).Insert(d)
+	return session.DB(db).C(CollectionDeployments).Insert(d)
 }
 
 // find indexes by name - new and old indexes have the same key so it's not useful

@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package mongo_test
+package mongo
 
 import (
 	"context"
@@ -27,7 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
-	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	"github.com/mendersoftware/deployments/utils/pointers"
 )
 
@@ -98,7 +97,7 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 			db.Wipe()
 
 			session := db.Session()
-			store := NewDeviceDeploymentsStorage(session)
+			store := NewDataStoreMongoWithSession(session)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
@@ -262,7 +261,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			session := db.Session()
 			defer session.Close()
 
-			store := NewDeviceDeploymentsStorage(session)
+			store := NewDataStoreMongoWithSession(session)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
@@ -409,7 +408,7 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			db.Wipe()
 
 			session := db.Session()
-			store := NewDeviceDeploymentsStorage(session)
+			store := NewDataStoreMongoWithSession(session)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
@@ -545,7 +544,7 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 			db.Wipe()
 
 			session := db.Session()
-			store := NewDeviceDeploymentsStorage(session)
+			store := NewDataStoreMongoWithSession(session)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
@@ -642,7 +641,7 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 			db.Wipe()
 
 			session := db.Session()
-			store := NewDeviceDeploymentsStorage(session)
+			store := NewDataStoreMongoWithSession(session)
 
 			ctx := context.Background()
 			if tc.tenant != "" {
@@ -747,7 +746,7 @@ func TestHasDeploymentForDevice(t *testing.T) {
 			db.Wipe()
 
 			session := db.Session()
-			store := NewDeviceDeploymentsStorage(session)
+			store := NewDataStoreMongoWithSession(session)
 
 			ctx := context.Background()
 			if tc.tenant != "" {
@@ -845,7 +844,7 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 			db.Wipe()
 
 			session := db.Session()
-			store := NewDeviceDeploymentsStorage(session)
+			store := NewDataStoreMongoWithSession(session)
 
 			ctx := context.Background()
 			if tc.tenant != "" {
@@ -923,7 +922,7 @@ func TestAbortDeviceDeployments(t *testing.T) {
 			db.Wipe()
 
 			session := db.Session()
-			store := NewDeviceDeploymentsStorage(session)
+			store := NewDataStoreMongoWithSession(session)
 
 			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
@@ -1011,7 +1010,7 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 			db.Wipe()
 
 			session := db.Session()
-			store := NewDeviceDeploymentsStorage(session)
+			store := NewDataStoreMongoWithSession(session)
 
 			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)

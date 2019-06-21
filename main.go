@@ -25,7 +25,6 @@ import (
 	"github.com/urfave/cli"
 
 	dconfig "github.com/mendersoftware/deployments/config"
-	"github.com/mendersoftware/deployments/migrations"
 	"github.com/mendersoftware/deployments/store/mongo"
 )
 
@@ -113,7 +112,7 @@ func cmdServer(args *cli.Context) error {
 	}
 
 	if args.Bool("automigrate") {
-		err = migrations.Migrate(context.Background(), migrations.DbVersion, dbSession, true)
+		err = mongo.Migrate(context.Background(), mongo.DbVersion, dbSession, true)
 		if err != nil {
 			return cli.NewExitError(
 				fmt.Sprintf("failed to run migrations: %v", err),
@@ -132,7 +131,7 @@ func cmdServer(args *cli.Context) error {
 
 func cmdMigrate(args *cli.Context) error {
 	tenant := args.String("tenant")
-	db := mstore.DbNameForTenant(tenant, migrations.DbName)
+	db := mstore.DbNameForTenant(tenant, mongo.DbName)
 
 	dbSession, err := mongo.NewMongoSession(config.Config)
 	if err != nil {
@@ -141,7 +140,7 @@ func cmdMigrate(args *cli.Context) error {
 			3)
 	}
 
-	err = migrations.MigrateSingle(context.Background(), db, migrations.DbVersion, dbSession, true)
+	err = mongo.MigrateSingle(context.Background(), db, mongo.DbVersion, dbSession, true)
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to run migrations: %v", err),

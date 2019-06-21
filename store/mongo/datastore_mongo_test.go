@@ -21,7 +21,6 @@ import (
 
 	"github.com/mendersoftware/deployments/model"
 	dmodel "github.com/mendersoftware/deployments/model"
-	mimages "github.com/mendersoftware/deployments/resources/images/mongo"
 )
 
 func TestGetReleases(t *testing.T) {
@@ -37,7 +36,7 @@ func TestGetReleases(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name: "App1 v1.0",
+				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
@@ -49,7 +48,7 @@ func TestGetReleases(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name: "App2 v0.1",
+				Name:                  "App2 v0.1",
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
@@ -61,7 +60,7 @@ func TestGetReleases(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name: "App1 v1.0",
+				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"bar, baz"},
 				Updates:               []model.Update{},
 			},
@@ -73,7 +72,7 @@ func TestGetReleases(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name: "App1 v1.0",
+				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"bork"},
 				Updates:               []model.Update{},
 			},
@@ -85,7 +84,7 @@ func TestGetReleases(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name: "App2 v0.1",
+				Name:                  "App2 v0.1",
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []model.Update{},
 			},
@@ -110,7 +109,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-								Name: "App2 v0.1",
+								Name:                  "App2 v0.1",
 								DeviceTypesCompatible: []string{"foo"},
 								Updates:               []model.Update{},
 							},
@@ -122,7 +121,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-								Name: "App2 v0.1",
+								Name:                  "App2 v0.1",
 								DeviceTypesCompatible: []string{"bar", "baz"},
 								Updates:               []model.Update{},
 							},
@@ -139,7 +138,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-								Name: "App1 v1.0",
+								Name:                  "App1 v1.0",
 								DeviceTypesCompatible: []string{"foo"},
 								Updates:               []model.Update{},
 							},
@@ -151,7 +150,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-								Name: "App1 v1.0",
+								Name:                  "App1 v1.0",
 								DeviceTypesCompatible: []string{"bar, baz"},
 								Updates:               []model.Update{},
 							},
@@ -163,7 +162,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-								Name: "App1 v1.0",
+								Name:                  "App1 v1.0",
 								DeviceTypesCompatible: []string{"bork"},
 								Updates:               []model.Update{},
 							},
@@ -187,7 +186,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-								Name: "App2 v0.1",
+								Name:                  "App2 v0.1",
 								DeviceTypesCompatible: []string{"foo"},
 								Updates:               []model.Update{},
 							},
@@ -199,7 +198,7 @@ func TestGetReleases(t *testing.T) {
 							},
 
 							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-								Name: "App2 v0.1",
+								Name:                  "App2 v0.1",
 								DeviceTypesCompatible: []string{"bar", "baz"},
 								Updates:               []model.Update{},
 							},
@@ -227,7 +226,7 @@ func TestGetReleases(t *testing.T) {
 			sess := s.session.Copy()
 			defer sess.Close()
 
-			coll := sess.DB(mimages.DatabaseName).C(mimages.CollectionImages)
+			coll := sess.DB(DatabaseName).C(CollectionImages)
 			assert.NoError(t, coll.Insert(inputImgs...))
 
 			releases, err := s.GetReleases(context.Background(), tc.releaseFilt)

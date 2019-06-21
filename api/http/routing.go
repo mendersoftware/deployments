@@ -29,11 +29,9 @@ import (
 	dconfig "github.com/mendersoftware/deployments/config"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
 	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
-	deploymentsMongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
 	deploymentsView "github.com/mendersoftware/deployments/resources/deployments/view"
 	imagesController "github.com/mendersoftware/deployments/resources/images/controller"
 	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
-	imagesMongo "github.com/mendersoftware/deployments/resources/images/mongo"
 	"github.com/mendersoftware/deployments/resources/images/s3"
 	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
 	"github.com/mendersoftware/deployments/store/mongo"
@@ -133,23 +131,16 @@ func NewRouter(c config.Reader) (rest.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	deploymentsStorage := deploymentsMongo.NewDeploymentsStorage(dbSession)
-	deviceDeploymentsStorage := deploymentsMongo.NewDeviceDeploymentsStorage(dbSession)
-	deviceDeploymentLogsStorage := deploymentsMongo.NewDeviceDeploymentLogsStorage(dbSession)
-	imagesStorage := imagesMongo.NewSoftwareImagesStorage(dbSession)
 	mongoStorage := mongo.NewDataStoreMongoWithSession(dbSession)
 
 	// Domain Models
 	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{
-		DeploymentsStorage:          deploymentsStorage,
-		DeviceDeploymentsStorage:    deviceDeploymentsStorage,
-		DeviceDeploymentLogsStorage: deviceDeploymentLogsStorage,
-		ImageLinker:                 fileStorage,
-		ArtifactGetter:              imagesStorage,
-		ImageContentType:            imagesModel.ArtifactContentType,
+		DataStore:        mongoStorage,
+		ImageLinker:      fileStorage,
+		ImageContentType: imagesModel.ArtifactContentType,
 	})
 
-	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, imagesStorage)
+	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, mongoStorage)
 	app := app.NewDeployments(mongoStorage)
 
 	// Controllers

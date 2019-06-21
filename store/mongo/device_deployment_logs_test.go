@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package mongo_test
+package mongo
 
 import (
 	"context"
@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/resources/deployments"
-	. "github.com/mendersoftware/deployments/resources/deployments/mongo"
 )
 
 func parseTime(t *testing.T, value string) *time.Time {
@@ -114,7 +113,7 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 		db.Wipe()
 
 		session := db.Session()
-		store := NewDeviceDeploymentLogsStorage(session)
+		store := NewDataStoreMongoWithSession(session)
 
 		ctx := context.Background()
 		if testCase.InputTenant != "" {
@@ -245,7 +244,7 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 
 	session := db.Session()
 
-	store := NewDeviceDeploymentLogsStorage(session)
+	store := NewDataStoreMongoWithSession(session)
 
 	for _, dl := range logs {
 		// save all messages to default DB

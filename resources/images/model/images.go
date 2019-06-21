@@ -28,6 +28,7 @@ import (
 
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/resources/images/controller"
+	"github.com/mendersoftware/deployments/store"
 )
 
 const (
@@ -37,13 +38,13 @@ const (
 type ImagesModel struct {
 	fileStorage   FileStorage
 	deployments   ImageUsedIn
-	imagesStorage SoftwareImagesStorage
+	imagesStorage store.DataStore
 }
 
 func NewImagesModel(
 	fileStorage FileStorage,
 	checker ImageUsedIn,
-	imagesStorage SoftwareImagesStorage,
+	imagesStorage store.DataStore,
 ) *ImagesModel {
 	return &ImagesModel{
 		fileStorage:   fileStorage,
@@ -166,7 +167,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor, multipartUploadMsg.ArtifactSize)
 
 	// save image structure in the system
-	if err = i.imagesStorage.Insert(ctx, image); err != nil {
+	if err = i.imagesStorage.InsertImage(ctx, image); err != nil {
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
 	}
 
@@ -177,7 +178,7 @@ func (i *ImagesModel) handleArtifact(ctx context.Context,
 // Nil if not found
 func (i *ImagesModel) GetImage(ctx context.Context, id string) (*model.SoftwareImage, error) {
 
-	image, err := i.imagesStorage.FindByID(ctx, id)
+	image, err := i.imagesStorage.FindImageByID(ctx, id)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image with specified ID")
 	}
@@ -222,7 +223,7 @@ func (i *ImagesModel) DeleteImage(ctx context.Context, imageID string) error {
 	}
 
 	// Delete metadata
-	if err := i.imagesStorage.Delete(ctx, imageID); err != nil {
+	if err := i.imagesStorage.DeleteImage(ctx, imageID); err != nil {
 		return errors.Wrap(err, "Deleting image metadata")
 	}
 
@@ -262,7 +263,7 @@ func (i *ImagesModel) EditImage(ctx context.Context, imageID string,
 		return false, controller.ErrModelImageUsedInAnyDeployment
 	}
 
-	foundImage, err := i.imagesStorage.FindByID(ctx, imageID)
+	foundImage, err := i.imagesStorage.FindImageByID(ctx, imageID)
 	if err != nil {
 		return false, errors.Wrap(err, "Searching for image with specified ID")
 	}
