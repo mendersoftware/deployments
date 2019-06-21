@@ -75,7 +75,7 @@ test:acceptance_tests:
     - test:prepare_acceptance
   script:
     - apk add git bash
-    - 'export SHARED_PATH="$(dirname ${CI_PROJECT_DIR})"'
+    - export SHARED_PATH="$(dirname ${CI_PROJECT_DIR})"
     - git clone https://github.com/mendersoftware/integration.git ${SHARED_PATH}/mender-integration
     - mkdir -p ${SHARED_PATH}/tests
     - mv ${SHARED_PATH}/mender-integration/extra/travis-testing/* docs/* deployments mender-artifact tests/* ${SHARED_PATH}/tests
