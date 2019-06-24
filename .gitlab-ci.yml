@@ -58,7 +58,7 @@ test:prepare_acceptance:
     - wget https://d1b0l86ne08fsf.cloudfront.net/mender-artifact/master/mender-artifact
     - chmod +x mender-artifact
   artifacts:
-    expire_in: 30min
+    expire_in: 2w
     paths:
       - tests_image.tar
       - acceptance_testing_image.tar
@@ -85,7 +85,7 @@ test:acceptance_tests:
     - TESTS_DIR=${SHARED_PATH}/tests ${SHARED_PATH}/tests/run-test-environment acceptance ${SHARED_PATH}/mender-integration ${SHARED_PATH}/tests/docker-compose-acceptance.mt.yml ;
     - mv ${SHARED_PATH}/tests/coverage-acceptance.txt $CI_PROJECT_DIR
   artifacts:
-    expire_in: 30min
+    expire_in: 2w
     paths:
       - coverage-acceptance.txt
   tags:
@@ -127,7 +127,7 @@ test:unit:
     - mkdir -p tests/unit-coverage && find . -name 'coverage.txt' -exec cp --parents {} ./tests/unit-coverage \;
     - tar -cvf $CI_PROJECT_DIR/unit-coverage.tar tests/unit-coverage
   artifacts:
-    expire_in: 30min
+    expire_in: 2w
     paths:
       - unit-coverage.tar
 
@@ -140,7 +140,7 @@ build:
     - docker build -t $DOCKER_REPOSITORY:pr .
     - docker save $DOCKER_REPOSITORY:pr > image.tar
   artifacts:
-    expire_in: 1h
+    expire_in: 2w
     paths:
       - image.tar
   tags:
