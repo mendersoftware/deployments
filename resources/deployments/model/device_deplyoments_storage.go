@@ -18,31 +18,30 @@ import (
 	"context"
 
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 // Device deployment storage
 type DeviceDeploymentStorage interface {
 	InsertMany(ctx context.Context,
-		deployment ...*deployments.DeviceDeployment) error
+		deployment ...*model.DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(ctx context.Context,
 		id string, statuses ...string) (bool, error)
 	FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-		deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
+		deviceID string, statuses ...string) (*model.DeviceDeployment, error)
 	FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
-		deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error)
+		deviceID string, statuses ...string) ([]model.DeviceDeployment, error)
 
 	UpdateDeviceDeploymentStatus(ctx context.Context, deviceID string,
-		deploymentID string, status deployments.DeviceDeploymentStatus) (string, error)
+		deploymentID string, status model.DeviceDeploymentStatus) (string, error)
 
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
 	AssignArtifact(ctx context.Context, deviceID string,
 		deploymentID string, artifact *model.SoftwareImage) error
 	AggregateDeviceDeploymentByStatus(ctx context.Context,
-		id string) (deployments.Stats, error)
+		id string) (model.Stats, error)
 	GetDeviceStatusesForDeployment(ctx context.Context,
-		deploymentID string) ([]deployments.DeviceDeployment, error)
+		deploymentID string) ([]model.DeviceDeployment, error)
 	HasDeploymentForDevice(ctx context.Context,
 		deploymentID string, deviceID string) (bool, error)
 	GetDeviceDeploymentStatus(ctx context.Context,

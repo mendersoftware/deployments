@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
-	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
@@ -75,8 +75,8 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 	d.view.RenderSuccessPost(w, r, id)
 }
 
-func (d *DeploymentsController) getDeploymentConstructorFromBody(r *rest.Request) (*deployments.DeploymentConstructor, error) {
-	var constructor *deployments.DeploymentConstructor
+func (d *DeploymentsController) getDeploymentConstructorFromBody(r *rest.Request) (*model.DeploymentConstructor, error) {
+	var constructor *model.DeploymentConstructor
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (d *DeploymentsController) AbortDeployment(w rest.ResponseWriter, r *rest.R
 		return
 	}
 	// "aborted" is the only supported status
-	if status.Status != deployments.DeviceDeploymentStatusAborted {
+	if status.Status != model.DeviceDeploymentStatusAborted {
 		d.view.RenderError(w, r, ErrUnexpectedDeploymentStatus, http.StatusBadRequest, l)
 	}
 
@@ -201,7 +201,7 @@ func (d *DeploymentsController) GetDeploymentForDevice(w rest.ResponseWriter, r 
 	}
 
 	q := r.URL.Query()
-	installed := deployments.InstalledDeviceDeployment{
+	installed := model.InstalledDeviceDeployment{
 		Artifact:   q.Get(GetDeploymentForDeviceQueryArtifact),
 		DeviceType: q.Get(GetDeploymentForDeviceQueryDeviceType),
 	}
@@ -248,7 +248,7 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 
 	l.Infof("status: %+v", report)
 	if err := d.model.UpdateDeviceDeploymentStatus(ctx, did,
-		idata.Subject, deployments.DeviceDeploymentStatus{
+		idata.Subject, model.DeviceDeploymentStatus{
 			Status:   report.Status,
 			SubState: report.SubState,
 		}); err != nil {
@@ -290,8 +290,8 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 	d.view.RenderSuccessGet(w, statuses)
 }
 
-func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
-	query := deployments.Query{}
+func ParseLookupQuery(vals url.Values) (model.Query, error) {
+	query := model.Query{}
 
 	search := vals.Get("search")
 	if search != "" {
@@ -319,15 +319,15 @@ func ParseLookupQuery(vals url.Values) (deployments.Query, error) {
 	status := vals.Get("status")
 	switch status {
 	case "inprogress":
-		query.Status = deployments.StatusQueryInProgress
+		query.Status = model.StatusQueryInProgress
 	case "finished":
-		query.Status = deployments.StatusQueryFinished
+		query.Status = model.StatusQueryFinished
 	case "pending":
-		query.Status = deployments.StatusQueryPending
+		query.Status = model.StatusQueryPending
 	case "aborted":
-		query.Status = deployments.StatusQueryAborted
+		query.Status = model.StatusQueryAborted
 	case "":
-		query.Status = deployments.StatusQueryAny
+		query.Status = model.StatusQueryAny
 	default:
 		return query, errors.Errorf("unknown status %s", status)
 
@@ -397,7 +397,7 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 
 	// reuse DeploymentLog, device and deployment IDs are ignored when
 	// (un-)marshalling DeploymentLog to/from JSON
-	var log deployments.DeploymentLog
+	var log model.DeploymentLog
 
 	err := r.DecodeJsonPayload(&log)
 	if err != nil {

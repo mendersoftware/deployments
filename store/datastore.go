@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/resources/deployments"
 )
 
 type DataStore interface {
@@ -50,29 +49,29 @@ type DataStore interface {
 		name, deviceType string) (*model.SoftwareImage, error)
 
 	//device deployment log
-	SaveDeviceDeploymentLog(ctx context.Context, log deployments.DeploymentLog) error
+	SaveDeviceDeploymentLog(ctx context.Context, log model.DeploymentLog) error
 	GetDeviceDeploymentLog(ctx context.Context,
-		deviceID, deploymentID string) (*deployments.DeploymentLog, error)
+		deviceID, deploymentID string) (*model.DeploymentLog, error)
 
 	// device deployemnts
 	InsertMany(ctx context.Context,
-		deployment ...*deployments.DeviceDeployment) error
+		deployment ...*model.DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(ctx context.Context,
 		id string, statuses ...string) (bool, error)
 	FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-		deviceID string, statuses ...string) (*deployments.DeviceDeployment, error)
+		deviceID string, statuses ...string) (*model.DeviceDeployment, error)
 	FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
-		deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error)
+		deviceID string, statuses ...string) ([]model.DeviceDeployment, error)
 	UpdateDeviceDeploymentStatus(ctx context.Context, deviceID string,
-		deploymentID string, status deployments.DeviceDeploymentStatus) (string, error)
+		deploymentID string, status model.DeviceDeploymentStatus) (string, error)
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
 	AssignArtifact(ctx context.Context, deviceID string,
 		deploymentID string, artifact *model.SoftwareImage) error
 	AggregateDeviceDeploymentByStatus(ctx context.Context,
-		id string) (deployments.Stats, error)
+		id string) (model.Stats, error)
 	GetDeviceStatusesForDeployment(ctx context.Context,
-		deploymentID string) ([]deployments.DeviceDeployment, error)
+		deploymentID string) ([]model.DeviceDeployment, error)
 	HasDeploymentForDevice(ctx context.Context,
 		deploymentID string, deviceID string) (bool, error)
 	GetDeviceDeploymentStatus(ctx context.Context,
@@ -81,16 +80,16 @@ type DataStore interface {
 	DecommissionDeviceDeployments(ctx context.Context, deviceId string) error
 
 	// deployments
-	InsertDeployment(ctx context.Context, deployment *deployments.Deployment) error
+	InsertDeployment(ctx context.Context, deployment *model.Deployment) error
 	DeleteDeployment(ctx context.Context, id string) error
-	FindDeploymentByID(ctx context.Context, id string) (*deployments.Deployment, error)
+	FindDeploymentByID(ctx context.Context, id string) (*model.Deployment, error)
 	FindUnfinishedByID(ctx context.Context,
-		id string) (*deployments.Deployment, error)
+		id string) (*model.Deployment, error)
 	UpdateStats(ctx context.Context, id string, state_from, state_to string) error
 	UpdateStatsAndFinishDeployment(ctx context.Context,
-		id string, stats deployments.Stats) error
+		id string, stats model.Stats) error
 	Find(ctx context.Context,
-		query deployments.Query) ([]*deployments.Deployment, error)
+		query model.Query) ([]*model.Deployment, error)
 	Finish(ctx context.Context, id string, when time.Time) error
 	ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error)
 	ExistByArtifactId(ctx context.Context, id string) (bool, error)

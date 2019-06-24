@@ -26,7 +26,7 @@ import (
 	ctxstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/utils/pointers"
 )
 
@@ -36,17 +36,17 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 		t.Skip("skipping TestDeviceDeploymentStorageInsert in short mode.")
 	}
 
-	deviceDepl1, err := deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a")
+	deviceDepl1, err := model.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a")
 	assert.NoError(t, err)
 
-	deviceDepl2, err := deployments.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a")
+	deviceDepl2, err := model.NewDeviceDeployment("30b3e62c-9ec2-4312-a7fa-cff24cc7397a", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a")
 	assert.NoError(t, err)
 
-	badDeviceDepl, err := deployments.NewDeviceDeployment("bad bad", "bad bad bad")
+	badDeviceDepl, err := model.NewDeviceDeployment("bad bad", "bad bad bad")
 	assert.NoError(t, err)
 
 	testCases := []struct {
-		InputDeviceDeployment []*deployments.DeviceDeployment
+		InputDeviceDeployment []*model.DeviceDeployment
 		InputTenant           string
 		OutputError           error
 	}{
@@ -55,25 +55,25 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 			OutputError:           nil,
 		},
 		{
-			InputDeviceDeployment: []*deployments.DeviceDeployment{nil, nil},
+			InputDeviceDeployment: []*model.DeviceDeployment{nil, nil},
 			OutputError:           ErrStorageInvalidDeviceDeployment,
 		},
 		{
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				badDeviceDepl,
 				badDeviceDepl,
 			},
 			OutputError: errors.New("Validating device deployment: DeploymentId: bad bad bad does not validate as uuidv4"),
 		},
 		{
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				deviceDepl1,
 				badDeviceDepl,
 			},
 			OutputError: errors.New("Validating device deployment: DeploymentId: bad bad bad does not validate as uuidv4"),
 		},
 		{
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				deviceDepl1,
 				deviceDepl2,
 			},
@@ -81,7 +81,7 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 		},
 		{
 			// same as previous case, but this time with tenant DB
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				deviceDepl1,
 				deviceDepl2,
 			},
@@ -145,7 +145,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 
 	now := time.Now()
 
-	deviceDeployments := []deployments.DeviceDeployment{}
+	deviceDeployments := []model.DeviceDeployment{}
 
 	dds := []struct {
 		did   string
@@ -158,7 +158,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 	}
 
 	for _, dd := range dds {
-		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		newdd, err := model.NewDeviceDeployment(dd.did, dd.depid)
 		assert.NoError(t, err)
 		deviceDeployments = append(deviceDeployments, *newdd)
 	}
@@ -168,7 +168,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		InputDeploymentID     string
 		InputStatus           string
 		InputSubState         *string
-		InputDeviceDeployment []*deployments.DeviceDeployment
+		InputDeviceDeployment []*model.DeviceDeployment
 		InputFinishTime       *time.Time
 		InputTenant           string
 
@@ -207,8 +207,8 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		{
 			InputDeviceID:     "456",
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			InputStatus:       deployments.DeviceDeploymentStatusInstalling,
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputStatus:       model.DeviceDeploymentStatusInstalling,
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				&deviceDeployments[0],
 			},
 			OutputError:     nil,
@@ -217,8 +217,8 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		{
 			InputDeviceID:     "567",
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			InputStatus:       deployments.DeviceDeploymentStatusFailure,
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputStatus:       model.DeviceDeploymentStatusFailure,
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				&deviceDeployments[1],
 			},
 			InputFinishTime: &now,
@@ -228,8 +228,8 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		{
 			InputDeviceID:     "678",
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397d",
-			InputStatus:       deployments.DeviceDeploymentStatusInstalling,
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputStatus:       model.DeviceDeploymentStatusInstalling,
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				&deviceDeployments[2],
 			},
 			InputTenant:     "acme",
@@ -238,9 +238,9 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		{
 			InputDeviceID:     "12345",
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397e",
-			InputStatus:       deployments.DeviceDeploymentStatusInstalling,
+			InputStatus:       model.DeviceDeploymentStatusInstalling,
 			InputSubState:     pointers.StringToPointer("foobar 123"),
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				&deviceDeployments[3],
 			},
 			OutputError:     nil,
@@ -276,7 +276,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 
 			old, err := store.UpdateDeviceDeploymentStatus(ctx,
 				testCase.InputDeviceID, testCase.InputDeploymentID,
-				deployments.DeviceDeploymentStatus{
+				model.DeviceDeploymentStatus{
 					Status:     testCase.InputStatus,
 					SubState:   testCase.InputSubState,
 					FinishTime: testCase.InputFinishTime,
@@ -294,7 +294,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 					// in tenant's DB only
 					_, err := store.UpdateDeviceDeploymentStatus(context.Background(),
 						testCase.InputDeviceID, testCase.InputDeploymentID,
-						deployments.DeviceDeploymentStatus{
+						model.DeviceDeploymentStatus{
 							Status:     testCase.InputStatus,
 							FinishTime: testCase.InputFinishTime,
 							SubState:   testCase.InputSubState,
@@ -306,7 +306,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 
 			if testCase.InputDeviceDeployment != nil {
 				// these checks only make sense if there are any deployments in database
-				var deployment *deployments.DeviceDeployment
+				var deployment *model.DeviceDeployment
 				dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).C(CollectionDevices)
 				query := bson.M{
 					StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceID,
@@ -316,7 +316,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 				assert.NoError(t, err)
 				if testCase.OutputError != nil {
 					// status must be unchanged in case of errors
-					assert.Equal(t, deployments.DeviceDeploymentStatusPending, deployment.Status)
+					assert.Equal(t, model.DeviceDeploymentStatusPending, deployment.Status)
 				} else {
 					if !assert.NotNil(t, deployment) {
 						return
@@ -348,14 +348,14 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 		t.Skip("skipping TestUpdateDeviceDeploymentLogAvailability in short mode.")
 	}
 
-	dd, err := deployments.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a")
+	dd, err := model.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a")
 	assert.NoError(t, err)
 
 	testCases := []struct {
 		InputDeviceID         string
 		InputDeploymentID     string
 		InputLog              bool
-		InputDeviceDeployment []*deployments.DeviceDeployment
+		InputDeviceDeployment []*model.DeviceDeployment
 		InputTenant           string
 
 		OutputError error
@@ -381,7 +381,7 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			InputDeviceID:     "456",
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputLog:          true,
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				dd,
 			},
 			OutputError: nil,
@@ -390,7 +390,7 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			InputDeviceID:     "456",
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputLog:          false,
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				dd,
 			},
 			InputTenant: "acme",
@@ -439,7 +439,7 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			}
 
 			if testCase.InputDeviceDeployment != nil {
-				var deployment *deployments.DeviceDeployment
+				var deployment *model.DeviceDeployment
 				query := bson.M{
 					StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceID,
 					StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
@@ -458,8 +458,8 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 	}
 }
 
-func newDeviceDeploymentWithStatus(t *testing.T, deviceID string, deploymentID string, status string) *deployments.DeviceDeployment {
-	d, err := deployments.NewDeviceDeployment(deviceID, deploymentID)
+func newDeviceDeploymentWithStatus(t *testing.T, deviceID string, deploymentID string, status string) *model.DeviceDeployment {
+	d, err := model.NewDeviceDeployment(deviceID, deploymentID)
 	assert.NoError(t, err)
 
 	d.Status = &status
@@ -474,10 +474,10 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 
 	testCases := []struct {
 		InputDeploymentID     string
-		InputDeviceDeployment []*deployments.DeviceDeployment
+		InputDeviceDeployment []*model.DeviceDeployment
 		InputTenant           string
 		OutputError           error
-		OutputStats           deployments.Stats
+		OutputStats           model.Stats
 	}{
 		{
 			InputDeploymentID:     "ee13ea8b-a6d3-4d4c-99a6-bcfcaebc7ec3",
@@ -487,49 +487,49 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 		},
 		{
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				newDeviceDeploymentWithStatus(t, "123", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-					deployments.DeviceDeploymentStatusFailure),
+					model.DeviceDeploymentStatusFailure),
 				newDeviceDeploymentWithStatus(t, "234", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-					deployments.DeviceDeploymentStatusFailure),
+					model.DeviceDeploymentStatusFailure),
 				newDeviceDeploymentWithStatus(t, "456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-					deployments.DeviceDeploymentStatusSuccess),
+					model.DeviceDeploymentStatusSuccess),
 
 				// these 2 count as in progress
 				newDeviceDeploymentWithStatus(t, "567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-					deployments.DeviceDeploymentStatusDownloading),
+					model.DeviceDeploymentStatusDownloading),
 				newDeviceDeploymentWithStatus(t, "678", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-					deployments.DeviceDeploymentStatusRebooting),
+					model.DeviceDeploymentStatusRebooting),
 
 				newDeviceDeploymentWithStatus(t, "789", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-					deployments.DeviceDeploymentStatusPending),
+					model.DeviceDeploymentStatusPending),
 			},
 			OutputError: nil,
-			OutputStats: deployments.Stats{
-				deployments.DeviceDeploymentStatusPending:        1,
-				deployments.DeviceDeploymentStatusSuccess:        1,
-				deployments.DeviceDeploymentStatusFailure:        2,
-				deployments.DeviceDeploymentStatusRebooting:      1,
-				deployments.DeviceDeploymentStatusDownloading:    1,
-				deployments.DeviceDeploymentStatusInstalling:     0,
-				deployments.DeviceDeploymentStatusNoArtifact:     0,
-				deployments.DeviceDeploymentStatusAlreadyInst:    0,
-				deployments.DeviceDeploymentStatusAborted:        0,
-				deployments.DeviceDeploymentStatusDecommissioned: 0,
+			OutputStats: model.Stats{
+				model.DeviceDeploymentStatusPending:        1,
+				model.DeviceDeploymentStatusSuccess:        1,
+				model.DeviceDeploymentStatusFailure:        2,
+				model.DeviceDeploymentStatusRebooting:      1,
+				model.DeviceDeploymentStatusDownloading:    1,
+				model.DeviceDeploymentStatusInstalling:     0,
+				model.DeviceDeploymentStatusNoArtifact:     0,
+				model.DeviceDeploymentStatusAlreadyInst:    0,
+				model.DeviceDeploymentStatusAborted:        0,
+				model.DeviceDeploymentStatusDecommissioned: 0,
 			},
 		},
 		{
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			InputDeviceDeployment: []*deployments.DeviceDeployment{
+			InputDeviceDeployment: []*model.DeviceDeployment{
 				newDeviceDeploymentWithStatus(t, "123", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-					deployments.DeviceDeploymentStatusFailure),
+					model.DeviceDeploymentStatusFailure),
 				newDeviceDeploymentWithStatus(t, "456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-					deployments.DeviceDeploymentStatusSuccess),
+					model.DeviceDeploymentStatusSuccess),
 			},
 			InputTenant: "acme",
-			OutputStats: newTestStats(deployments.Stats{
-				deployments.DeviceDeploymentStatusSuccess: 1,
-				deployments.DeviceDeploymentStatusFailure: 1,
+			OutputStats: newTestStats(model.Stats{
+				model.DeviceDeploymentStatusSuccess: 1,
+				model.DeviceDeploymentStatusFailure: 1,
 			}),
 		},
 	}
@@ -569,7 +569,7 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 					stats, err := store.AggregateDeviceDeploymentByStatus(context.Background(),
 						testCase.InputDeploymentID)
 					assert.NoError(t, err)
-					assert.Equal(t, newTestStats(deployments.Stats{}), stats)
+					assert.Equal(t, newTestStats(model.Stats{}), stats)
 				}
 			}
 
@@ -589,7 +589,7 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 		t.Skip("skipping GetDeviceStatusesForDeployment in short mode.")
 	}
 
-	input := []*deployments.DeviceDeployment{}
+	input := []*model.DeviceDeployment{}
 
 	dds := []struct {
 		did   string
@@ -603,7 +603,7 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 	}
 
 	for _, dd := range dds {
-		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		newdd, err := model.NewDeviceDeployment(dd.did, dd.depid)
 		assert.NoError(t, err)
 		input = append(input, newdd)
 	}
@@ -613,7 +613,7 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 		tenant string
 
 		inputDeploymentId string
-		outputStatuses    []*deployments.DeviceDeployment
+		outputStatuses    []*model.DeviceDeployment
 	}{
 		"existing deployments 1": {
 			inputDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
@@ -625,7 +625,7 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 		},
 		"nonexistent deployment": {
 			inputDeploymentId: "aaaaaaaa-9ec2-4312-a7fa-cff24cc7397b",
-			outputStatuses:    []*deployments.DeviceDeployment{},
+			outputStatuses:    []*model.DeviceDeployment{},
 		},
 		"tenant, existing deployments": {
 			inputDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
@@ -683,7 +683,7 @@ func TestHasDeploymentForDevice(t *testing.T) {
 		t.Skip("skipping GetDeviceStatusesForDeployment in short mode.")
 	}
 
-	input := []*deployments.DeviceDeployment{}
+	input := []*model.DeviceDeployment{}
 
 	dds := []struct {
 		did   string
@@ -695,7 +695,7 @@ func TestHasDeploymentForDevice(t *testing.T) {
 	}
 
 	for _, dd := range dds {
-		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		newdd, err := model.NewDeviceDeployment(dd.did, dd.depid)
 		assert.NoError(t, err)
 		input = append(input, newdd)
 	}
@@ -789,7 +789,7 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 		t.Skip("skipping GetDeviceDeploymentStatus in short mode.")
 	}
 
-	input := []*deployments.DeviceDeployment{}
+	input := []*model.DeviceDeployment{}
 
 	dds := []struct {
 		did   string
@@ -801,7 +801,7 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 	}
 
 	for _, dd := range dds {
-		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		newdd, err := model.NewDeviceDeployment(dd.did, dd.depid)
 		assert.NoError(t, err)
 		input = append(input, newdd)
 	}
@@ -883,7 +883,7 @@ func TestAbortDeviceDeployments(t *testing.T) {
 		t.Skip("skipping TestAbortDeviceDeployments in short mode.")
 	}
 
-	input := []*deployments.DeviceDeployment{}
+	input := []*model.DeviceDeployment{}
 
 	dds := []struct {
 		did   string
@@ -894,14 +894,14 @@ func TestAbortDeviceDeployments(t *testing.T) {
 	}
 
 	for _, dd := range dds {
-		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		newdd, err := model.NewDeviceDeployment(dd.did, dd.depid)
 		assert.NoError(t, err)
 		input = append(input, newdd)
 	}
 
 	testCases := map[string]struct {
 		InputDeploymentID     string
-		InputDeviceDeployment []*deployments.DeviceDeployment
+		InputDeviceDeployment []*model.DeviceDeployment
 
 		OutputError error
 	}{
@@ -910,7 +910,7 @@ func TestAbortDeviceDeployments(t *testing.T) {
 		},
 		"all correct": {
 			InputDeploymentID:     "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			InputDeviceDeployment: []*deployments.DeviceDeployment{},
+			InputDeviceDeployment: []*model.DeviceDeployment{},
 			OutputError:           nil,
 		},
 	}
@@ -937,7 +937,7 @@ func TestAbortDeviceDeployments(t *testing.T) {
 
 			if testCase.InputDeviceDeployment != nil {
 				// these checks only make sense if there are any deployments in database
-				var deploymentList []deployments.DeviceDeployment
+				var deploymentList []model.DeviceDeployment
 				dep := session.DB(DatabaseName).C(CollectionDevices)
 				query := bson.M{
 					StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
@@ -948,12 +948,12 @@ func TestAbortDeviceDeployments(t *testing.T) {
 				if testCase.OutputError != nil {
 					for _, deployment := range deploymentList {
 						// status must be unchanged in case of errors
-						assert.Equal(t, deployments.DeviceDeploymentStatusPending,
+						assert.Equal(t, model.DeviceDeploymentStatusPending,
 							*deployment.Status)
 					}
 				} else {
 					for _, deployment := range deploymentList {
-						assert.Equal(t, deployments.DeviceDeploymentStatusAborted,
+						assert.Equal(t, model.DeviceDeploymentStatusAborted,
 							*deployment.Status)
 					}
 				}
@@ -971,7 +971,7 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 		t.Skip("skipping TestDecommissionDeviceDeployments in short mode.")
 	}
 
-	input := []*deployments.DeviceDeployment{}
+	input := []*model.DeviceDeployment{}
 
 	dds := []struct {
 		did   string
@@ -982,14 +982,14 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 	}
 
 	for _, dd := range dds {
-		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		newdd, err := model.NewDeviceDeployment(dd.did, dd.depid)
 		assert.NoError(t, err)
 		input = append(input, newdd)
 	}
 
 	testCases := map[string]struct {
 		InputDeviceId         string
-		InputDeviceDeployment []*deployments.DeviceDeployment
+		InputDeviceDeployment []*model.DeviceDeployment
 
 		OutputError error
 	}{
@@ -1025,7 +1025,7 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 
 			if testCase.InputDeviceDeployment != nil {
 				// these checks only make sense if there are any deployments in database
-				var deploymentList []deployments.DeviceDeployment
+				var deploymentList []model.DeviceDeployment
 				dep := session.DB(DatabaseName).C(CollectionDevices)
 				query := bson.M{
 					StorageKeyDeviceDeploymentDeviceId: testCase.InputDeviceId,
@@ -1036,12 +1036,12 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 				if testCase.OutputError != nil {
 					for _, deployment := range deploymentList {
 						// status must be unchanged in case of errors
-						assert.Equal(t, deployments.DeviceDeploymentStatusPending,
+						assert.Equal(t, model.DeviceDeploymentStatusPending,
 							*deployment.Status)
 					}
 				} else {
 					for _, deployment := range deploymentList {
-						assert.Equal(t, deployments.DeviceDeploymentStatusDecommissioned,
+						assert.Equal(t, model.DeviceDeploymentStatusDecommissioned,
 							*deployment.Status)
 					}
 				}

@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package deployments_test
+package model
 
 import (
 	"encoding/json"
@@ -21,8 +21,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-
-	. "github.com/mendersoftware/deployments/resources/deployments"
 )
 
 func TestValidateDeploymentLog(t *testing.T) {

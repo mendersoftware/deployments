@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package deployments
+package model
 
 import (
 	"encoding/json"
@@ -93,10 +93,10 @@ func NewDeployment() (*Deployment, error) {
 	id := uid.String()
 
 	return &Deployment{
-		Created: &now,
-		Id:      &id,
+		Created:               &now,
+		Id:                    &id,
 		DeploymentConstructor: &DeploymentConstructor{},
-		Stats: NewDeviceDeploymentStats(),
+		Stats:                 NewDeviceDeploymentStats(),
 	}, nil
 }
 

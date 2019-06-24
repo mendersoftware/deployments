@@ -14,7 +14,6 @@
 package mocks
 
 import context "context"
-import deployments "github.com/mendersoftware/deployments/resources/deployments"
 import mock "github.com/stretchr/testify/mock"
 import model "github.com/mendersoftware/deployments/model"
 
@@ -40,15 +39,15 @@ func (_m *DataStore) AbortDeviceDeployments(ctx context.Context, deploymentID st
 }
 
 // AggregateDeviceDeploymentByStatus provides a mock function with given fields: ctx, id
-func (_m *DataStore) AggregateDeviceDeploymentByStatus(ctx context.Context, id string) (deployments.Stats, error) {
+func (_m *DataStore) AggregateDeviceDeploymentByStatus(ctx context.Context, id string) (model.Stats, error) {
 	ret := _m.Called(ctx, id)
 
-	var r0 deployments.Stats
-	if rf, ok := ret.Get(0).(func(context.Context, string) deployments.Stats); ok {
+	var r0 model.Stats
+	if rf, ok := ret.Get(0).(func(context.Context, string) model.Stats); ok {
 		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(deployments.Stats)
+			r0 = ret.Get(0).(model.Stats)
 		}
 	}
 
@@ -224,20 +223,20 @@ func (_m *DataStore) Exists(ctx context.Context, id string) (bool, error) {
 }
 
 // Find provides a mock function with given fields: ctx, query
-func (_m *DataStore) Find(ctx context.Context, query deployments.Query) ([]*deployments.Deployment, error) {
+func (_m *DataStore) Find(ctx context.Context, query model.Query) ([]*model.Deployment, error) {
 	ret := _m.Called(ctx, query)
 
-	var r0 []*deployments.Deployment
-	if rf, ok := ret.Get(0).(func(context.Context, deployments.Query) []*deployments.Deployment); ok {
+	var r0 []*model.Deployment
+	if rf, ok := ret.Get(0).(func(context.Context, model.Query) []*model.Deployment); ok {
 		r0 = rf(ctx, query)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*deployments.Deployment)
+			r0 = ret.Get(0).([]*model.Deployment)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, deployments.Query) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, model.Query) error); ok {
 		r1 = rf(ctx, query)
 	} else {
 		r1 = ret.Error(1)
@@ -270,15 +269,15 @@ func (_m *DataStore) FindAll(ctx context.Context) ([]*model.SoftwareImage, error
 }
 
 // FindAllDeploymentsForDeviceIDWithStatuses provides a mock function with given fields: ctx, deviceID, statuses
-func (_m *DataStore) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error) {
+func (_m *DataStore) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...string) ([]model.DeviceDeployment, error) {
 	ret := _m.Called(ctx, deviceID, statuses)
 
-	var r0 []deployments.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...string) []deployments.DeviceDeployment); ok {
+	var r0 []model.DeviceDeployment
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...string) []model.DeviceDeployment); ok {
 		r0 = rf(ctx, deviceID, statuses...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]deployments.DeviceDeployment)
+			r0 = ret.Get(0).([]model.DeviceDeployment)
 		}
 	}
 
@@ -293,15 +292,15 @@ func (_m *DataStore) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Conte
 }
 
 // FindDeploymentByID provides a mock function with given fields: ctx, id
-func (_m *DataStore) FindDeploymentByID(ctx context.Context, id string) (*deployments.Deployment, error) {
+func (_m *DataStore) FindDeploymentByID(ctx context.Context, id string) (*model.Deployment, error) {
 	ret := _m.Called(ctx, id)
 
-	var r0 *deployments.Deployment
-	if rf, ok := ret.Get(0).(func(context.Context, string) *deployments.Deployment); ok {
+	var r0 *model.Deployment
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Deployment); ok {
 		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*deployments.Deployment)
+			r0 = ret.Get(0).(*model.Deployment)
 		}
 	}
 
@@ -339,15 +338,15 @@ func (_m *DataStore) FindImageByID(ctx context.Context, id string) (*model.Softw
 }
 
 // FindOldestDeploymentForDeviceIDWithStatuses provides a mock function with given fields: ctx, deviceID, statuses
-func (_m *DataStore) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...string) (*deployments.DeviceDeployment, error) {
+func (_m *DataStore) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...string) (*model.DeviceDeployment, error) {
 	ret := _m.Called(ctx, deviceID, statuses)
 
-	var r0 *deployments.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...string) *deployments.DeviceDeployment); ok {
+	var r0 *model.DeviceDeployment
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...string) *model.DeviceDeployment); ok {
 		r0 = rf(ctx, deviceID, statuses...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*deployments.DeviceDeployment)
+			r0 = ret.Get(0).(*model.DeviceDeployment)
 		}
 	}
 
@@ -362,15 +361,15 @@ func (_m *DataStore) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Con
 }
 
 // FindUnfinishedByID provides a mock function with given fields: ctx, id
-func (_m *DataStore) FindUnfinishedByID(ctx context.Context, id string) (*deployments.Deployment, error) {
+func (_m *DataStore) FindUnfinishedByID(ctx context.Context, id string) (*model.Deployment, error) {
 	ret := _m.Called(ctx, id)
 
-	var r0 *deployments.Deployment
-	if rf, ok := ret.Get(0).(func(context.Context, string) *deployments.Deployment); ok {
+	var r0 *model.Deployment
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Deployment); ok {
 		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*deployments.Deployment)
+			r0 = ret.Get(0).(*model.Deployment)
 		}
 	}
 
@@ -399,15 +398,15 @@ func (_m *DataStore) Finish(ctx context.Context, id string, when time.Time) erro
 }
 
 // GetDeviceDeploymentLog provides a mock function with given fields: ctx, deviceID, deploymentID
-func (_m *DataStore) GetDeviceDeploymentLog(ctx context.Context, deviceID string, deploymentID string) (*deployments.DeploymentLog, error) {
+func (_m *DataStore) GetDeviceDeploymentLog(ctx context.Context, deviceID string, deploymentID string) (*model.DeploymentLog, error) {
 	ret := _m.Called(ctx, deviceID, deploymentID)
 
-	var r0 *deployments.DeploymentLog
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *deployments.DeploymentLog); ok {
+	var r0 *model.DeploymentLog
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.DeploymentLog); ok {
 		r0 = rf(ctx, deviceID, deploymentID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*deployments.DeploymentLog)
+			r0 = ret.Get(0).(*model.DeploymentLog)
 		}
 	}
 
@@ -443,15 +442,15 @@ func (_m *DataStore) GetDeviceDeploymentStatus(ctx context.Context, deploymentID
 }
 
 // GetDeviceStatusesForDeployment provides a mock function with given fields: ctx, deploymentID
-func (_m *DataStore) GetDeviceStatusesForDeployment(ctx context.Context, deploymentID string) ([]deployments.DeviceDeployment, error) {
+func (_m *DataStore) GetDeviceStatusesForDeployment(ctx context.Context, deploymentID string) ([]model.DeviceDeployment, error) {
 	ret := _m.Called(ctx, deploymentID)
 
-	var r0 []deployments.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(context.Context, string) []deployments.DeviceDeployment); ok {
+	var r0 []model.DeviceDeployment
+	if rf, ok := ret.Get(0).(func(context.Context, string) []model.DeviceDeployment); ok {
 		r0 = rf(ctx, deploymentID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]deployments.DeviceDeployment)
+			r0 = ret.Get(0).([]model.DeviceDeployment)
 		}
 	}
 
@@ -602,11 +601,11 @@ func (_m *DataStore) ImagesByName(ctx context.Context, artifactName string) ([]*
 }
 
 // InsertDeployment provides a mock function with given fields: ctx, deployment
-func (_m *DataStore) InsertDeployment(ctx context.Context, deployment *deployments.Deployment) error {
+func (_m *DataStore) InsertDeployment(ctx context.Context, deployment *model.Deployment) error {
 	ret := _m.Called(ctx, deployment)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *deployments.Deployment) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *model.Deployment) error); ok {
 		r0 = rf(ctx, deployment)
 	} else {
 		r0 = ret.Error(0)
@@ -630,11 +629,11 @@ func (_m *DataStore) InsertImage(ctx context.Context, image *model.SoftwareImage
 }
 
 // InsertMany provides a mock function with given fields: ctx, deployment
-func (_m *DataStore) InsertMany(ctx context.Context, deployment ...*deployments.DeviceDeployment) error {
+func (_m *DataStore) InsertMany(ctx context.Context, deployment ...*model.DeviceDeployment) error {
 	ret := _m.Called(ctx, deployment)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, ...*deployments.DeviceDeployment) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, ...*model.DeviceDeployment) error); ok {
 		r0 = rf(ctx, deployment...)
 	} else {
 		r0 = ret.Error(0)
@@ -679,11 +678,11 @@ func (_m *DataStore) ProvisionTenant(ctx context.Context, tenantId string) error
 }
 
 // SaveDeviceDeploymentLog provides a mock function with given fields: ctx, log
-func (_m *DataStore) SaveDeviceDeploymentLog(ctx context.Context, log deployments.DeploymentLog) error {
+func (_m *DataStore) SaveDeviceDeploymentLog(ctx context.Context, log model.DeploymentLog) error {
 	ret := _m.Called(ctx, log)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, deployments.DeploymentLog) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, model.DeploymentLog) error); ok {
 		r0 = rf(ctx, log)
 	} else {
 		r0 = ret.Error(0)
@@ -728,18 +727,18 @@ func (_m *DataStore) UpdateDeviceDeploymentLogAvailability(ctx context.Context, 
 }
 
 // UpdateDeviceDeploymentStatus provides a mock function with given fields: ctx, deviceID, deploymentID, status
-func (_m *DataStore) UpdateDeviceDeploymentStatus(ctx context.Context, deviceID string, deploymentID string, status deployments.DeviceDeploymentStatus) (string, error) {
+func (_m *DataStore) UpdateDeviceDeploymentStatus(ctx context.Context, deviceID string, deploymentID string, status model.DeviceDeploymentStatus) (string, error) {
 	ret := _m.Called(ctx, deviceID, deploymentID, status)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, deployments.DeviceDeploymentStatus) string); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, model.DeviceDeploymentStatus) string); ok {
 		r0 = rf(ctx, deviceID, deploymentID, status)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, deployments.DeviceDeploymentStatus) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, model.DeviceDeploymentStatus) error); ok {
 		r1 = rf(ctx, deviceID, deploymentID, status)
 	} else {
 		r1 = ret.Error(1)
@@ -763,11 +762,11 @@ func (_m *DataStore) UpdateStats(ctx context.Context, id string, state_from stri
 }
 
 // UpdateStatsAndFinishDeployment provides a mock function with given fields: ctx, id, stats
-func (_m *DataStore) UpdateStatsAndFinishDeployment(ctx context.Context, id string, stats deployments.Stats) error {
+func (_m *DataStore) UpdateStatsAndFinishDeployment(ctx context.Context, id string, stats model.Stats) error {
 	ret := _m.Called(ctx, id, stats)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, deployments.Stats) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.Stats) error); ok {
 		r0 = rf(ctx, id, stats)
 	} else {
 		r0 = ret.Error(0)

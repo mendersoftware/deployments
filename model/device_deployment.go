@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package deployments
+package model
 
 import (
 	"time"
@@ -20,8 +20,6 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
-
-	"github.com/mendersoftware/deployments/model"
 )
 
 // Deployment statuses
@@ -69,7 +67,7 @@ type DeviceDeployment struct {
 	Id *string `json:"-" bson:"_id" valid:"uuidv4,required"`
 
 	// Assigned software image
-	Image *model.SoftwareImage `json:"-" valid:"-"`
+	Image *SoftwareImage `json:"-" valid:"-"`
 
 	// Target device type
 	DeviceType *string `json:"device_type,omitempty" valid:"-"`

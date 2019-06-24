@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 )
 
 var (
@@ -53,12 +53,12 @@ func (s *statusReport) UnmarshalJSON(raw []byte) error {
 	}
 
 	valid := []string{
-		deployments.DeviceDeploymentStatusDownloading,
-		deployments.DeviceDeploymentStatusInstalling,
-		deployments.DeviceDeploymentStatusRebooting,
-		deployments.DeviceDeploymentStatusSuccess,
-		deployments.DeviceDeploymentStatusFailure,
-		deployments.DeviceDeploymentStatusAlreadyInst,
+		model.DeviceDeploymentStatusDownloading,
+		model.DeviceDeploymentStatusInstalling,
+		model.DeviceDeploymentStatusRebooting,
+		model.DeviceDeploymentStatusSuccess,
+		model.DeviceDeploymentStatusFailure,
+		model.DeviceDeploymentStatusAlreadyInst,
 	}
 
 	if !containsString(temp.Status, valid) {

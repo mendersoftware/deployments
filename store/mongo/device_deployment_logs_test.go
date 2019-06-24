@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 )
 
 func parseTime(t *testing.T, value string) *time.Time {
@@ -43,7 +43,7 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 		t.Skip("skipping TestSaveDeviceDeploymentLog in short mode.")
 	}
 
-	messages := []deployments.LogMessage{
+	messages := []model.LogMessage{
 		{
 			Level:     "notice",
 			Message:   "foo",
@@ -56,13 +56,13 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 		},
 	}
 	testCases := []struct {
-		InputDeviceDeploymentLog deployments.DeploymentLog
+		InputDeviceDeploymentLog model.DeploymentLog
 		InputTenant              string
 		OutputError              error
 	}{
 		{
 			// null deployment ID
-			InputDeviceDeploymentLog: deployments.DeploymentLog{
+			InputDeviceDeploymentLog: model.DeploymentLog{
 				DeviceID: "456",
 				Messages: messages,
 			},
@@ -70,22 +70,22 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 		},
 		{
 			// null device ID
-			InputDeviceDeploymentLog: deployments.DeploymentLog{
+			InputDeviceDeploymentLog: model.DeploymentLog{
 				Messages:     messages,
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			},
 			OutputError: errors.New("DeviceID: non zero value required"),
 		},
 		{
-			InputDeviceDeploymentLog: deployments.DeploymentLog{
+			InputDeviceDeploymentLog: model.DeploymentLog{
 				DeviceID:     "456",
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-				Messages:     []deployments.LogMessage{},
+				Messages:     []model.LogMessage{},
 			},
 			OutputError: errors.New("messages: non zero value required"),
 		},
 		{
-			InputDeviceDeploymentLog: deployments.DeploymentLog{
+			InputDeviceDeploymentLog: model.DeploymentLog{
 				DeviceID:     "567",
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
 				Messages:     messages,
@@ -93,7 +93,7 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 			OutputError: nil,
 		},
 		{
-			InputDeviceDeploymentLog: deployments.DeploymentLog{
+			InputDeviceDeploymentLog: model.DeploymentLog{
 				DeviceID:     "567",
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
 				Messages:     messages,
@@ -131,7 +131,7 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 			assert.NoError(t, err)
 
 			// no errors, so we should be able to find the log in DB
-			var dlog deployments.DeploymentLog
+			var dlog model.DeploymentLog
 			err := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
 				C(CollectionDeviceDeploymentLogs).
 				Find(bson.M{
@@ -171,7 +171,7 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 		t.Skip("skipping TestGetDeviceDeploymentLog in short mode.")
 	}
 
-	messages := []deployments.LogMessage{
+	messages := []model.LogMessage{
 		{
 			Level:     "notice",
 			Message:   "foo",
@@ -184,7 +184,7 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 		},
 	}
 
-	logs := []deployments.DeploymentLog{
+	logs := []model.DeploymentLog{
 		{
 			DeviceID:     "123",
 			DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
@@ -205,7 +205,7 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 	testCases := []struct {
 		InputDeviceID      string
 		InputDeploymentID  string
-		InputDeploymentLog *deployments.DeploymentLog
+		InputDeploymentLog *model.DeploymentLog
 		InputTenant        string
 		OutputError        error
 	}{

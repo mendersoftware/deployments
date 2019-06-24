@@ -21,7 +21,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	"github.com/stretchr/testify/assert"
 
-	d "github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 )
 
 const (
@@ -40,7 +40,7 @@ func TestMigration_1_2_1(t *testing.T) {
 
 		// non-empty deployments also means the index is already present
 		// must be nil for MT databases - the index name issue implies no deployments were created ever
-		deployments []*d.Deployment
+		deployments []*model.Deployment
 
 		err error
 	}{
@@ -57,7 +57,7 @@ func TestMigration_1_2_1(t *testing.T) {
 		"ST, with index, 0.0.1": {
 			db:    "deployments_service",
 			dbVer: "0.0.1",
-			deployments: []*d.Deployment{
+			deployments: []*model.Deployment{
 				makeDeployment(t, "one", "artifact1"),
 				makeDeployment(t, "two", "artifact2"),
 			},
@@ -137,9 +137,9 @@ func TestMigration_1_2_1(t *testing.T) {
 }
 
 // makeDeployments creates a bare-bones deployment struct
-func makeDeployment(t *testing.T, name, artifactName string) *d.Deployment {
-	d, err := d.NewDeploymentFromConstructor(
-		&d.DeploymentConstructor{
+func makeDeployment(t *testing.T, name, artifactName string) *model.Deployment {
+	d, err := model.NewDeploymentFromConstructor(
+		&model.DeploymentConstructor{
 			Name:         sptr(name),
 			ArtifactName: sptr(artifactName)})
 
@@ -149,7 +149,7 @@ func makeDeployment(t *testing.T, name, artifactName string) *d.Deployment {
 
 // insertDeployment mimics the 0.0.1 method of inserting deployments (now deleted)
 // creates the deployment name + artifact name index with a 'long' name
-func insertDeployment(d *d.Deployment, session *mgo.Session, db string) error {
+func insertDeployment(d *model.Deployment, session *mgo.Session, db string) error {
 	err := session.DB(db).
 		C(CollectionDeployments).
 		EnsureIndexKey(StorageIndexes...)

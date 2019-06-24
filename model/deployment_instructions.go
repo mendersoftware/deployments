@@ -12,14 +12,12 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package deployments
-
-import "github.com/mendersoftware/deployments/model"
+package model
 
 type ArtifactDeploymentInstructions struct {
-	ArtifactName          string     `json:"artifact_name"`
-	Source                model.Link `json:"source"`
-	DeviceTypesCompatible []string   `json:"device_types_compatible"`
+	ArtifactName          string   `json:"artifact_name"`
+	Source                Link     `json:"source"`
+	DeviceTypesCompatible []string `json:"device_types_compatible"`
 }
 
 type DeploymentInstructions struct {

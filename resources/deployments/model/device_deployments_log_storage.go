@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@ package model
 import (
 	"context"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 )
 
 // Device deployment log storage
 type DeviceDeploymentLogsStorage interface {
-	SaveDeviceDeploymentLog(ctx context.Context, log deployments.DeploymentLog) error
+	SaveDeviceDeploymentLog(ctx context.Context, log model.DeploymentLog) error
 	GetDeviceDeploymentLog(ctx context.Context,
-		deviceID, deploymentID string) (*deployments.DeploymentLog, error)
+		deviceID, deploymentID string) (*model.DeploymentLog, error)
 }

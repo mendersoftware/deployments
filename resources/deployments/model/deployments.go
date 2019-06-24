@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/store"
 )
@@ -63,7 +62,7 @@ func getArtifactIDs(artifacts []*model.SoftwareImage) []string {
 // CreateDeployment precomputes new deplyomet and schedules it for devices.
 // TODO: check if specified devices are bootstrapped (when have a way to do this)
 func (d *DeploymentsModel) CreateDeployment(ctx context.Context,
-	constructor *deployments.DeploymentConstructor) (string, error) {
+	constructor *model.DeploymentConstructor) (string, error) {
 
 	if constructor == nil {
 		return "", controller.ErrModelMissingInput
@@ -73,7 +72,7 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context,
 		return "", errors.Wrap(err, "Validating deployment")
 	}
 
-	deployment, err := deployments.NewDeploymentFromConstructor(constructor)
+	deployment, err := model.NewDeploymentFromConstructor(constructor)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create deployment")
 	}
@@ -96,9 +95,9 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context,
 	// Do not assign artifacts to the particular device deployment.
 	// Artifacts will be assigned on device update request handling, based on
 	// information provided by the device in the update request.
-	deviceDeployments := make([]*deployments.DeviceDeployment, 0, len(constructor.Devices))
+	deviceDeployments := make([]*model.DeviceDeployment, 0, len(constructor.Devices))
 	for _, id := range constructor.Devices {
-		deviceDeployment, err := deployments.NewDeviceDeployment(id, *deployment.Id)
+		deviceDeployment, err := model.NewDeviceDeployment(id, *deployment.Id)
 		if err != nil {
 			return "", errors.Wrap(err, "failed to create device deployment")
 		}
@@ -108,7 +107,7 @@ func (d *DeploymentsModel) CreateDeployment(ctx context.Context,
 	}
 
 	// Set initial statistics cache values
-	deployment.Stats[deployments.DeviceDeploymentStatusPending] = len(constructor.Devices)
+	deployment.Stats[model.DeviceDeploymentStatusPending] = len(constructor.Devices)
 
 	if err := d.db.InsertDeployment(ctx, deployment); err != nil {
 		return "", errors.Wrap(err, "Storing deployment data")
@@ -141,7 +140,7 @@ func (d *DeploymentsModel) IsDeploymentFinished(ctx context.Context, deploymentI
 
 // GetDeployment fetches deployment by ID
 func (d *DeploymentsModel) GetDeployment(ctx context.Context,
-	deploymentID string) (*deployments.Deployment, error) {
+	deploymentID string) (*model.Deployment, error) {
 
 	deployment, err := d.db.FindDeploymentByID(ctx, deploymentID)
 	if err != nil {
@@ -168,7 +167,7 @@ func (d *DeploymentsModel) ImageUsedInActiveDeployment(ctx context.Context,
 	}
 
 	found, err = d.db.ExistAssignedImageWithIDAndStatuses(ctx,
-		imageID, deployments.ActiveDeploymentStatuses()...)
+		imageID, model.ActiveDeploymentStatuses()...)
 	if err != nil {
 		return false, errors.Wrap(err, "Checking if image is used by active deployment")
 	}
@@ -202,9 +201,9 @@ func (d *DeploymentsModel) ImageUsedInDeployment(ctx context.Context, imageID st
 // assignArtifact assignes artifact to the device deployment
 func (d *DeploymentsModel) assignArtifact(
 	ctx context.Context,
-	deployment *deployments.Deployment,
-	deviceDeployment *deployments.DeviceDeployment,
-	installed deployments.InstalledDeviceDeployment) error {
+	deployment *model.Deployment,
+	deviceDeployment *model.DeviceDeployment,
+	installed model.InstalledDeviceDeployment) error {
 
 	// Assign artifact to the device deployment.
 	var artifact *model.SoftwareImage
@@ -238,8 +237,8 @@ func (d *DeploymentsModel) assignArtifact(
 	if artifact == nil {
 		if err := d.UpdateDeviceDeploymentStatus(ctx, *deviceDeployment.DeploymentId,
 			*deviceDeployment.DeviceId,
-			deployments.DeviceDeploymentStatus{
-				Status: deployments.DeviceDeploymentStatusNoArtifact,
+			model.DeviceDeploymentStatus{
+				Status: model.DeviceDeploymentStatusNoArtifact,
 			}); err != nil {
 			return errors.Wrap(err, "Failed to update deployment status")
 		}
@@ -259,12 +258,12 @@ func (d *DeploymentsModel) assignArtifact(
 
 // GetDeploymentForDeviceWithCurrent returns deployment for the device
 func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
-	installed deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error) {
+	installed model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
 
 	deviceDeployment, err := d.db.FindOldestDeploymentForDeviceIDWithStatuses(
 		ctx,
 		deviceID,
-		deployments.ActiveDeploymentStatuses()...)
+		model.ActiveDeploymentStatuses()...)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for oldest active deployment for the device")
@@ -288,8 +287,8 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context
 		// its status to already installed first
 
 		if err := d.UpdateDeviceDeploymentStatus(ctx, *deviceDeployment.DeploymentId, deviceID,
-			deployments.DeviceDeploymentStatus{
-				Status: deployments.DeviceDeploymentStatusAlreadyInst,
+			model.DeviceDeploymentStatus{
+				Status: model.DeviceDeploymentStatusAlreadyInst,
 			}); err != nil {
 
 			return nil, errors.Wrap(err, "Failed to update deployment status")
@@ -315,9 +314,9 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}
 
-	instructions := &deployments.DeploymentInstructions{
+	instructions := &model.DeploymentInstructions{
 		ID: *deviceDeployment.DeploymentId,
-		Artifact: deployments.ArtifactDeploymentInstructions{
+		Artifact: model.ArtifactDeploymentInstructions{
 			ArtifactName:          deviceDeployment.Image.Name,
 			Source:                *link,
 			DeviceTypesCompatible: deviceDeployment.Image.DeviceTypesCompatible,
@@ -330,14 +329,14 @@ func (d *DeploymentsModel) GetDeploymentForDeviceWithCurrent(ctx context.Context
 // UpdateDeviceDeploymentStatus will update the deployment status for device of
 // ID `deviceID`. Returns nil if update was successful.
 func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
-	deviceID string, ddStatus deployments.DeviceDeploymentStatus) error {
+	deviceID string, ddStatus model.DeviceDeploymentStatus) error {
 
 	l := log.FromContext(ctx)
 
 	l.Infof("New status: %s for device %s deployment: %v", ddStatus.Status, deviceID, deploymentID)
 
 	var finishTime *time.Time = nil
-	if deployments.IsDeviceDeploymentStatusFinished(ddStatus.Status) {
+	if model.IsDeviceDeploymentStatusFinished(ddStatus.Status) {
 		now := time.Now()
 		finishTime = &now
 	}
@@ -348,11 +347,11 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(ctx context.Context, dep
 		return err
 	}
 
-	if currentStatus == deployments.DeviceDeploymentStatusAborted {
+	if currentStatus == model.DeviceDeploymentStatusAborted {
 		return controller.ErrDeploymentAborted
 	}
 
-	if currentStatus == deployments.DeviceDeploymentStatusDecommissioned {
+	if currentStatus == model.DeviceDeploymentStatusDecommissioned {
 		return controller.ErrDeviceDecommissioned
 	}
 
@@ -393,7 +392,7 @@ func (d *DeploymentsModel) UpdateDeviceDeploymentStatus(ctx context.Context, dep
 }
 
 func (d *DeploymentsModel) GetDeploymentStats(ctx context.Context,
-	deploymentID string) (deployments.Stats, error) {
+	deploymentID string) (model.Stats, error) {
 
 	deployment, err := d.db.FindDeploymentByID(ctx, deploymentID)
 
@@ -410,7 +409,7 @@ func (d *DeploymentsModel) GetDeploymentStats(ctx context.Context,
 
 //GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
 func (d *DeploymentsModel) GetDeviceStatusesForDeployment(ctx context.Context,
-	deploymentID string) ([]deployments.DeviceDeployment, error) {
+	deploymentID string) ([]model.DeviceDeployment, error) {
 
 	deployment, err := d.db.FindDeploymentByID(ctx, deploymentID)
 	if err != nil {
@@ -430,7 +429,7 @@ func (d *DeploymentsModel) GetDeviceStatusesForDeployment(ctx context.Context,
 }
 
 func (d *DeploymentsModel) LookupDeployment(ctx context.Context,
-	query deployments.Query) ([]*deployments.Deployment, error) {
+	query model.Query) ([]*model.Deployment, error) {
 	list, err := d.db.Find(ctx, query)
 
 	if err != nil {
@@ -438,7 +437,7 @@ func (d *DeploymentsModel) LookupDeployment(ctx context.Context,
 	}
 
 	if list == nil {
-		return make([]*deployments.Deployment, 0), nil
+		return make([]*model.Deployment, 0), nil
 	}
 
 	for _, deployment := range list {
@@ -456,10 +455,10 @@ func (d *DeploymentsModel) LookupDeployment(ctx context.Context,
 // SaveDeviceDeploymentLog will save the deployment log for device of
 // ID `deviceID`. Returns nil if log was saved successfully.
 func (d *DeploymentsModel) SaveDeviceDeploymentLog(ctx context.Context, deviceID string,
-	deploymentID string, logs []deployments.LogMessage) error {
+	deploymentID string, logs []model.LogMessage) error {
 
 	// repack to temporary deployment log and validate
-	dlog := deployments.DeploymentLog{
+	dlog := model.DeploymentLog{
 		DeviceID:     deviceID,
 		DeploymentID: deploymentID,
 		Messages:     logs,
@@ -485,7 +484,7 @@ func (d *DeploymentsModel) SaveDeviceDeploymentLog(ctx context.Context, deviceID
 }
 
 func (d *DeploymentsModel) GetDeviceDeploymentLog(ctx context.Context,
-	deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
+	deviceID, deploymentID string) (*model.DeploymentLog, error) {
 
 	return d.db.GetDeviceDeploymentLog(ctx,
 		deviceID, deploymentID)
@@ -527,7 +526,7 @@ func (d *DeploymentsModel) DecommissionDevice(ctx context.Context, deviceId stri
 	//get all affected deployments and update its stats
 	deviceDeployments, err := d.db.FindAllDeploymentsForDeviceIDWithStatuses(
 		ctx,
-		deviceId, deployments.DeviceDeploymentStatusDecommissioned)
+		deviceId, model.DeviceDeploymentStatusDecommissioned)
 
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 )
 
 // Errors
@@ -36,24 +36,24 @@ var (
 // Domain model for deployment
 type DeploymentsModel interface {
 	CreateDeployment(ctx context.Context,
-		constructor *deployments.DeploymentConstructor) (string, error)
-	GetDeployment(ctx context.Context, deploymentID string) (*deployments.Deployment, error)
+		constructor *model.DeploymentConstructor) (string, error)
+	GetDeployment(ctx context.Context, deploymentID string) (*model.Deployment, error)
 	IsDeploymentFinished(ctx context.Context, deploymentID string) (bool, error)
 	AbortDeployment(ctx context.Context, deploymentID string) error
-	GetDeploymentStats(ctx context.Context, deploymentID string) (deployments.Stats, error)
+	GetDeploymentStats(ctx context.Context, deploymentID string) (model.Stats, error)
 	GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
-		current deployments.InstalledDeviceDeployment) (*deployments.DeploymentInstructions, error)
+		current model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error)
 	HasDeploymentForDevice(ctx context.Context, deploymentID string,
 		deviceID string) (bool, error)
 	UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
-		deviceID string, status deployments.DeviceDeploymentStatus) error
+		deviceID string, status model.DeviceDeploymentStatus) error
 	GetDeviceStatusesForDeployment(ctx context.Context,
-		deploymentID string) ([]deployments.DeviceDeployment, error)
+		deploymentID string) ([]model.DeviceDeployment, error)
 	LookupDeployment(ctx context.Context,
-		query deployments.Query) ([]*deployments.Deployment, error)
+		query model.Query) ([]*model.Deployment, error)
 	SaveDeviceDeploymentLog(ctx context.Context, deviceID string,
-		deploymentID string, logs []deployments.LogMessage) error
+		deploymentID string, logs []model.LogMessage) error
 	GetDeviceDeploymentLog(ctx context.Context,
-		deviceID, deploymentID string) (*deployments.DeploymentLog, error)
+		deviceID, deploymentID string) (*model.DeploymentLog, error)
 	DecommissionDevice(ctx context.Context, deviceID string) error
 }

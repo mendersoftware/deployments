@@ -25,7 +25,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/resources/deployments"
 	"github.com/mendersoftware/deployments/resources/deployments/controller"
 	dmmocks "github.com/mendersoftware/deployments/resources/deployments/model/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
@@ -44,11 +43,11 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 
 	testCases := []struct {
 		InputDeploymentID       string
-		InoutFindByIDDeployment *deployments.Deployment
+		InoutFindByIDDeployment *model.Deployment
 		InoutFindByIDError      error
 
 		OutputError      error
-		OutputDeployment *deployments.Deployment
+		OutputDeployment *model.Deployment
 	}{
 		{
 			InputDeploymentID: "123",
@@ -61,9 +60,9 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 		},
 		{
 			InputDeploymentID:       "123",
-			InoutFindByIDDeployment: new(deployments.Deployment),
+			InoutFindByIDDeployment: new(model.Deployment),
 
-			OutputDeployment: new(deployments.Deployment),
+			OutputDeployment: new(model.Deployment),
 		},
 	}
 
@@ -178,20 +177,20 @@ func TestDeploymentModelImageUsedInDeployment(t *testing.T) {
 		OutputBool  bool
 	}{
 		{
-			InputID:                         "ID:1234",
+			InputID: "ID:1234",
 			InputImageUsedInDeploymentError: errors.New("Storage error"),
 
 			OutputError: errors.New("Checking if image is used in deployment: Storage error"),
 		},
 		{
-			InputID:                         "ID:1234",
+			InputID: "ID:1234",
 			InputImageUsedInDeploymentError: errors.New("Storage error"),
 			InputImageUsedInDeploymentFound: true,
 
 			OutputError: errors.New("Checking if image is used in deployment: Storage error"),
 		},
 		{
-			InputID:                         "ID:1234",
+			InputID: "ID:1234",
 			InputImageUsedInDeploymentFound: true,
 
 			OutputBool: true,
@@ -249,13 +248,13 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 	testCases := []struct {
 		InputID string
 
-		InputOlderstDeviceDeployment      *deployments.DeviceDeployment
+		InputOlderstDeviceDeployment      *model.DeviceDeployment
 		InputOlderstDeviceDeploymentError error
 
 		InputGetRequestLink  *model.Link
 		InputGetRequestError error
 
-		InputInstalledDeployment deployments.InstalledDeviceDeployment
+		InputInstalledDeployment model.InstalledDeviceDeployment
 
 		InputArtifact                      *model.SoftwareImage
 		InputImageByIdsAndDeviceTypeError  error
@@ -267,10 +266,10 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		ExistUnfinishedByArtifactIdError     error
 
 		OutputError                  error
-		OutputDeploymentInstructions *deployments.DeploymentInstructions
+		OutputDeploymentInstructions *model.DeploymentInstructions
 	}{
 		{
-			InputID:                           "ID:123",
+			InputID: "ID:123",
 			InputOlderstDeviceDeploymentError: errors.New("storage issue"),
 
 			OutputError: errors.New("Searching for oldest active deployment for the device: storage issue"),
@@ -283,7 +282,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		},
 		{
 			InputID: "ID:123",
-			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
+			InputOlderstDeviceDeployment: &model.DeviceDeployment{
 				Image: model.NewSoftwareImage(
 					validUUIDv4,
 					&model.SoftwareImageMetaConstructor{},
@@ -305,7 +304,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 						"hammer",
 					},
 				}, artifactSize),
-			InputInstalledDeployment: deployments.InstalledDeviceDeployment{
+			InputInstalledDeployment: model.InstalledDeviceDeployment{
 				Artifact:   "different-artifact",
 				DeviceType: "hammer",
 			},
@@ -315,7 +314,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		},
 		{
 			InputID: "ID:123",
-			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
+			InputOlderstDeviceDeployment: &model.DeviceDeployment{
 				Image:        image,
 				DeviceId:     StringToPointer("ID:123"),
 				DeploymentId: StringToPointer("ID:678"),
@@ -323,9 +322,9 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			InputArtifact:       image,
 			InputGetRequestLink: &model.Link{},
 
-			OutputDeploymentInstructions: &deployments.DeploymentInstructions{
+			OutputDeploymentInstructions: &model.DeploymentInstructions{
 				ID: "ID:678",
-				Artifact: deployments.ArtifactDeploymentInstructions{
+				Artifact: model.ArtifactDeploymentInstructions{
 					ArtifactName:          image.Name,
 					Source:                model.Link{},
 					DeviceTypesCompatible: image.DeviceTypesCompatible,
@@ -335,7 +334,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		{
 			// currently installed artifact is the same as defined by deployment
 			InputID: "ID:123",
-			InputOlderstDeviceDeployment: &deployments.DeviceDeployment{
+			InputOlderstDeviceDeployment: &model.DeviceDeployment{
 				Id:           StringToPointer("ID:device-deployment-123"),
 				DeviceId:     StringToPointer("ID:123"),
 				Image:        image,
@@ -343,7 +342,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			},
 			InputGetRequestLink: &model.Link{},
 
-			InputInstalledDeployment: deployments.InstalledDeviceDeployment{
+			InputInstalledDeployment: model.InstalledDeviceDeployment{
 				Artifact:   image.Name,
 				DeviceType: "hammer",
 			},
@@ -370,7 +369,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 			db.On("UpdateDeviceDeploymentStatus",
 				h.ContextMatcher(),
 				mock.AnythingOfType("string"), mock.AnythingOfType("string"),
-				mock.AnythingOfType("deployments.DeviceDeploymentStatus")).
+				mock.AnythingOfType("model.DeviceDeploymentStatus")).
 				Return("dontcare", nil)
 			db.On("GetDeviceDeploymentStatus",
 				h.ContextMatcher(),
@@ -411,10 +410,10 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				db.On("FindDeploymentByID",
 					h.ContextMatcher(),
 					*testCase.InputOlderstDeviceDeployment.DeploymentId).
-					Return(&deployments.Deployment{
+					Return(&model.Deployment{
 						Id:    testCase.InputOlderstDeviceDeployment.DeploymentId,
-						Stats: deployments.NewDeviceDeploymentStats(),
-						DeploymentConstructor: &deployments.DeploymentConstructor{
+						Stats: model.NewDeviceDeploymentStats(),
+						DeploymentConstructor: &model.DeploymentConstructor{
 							ArtifactName: &image.Name,
 						},
 					}, nil)
@@ -472,7 +471,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 	//t.Parallel()
 
 	testCases := []struct {
-		InputConstructor *deployments.DeploymentConstructor
+		InputConstructor *model.DeploymentConstructor
 
 		InputDeploymentStorageInsertError           error
 		InputDeviceDeploymentStorageInsertManyError error
@@ -486,11 +485,11 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			OutputError: controller.ErrModelMissingInput,
 		},
 		{
-			InputConstructor: &deployments.DeploymentConstructor{},
+			InputConstructor: &model.DeploymentConstructor{},
 			OutputError:      errors.New("Validating deployment: name: non zero value required;artifact_name: non zero value required;devices: non zero value required"),
 		},
 		{
-			InputConstructor: &deployments.DeploymentConstructor{
+			InputConstructor: &model.DeploymentConstructor{
 				Name:         StringToPointer("NYC Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
@@ -500,7 +499,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			OutputError: errors.New("Storing deployment data: insert error"),
 		},
 		{
-			InputConstructor: &deployments.DeploymentConstructor{
+			InputConstructor: &model.DeploymentConstructor{
 				Name:         StringToPointer("NYC Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
@@ -511,7 +510,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			OutputError: errors.New("Storing assigned deployments to devices: delete error: insert error"),
 		},
 		{
-			InputConstructor: &deployments.DeploymentConstructor{
+			InputConstructor: &model.DeploymentConstructor{
 				Name:         StringToPointer("NYC Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
@@ -521,7 +520,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			OutputError: errors.New("Storing assigned deployments to devices: insert error"),
 		},
 		{
-			InputConstructor: &deployments.DeploymentConstructor{
+			InputConstructor: &model.DeploymentConstructor{
 				Name:         StringToPointer("NYC Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
@@ -530,7 +529,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			OutputBody: true,
 		},
 		{
-			InputConstructor: &deployments.DeploymentConstructor{
+			InputConstructor: &model.DeploymentConstructor{
 				Name:         StringToPointer("NYC Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
@@ -546,7 +545,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			db := new(mocks.DataStore)
 			db.On("InsertDeployment",
 				h.ContextMatcher(),
-				mock.AnythingOfType("*deployments.Deployment")).
+				mock.AnythingOfType("*model.Deployment")).
 				Return(testCase.InputDeploymentStorageInsertError)
 			db.On("DeleteDeployment",
 				h.ContextMatcher(),
@@ -555,7 +554,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 
 			db.On("InsertMany",
 				h.ContextMatcher(),
-				mock.AnythingOfType("[]*deployments.DeviceDeployment")).
+				mock.AnythingOfType("[]*model.DeviceDeployment")).
 				Return(testCase.InputDeviceDeploymentStorageInsertManyError)
 
 			db.On("ImagesByName",
@@ -597,7 +596,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 	//t.Parallel()
 
 	testCases := []struct {
-		InputDeployment *deployments.Deployment
+		InputDeployment *model.Deployment
 		InputDeviceID   string
 		OldStatus       string
 		InputStatus     string
@@ -612,10 +611,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		OutputError error
 	}{
 		{
-			InputDeployment: &deployments.Deployment{
+			InputDeployment: &model.Deployment{
 				Id: StringToPointer("123"),
-				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusPending: 1,
+				Stats: model.Stats{
+					model.DeviceDeploymentStatusPending: 1,
 				},
 			},
 			InputDeviceID: "123",
@@ -628,10 +627,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			OutputError: errors.New("device deployments storage issue"),
 		},
 		{
-			InputDeployment: &deployments.Deployment{
+			InputDeployment: &model.Deployment{
 				Id: StringToPointer("234"),
-				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusPending: 1,
+				Stats: model.Stats{
+					model.DeviceDeploymentStatusPending: 1,
 				},
 			},
 			InputDeviceID: "234",
@@ -645,10 +644,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		},
 		{
 			isFinished: true,
-			InputDeployment: &deployments.Deployment{
+			InputDeployment: &model.Deployment{
 				Id: StringToPointer("345"),
-				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusSuccess: 1,
+				Stats: model.Stats{
+					model.DeviceDeploymentStatusSuccess: 1,
 				},
 			},
 			InputDeviceID: "345",
@@ -659,10 +658,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		},
 		{
 			isFinished: false,
-			InputDeployment: &deployments.Deployment{
+			InputDeployment: &model.Deployment{
 				Id: StringToPointer("345"),
-				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusSuccess: 1,
+				Stats: model.Stats{
+					model.DeviceDeploymentStatusSuccess: 1,
 				},
 			},
 			InputDeviceID: "345",
@@ -673,10 +672,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		},
 		{
 			isFinished: true,
-			InputDeployment: &deployments.Deployment{
+			InputDeployment: &model.Deployment{
 				Id: StringToPointer("456"),
-				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusAlreadyInst: 1,
+				Stats: model.Stats{
+					model.DeviceDeploymentStatusAlreadyInst: 1,
 				},
 			},
 			InputDeviceID: "456",
@@ -687,10 +686,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		},
 		{
 			isFinished: true,
-			InputDeployment: &deployments.Deployment{
+			InputDeployment: &model.Deployment{
 				Id: StringToPointer("567"),
-				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusAborted: 1,
+				Stats: model.Stats{
+					model.DeviceDeploymentStatusAborted: 1,
 				},
 			},
 			InputDeviceID: "567",
@@ -699,10 +698,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		},
 		{
 			isFinished: true,
-			InputDeployment: &deployments.Deployment{
+			InputDeployment: &model.Deployment{
 				Id: StringToPointer("678"),
-				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusSuccess: 1,
+				Stats: model.Stats{
+					model.DeviceDeploymentStatusSuccess: 1,
 				},
 			},
 			InputDeviceID: "678",
@@ -714,10 +713,10 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 		},
 		{
 			isFinished: true,
-			InputDeployment: &deployments.Deployment{
+			InputDeployment: &model.Deployment{
 				Id: StringToPointer("789"),
-				Stats: deployments.Stats{
-					deployments.DeviceDeploymentStatusAborted: 1,
+				Stats: model.Stats{
+					model.DeviceDeploymentStatusAborted: 1,
 				},
 			},
 			InputDeviceID: "789",
@@ -751,7 +750,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 				db.On("UpdateDeviceDeploymentStatus",
 					h.ContextMatcher(),
 					testCase.InputDeviceID, *testCase.InputDeployment.Id,
-					mock.MatchedBy(func(ddStatus deployments.DeviceDeploymentStatus) bool {
+					mock.MatchedBy(func(ddStatus model.DeviceDeploymentStatus) bool {
 
 						statusOk := assert.Equal(t, testCase.InputStatus, ddStatus.Status)
 						finishOk := true
@@ -786,14 +785,14 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 				}
 			}
 
-			model := NewDeploymentModel(DeploymentsModelConfig{
+			dmodel := NewDeploymentModel(DeploymentsModelConfig{
 				DataStore: db,
 			})
 
-			err := model.UpdateDeviceDeploymentStatus(context.Background(),
+			err := dmodel.UpdateDeviceDeploymentStatus(context.Background(),
 				*testCase.InputDeployment.Id,
 				testCase.InputDeviceID,
-				deployments.DeviceDeploymentStatus{
+				model.DeviceDeploymentStatus{
 					Status: testCase.InputStatus,
 				})
 			if testCase.OutputError != nil {
@@ -816,20 +815,20 @@ func TestGetDeploymentStats(t *testing.T) {
 
 	testCases := []struct {
 		InputDeploymentID         string
-		InputModelDeploymentStats deployments.Stats
+		InputModelDeploymentStats model.Stats
 		InputModelError           error
 
-		InoutFindByIDDeployment *deployments.Deployment
+		InoutFindByIDDeployment *model.Deployment
 		InoutFindByIDError      error
 
-		OutputStats deployments.Stats
+		OutputStats model.Stats
 		OutputError error
 	}{
 		{
 			InputDeploymentID:         "ID:123",
 			InputModelDeploymentStats: nil,
 
-			InoutFindByIDDeployment: new(deployments.Deployment),
+			InoutFindByIDDeployment: new(model.Deployment),
 
 			OutputStats: nil,
 		},
@@ -837,7 +836,7 @@ func TestGetDeploymentStats(t *testing.T) {
 			InputDeploymentID: "ID:234",
 			InputModelError:   errors.New("storage issue"),
 
-			InoutFindByIDDeployment: new(deployments.Deployment),
+			InoutFindByIDDeployment: new(model.Deployment),
 
 			OutputError: errors.New("storage issue"),
 		},
@@ -851,32 +850,32 @@ func TestGetDeploymentStats(t *testing.T) {
 			InputDeploymentID: "ID:234",
 			InputModelError:   errors.New("storage issue"),
 
-			InoutFindByIDDeployment: new(deployments.Deployment),
+			InoutFindByIDDeployment: new(model.Deployment),
 			InoutFindByIDError:      errors.New("an error"),
 
 			OutputError: errors.New("checking deployment id: an error"),
 		},
 		{
 			InputDeploymentID:       "ID:345",
-			InoutFindByIDDeployment: new(deployments.Deployment),
-			InputModelDeploymentStats: deployments.Stats{
-				deployments.DeviceDeploymentStatusPending:     2,
-				deployments.DeviceDeploymentStatusSuccess:     4,
-				deployments.DeviceDeploymentStatusFailure:     1,
-				deployments.DeviceDeploymentStatusInstalling:  3,
-				deployments.DeviceDeploymentStatusRebooting:   3,
-				deployments.DeviceDeploymentStatusDownloading: 3,
-				deployments.DeviceDeploymentStatusAlreadyInst: 0,
+			InoutFindByIDDeployment: new(model.Deployment),
+			InputModelDeploymentStats: model.Stats{
+				model.DeviceDeploymentStatusPending:     2,
+				model.DeviceDeploymentStatusSuccess:     4,
+				model.DeviceDeploymentStatusFailure:     1,
+				model.DeviceDeploymentStatusInstalling:  3,
+				model.DeviceDeploymentStatusRebooting:   3,
+				model.DeviceDeploymentStatusDownloading: 3,
+				model.DeviceDeploymentStatusAlreadyInst: 0,
 			},
 
-			OutputStats: deployments.Stats{
-				deployments.DeviceDeploymentStatusDownloading: 3,
-				deployments.DeviceDeploymentStatusRebooting:   3,
-				deployments.DeviceDeploymentStatusInstalling:  3,
-				deployments.DeviceDeploymentStatusSuccess:     4,
-				deployments.DeviceDeploymentStatusFailure:     1,
-				deployments.DeviceDeploymentStatusPending:     2,
-				deployments.DeviceDeploymentStatusAlreadyInst: 0,
+			OutputStats: model.Stats{
+				model.DeviceDeploymentStatusDownloading: 3,
+				model.DeviceDeploymentStatusRebooting:   3,
+				model.DeviceDeploymentStatusInstalling:  3,
+				model.DeviceDeploymentStatusSuccess:     4,
+				model.DeviceDeploymentStatusFailure:     1,
+				model.DeviceDeploymentStatusPending:     2,
+				model.DeviceDeploymentStatusAlreadyInst: 0,
 			},
 		},
 	}
@@ -918,7 +917,7 @@ func TestGetDeploymentStats(t *testing.T) {
 func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 	//t.Parallel()
 
-	statuses := []deployments.DeviceDeployment{}
+	statuses := []model.DeviceDeployment{}
 
 	// common device status list for all tests
 	dds := []struct {
@@ -931,7 +930,7 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 	}
 
 	for _, dd := range dds {
-		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		newdd, err := model.NewDeviceDeployment(dd.did, dd.depid)
 		assert.NoError(t, err)
 		statuses = append(statuses, *newdd)
 	}
@@ -939,10 +938,10 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 	testCases := map[string]struct {
 		inDeploymentId string
 
-		devsStorageStatuses []deployments.DeviceDeployment
+		devsStorageStatuses []model.DeviceDeployment
 		devsStorageErr      error
 
-		depsStorageDeployment *deployments.Deployment
+		depsStorageDeployment *model.Deployment
 		depsStorageErr        error
 
 		modelErr error
@@ -953,7 +952,7 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 			devsStorageStatuses: statuses,
 			devsStorageErr:      nil,
 
-			depsStorageDeployment: &deployments.Deployment{},
+			depsStorageDeployment: &model.Deployment{},
 			depsStorageErr:        nil,
 
 			modelErr: nil,
@@ -973,7 +972,7 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 			devsStorageStatuses: nil,
 			devsStorageErr:      errors.New("some verbose, low-level db error"),
 
-			depsStorageDeployment: &deployments.Deployment{},
+			depsStorageDeployment: &model.Deployment{},
 			depsStorageErr:        nil,
 
 			modelErr: errors.New("Internal error"),
@@ -1027,7 +1026,7 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 	//t.Parallel()
 
 	tref := time.Now()
-	messages := []deployments.LogMessage{
+	messages := []model.LogMessage{
 		{
 			Timestamp: &tref,
 			Message:   "foo",
@@ -1037,7 +1036,7 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 	testCases := []struct {
 		InputDeploymentID string
 		InputDeviceID     string
-		InputLog          []deployments.LogMessage
+		InputLog          []model.LogMessage
 
 		InputModelError     error
 		InputHasDeployment  bool
@@ -1058,7 +1057,7 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 		{
 			InputDeploymentID:  "ID:234",
 			InputDeviceID:      "234",
-			InputLog:           []deployments.LogMessage{},
+			InputLog:           []model.LogMessage{},
 			InputModelError:    nil,
 			InputHasDeployment: true,
 
@@ -1100,7 +1099,7 @@ func TestDeploymentModelSaveDeviceDeploymentLog(t *testing.T) {
 			db := new(mocks.DataStore)
 			db.On("SaveDeviceDeploymentLog",
 				h.ContextMatcher(),
-				deployments.DeploymentLog{
+				model.DeploymentLog{
 					DeviceID:     testCase.InputDeviceID,
 					DeploymentID: testCase.InputDeploymentID,
 					Messages:     testCase.InputLog,
@@ -1137,23 +1136,23 @@ func TestDeploymentModelLookupDeployment(t *testing.T) {
 	//t.Parallel()
 
 	testCases := map[string]struct {
-		MockDeployments []*deployments.Deployment
+		MockDeployments []*model.Deployment
 		MockError       error
 
 		OutputError       error
-		OutputDeployments []*deployments.Deployment
+		OutputDeployments []*model.Deployment
 	}{
 		"nothing found": {
 			MockDeployments:   nil,
-			OutputDeployments: []*deployments.Deployment{},
+			OutputDeployments: []*model.Deployment{},
 		},
 		"error": {
 			MockError:   errors.New("bad bad bad"),
 			OutputError: errors.New("searching for deployments: bad bad bad"),
 		},
 		"found deployments": {
-			MockDeployments:   []*deployments.Deployment{{Id: StringToPointer("lala")}},
-			OutputDeployments: []*deployments.Deployment{{Id: StringToPointer("lala")}},
+			MockDeployments:   []*model.Deployment{{Id: StringToPointer("lala")}},
+			OutputDeployments: []*model.Deployment{{Id: StringToPointer("lala")}},
 		},
 	}
 
@@ -1162,17 +1161,17 @@ func TestDeploymentModelLookupDeployment(t *testing.T) {
 
 			db := new(mocks.DataStore)
 			db.On("Find",
-				h.ContextMatcher(), mock.AnythingOfType("deployments.Query")).
+				h.ContextMatcher(), mock.AnythingOfType("model.Query")).
 				Return(testCase.MockDeployments, testCase.MockError)
 
 			db.On("DeviceCountByDeployment",
 				h.ContextMatcher(), mock.AnythingOfType("string")).
 				Return(0, nil)
 
-			model := NewDeploymentModel(DeploymentsModelConfig{DataStore: db})
+			dmodel := NewDeploymentModel(DeploymentsModelConfig{DataStore: db})
 
-			deployments, err := model.LookupDeployment(context.Background(),
-				deployments.Query{})
+			deployments, err := dmodel.LookupDeployment(context.Background(),
+				model.Query{})
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
@@ -1188,7 +1187,7 @@ func TestDeploymentModelIsDeploymentFinished(t *testing.T) {
 
 	testCases := map[string]struct {
 		InputDeploymentID string
-		MockDeployment    *deployments.Deployment
+		MockDeployment    *model.Deployment
 		MockError         error
 
 		OutputValue bool
@@ -1208,7 +1207,7 @@ func TestDeploymentModelIsDeploymentFinished(t *testing.T) {
 		},
 		"found unfinished deployment": {
 			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
-			MockDeployment:    &deployments.Deployment{Id: StringToPointer("f826484e-1157-4109-af21-304e6d711561")},
+			MockDeployment:    &model.Deployment{Id: StringToPointer("f826484e-1157-4109-af21-304e6d711561")},
 			OutputValue:       false,
 		},
 	}
@@ -1242,7 +1241,7 @@ func TestDeploymentModelAbortDeployment(t *testing.T) {
 		InputDeploymentID string
 
 		AbortDeviceDeploymentsError            error
-		AggregateDeviceDeploymentByStatusStats deployments.Stats
+		AggregateDeviceDeploymentByStatusStats model.Stats
 		AggregateDeviceDeploymentByStatusError error
 		UpdateStatsAndFinishDeploymentError    error
 
@@ -1256,18 +1255,18 @@ func TestDeploymentModelAbortDeployment(t *testing.T) {
 		"AggregateDeviceDeploymentByStatus error": {
 			InputDeploymentID:                      "f826484e-1157-4109-af21-304e6d711561",
 			AggregateDeviceDeploymentByStatusError: errors.New("AggregateDeviceDeploymentByStatusError"),
-			AggregateDeviceDeploymentByStatusStats: deployments.Stats{},
+			AggregateDeviceDeploymentByStatusStats: model.Stats{},
 			OutputError:                            errors.New("AggregateDeviceDeploymentByStatusError"),
 		},
 		"UpdateStatsAndFinishDeployment error": {
 			InputDeploymentID:                      "f826484e-1157-4109-af21-304e6d711561",
-			AggregateDeviceDeploymentByStatusStats: deployments.Stats{"aaa": 1},
+			AggregateDeviceDeploymentByStatusStats: model.Stats{"aaa": 1},
 			UpdateStatsAndFinishDeploymentError:    errors.New("UpdateStatsAndFinishDeploymentError"),
 			OutputError:                            errors.New("UpdateStatsAndFinishDeploymentError"),
 		},
 		"all correct": {
 			InputDeploymentID:                      "f826484e-1157-4109-af21-304e6d711561",
-			AggregateDeviceDeploymentByStatusStats: deployments.Stats{"aaa": 1},
+			AggregateDeviceDeploymentByStatusStats: model.Stats{"aaa": 1},
 		},
 	}
 
@@ -1284,7 +1283,7 @@ func TestDeploymentModelAbortDeployment(t *testing.T) {
 					testCase.AggregateDeviceDeploymentByStatusError)
 			db.On("UpdateStatsAndFinishDeployment",
 				h.ContextMatcher(), mock.AnythingOfType("string"),
-				mock.AnythingOfType("deployments.Stats")).
+				mock.AnythingOfType("model.Stats")).
 				Return(testCase.UpdateStatsAndFinishDeploymentError)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{
@@ -1305,16 +1304,16 @@ func TestDeploymentModelAbortDeployment(t *testing.T) {
 func TestDeploymentModelDecommissionDevice(t *testing.T) {
 	//t.Parallel()
 
-	deviceDeployment, err := deployments.NewDeviceDeployment("foo", "bar")
+	deviceDeployment, err := model.NewDeviceDeployment("foo", "bar")
 	assert.NoError(t, err)
 
 	testCases := map[string]struct {
 		InputDeviceId string
 
 		DecommissionDeviceDeploymentsError                   error
-		FindAllDeploymentsForDeviceIDWithStatusesDeployments []deployments.DeviceDeployment
+		FindAllDeploymentsForDeviceIDWithStatusesDeployments []model.DeviceDeployment
 		FindAllDeploymentsForDeviceIDWithStatusesError       error
-		AggregateDeviceDeploymentByStatusStats               deployments.Stats
+		AggregateDeviceDeploymentByStatusStats               model.Stats
 		AggregateDeviceDeploymentByStatusError               error
 		UpdateStatsAndFinishDeploymentError                  error
 
@@ -1327,22 +1326,22 @@ func TestDeploymentModelDecommissionDevice(t *testing.T) {
 		},
 		"AggregateDeviceDeploymentByStatus error": {
 			InputDeviceId: "foo",
-			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deviceDeployment},
+			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []model.DeviceDeployment{*deviceDeployment},
 			AggregateDeviceDeploymentByStatusError:               errors.New("AggregateDeviceDeploymentByStatusError"),
-			AggregateDeviceDeploymentByStatusStats:               deployments.Stats{},
+			AggregateDeviceDeploymentByStatusStats:               model.Stats{},
 			OutputError:                                          errors.New("AggregateDeviceDeploymentByStatusError"),
 		},
 		"UpdateStatsAndFinishDeployment error": {
 			InputDeviceId: "foo",
-			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deviceDeployment},
-			AggregateDeviceDeploymentByStatusStats:               deployments.Stats{"aaa": 1},
+			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []model.DeviceDeployment{*deviceDeployment},
+			AggregateDeviceDeploymentByStatusStats:               model.Stats{"aaa": 1},
 			UpdateStatsAndFinishDeploymentError:                  errors.New("UpdateStatsAndFinishDeploymentError"),
 			OutputError:                                          errors.New("UpdateStatsAndFinishDeploymentError"),
 		},
 		"all correct": {
 			InputDeviceId: "foo",
-			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []deployments.DeviceDeployment{*deviceDeployment},
-			AggregateDeviceDeploymentByStatusStats:               deployments.Stats{"aaa": 1},
+			FindAllDeploymentsForDeviceIDWithStatusesDeployments: []model.DeviceDeployment{*deviceDeployment},
+			AggregateDeviceDeploymentByStatusStats:               model.Stats{"aaa": 1},
 		},
 	}
 
@@ -1365,7 +1364,7 @@ func TestDeploymentModelDecommissionDevice(t *testing.T) {
 					testCase.AggregateDeviceDeploymentByStatusError)
 			db.On("UpdateStatsAndFinishDeployment",
 				h.ContextMatcher(), mock.AnythingOfType("string"),
-				mock.AnythingOfType("deployments.Stats")).
+				mock.AnythingOfType("model.Stats")).
 				Return(testCase.UpdateStatsAndFinishDeploymentError)
 
 			model := NewDeploymentModel(DeploymentsModelConfig{

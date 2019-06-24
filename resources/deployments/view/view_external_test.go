@@ -23,7 +23,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest/test"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 	. "github.com/mendersoftware/deployments/resources/deployments/view"
 )
 
@@ -64,7 +64,7 @@ func TestRenderDeploymentLog(t *testing.T) {
 
 	tref := parseTime(t, "2006-01-02T15:04:05-07:00")
 
-	messages := []deployments.LogMessage{
+	messages := []model.LogMessage{
 		{
 			Timestamp: tref,
 			Message:   "foo",
@@ -83,12 +83,12 @@ func TestRenderDeploymentLog(t *testing.T) {
 	}
 
 	tcs := []struct {
-		Log  deployments.DeploymentLog
+		Log  model.DeploymentLog
 		Body string
 	}{
 		{
 			// all correct
-			Log: deployments.DeploymentLog{
+			Log: model.DeploymentLog{
 				DeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 				DeviceID:     "device-id-1",
 				Messages:     messages,

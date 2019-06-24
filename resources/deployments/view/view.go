@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 )
 
@@ -37,7 +37,7 @@ func (d *DeploymentsView) RenderEmptySuccessResponse(w rest.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (d *DeploymentsView) RenderDeploymentLog(w rest.ResponseWriter, dlog deployments.DeploymentLog) {
+func (d *DeploymentsView) RenderDeploymentLog(w rest.ResponseWriter, dlog model.DeploymentLog) {
 	h, _ := w.(http.ResponseWriter)
 
 	h.Header().Set("Content-Type", "text/plain")

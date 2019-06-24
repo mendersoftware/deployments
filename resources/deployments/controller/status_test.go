@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 )
 
 func TestStatusUnmarshal(t *testing.T) {
@@ -35,7 +35,7 @@ func TestStatusUnmarshal(t *testing.T) {
 	err = json.Unmarshal([]byte(`{"status": "installing"}`), &report)
 	assert.NoError(t, err)
 	assert.Equal(t,
-		statusReport{Status: deployments.DeviceDeploymentStatusInstalling},
+		statusReport{Status: model.DeviceDeploymentStatusInstalling},
 		report)
 }
 

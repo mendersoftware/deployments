@@ -35,7 +35,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/resources/deployments/controller"
 	"github.com/mendersoftware/deployments/resources/deployments/controller/mocks"
 	"github.com/mendersoftware/deployments/resources/deployments/view"
@@ -93,7 +92,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		InputID string
 		Params  url.Values
 
-		InputModelDeploymentInstructions *deployments.DeploymentInstructions
+		InputModelDeploymentInstructions *model.DeploymentInstructions
 		InputModelError                  error
 
 		InputModelUpdateStatusDeviceID     string
@@ -101,7 +100,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		InputModelUpdateStatusStatus       string
 		InputModelUpdateStatusError        error
 
-		InputModelCurrentDeployment deployments.InstalledDeviceDeployment
+		InputModelCurrentDeployment model.InstalledDeviceDeployment
 
 		Headers map[string]string
 	}{
@@ -127,7 +126,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-1"}`),
 			},
 
-			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
+			InputModelCurrentDeployment: model.InstalledDeviceDeployment{
 				Artifact:   "artifact-name",
 				DeviceType: "hammer",
 			},
@@ -144,7 +143,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-2"}`),
 			},
-			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
+			InputModelCurrentDeployment: model.InstalledDeviceDeployment{
 				Artifact:   "artifact-name",
 				DeviceType: "hammer",
 			},
@@ -155,9 +154,9 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 		},
 		{
 			InputID: "device-id-3",
-			InputModelDeploymentInstructions: &deployments.DeploymentInstructions{
+			InputModelDeploymentInstructions: &model.DeploymentInstructions{
 				ID: "foo-1",
-				Artifact: deployments.ArtifactDeploymentInstructions{
+				Artifact: model.ArtifactDeploymentInstructions{
 					ArtifactName:          image.Name,
 					Source:                model.Link{},
 					DeviceTypesCompatible: image.DeviceTypesCompatible,
@@ -166,9 +165,9 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
-				OutputBodyObject: &deployments.DeploymentInstructions{
+				OutputBodyObject: &model.DeploymentInstructions{
 					ID: "foo-1",
-					Artifact: deployments.ArtifactDeploymentInstructions{
+					Artifact: model.ArtifactDeploymentInstructions{
 						ArtifactName:          image.Name,
 						Source:                model.Link{},
 						DeviceTypesCompatible: image.DeviceTypesCompatible,
@@ -178,7 +177,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			Headers: map[string]string{
 				"Authorization": makeDeviceAuthHeader(`{"sub": "device-id-3"}`),
 			},
-			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
+			InputModelCurrentDeployment: model.InstalledDeviceDeployment{
 				Artifact:   "artifact-name",
 				DeviceType: "hammer",
 			},
@@ -191,7 +190,7 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 			InputID: "device-id-3",
 			InputModelDeploymentInstructions: nil,
 
-			InputModelCurrentDeployment: deployments.InstalledDeviceDeployment{
+			InputModelCurrentDeployment: model.InstalledDeviceDeployment{
 				Artifact:   "artifact-name",
 				DeviceType: "hammer",
 			},
@@ -292,7 +291,7 @@ func TestControllerGetDeployment(t *testing.T) {
 
 		InputID string
 
-		InputModelDeployment *deployments.Deployment
+		InputModelDeployment *model.Deployment
 		InputModelError      error
 	}{
 		{
@@ -320,15 +319,15 @@ func TestControllerGetDeployment(t *testing.T) {
 		{
 			InputID: "f826484e-1157-4109-af21-304e6d711560",
 
-			InputModelDeployment: &deployments.Deployment{Id: StringToPointer("id 123")},
+			InputModelDeployment: &model.Deployment{Id: StringToPointer("id 123")},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
 				OutputBodyObject: &struct {
-					deployments.Deployment
+					model.Deployment
 					Status string `json:"string"`
 				}{
-					Deployment: deployments.Deployment{
+					Deployment: model.Deployment{
 						Id: StringToPointer("id 123"),
 					},
 					Status: "pending",
@@ -382,14 +381,14 @@ func TestControllerPostDeployment(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: &deployments.DeploymentConstructor{},
+			InputBodyObject: &model.DeploymentConstructor{},
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusBadRequest,
 				OutputBodyObject: h.ErrorToErrStruct(errors.New(`Validating request body: name: non zero value required;artifact_name: non zero value required;devices: non zero value required`)),
 			},
 		},
 		{
-			InputBodyObject: &deployments.DeploymentConstructor{
+			InputBodyObject: &model.DeploymentConstructor{
 				Name:         StringToPointer("NYC Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
@@ -401,7 +400,7 @@ func TestControllerPostDeployment(t *testing.T) {
 			},
 		},
 		{
-			InputBodyObject: &deployments.DeploymentConstructor{
+			InputBodyObject: &model.DeploymentConstructor{
 				Name:         StringToPointer("NYC Production"),
 				ArtifactName: StringToPointer("App 123"),
 				Devices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
@@ -458,7 +457,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 
 		InputModelDeploymentID string
 		InputModelDeviceID     string
-		InputModelStatus       *deployments.DeviceDeploymentStatus
+		InputModelStatus       *model.DeviceDeploymentStatus
 		InputModelError        error
 
 		Headers map[string]string
@@ -484,7 +483,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			InputBodyObject:        &report{Status: "installing"},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-2",
-			InputModelStatus:       &deployments.DeviceDeploymentStatus{Status: "installing"},
+			InputModelStatus:       &model.DeviceDeploymentStatus{Status: "installing"},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusNoContent,
@@ -511,7 +510,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			InputBodyObject:        &report{Status: "success"},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-4",
-			InputModelStatus:       &deployments.DeviceDeploymentStatus{Status: "success"},
+			InputModelStatus:       &model.DeviceDeploymentStatus{Status: "success"},
 			InputModelError:        errors.New("model error"),
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -527,7 +526,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			InputBodyObject:        &report{Status: "installing"},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputModelDeviceID:     "device-id-2",
-			InputModelStatus:       &deployments.DeviceDeploymentStatus{Status: "installing"},
+			InputModelStatus:       &model.DeviceDeploymentStatus{Status: "installing"},
 			InputModelError:        ErrDeploymentAborted,
 
 			JSONResponseParams: h.JSONResponseParams{
@@ -561,7 +560,7 @@ func TestControllerPutDeploymentStatus(t *testing.T) {
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711561",
 			InputModelDeviceID:     "device-id-2",
-			InputModelStatus: &deployments.DeviceDeploymentStatus{
+			InputModelStatus: &model.DeviceDeploymentStatus{
 				Status:   "installing",
 				SubState: StringToPointer("foobar;installing"),
 			},
@@ -641,7 +640,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 		h.JSONResponseParams
 
 		InputModelDeploymentID string
-		InputModelStats        deployments.Stats
+		InputModelStats        model.Stats
 		InputModelError        error
 	}{
 		{
@@ -663,32 +662,32 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 		},
 		{
 			InputModelDeploymentID: "23bbc7ba-3278-4b1c-a345-4080afe59e96",
-			InputModelStats: deployments.Stats{
-				deployments.DeviceDeploymentStatusSuccess:        12,
-				deployments.DeviceDeploymentStatusFailure:        2,
-				deployments.DeviceDeploymentStatusDownloading:    1,
-				deployments.DeviceDeploymentStatusRebooting:      3,
-				deployments.DeviceDeploymentStatusInstalling:     1,
-				deployments.DeviceDeploymentStatusPending:        2,
-				deployments.DeviceDeploymentStatusNoArtifact:     0,
-				deployments.DeviceDeploymentStatusAlreadyInst:    0,
-				deployments.DeviceDeploymentStatusAborted:        0,
-				deployments.DeviceDeploymentStatusDecommissioned: 0,
+			InputModelStats: model.Stats{
+				model.DeviceDeploymentStatusSuccess:        12,
+				model.DeviceDeploymentStatusFailure:        2,
+				model.DeviceDeploymentStatusDownloading:    1,
+				model.DeviceDeploymentStatusRebooting:      3,
+				model.DeviceDeploymentStatusInstalling:     1,
+				model.DeviceDeploymentStatusPending:        2,
+				model.DeviceDeploymentStatusNoArtifact:     0,
+				model.DeviceDeploymentStatusAlreadyInst:    0,
+				model.DeviceDeploymentStatusAborted:        0,
+				model.DeviceDeploymentStatusDecommissioned: 0,
 			},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
-				OutputBodyObject: deployments.Stats{
-					deployments.DeviceDeploymentStatusSuccess:        12,
-					deployments.DeviceDeploymentStatusFailure:        2,
-					deployments.DeviceDeploymentStatusDownloading:    1,
-					deployments.DeviceDeploymentStatusRebooting:      3,
-					deployments.DeviceDeploymentStatusInstalling:     1,
-					deployments.DeviceDeploymentStatusPending:        2,
-					deployments.DeviceDeploymentStatusNoArtifact:     0,
-					deployments.DeviceDeploymentStatusAlreadyInst:    0,
-					deployments.DeviceDeploymentStatusAborted:        0,
-					deployments.DeviceDeploymentStatusDecommissioned: 0,
+				OutputBodyObject: model.Stats{
+					model.DeviceDeploymentStatusSuccess:        12,
+					model.DeviceDeploymentStatusFailure:        2,
+					model.DeviceDeploymentStatusDownloading:    1,
+					model.DeviceDeploymentStatusRebooting:      3,
+					model.DeviceDeploymentStatusInstalling:     1,
+					model.DeviceDeploymentStatusPending:        2,
+					model.DeviceDeploymentStatusNoArtifact:     0,
+					model.DeviceDeploymentStatusAlreadyInst:    0,
+					model.DeviceDeploymentStatusAborted:        0,
+					model.DeviceDeploymentStatusDecommissioned: 0,
 				},
 			},
 		},
@@ -726,7 +725,7 @@ func TestControllerGetDeploymentStats(t *testing.T) {
 func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 	t.Parallel()
 
-	statuses := []deployments.DeviceDeployment{}
+	statuses := []model.DeviceDeployment{}
 
 	// common device status list for all tests
 	dds := []struct {
@@ -739,7 +738,7 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 	}
 
 	for _, dd := range dds {
-		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		newdd, err := model.NewDeviceDeployment(dd.did, dd.depid)
 		assert.NoError(t, err)
 		statuses = append(statuses, *newdd)
 	}
@@ -748,7 +747,7 @@ func TestControllerGetDeviceStatusesForDeployment(t *testing.T) {
 		h.JSONResponseParams
 
 		deploymentID  string
-		modelStatuses []deployments.DeviceDeployment
+		modelStatuses []model.DeviceDeployment
 		modelErr      error
 	}{
 		"existing deployment and statuses": {
@@ -820,9 +819,9 @@ func TestControllerLookupDeployment(t *testing.T) {
 
 	t.Parallel()
 
-	someDeployments := []*deployments.Deployment{
+	someDeployments := []*model.Deployment{
 		{
-			DeploymentConstructor: &deployments.DeploymentConstructor{
+			DeploymentConstructor: &model.DeploymentConstructor{
 				Name:         StringToPointer("zen"),
 				ArtifactName: StringToPointer("baz"),
 				Devices:      []string{"device0001", "device0002", "device0003"},
@@ -830,7 +829,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 			Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 		},
 		{
-			DeploymentConstructor: &deployments.DeploymentConstructor{
+			DeploymentConstructor: &model.DeploymentConstructor{
 				Name:         StringToPointer("foo"),
 				ArtifactName: StringToPointer("bar"),
 				Devices:      []string{"device0001", "device0002", "device0003"},
@@ -839,7 +838,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 		},
 	}
 
-	statuses := []deployments.DeviceDeployment{}
+	statuses := []model.DeviceDeployment{}
 
 	dds := []struct {
 		did   string
@@ -851,7 +850,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 	}
 
 	for _, dd := range dds {
-		newdd, err := deployments.NewDeviceDeployment(dd.did, dd.depid)
+		newdd, err := model.NewDeviceDeployment(dd.did, dd.depid)
 		assert.NoError(t, err)
 		statuses = append(statuses, *newdd)
 	}
@@ -861,13 +860,13 @@ func TestControllerLookupDeployment(t *testing.T) {
 
 		SearchStatus string
 
-		InputModelQuery       deployments.Query
+		InputModelQuery       model.Query
 		InputModelError       error
-		InputModelDeployments []*deployments.Deployment
-		DeviceStatuses        []deployments.DeviceDeployment
+		InputModelDeployments []*model.Deployment
+		DeviceStatuses        []model.DeviceDeployment
 	}{
 		{
-			InputModelQuery: deployments.Query{
+			InputModelQuery: model.Query{
 				SearchText: " ",
 				Limit:      2,
 			},
@@ -888,21 +887,21 @@ func TestControllerLookupDeployment(t *testing.T) {
 			},
 		},
 		{
-			InputModelQuery: deployments.Query{
+			InputModelQuery: model.Query{
 				SearchText: "foo-not-found",
 				Limit:      2,
 			},
-			InputModelDeployments: []*deployments.Deployment{},
+			InputModelDeployments: []*model.Deployment{},
 
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus:     http.StatusOK,
-				OutputBodyObject: []*deployments.Deployment{},
+				OutputBodyObject: []*model.Deployment{},
 			},
 		},
 		{
-			InputModelQuery: deployments.Query{
+			InputModelQuery: model.Query{
 				SearchText: "foo",
-				Status:     deployments.StatusQueryInProgress,
+				Status:     model.StatusQueryInProgress,
 				Limit:      2,
 			},
 			SearchStatus:          "inprogress",
@@ -911,12 +910,12 @@ func TestControllerLookupDeployment(t *testing.T) {
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
 				OutputBodyObject: []struct {
-					deployments.Deployment
+					model.Deployment
 					Status string `json:"status"`
 				}{
 					{
-						Deployment: deployments.Deployment{
-							DeploymentConstructor: &deployments.DeploymentConstructor{
+						Deployment: model.Deployment{
+							DeploymentConstructor: &model.DeploymentConstructor{
 								Name:         StringToPointer("zen"),
 								ArtifactName: StringToPointer("baz"),
 							},
@@ -925,8 +924,8 @@ func TestControllerLookupDeployment(t *testing.T) {
 						Status: "finished",
 					},
 					{
-						Deployment: deployments.Deployment{
-							DeploymentConstructor: &deployments.DeploymentConstructor{
+						Deployment: model.Deployment{
+							DeploymentConstructor: &model.DeploymentConstructor{
 								Name:         StringToPointer("foo"),
 								ArtifactName: StringToPointer("bar"),
 							},
@@ -938,9 +937,9 @@ func TestControllerLookupDeployment(t *testing.T) {
 			},
 		},
 		{
-			InputModelQuery: deployments.Query{
+			InputModelQuery: model.Query{
 				SearchText: "foo",
-				Status:     deployments.StatusQueryInProgress,
+				Status:     model.StatusQueryInProgress,
 				Limit:      1,
 			},
 			SearchStatus:          "inprogress",
@@ -950,12 +949,12 @@ func TestControllerLookupDeployment(t *testing.T) {
 			JSONResponseParams: h.JSONResponseParams{
 				OutputStatus: http.StatusOK,
 				OutputBodyObject: []struct {
-					deployments.Deployment
+					model.Deployment
 					Status string `json:"status"`
 				}{
 					{
-						Deployment: deployments.Deployment{
-							DeploymentConstructor: &deployments.DeploymentConstructor{
+						Deployment: model.Deployment{
+							DeploymentConstructor: &model.DeploymentConstructor{
 								Name:         StringToPointer("zen"),
 								ArtifactName: StringToPointer("baz"),
 							},
@@ -975,7 +974,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 			deploymentModel := new(mocks.DeploymentsModel)
 
 			deploymentModel.On("LookupDeployment",
-				h.ContextMatcher(), mock.AnythingOfType("deployments.Query")).
+				h.ContextMatcher(), mock.AnythingOfType("model.Query")).
 				Return(testCase.InputModelDeployments, testCase.InputModelError)
 
 			deploymentModel.On("GetDeviceStatusesForDeployment",
@@ -1021,7 +1020,7 @@ func TestControllerLookupDeployment(t *testing.T) {
 func TestParseLookupQuery(t *testing.T) {
 	testCases := []struct {
 		vals  url.Values
-		query deployments.Query
+		query model.Query
 		err   error
 	}{
 		{
@@ -1029,9 +1028,9 @@ func TestParseLookupQuery(t *testing.T) {
 				"search": []string{"foo"},
 				"status": []string{"inprogress"},
 			},
-			query: deployments.Query{
+			query: model.Query{
 				SearchText: "foo",
-				Status:     deployments.StatusQueryInProgress,
+				Status:     model.StatusQueryInProgress,
 			},
 		},
 		{
@@ -1046,9 +1045,9 @@ func TestParseLookupQuery(t *testing.T) {
 				"search": []string{"foo"},
 				"status": []string{"finished"},
 			},
-			query: deployments.Query{
+			query: model.Query{
 				SearchText: "foo",
-				Status:     deployments.StatusQueryFinished,
+				Status:     model.StatusQueryFinished,
 			},
 		},
 		{
@@ -1056,34 +1055,34 @@ func TestParseLookupQuery(t *testing.T) {
 				"search": []string{"foo"},
 				"status": []string{"pending"},
 			},
-			query: deployments.Query{
+			query: model.Query{
 				SearchText: "foo",
-				Status:     deployments.StatusQueryPending,
+				Status:     model.StatusQueryPending,
 			},
 		},
 		{
 			vals: url.Values{
 				"search": []string{"foo"},
 			},
-			query: deployments.Query{
+			query: model.Query{
 				SearchText: "foo",
-				Status:     deployments.StatusQueryAny,
+				Status:     model.StatusQueryAny,
 			},
 		},
 		{
 			vals: url.Values{},
-			query: deployments.Query{
+			query: model.Query{
 				SearchText: "",
-				Status:     deployments.StatusQueryAny,
+				Status:     model.StatusQueryAny,
 			},
 		},
 		{
 			vals: url.Values{
 				"status": []string{"pending"},
 			},
-			query: deployments.Query{
+			query: model.Query{
 				SearchText: "",
-				Status:     deployments.StatusQueryPending,
+				Status:     model.StatusQueryPending,
 			},
 		},
 		{
@@ -1091,7 +1090,7 @@ func TestParseLookupQuery(t *testing.T) {
 				"created_after":  []string{"100"},
 				"created_before": []string{"x"},
 			},
-			query: deployments.Query{
+			query: model.Query{
 				CreatedAfter:  nil,
 				CreatedBefore: nil,
 			},
@@ -1101,7 +1100,7 @@ func TestParseLookupQuery(t *testing.T) {
 				"created_after":  []string{"x"},
 				"created_before": []string{"x"},
 			},
-			query: deployments.Query{
+			query: model.Query{
 				CreatedAfter:  nil,
 				CreatedBefore: nil,
 			},
@@ -1111,7 +1110,7 @@ func TestParseLookupQuery(t *testing.T) {
 				"created_before": []string{"111111111111"},
 				"created_after":  []string{"111111111111"},
 			},
-			query: deployments.Query{
+			query: model.Query{
 				CreatedBefore: TimePtr(time.Unix(111111111111, 0).UTC()),
 				CreatedAfter:  TimePtr(time.Unix(111111111111, 0).UTC()),
 			},
@@ -1143,7 +1142,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 
 	tref := time.Now().UTC()
 
-	messages := []deployments.LogMessage{
+	messages := []model.LogMessage{
 		{
 			Timestamp: &tref,
 			Message:   "foo",
@@ -1157,7 +1156,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 
 		InputModelDeploymentID string
 		InputModelDeviceID     string
-		InputModelMessages     []deployments.LogMessage
+		InputModelMessages     []model.LogMessage
 		InputModelError        error
 
 		Headers map[string]string
@@ -1180,7 +1179,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// all correct
-			InputBodyObject: &deployments.DeploymentLog{
+			InputBodyObject: &model.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
@@ -1197,7 +1196,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// no authorization
-			InputBodyObject: &deployments.DeploymentLog{
+			InputBodyObject: &model.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
@@ -1211,7 +1210,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// model error
-			InputBodyObject: &deployments.DeploymentLog{
+			InputBodyObject: &model.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
@@ -1229,7 +1228,7 @@ func TestControllerPutDeploymentLog(t *testing.T) {
 		},
 		{
 			// deployment not assigned to device
-			InputBodyObject: &deployments.DeploymentLog{
+			InputBodyObject: &model.DeploymentLog{
 				Messages: messages,
 			},
 			InputModelDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
@@ -1300,7 +1299,7 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 
 	tref := parseTime(t, "2006-01-02T15:04:05-07:00")
 
-	messages := []deployments.LogMessage{
+	messages := []model.LogMessage{
 		{
 			Timestamp: tref,
 			Message:   "foo",
@@ -1321,17 +1320,17 @@ func TestControllerGetDeploymentLog(t *testing.T) {
 	testCases := []struct {
 		h.JSONResponseParams
 
-		InputModelDeploymentLog *deployments.DeploymentLog
+		InputModelDeploymentLog *model.DeploymentLog
 		InputModelDeploymentID  string
 		InputModelDeviceID      string
-		InputModelMessages      []deployments.LogMessage
+		InputModelMessages      []model.LogMessage
 		InputModelError         error
 
 		Body string
 	}{
 		{
 			// all correct
-			InputModelDeploymentLog: &deployments.DeploymentLog{
+			InputModelDeploymentLog: &model.DeploymentLog{
 				DeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 				DeviceID:     "device-id-1",
 				Messages:     messages,

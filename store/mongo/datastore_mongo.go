@@ -28,7 +28,6 @@ import (
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/resources/deployments"
 	dmodel "github.com/mendersoftware/deployments/resources/images/model"
 )
 
@@ -515,7 +514,7 @@ const (
 )
 
 func (db *DataStoreMongo) SaveDeviceDeploymentLog(ctx context.Context,
-	log deployments.DeploymentLog) error {
+	log model.DeploymentLog) error {
 
 	if err := log.Validate(); err != nil {
 		return err
@@ -545,7 +544,7 @@ func (db *DataStoreMongo) SaveDeviceDeploymentLog(ctx context.Context,
 }
 
 func (db *DataStoreMongo) GetDeviceDeploymentLog(ctx context.Context,
-	deviceID, deploymentID string) (*deployments.DeploymentLog, error) {
+	deviceID, deploymentID string) (*model.DeploymentLog, error) {
 
 	session := db.session.Copy()
 	defer session.Close()
@@ -555,7 +554,7 @@ func (db *DataStoreMongo) GetDeviceDeploymentLog(ctx context.Context,
 		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
 	}
 
-	var depl deployments.DeploymentLog
+	var depl model.DeploymentLog
 	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDeviceDeploymentLogs).Find(query).One(&depl); err != nil {
 		if err == mgo.ErrNotFound {
@@ -594,7 +593,7 @@ var (
 // InsertMany stores multiple device deployment objects.
 // TODO: Handle error cleanup, multi insert is not atomic, loop into two-phase commits
 func (db *DataStoreMongo) InsertMany(ctx context.Context,
-	deployments ...*deployments.DeviceDeployment) error {
+	deployments ...*model.DeviceDeployment) error {
 
 	if len(deployments) == 0 {
 		return nil
@@ -661,7 +660,7 @@ func (db *DataStoreMongo) ExistAssignedImageWithIDAndStatuses(ctx context.Contex
 
 // FindOldestDeploymentForDeviceIDWithStatuses find oldest deployment matching device id and one of specified statuses.
 func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-	deviceID string, statuses ...string) (*deployments.DeviceDeployment, error) {
+	deviceID string, statuses ...string) (*model.DeviceDeployment, error) {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) {
@@ -678,7 +677,7 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 	}
 
 	// Select only the oldest one that have not been finished yet.
-	var deployment *deployments.DeviceDeployment
+	var deployment *model.DeviceDeployment
 	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDevices).Find(query).Sort("created").One(&deployment); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -692,7 +691,7 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 
 // FindAllDeploymentsForDeviceIDWithStatuses finds all deployments matching device id and one of specified statuses.
 func (db *DataStoreMongo) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
-	deviceID string, statuses ...string) ([]deployments.DeviceDeployment, error) {
+	deviceID string, statuses ...string) ([]model.DeviceDeployment, error) {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) {
@@ -710,7 +709,7 @@ func (db *DataStoreMongo) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.
 		},
 	}
 
-	var deployments []deployments.DeviceDeployment
+	var deployments []model.DeviceDeployment
 	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDevices).Find(query).All(&deployments); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -723,7 +722,7 @@ func (db *DataStoreMongo) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.
 }
 
 func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(ctx context.Context,
-	deviceID string, deploymentID string, ddStatus deployments.DeviceDeploymentStatus) (string, error) {
+	deviceID string, deploymentID string, ddStatus model.DeviceDeploymentStatus) (string, error) {
 
 	// Verify ID formatting
 	if govalidator.IsNull(deviceID) ||
@@ -761,7 +760,7 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(ctx context.Context,
 		"$set": set,
 	}
 
-	var old deployments.DeviceDeployment
+	var old model.DeviceDeployment
 
 	// update and return the old status in one go
 	change := mgo.Change{
@@ -856,7 +855,7 @@ func (db *DataStoreMongo) AssignArtifact(ctx context.Context,
 }
 
 func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
-	id string) (deployments.Stats, error) {
+	id string) (model.Stats, error) {
 
 	if govalidator.IsNull(id) {
 		return nil, ErrStorageInvalidID
@@ -895,7 +894,7 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 		return nil, err
 	}
 
-	raw := deployments.NewDeviceDeploymentStats()
+	raw := model.NewDeviceDeploymentStats()
 	for _, res := range results {
 		raw[res.Name] = res.Count
 	}
@@ -904,7 +903,7 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 
 //GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
 func (db *DataStoreMongo) GetDeviceStatusesForDeployment(ctx context.Context,
-	deploymentID string) ([]deployments.DeviceDeployment, error) {
+	deploymentID string) ([]model.DeviceDeployment, error) {
 
 	session := db.session.Copy()
 	defer session.Close()
@@ -913,7 +912,7 @@ func (db *DataStoreMongo) GetDeviceStatusesForDeployment(ctx context.Context,
 		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
 	}
 
-	var statuses []deployments.DeviceDeployment
+	var statuses []model.DeviceDeployment
 
 	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDevices).Find(query).All(&statuses)
@@ -938,7 +937,7 @@ func (db *DataStoreMongo) HasDeploymentForDevice(ctx context.Context,
 		StorageKeyDeviceDeploymentDeviceId:     deviceID,
 	}
 
-	var dep deployments.DeviceDeployment
+	var dep model.DeviceDeployment
 	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDevices).Find(query).One(&dep)
 	if err != nil {
@@ -963,7 +962,7 @@ func (db *DataStoreMongo) GetDeviceDeploymentStatus(ctx context.Context,
 		StorageKeyDeviceDeploymentDeviceId:     deviceID,
 	}
 
-	var dep deployments.DeviceDeployment
+	var dep model.DeviceDeployment
 	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDevices).Find(query).One(&dep)
 	if err != nil {
@@ -993,7 +992,7 @@ func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 			},
 			{
 				StorageKeyDeviceDeploymentStatus: bson.M{
-					"$in": deployments.ActiveDeploymentStatuses(),
+					"$in": model.ActiveDeploymentStatuses(),
 				},
 			},
 		},
@@ -1001,7 +1000,7 @@ func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 
 	update := bson.M{
 		"$set": bson.M{
-			StorageKeyDeviceDeploymentStatus: deployments.DeviceDeploymentStatusAborted,
+			StorageKeyDeviceDeploymentStatus: model.DeviceDeploymentStatusAborted,
 		},
 	}
 
@@ -1031,7 +1030,7 @@ func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 			},
 			{
 				StorageKeyDeviceDeploymentStatus: bson.M{
-					"$in": deployments.ActiveDeploymentStatuses(),
+					"$in": model.ActiveDeploymentStatuses(),
 				},
 			},
 		},
@@ -1039,7 +1038,7 @@ func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 
 	update := bson.M{
 		"$set": bson.M{
-			StorageKeyDeviceDeploymentStatus: deployments.DeviceDeploymentStatusDecommissioned,
+			StorageKeyDeviceDeploymentStatus: model.DeviceDeploymentStatusDecommissioned,
 		},
 	}
 
@@ -1124,7 +1123,7 @@ func (db *DataStoreMongo) hasIndexing(ctx context.Context, session *mgo.Session)
 }
 
 // Insert persists object
-func (db *DataStoreMongo) InsertDeployment(ctx context.Context, deployment *deployments.Deployment) error {
+func (db *DataStoreMongo) InsertDeployment(ctx context.Context, deployment *model.Deployment) error {
 
 	if deployment == nil {
 		return ErrDeploymentStorageInvalidDeployment
@@ -1170,7 +1169,7 @@ func (db *DataStoreMongo) DeleteDeployment(ctx context.Context, id string) error
 	return nil
 }
 
-func (db *DataStoreMongo) FindDeploymentByID(ctx context.Context, id string) (*deployments.Deployment, error) {
+func (db *DataStoreMongo) FindDeploymentByID(ctx context.Context, id string) (*model.Deployment, error) {
 
 	if govalidator.IsNull(id) {
 		return nil, ErrStorageInvalidID
@@ -1179,7 +1178,7 @@ func (db *DataStoreMongo) FindDeploymentByID(ctx context.Context, id string) (*d
 	session := db.session.Copy()
 	defer session.Close()
 
-	var deployment *deployments.Deployment
+	var deployment *model.Deployment
 	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDeployments).FindId(id).One(&deployment); err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -1192,7 +1191,7 @@ func (db *DataStoreMongo) FindDeploymentByID(ctx context.Context, id string) (*d
 }
 
 func (db *DataStoreMongo) FindUnfinishedByID(ctx context.Context,
-	id string) (*deployments.Deployment, error) {
+	id string) (*model.Deployment, error) {
 
 	if govalidator.IsNull(id) {
 		return nil, ErrStorageInvalidID
@@ -1201,7 +1200,7 @@ func (db *DataStoreMongo) FindUnfinishedByID(ctx context.Context,
 	session := db.session.Copy()
 	defer session.Close()
 
-	var deployment *deployments.Deployment
+	var deployment *model.Deployment
 	filter := bson.M{
 		"_id":                        id,
 		StorageKeyDeploymentFinished: nil,
@@ -1238,7 +1237,7 @@ func (db *DataStoreMongo) DeviceCountByDeployment(ctx context.Context,
 }
 
 func (db *DataStoreMongo) UpdateStatsAndFinishDeployment(ctx context.Context,
-	id string, stats deployments.Stats) error {
+	id string, stats model.Stats) error {
 
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
@@ -1247,7 +1246,7 @@ func (db *DataStoreMongo) UpdateStatsAndFinishDeployment(ctx context.Context,
 	session := db.session.Copy()
 	defer session.Close()
 
-	deployment, err := deployments.NewDeployment()
+	deployment, err := model.NewDeployment()
 	if err != nil {
 		return errors.Wrap(err, "failed to create deployment")
 	}
@@ -1326,7 +1325,7 @@ func buildStatusKey(status string) string {
 	return StorageKeyDeploymentStats + "." + status
 }
 
-func buildStatusQuery(status deployments.StatusQuery) bson.M {
+func buildStatusQuery(status model.StatusQuery) bson.M {
 
 	gt0 := bson.M{"$gt": 0}
 	eq0 := bson.M{"$eq": 0}
@@ -1336,39 +1335,39 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 	stq := bson.M{}
 
 	switch status {
-	case deployments.StatusQueryInProgress:
+	case model.StatusQueryInProgress:
 		{
 			// downloading, installing or rebooting are non 0, or
 			// already-installed/success/failure/noimage >0 and pending > 0
 			stq = bson.M{
 				"$or": []bson.M{
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusDownloading): gt0,
+						buildStatusKey(model.DeviceDeploymentStatusDownloading): gt0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusInstalling): gt0,
+						buildStatusKey(model.DeviceDeploymentStatusInstalling): gt0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusRebooting): gt0,
+						buildStatusKey(model.DeviceDeploymentStatusRebooting): gt0,
 					},
 					{
 						"$and": []bson.M{
 							{
-								buildStatusKey(deployments.DeviceDeploymentStatusPending): gt0,
+								buildStatusKey(model.DeviceDeploymentStatusPending): gt0,
 							},
 							{
 								"$or": []bson.M{
 									{
-										buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): gt0,
+										buildStatusKey(model.DeviceDeploymentStatusAlreadyInst): gt0,
 									},
 									{
-										buildStatusKey(deployments.DeviceDeploymentStatusSuccess): gt0,
+										buildStatusKey(model.DeviceDeploymentStatusSuccess): gt0,
 									},
 									{
-										buildStatusKey(deployments.DeviceDeploymentStatusFailure): gt0,
+										buildStatusKey(model.DeviceDeploymentStatusFailure): gt0,
 									},
 									{
-										buildStatusKey(deployments.DeviceDeploymentStatusNoArtifact): gt0,
+										buildStatusKey(model.DeviceDeploymentStatusNoArtifact): gt0,
 									},
 								},
 							},
@@ -1378,45 +1377,45 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 			}
 		}
 
-	case deployments.StatusQueryPending:
+	case model.StatusQueryPending:
 		{
 			// all status counters, except for pending, are 0
 			stq = bson.M{
 				"$and": []bson.M{
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusDownloading): eq0,
+						buildStatusKey(model.DeviceDeploymentStatusDownloading): eq0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusInstalling): eq0,
+						buildStatusKey(model.DeviceDeploymentStatusInstalling): eq0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusRebooting): eq0,
+						buildStatusKey(model.DeviceDeploymentStatusRebooting): eq0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusSuccess): eq0,
+						buildStatusKey(model.DeviceDeploymentStatusSuccess): eq0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusAlreadyInst): eq0,
+						buildStatusKey(model.DeviceDeploymentStatusAlreadyInst): eq0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusAborted): eq0,
+						buildStatusKey(model.DeviceDeploymentStatusAborted): eq0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusDecommissioned): eq0,
+						buildStatusKey(model.DeviceDeploymentStatusDecommissioned): eq0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusFailure): eq0,
+						buildStatusKey(model.DeviceDeploymentStatusFailure): eq0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusNoArtifact): eq0,
+						buildStatusKey(model.DeviceDeploymentStatusNoArtifact): eq0,
 					},
 					{
-						buildStatusKey(deployments.DeviceDeploymentStatusPending): gt0,
+						buildStatusKey(model.DeviceDeploymentStatusPending): gt0,
 					},
 				},
 			}
 		}
-	case deployments.StatusQueryFinished:
+	case model.StatusQueryFinished:
 		{
 			stq = bson.M{StorageKeyDeploymentFinished: notNull}
 		}
@@ -1426,7 +1425,7 @@ func buildStatusQuery(status deployments.StatusQuery) bson.M {
 }
 
 func (db *DataStoreMongo) Find(ctx context.Context,
-	match deployments.Query) ([]*deployments.Deployment, error) {
+	match model.Query) ([]*model.Deployment, error) {
 
 	session := db.session.Copy()
 	defer session.Close()
@@ -1450,7 +1449,7 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 	}
 
 	// build deployment by status part of the query
-	if match.Status != deployments.StatusQueryAny {
+	if match.Status != model.StatusQueryAny {
 		stq := buildStatusQuery(match.Status)
 		andq = append(andq, stq)
 	}
@@ -1478,7 +1477,7 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 		}
 	}
 
-	var deployment []*deployments.Deployment
+	var deployment []*model.Deployment
 	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionDeployments).
 		Find(&query).Sort("-created").

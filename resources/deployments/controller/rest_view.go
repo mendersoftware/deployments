@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/log"
 
-	"github.com/mendersoftware/deployments/resources/deployments"
+	"github.com/mendersoftware/deployments/model"
 )
 
 type RESTView interface {
@@ -29,5 +29,5 @@ type RESTView interface {
 	RenderError(w rest.ResponseWriter, r *rest.Request, err error, status int, l *log.Logger)
 	RenderInternalError(w rest.ResponseWriter, r *rest.Request, err error, l *log.Logger)
 	RenderErrorNotFound(w rest.ResponseWriter, r *rest.Request, l *log.Logger)
-	RenderDeploymentLog(w rest.ResponseWriter, dlog deployments.DeploymentLog)
+	RenderDeploymentLog(w rest.ResponseWriter, dlog model.DeploymentLog)
 }

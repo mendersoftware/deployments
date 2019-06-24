@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package deployments_test
+package model
 
 import (
 	"math/rand"
@@ -21,7 +21,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	. "github.com/mendersoftware/deployments/resources/deployments"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 )
 
