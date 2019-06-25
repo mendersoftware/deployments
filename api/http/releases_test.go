@@ -26,6 +26,7 @@ import (
 	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/model"
 	dmodel "github.com/mendersoftware/deployments/model"
+	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
 	store_mocks "github.com/mendersoftware/deployments/store/mocks"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	deployments_testing "github.com/mendersoftware/deployments/utils/testing"
@@ -115,8 +116,10 @@ func TestGetReleases(t *testing.T) {
 			store.On("GetReleases", deployments_testing.ContextMatcher(), tc.filter).
 				Return(tc.storeReleases, tc.storeErr)
 
+			fileStorage := &fs_mocks.FileStorage{}
+
 			restView := new(view.RESTView)
-			app := app.NewDeployments(store)
+			app := app.NewDeployments(store, fileStorage, app.ArtifactContentType)
 
 			c := NewDeploymentsApiHandlers(store, restView, app)
 

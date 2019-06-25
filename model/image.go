@@ -15,6 +15,7 @@
 package model
 
 import (
+	"io"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -121,4 +122,15 @@ func (s *SoftwareImage) SetModified(time time.Time) {
 func (s *SoftwareImage) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
+}
+
+// MultipartUploadMsg is a structure with fields extracted from the mulitpart/form-data form
+// send in the artifact upload request
+type MultipartUploadMsg struct {
+	// user metadata constructor
+	MetaConstructor *SoftwareImageMetaConstructor
+	// size of the artifact file
+	ArtifactSize int64
+	// reader pointing to the beginning of the artifact data
+	ArtifactReader io.Reader
 }

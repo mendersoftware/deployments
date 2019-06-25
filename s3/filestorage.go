@@ -30,7 +30,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/deployments/model"
-	dmodel "github.com/mendersoftware/deployments/resources/images/model"
 	"github.com/mendersoftware/go-lib-micro/identity"
 
 	"github.com/mendersoftware/go-lib-micro/log"
@@ -41,6 +40,24 @@ const (
 	ExpireMinLimit                 = 1 * time.Minute
 	ErrCodeBucketAlreadyOwnedByYou = "BucketAlreadyOwnedByYou"
 )
+
+// Errors specific to interface
+var (
+	ErrFileStorageFileNotFound = errors.New("File not found")
+)
+
+// FileStorage allows to store and manage large files
+type FileStorage interface {
+	Delete(ctx context.Context, objectId string) error
+	Exists(ctx context.Context, objectId string) (bool, error)
+	LastModified(ctx context.Context, objectId string) (time.Time, error)
+	PutRequest(ctx context.Context, objectId string,
+		duration time.Duration) (*model.Link, error)
+	GetRequest(ctx context.Context, objectId string,
+		duration time.Duration, responseContentType string) (*model.Link, error)
+	UploadArtifact(ctx context.Context, objectId string,
+		artifactSize int64, artifact io.Reader, contentType string) error
+}
 
 // SimpleStorageService - AWS S3 client.
 // Data layer for file storage.
@@ -328,13 +345,13 @@ func (s *SimpleStorageService) LastModified(ctx context.Context, objectID string
 	}
 
 	if len(resp.Contents) == 0 {
-		return time.Time{}, dmodel.ErrFileStorageFileNotFound
+		return time.Time{}, ErrFileStorageFileNotFound
 	}
 
 	// Note: Response should contain max 1 object (MaxKetys=1)
 	// Double check if it's exact match as object search matches prefix.
 	if *resp.Contents[0].Key != objectID {
-		return time.Time{}, dmodel.ErrFileStorageFileNotFound
+		return time.Time{}, ErrFileStorageFileNotFound
 	}
 
 	return *resp.Contents[0].LastModified, nil

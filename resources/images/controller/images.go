@@ -29,6 +29,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/pkg/errors"
 
+	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/model"
 )
 
@@ -48,21 +49,10 @@ var (
 
 type SoftwareImagesController struct {
 	view  RESTView
-	model ImagesModel
+	model app.App
 }
 
-// MultipartUploadMsg is a structure with fields extracted from the mulitpart/form-data form
-// send in the artifact upload request
-type MultipartUploadMsg struct {
-	// user metadata constructor
-	MetaConstructor *model.SoftwareImageMetaConstructor
-	// size of the artifact file
-	ArtifactSize int64
-	// reader pointing to the beginning of the artifact data
-	ArtifactReader io.Reader
-}
-
-func NewSoftwareImagesController(model ImagesModel, view RESTView) *SoftwareImagesController {
+func NewSoftwareImagesController(model app.App, view RESTView) *SoftwareImagesController {
 	return &SoftwareImagesController{
 		model: model,
 		view:  view,
@@ -143,9 +133,9 @@ func (s *SoftwareImagesController) DeleteImage(w rest.ResponseWriter, r *rest.Re
 		switch err {
 		default:
 			s.view.RenderInternalError(w, r, err, l)
-		case ErrImageMetaNotFound:
+		case app.ErrImageMetaNotFound:
 			s.view.RenderErrorNotFound(w, r, l)
-		case ErrModelImageInActiveDeployment:
+		case app.ErrModelImageInActiveDeployment:
 			s.view.RenderError(w, r, ErrArtifactUsedInActiveDeployment, http.StatusConflict, l)
 		}
 		return
@@ -172,7 +162,7 @@ func (s *SoftwareImagesController) EditImage(w rest.ResponseWriter, r *rest.Requ
 
 	found, err := s.model.EditImage(r.Context(), id, constructor)
 	if err != nil {
-		if err == ErrModelImageUsedInAnyDeployment {
+		if err == app.ErrModelImageUsedInAnyDeployment {
 			s.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
 			return
 		}
@@ -232,15 +222,15 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 		s.view.RenderInternalError(w, r, err, l)
 	case nil:
 		s.view.RenderSuccessPost(w, r, imgID)
-	case ErrModelArtifactNotUnique:
+	case app.ErrModelArtifactNotUnique:
 		l.Error(err.Error())
 		s.view.RenderError(w, r, cause, http.StatusUnprocessableEntity, l)
-	case ErrModelParsingArtifactFailed:
+	case app.ErrModelParsingArtifactFailed:
 		l.Error(err.Error())
 		s.view.RenderError(w, r, formatArtifactUploadError(err), http.StatusBadRequest, l)
-	case ErrModelMissingInputMetadata, ErrModelMissingInputArtifact,
-		ErrModelInvalidMetadata, ErrModelMultipartUploadMsgMalformed,
-		ErrModelArtifactFileTooLarge:
+	case app.ErrModelMissingInputMetadata, app.ErrModelMissingInputArtifact,
+		app.ErrModelInvalidMetadata, app.ErrModelMultipartUploadMsgMalformed,
+		app.ErrModelArtifactFileTooLarge:
 		l.Error(err.Error())
 		s.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 	}
@@ -250,7 +240,7 @@ func (s *SoftwareImagesController) NewImage(w rest.ResponseWriter, r *rest.Reque
 
 func formatArtifactUploadError(err error) error {
 	// remove generic message
-	errMsg := strings.TrimSuffix(err.Error(), ": "+ErrModelParsingArtifactFailed.Error())
+	errMsg := strings.TrimSuffix(err.Error(), ": "+app.ErrModelParsingArtifactFailed.Error())
 
 	// handle specific cases
 
@@ -267,8 +257,8 @@ func formatArtifactUploadError(err error) error {
 }
 
 // ParseMultipart parses multipart/form-data message.
-func (s *SoftwareImagesController) ParseMultipart(mr *multipart.Reader, maxMetaSize int64) (*MultipartUploadMsg, error) {
-	multipartUploadMsg := &MultipartUploadMsg{
+func (s *SoftwareImagesController) ParseMultipart(mr *multipart.Reader, maxMetaSize int64) (*model.MultipartUploadMsg, error) {
+	multipartUploadMsg := &model.MultipartUploadMsg{
 		MetaConstructor: &model.SoftwareImageMetaConstructor{},
 	}
 	for {

@@ -22,6 +22,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
@@ -37,15 +38,14 @@ var (
 	ErrDeploymentAlreadyFinished  = errors.New("Deployment already finished")
 	ErrUnexpectedDeploymentStatus = errors.New("Unexpected deployment status")
 	ErrMissingIdentity            = errors.New("Missing identity data")
-	ErrNoArtifact                 = errors.New("No artifact for the deployment")
 )
 
 type DeploymentsController struct {
 	view  RESTView
-	model DeploymentsModel
+	model app.App
 }
 
-func NewDeploymentsController(model DeploymentsModel, view RESTView) *DeploymentsController {
+func NewDeploymentsController(model app.App, view RESTView) *DeploymentsController {
 	return &DeploymentsController{
 		view:  view,
 		model: model,
@@ -64,7 +64,7 @@ func (d *DeploymentsController) PostDeployment(w rest.ResponseWriter, r *rest.Re
 
 	id, err := d.model.CreateDeployment(ctx, constructor)
 	if err != nil {
-		if err == ErrNoArtifact {
+		if err == app.ErrNoArtifact {
 			d.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
 		} else {
 			d.view.RenderInternalError(w, r, err, l)
@@ -253,7 +253,7 @@ func (d *DeploymentsController) PutDeploymentStatusForDevice(w rest.ResponseWrit
 			SubState: report.SubState,
 		}); err != nil {
 
-		if err == ErrDeploymentAborted || err == ErrDeviceDecommissioned {
+		if err == app.ErrDeploymentAborted || err == app.ErrDeviceDecommissioned {
 			d.view.RenderError(w, r, err, http.StatusConflict, l)
 		} else {
 			d.view.RenderInternalError(w, r, err, l)
@@ -278,7 +278,7 @@ func (d *DeploymentsController) GetDeviceStatusesForDeployment(w rest.ResponseWr
 	statuses, err := d.model.GetDeviceStatusesForDeployment(ctx, did)
 	if err != nil {
 		switch err {
-		case ErrModelDeploymentNotFound:
+		case app.ErrModelDeploymentNotFound:
 			d.view.RenderError(w, r, err, http.StatusNotFound, l)
 			return
 		default:
@@ -408,7 +408,7 @@ func (d *DeploymentsController) PutDeploymentLogForDevice(w rest.ResponseWriter,
 	if err := d.model.SaveDeviceDeploymentLog(ctx, idata.Subject,
 		did, log.Messages); err != nil {
 
-		if err == ErrModelDeploymentNotFound {
+		if err == app.ErrModelDeploymentNotFound {
 			d.view.RenderError(w, r, err, http.StatusNotFound, l)
 		} else {
 			d.view.RenderInternalError(w, r, err, l)
@@ -451,7 +451,7 @@ func (d *DeploymentsController) DecommissionDevice(w rest.ResponseWriter, r *res
 	err := d.model.DecommissionDevice(ctx, id)
 
 	switch err {
-	case nil, ErrStorageNotFound:
+	case nil, app.ErrStorageNotFound:
 		d.view.RenderEmptySuccessResponse(w)
 	default:
 		d.view.RenderInternalError(w, r, err, l)

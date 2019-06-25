@@ -33,9 +33,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
 	. "github.com/mendersoftware/deployments/resources/images/controller"
-	"github.com/mendersoftware/deployments/resources/images/controller/mocks"
 	"github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	h "github.com/mendersoftware/deployments/utils/testing"
@@ -67,7 +67,7 @@ func setUpRestTest(route string, routeType routerTypeHandler, handler func(w res
 }
 
 func TestControllerGetImage(t *testing.T) {
-	imagesModel := &mocks.ImagesModel{}
+	imagesModel := &mocks.App{}
 	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Get, controller.GetImage)
@@ -125,7 +125,7 @@ func TestControllerGetImage(t *testing.T) {
 }
 
 func TestControllerListImages(t *testing.T) {
-	imagesModel := &mocks.ImagesModel{}
+	imagesModel := &mocks.App{}
 	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images", rest.Get, controller.ListImages)
@@ -138,7 +138,7 @@ func TestControllerListImages(t *testing.T) {
 	recorded.CodeIs(http.StatusInternalServerError)
 
 	//getting list OK
-	imagesModel = &mocks.ImagesModel{}
+	imagesModel = &mocks.App{}
 	controller = NewSoftwareImagesController(imagesModel, new(view.RESTView))
 	api = setUpRestTest("/api/0.0.1/images", rest.Get, controller.ListImages)
 	imageMeta := model.NewSoftwareImageMetaConstructor()
@@ -154,7 +154,7 @@ func TestControllerListImages(t *testing.T) {
 }
 
 func TestControllerDeleteImage(t *testing.T) {
-	imagesModel := &mocks.ImagesModel{}
+	imagesModel := &mocks.App{}
 	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Delete, controller.DeleteImage)
@@ -198,7 +198,7 @@ func TestControllerDeleteImage(t *testing.T) {
 }
 
 func TestControllerEditImage(t *testing.T) {
-	imagesModel := &mocks.ImagesModel{}
+	imagesModel := &mocks.App{}
 	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Put, controller.EditImage)
@@ -424,7 +424,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 
 		// Run each test case as individual subtest
 		t.Run(fmt.Sprintf("Test case number: %v", testCaseNumber+1), func(t *testing.T) {
-			model := &mocks.ImagesModel{}
+			model := &mocks.App{}
 
 			model.On("CreateImage", h.ContextMatcher(),
 				mock.AnythingOfType("*controller.MultipartUploadMsg")).
@@ -500,7 +500,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 
 	for _, testCase := range testCases {
 
-		model := &mocks.ImagesModel{}
+		model := &mocks.App{}
 
 		model.On("DownloadLink", h.ContextMatcher(),
 			testCase.InputID, DefaultDownloadLinkExpire).

@@ -28,7 +28,6 @@ import (
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
-	dmodel "github.com/mendersoftware/deployments/resources/images/model"
 )
 
 const (
@@ -240,7 +239,7 @@ func (db *DataStoreMongo) ensureIndexing(ctx context.Context, session *mgo.Sessi
 func (db *DataStoreMongo) Exists(ctx context.Context, id string) (bool, error) {
 
 	if govalidator.IsNull(id) {
-		return false, dmodel.ErrSoftwareImagesStorageInvalidID
+		return false, ErrSoftwareImagesStorageInvalidID
 	}
 
 	session := db.session.Copy()
@@ -287,12 +286,12 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 	name, deviceType string) (*model.SoftwareImage, error) {
 
 	if govalidator.IsNull(name) {
-		return nil, dmodel.ErrSoftwareImagesStorageInvalidName
+		return nil, ErrSoftwareImagesStorageInvalidName
 
 	}
 
 	if govalidator.IsNull(deviceType) {
-		return nil, dmodel.ErrSoftwareImagesStorageInvalidDeviceType
+		return nil, ErrSoftwareImagesStorageInvalidDeviceType
 	}
 
 	// equal to device type & software version (application name + version)
@@ -322,11 +321,11 @@ func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 	ids []string, deviceType string) (*model.SoftwareImage, error) {
 
 	if govalidator.IsNull(deviceType) {
-		return nil, dmodel.ErrSoftwareImagesStorageInvalidDeviceType
+		return nil, ErrSoftwareImagesStorageInvalidDeviceType
 	}
 
 	if len(ids) == 0 {
-		return nil, dmodel.ErrSoftwareImagesStorageInvalidID
+		return nil, ErrSoftwareImagesStorageInvalidID
 	}
 
 	query := bson.M{
@@ -355,7 +354,7 @@ func (db *DataStoreMongo) ImagesByName(
 	ctx context.Context, name string) ([]*model.SoftwareImage, error) {
 
 	if govalidator.IsNull(name) {
-		return nil, dmodel.ErrSoftwareImagesStorageInvalidName
+		return nil, ErrSoftwareImagesStorageInvalidName
 
 	}
 
@@ -381,7 +380,7 @@ func (db *DataStoreMongo) ImagesByName(
 func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.SoftwareImage) error {
 
 	if image == nil {
-		return dmodel.ErrSoftwareImagesStorageInvalidImage
+		return ErrSoftwareImagesStorageInvalidImage
 	}
 
 	if err := image.Validate(); err != nil {
@@ -404,7 +403,7 @@ func (db *DataStoreMongo) FindImageByID(ctx context.Context,
 	id string) (*model.SoftwareImage, error) {
 
 	if govalidator.IsNull(id) {
-		return nil, dmodel.ErrSoftwareImagesStorageInvalidID
+		return nil, ErrSoftwareImagesStorageInvalidID
 	}
 
 	session := db.session.Copy()
@@ -431,7 +430,7 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 	artifactName string, deviceTypesCompatible []string) (bool, error) {
 
 	if govalidator.IsNull(artifactName) {
-		return false, dmodel.ErrSoftwareImagesStorageInvalidArtifactName
+		return false, ErrSoftwareImagesStorageInvalidArtifactName
 	}
 
 	session := db.session.Copy()
@@ -465,7 +464,7 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 func (db *DataStoreMongo) DeleteImage(ctx context.Context, id string) error {
 
 	if govalidator.IsNull(id) {
-		return dmodel.ErrSoftwareImagesStorageInvalidID
+		return ErrSoftwareImagesStorageInvalidID
 	}
 
 	session := db.session.Copy()
@@ -1202,7 +1201,7 @@ func (db *DataStoreMongo) FindUnfinishedByID(ctx context.Context,
 
 	var deployment *model.Deployment
 	filter := bson.M{
-		"_id":                        id,
+		"_id": id,
 		StorageKeyDeploymentFinished: nil,
 	}
 	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).

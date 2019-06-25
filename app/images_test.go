@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package model
+package app
 
 import (
 	"bytes"
@@ -34,7 +34,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/resources/images/controller"
 	"github.com/mendersoftware/deployments/store/mocks"
 )
 
@@ -46,22 +45,22 @@ const (
 func TestCreateImageEmptyMessage(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
 	if _, err := iModel.CreateImage(context.Background(),
-		nil); err != controller.ErrModelMultipartUploadMsgMalformed {
+		nil); err != ErrModelMultipartUploadMsgMalformed {
 		t.FailNow()
 	}
 }
 func TestCreateImageEmptyMetaConstructor(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
-	multipartUploadMessage := &controller.MultipartUploadMsg{}
+	multipartUploadMessage := &model.MultipartUploadMsg{}
 	if _, err := iModel.CreateImage(context.Background(),
-		multipartUploadMessage); err != controller.ErrModelMissingInputMetadata {
+		multipartUploadMessage); err != ErrModelMissingInputMetadata {
 		t.FailNow()
 	}
 }
 
 func TestCreateImageMissingFields(t *testing.T) {
 	iModel := NewImagesModel(nil, nil, nil)
-	multipartUploadMessage := &controller.MultipartUploadMsg{
+	multipartUploadMessage := &model.MultipartUploadMsg{
 		MetaConstructor: model.NewSoftwareImageMetaConstructor(),
 	}
 
@@ -106,7 +105,7 @@ func TestCreateImageInsertError(t *testing.T) {
 	fakeIS := mocks.DataStore{}
 
 	iModel := NewImagesModel(nil, nil, &fakeIS)
-	multipartUploadMessage := &controller.MultipartUploadMsg{
+	multipartUploadMessage := &model.MultipartUploadMsg{
 		MetaConstructor: createValidImageMeta(),
 	}
 	fakeIS.On("InsertImage",
@@ -140,7 +139,7 @@ func TestCreateImageArtifactUploadError(t *testing.T) {
 	upd, err := MakeRootfsImageArtifact(1, false)
 	assert.NoError(t, err)
 
-	multipartUploadMessage := &controller.MultipartUploadMsg{
+	multipartUploadMessage := &model.MultipartUploadMsg{
 		MetaConstructor: createValidImageMeta(),
 		ArtifactSize:    int64(upd.Len()),
 		ArtifactReader:  upd,
@@ -174,7 +173,7 @@ func TestCreateImageCreateOK(t *testing.T) {
 	upd, err := MakeRootfsImageArtifact(1, false)
 	assert.NoError(t, err)
 
-	multipartUploadMessage := &controller.MultipartUploadMsg{
+	multipartUploadMessage := &model.MultipartUploadMsg{
 		MetaConstructor: createValidImageMeta(),
 		ArtifactSize:    int64(upd.Len()),
 		ArtifactReader:  upd,
@@ -210,14 +209,14 @@ func TestCreateImageArtifactNotUnique(t *testing.T) {
 	upd, err := MakeRootfsImageArtifact(1, false)
 	assert.NoError(t, err)
 
-	multipartUploadMessage := &controller.MultipartUploadMsg{
+	multipartUploadMessage := &model.MultipartUploadMsg{
 		MetaConstructor: createValidImageMeta(),
 		ArtifactSize:    int64(upd.Len()),
 		ArtifactReader:  upd,
 	}
 
 	if _, err := iModel.CreateImage(context.Background(),
-		multipartUploadMessage); err != controller.ErrModelArtifactNotUnique {
+		multipartUploadMessage); err != ErrModelArtifactNotUnique {
 
 		t.FailNow()
 	}
@@ -248,7 +247,7 @@ func TestCreateImageArtifactNotUniqueCleanupError(t *testing.T) {
 	upd, err := MakeRootfsImageArtifact(1, false)
 	assert.NoError(t, err)
 
-	multipartUploadMessage := &controller.MultipartUploadMsg{
+	multipartUploadMessage := &model.MultipartUploadMsg{
 		MetaConstructor: createValidImageMeta(),
 		ArtifactSize:    int64(upd.Len()),
 		ArtifactReader:  upd,
@@ -256,8 +255,8 @@ func TestCreateImageArtifactNotUniqueCleanupError(t *testing.T) {
 
 	_, err = iModel.CreateImage(context.Background(), multipartUploadMessage)
 	cause := errors.Cause(err)
-	expectedErr := errors.Wrap(controller.ErrModelArtifactNotUnique, deleteErr.Error())
-	if cause != controller.ErrModelArtifactNotUnique || err.Error() != expectedErr.Error() {
+	expectedErr := errors.Wrap(ErrModelArtifactNotUnique, deleteErr.Error())
+	if cause != ErrModelArtifactNotUnique || err.Error() != expectedErr.Error() {
 		t.FailNow()
 	}
 }
@@ -285,7 +284,7 @@ func TestCreateSignedImageCreateOK(t *testing.T) {
 	upd, err := MakeRootfsImageArtifact(2, true)
 	assert.NoError(t, err)
 
-	multipartUploadMessage := &controller.MultipartUploadMsg{
+	multipartUploadMessage := &model.MultipartUploadMsg{
 		MetaConstructor: createValidImageMeta(),
 		ArtifactSize:    int64(upd.Len()),
 		ArtifactReader:  upd,
@@ -475,10 +474,10 @@ func TestDeleteImage(t *testing.T) {
 			expectedErr:    errors.New("Getting image metadata: Searching for image with specified ID: find image error"),
 		},
 		{
-			name:                     "deployment in use",
+			name: "deployment in use",
 			isUsedInActiveDeployment: true,
 			constructorImage:         model.NewSoftwareImage(validUUIDv4, createValidImageMeta(), createValidImageMetaArtifact(), artifactSize),
-			expectedErr:              controller.ErrModelImageInActiveDeployment,
+			expectedErr:              ErrModelImageInActiveDeployment,
 		},
 	}
 
@@ -591,7 +590,7 @@ func TestEditImage(t *testing.T) {
 	fakeChecker.usedInDeploymentsErr = nil
 	fakeChecker.isUsedInDeployment = true
 	if _, err := iModel.EditImage(context.Background(),
-		"", imageMeta); err != controller.ErrModelImageUsedInAnyDeployment {
+		"", imageMeta); err != ErrModelImageUsedInAnyDeployment {
 		t.FailNow()
 	}
 

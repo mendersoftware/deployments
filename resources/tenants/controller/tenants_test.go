@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	//	"strconv"
 	"testing"
 
 	"github.com/Sirupsen/logrus"
@@ -40,7 +39,6 @@ import (
 
 	"github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
-	imageMock "github.com/mendersoftware/deployments/resources/images/controller/mocks"
 	h "github.com/mendersoftware/deployments/utils/testing"
 )
 
@@ -105,7 +103,7 @@ func TestProvisionTenant(t *testing.T) {
 
 			m.On("ProvisionTenant", contextMatcher(), mock.AnythingOfType("string")).Return(tc.modelErr)
 
-			imageModelMock := &imageMock.ImagesModel{}
+			imageModelMock := &mocks.App{}
 			restView := new(view.RESTView)
 			imgCtrl := imageController.NewSoftwareImagesController(imageModelMock, restView)
 
@@ -190,7 +188,7 @@ func TestInteralTenantNewImage(t *testing.T) {
 		t.Run(fmt.Sprintf("Test case number: %v", testCaseNumber+1), func(t *testing.T) {
 
 			m := &mocks.App{}
-			imageModelMock := &imageMock.ImagesModel{}
+			imageModelMock := &mocks.App{}
 
 			imageModelMock.On("CreateImage", h.ContextMatcher(),
 				mock.AnythingOfType("*controller.MultipartUploadMsg")).

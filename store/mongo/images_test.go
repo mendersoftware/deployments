@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/model"
-	dmodel "github.com/mendersoftware/deployments/resources/images/model"
 )
 
 func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
@@ -39,7 +38,7 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name:                  "App1 v1.0",
+				Name: "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
@@ -51,7 +50,7 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name:                  "App2 v0.1",
+				Name: "App2 v0.1",
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []model.Update{},
 			},
@@ -114,14 +113,14 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			InputDevType:   "foo",
 
 			OutputImage: nil,
-			OutputError: dmodel.ErrSoftwareImagesStorageInvalidName,
+			OutputError: ErrSoftwareImagesStorageInvalidName,
 		},
 		"dev type validation error": {
 			InputImageName: "App2 v0.1",
 			InputDevType:   "",
 
 			OutputImage: nil,
-			OutputError: dmodel.ErrSoftwareImagesStorageInvalidDeviceType,
+			OutputError: ErrSoftwareImagesStorageInvalidDeviceType,
 		},
 		"other tenant": {
 			InputImageName: "App1 v1.0",
@@ -175,7 +174,7 @@ func TestIsArtifactUnique(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name:                  "app1-v1.0",
+				Name: "app1-v1.0",
 				DeviceTypesCompatible: []string{"foo", "bar"},
 				Updates:               []model.Update{},
 			},
@@ -222,7 +221,7 @@ func TestIsArtifactUnique(t *testing.T) {
 		"empty artifact name": {
 			InputDevTypes: []string{"baz", "bah"},
 
-			OutputError: dmodel.ErrSoftwareImagesStorageInvalidArtifactName,
+			OutputError: ErrSoftwareImagesStorageInvalidArtifactName,
 		},
 		"other tenant": {
 			// is unique because we're using another DB

@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package model
+package app
 
 import (
 	"context"
@@ -25,8 +25,8 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/resources/deployments/controller"
 	dmmocks "github.com/mendersoftware/deployments/resources/deployments/model/mocks"
+	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
 	. "github.com/mendersoftware/deployments/utils/pointers"
 	h "github.com/mendersoftware/deployments/utils/testing"
@@ -75,7 +75,9 @@ func TestDeploymentModelGetDeployment(t *testing.T) {
 				testCase.InputDeploymentID).
 				Return(testCase.InoutFindByIDDeployment, testCase.InoutFindByIDError)
 
-			model := NewDeploymentModel(DeploymentsModelConfig{DataStore: db})
+			fs := &fs_mocks.FileStorage{}
+
+			model := NewDeployments(db, fs, ArtifactContentType)
 
 			deployment, err := model.GetDeployment(context.Background(),
 				testCase.InputDeploymentID)
@@ -482,7 +484,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		OutputBody  bool
 	}{
 		{
-			OutputError: controller.ErrModelMissingInput,
+			OutputError: ErrModelMissingInput,
 		},
 		{
 			InputConstructor: &model.DeploymentConstructor{},
@@ -723,7 +725,7 @@ func TestDeploymentModelUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputStatus:   "rebooting",
 			OldStatus:     "aborted",
 
-			OutputError: controller.ErrDeploymentAborted,
+			OutputError: ErrDeploymentAborted,
 		},
 	}
 
@@ -964,7 +966,7 @@ func TestDeploymentModelGetDeviceStatusesForDeployment(t *testing.T) {
 			depsStorageDeployment: nil,
 			depsStorageErr:        nil,
 
-			modelErr: controller.ErrModelDeploymentNotFound,
+			modelErr: ErrModelDeploymentNotFound,
 		},
 		"DeviceDeployments storage layer error": {
 			inDeploymentId: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",

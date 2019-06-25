@@ -28,12 +28,10 @@ import (
 	"github.com/mendersoftware/deployments/app"
 	dconfig "github.com/mendersoftware/deployments/config"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
-	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	deploymentsView "github.com/mendersoftware/deployments/resources/deployments/view"
 	imagesController "github.com/mendersoftware/deployments/resources/images/controller"
-	imagesModel "github.com/mendersoftware/deployments/resources/images/model"
-	"github.com/mendersoftware/deployments/resources/images/s3"
 	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
+	"github.com/mendersoftware/deployments/s3"
 	"github.com/mendersoftware/deployments/store/mongo"
 	"github.com/mendersoftware/deployments/utils/restutil"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
@@ -47,7 +45,7 @@ const (
 	ApiUrlManagementArtifacts = ApiUrlManagement + "/artifacts"
 )
 
-func SetupS3(c config.Reader) (imagesModel.FileStorage, error) {
+func SetupS3(c config.Reader) (s3.FileStorage, error) {
 
 	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
 	region := c.GetString(dconfig.SettingAwsS3Region)
@@ -133,25 +131,15 @@ func NewRouter(c config.Reader) (rest.App, error) {
 	}
 	mongoStorage := mongo.NewDataStoreMongoWithSession(dbSession)
 
-	// Domain Models
-	deploymentModel := deploymentsModel.NewDeploymentModel(deploymentsModel.DeploymentsModelConfig{
-		DataStore:        mongoStorage,
-		ImageLinker:      fileStorage,
-		ImageContentType: imagesModel.ArtifactContentType,
-	})
-
-	imagesModel := imagesModel.NewImagesModel(fileStorage, deploymentModel, mongoStorage)
-	app := app.NewDeployments(mongoStorage)
+	app := app.NewDeployments(mongoStorage, fileStorage, app.ArtifactContentType)
 
 	// Controllers
-	imagesController := imagesController.NewSoftwareImagesController(imagesModel,
+	imagesController := imagesController.NewSoftwareImagesController(app,
 		new(view.RESTView))
-	deploymentsController := deploymentsController.NewDeploymentsController(deploymentModel,
+	deploymentsController := deploymentsController.NewDeploymentsController(app,
 		new(deploymentsView.DeploymentsView))
 
 	tenantsController := tenantsController.NewController(app,
-		deploymentModel,
-		imagesModel,
 		imagesController,
 		new(view.RESTView))
 

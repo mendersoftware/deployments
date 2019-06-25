@@ -22,7 +22,6 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
-	deploymentsModel "github.com/mendersoftware/deployments/resources/deployments/model"
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/deployments/app"
@@ -35,23 +34,18 @@ import (
 )
 
 type Controller struct {
-	model      app.App
-	depsModel  deploymentsModel.DeploymentsModel
-	imageModel imageController.ImagesModel
-	imageCtrl  imageController.SoftwareImagesController
-	restView   imageController.RESTView
+	model     app.App
+	imageCtrl imageController.SoftwareImagesController
+	restView  imageController.RESTView
 }
 
-func NewController(model app.App, depsModel *deploymentsModel.DeploymentsModel,
-	imgModel imageController.ImagesModel, imgCtrl *imageController.SoftwareImagesController,
+func NewController(model app.App, imgCtrl *imageController.SoftwareImagesController,
 	restView imageController.RESTView) *Controller {
 
 	return &Controller{
-		model:      model,
-		depsModel:  *depsModel,
-		imageModel: imgModel,
-		imageCtrl:  *imgCtrl,
-		restView:   restView,
+		model:     model,
+		imageCtrl: *imgCtrl,
+		restView:  restView,
 	}
 }
 
@@ -96,7 +90,7 @@ func (c *Controller) DeploymentsPerTenantHandler(w rest.ResponseWriter, r *rest.
 	ident := &identity.Identity{Tenant: tenantID}
 	ctx = identity.WithContext(r.Context(), ident)
 
-	if deps, err := c.depsModel.LookupDeployment(ctx, query); err != nil {
+	if deps, err := c.model.LookupDeployment(ctx, query); err != nil {
 		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
 	} else {
 		w.WriteJson(deps)
@@ -132,19 +126,19 @@ func (c *Controller) NewImageForTenantHandler(w rest.ResponseWriter, r *rest.Req
 		return
 	}
 
-	imgID, err := c.imageModel.CreateImage(ctx, multipartUploadMsg)
+	imgID, err := c.model.CreateImage(ctx, multipartUploadMsg)
 	cause := errors.Cause(err)
 	switch cause {
 	default:
 		c.restView.RenderInternalError(w, r, err, l)
 	case nil:
 		c.restView.RenderSuccessPost(w, r, imgID)
-	case imageController.ErrModelArtifactNotUnique:
+	case app.ErrModelArtifactNotUnique:
 		l.Error(err.Error())
 		c.restView.RenderError(w, r, cause, http.StatusUnprocessableEntity, l)
-	case imageController.ErrModelMissingInputMetadata, imageController.ErrModelMissingInputArtifact,
-		imageController.ErrModelInvalidMetadata, imageController.ErrModelMultipartUploadMsgMalformed,
-		imageController.ErrModelArtifactFileTooLarge, imageController.ErrModelParsingArtifactFailed:
+	case app.ErrModelMissingInputMetadata, app.ErrModelMissingInputArtifact,
+		app.ErrModelInvalidMetadata, app.ErrModelMultipartUploadMsgMalformed,
+		app.ErrModelArtifactFileTooLarge, app.ErrModelParsingArtifactFailed:
 		l.Error(err.Error())
 		c.restView.RenderError(w, r, cause, http.StatusBadRequest, l)
 	}
