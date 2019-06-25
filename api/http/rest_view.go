@@ -17,10 +17,19 @@ package http
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/log"
+
+	"github.com/mendersoftware/deployments/model"
 )
 
 type RESTView interface {
 	RenderSuccessGet(w rest.ResponseWriter, object interface{})
 	RenderError(w rest.ResponseWriter, r *rest.Request, err error, status int, l *log.Logger)
 	RenderInternalError(w rest.ResponseWriter, r *rest.Request, err error, l *log.Logger)
+	RenderNoUpdateForDevice(w rest.ResponseWriter)
+	RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string)
+	RenderEmptySuccessResponse(w rest.ResponseWriter)
+	RenderErrorNotFound(w rest.ResponseWriter, r *rest.Request, l *log.Logger)
+	RenderDeploymentLog(w rest.ResponseWriter, dlog model.DeploymentLog)
+	RenderSuccessDelete(w rest.ResponseWriter)
+	RenderSuccessPut(w rest.ResponseWriter)
 }

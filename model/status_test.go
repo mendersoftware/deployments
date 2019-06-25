@@ -12,15 +12,13 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package controller
+package model
 
 import (
 	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/mendersoftware/deployments/model"
 )
 
 func TestStatusUnmarshal(t *testing.T) {
@@ -35,7 +33,7 @@ func TestStatusUnmarshal(t *testing.T) {
 	err = json.Unmarshal([]byte(`{"status": "installing"}`), &report)
 	assert.NoError(t, err)
 	assert.Equal(t,
-		statusReport{Status: model.DeviceDeploymentStatusInstalling},
+		statusReport{Status: DeviceDeploymentStatusInstalling},
 		report)
 }
 

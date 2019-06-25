@@ -12,22 +12,20 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package controller
+package model
 
 import (
 	"encoding/json"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
-
-	"github.com/mendersoftware/deployments/model"
 )
 
 var (
 	ErrBadStatus = errors.New("unknown status value")
 )
 
-type statusReport struct {
+type StatusReport struct {
 	Status   string
 	SubState *string `json:"substate" valid:"length(0|200)"`
 }
@@ -43,8 +41,8 @@ func containsString(what string, in []string) bool {
 	return found
 }
 
-func (s *statusReport) UnmarshalJSON(raw []byte) error {
-	type auxStatusReport statusReport
+func (s *StatusReport) UnmarshalJSON(raw []byte) error {
+	type auxStatusReport StatusReport
 	var temp auxStatusReport
 
 	err := json.Unmarshal(raw, &temp)
@@ -53,12 +51,12 @@ func (s *statusReport) UnmarshalJSON(raw []byte) error {
 	}
 
 	valid := []string{
-		model.DeviceDeploymentStatusDownloading,
-		model.DeviceDeploymentStatusInstalling,
-		model.DeviceDeploymentStatusRebooting,
-		model.DeviceDeploymentStatusSuccess,
-		model.DeviceDeploymentStatusFailure,
-		model.DeviceDeploymentStatusAlreadyInst,
+		DeviceDeploymentStatusDownloading,
+		DeviceDeploymentStatusInstalling,
+		DeviceDeploymentStatusRebooting,
+		DeviceDeploymentStatusSuccess,
+		DeviceDeploymentStatusFailure,
+		DeviceDeploymentStatusAlreadyInst,
 	}
 
 	if !containsString(temp.Status, valid) {

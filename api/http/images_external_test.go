@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package controller_test
+package http
 
 import (
 	"errors"
@@ -35,7 +35,6 @@ import (
 
 	"github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
-	. "github.com/mendersoftware/deployments/resources/images/controller"
 	"github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	h "github.com/mendersoftware/deployments/utils/testing"

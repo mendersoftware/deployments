@@ -27,10 +27,6 @@ import (
 
 	"github.com/mendersoftware/deployments/app"
 	dconfig "github.com/mendersoftware/deployments/config"
-	deploymentsController "github.com/mendersoftware/deployments/resources/deployments/controller"
-	deploymentsView "github.com/mendersoftware/deployments/resources/deployments/view"
-	imagesController "github.com/mendersoftware/deployments/resources/images/controller"
-	tenantsController "github.com/mendersoftware/deployments/resources/tenants/controller"
 	"github.com/mendersoftware/deployments/s3"
 	"github.com/mendersoftware/deployments/store/mongo"
 	"github.com/mendersoftware/deployments/utils/restutil"
@@ -133,23 +129,13 @@ func NewRouter(c config.Reader) (rest.App, error) {
 
 	app := app.NewDeployments(mongoStorage, fileStorage, app.ArtifactContentType)
 
-	// Controllers
-	imagesController := imagesController.NewSoftwareImagesController(app,
-		new(view.RESTView))
-	deploymentsController := deploymentsController.NewDeploymentsController(app,
-		new(deploymentsView.DeploymentsView))
-
-	tenantsController := tenantsController.NewController(app,
-		imagesController,
-		new(view.RESTView))
-
 	deploymentsHandlers := NewDeploymentsApiHandlers(mongoStorage, new(view.RESTView), app)
 
 	// Routing
-	imageRoutes := NewImagesResourceRoutes(imagesController)
-	deploymentsRoutes := NewDeploymentsResourceRoutes(deploymentsController)
+	imageRoutes := NewImagesResourceRoutes(deploymentsHandlers)
+	deploymentsRoutes := NewDeploymentsResourceRoutes(deploymentsHandlers)
 	limitsRoutes := NewLimitsResourceRoutes(deploymentsHandlers)
-	tenantsRoutes := TenantRoutes(tenantsController)
+	tenantsRoutes := TenantRoutes(deploymentsHandlers)
 	releasesRoutes := ReleasesRoutes(deploymentsHandlers)
 
 	routes := append(releasesRoutes, deploymentsRoutes...)
@@ -160,7 +146,7 @@ func NewRouter(c config.Reader) (rest.App, error) {
 	return rest.MakeRouter(restutil.AutogenOptionsRoutes(restutil.NewOptionsHandler, routes...)...)
 }
 
-func NewImagesResourceRoutes(controller *imagesController.SoftwareImagesController) []*rest.Route {
+func NewImagesResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 
 	if controller == nil {
 		return []*rest.Route{}
@@ -178,7 +164,7 @@ func NewImagesResourceRoutes(controller *imagesController.SoftwareImagesControll
 	}
 }
 
-func NewDeploymentsResourceRoutes(controller *deploymentsController.DeploymentsController) []*rest.Route {
+func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 
 	if controller == nil {
 		return []*rest.Route{}
@@ -220,7 +206,7 @@ func NewLimitsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	}
 }
 
-func TenantRoutes(controller *tenantsController.Controller) []*rest.Route {
+func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	if controller == nil {
 		return []*rest.Route{}
 	}

@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package view_test
+package view
 
 import (
 	"net/http"
@@ -22,8 +22,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest/test"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/stretchr/testify/assert"
-
-	. "github.com/mendersoftware/deployments/utils/restutil/view"
 )
 
 func TestRenderPost(t *testing.T) {
@@ -126,4 +124,96 @@ func TestRenderErrorNotFound(t *testing.T) {
 
 	recorded.CodeIs(http.StatusNotFound)
 	recorded.BodyIs(`{"error":"Resource not found","request_id":""}`)
+}
+
+func TestRenderNoUpdateForDevice(t *testing.T) {
+
+	t.Parallel()
+
+	router, err := rest.MakeRouter(rest.Get("/test", func(w rest.ResponseWriter, r *rest.Request) {
+		view := &DeploymentsView{}
+		view.RenderNoUpdateForDevice(w)
+	}))
+
+	if err != nil {
+		assert.NoError(t, err)
+	}
+
+	api := rest.NewApi()
+	api.SetApp(router)
+
+	recorded := test.RunRequest(t, api.MakeHandler(),
+		test.MakeSimpleRequest("GET", "http://localhost/test", nil))
+
+	recorded.CodeIs(http.StatusNoContent)
+}
+
+func parseTime(t *testing.T, value string) *time.Time {
+	tm, err := time.Parse(time.RFC3339, value)
+	if assert.NoError(t, err) == false {
+		t.Fatalf("failed to parse time %s", value)
+	}
+
+	return &tm
+}
+
+func TestRenderDeploymentLog(t *testing.T) {
+
+	t.Parallel()
+
+	tref := parseTime(t, "2006-01-02T15:04:05-07:00")
+
+	messages := []model.LogMessage{
+		{
+			Timestamp: tref,
+			Message:   "foo",
+			Level:     "notice",
+		},
+		{
+			Timestamp: tref,
+			Message:   "zed zed zed",
+			Level:     "debug",
+		},
+		{
+			Timestamp: tref,
+			Message:   "bar bar bar",
+			Level:     "info",
+		},
+	}
+
+	tcs := []struct {
+		Log  model.DeploymentLog
+		Body string
+	}{
+		{
+			// all correct
+			Log: model.DeploymentLog{
+				DeploymentID: "f826484e-1157-4109-af21-304e6d711560",
+				DeviceID:     "device-id-1",
+				Messages:     messages,
+			},
+			Body: `2006-01-02 22:04:05 +0000 UTC notice: foo
+2006-01-02 22:04:05 +0000 UTC debug: zed zed zed
+2006-01-02 22:04:05 +0000 UTC info: bar bar bar
+`,
+		},
+	}
+
+	for _, tc := range tcs {
+		router, err := rest.MakeRouter(rest.Get("/test", func(w rest.ResponseWriter, r *rest.Request) {
+			view := &DeploymentsView{}
+			view.RenderDeploymentLog(w, tc.Log)
+		}))
+
+		assert.NoError(t, err)
+
+		api := rest.NewApi()
+		api.SetApp(router)
+
+		recorded := test.RunRequest(t, api.MakeHandler(),
+			test.MakeSimpleRequest("GET", "http://localhost/test", nil))
+
+		recorded.CodeIs(http.StatusOK)
+		assert.Equal(t, tc.Body, recorded.Recorder.Body.String())
+	}
 }
