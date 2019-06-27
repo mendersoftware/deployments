@@ -98,8 +98,8 @@ test:static:
   script:
     - curl -sL https://deb.nodesource.com/setup_11.x | bash -
     - apt-get -qq update
-    - apt-get install -qy --allow-unauthenticated python-pip e2tools nodejs liblzma-dev
-    - pip install pyyaml
+    - apt-get install -qy --allow-unauthenticated python3-pip nodejs liblzma-dev
+    - pip3 install pyyaml
     - npm install -g swagger-cli
     # Get our own Swagger verifier
     - wget https://raw.githubusercontent.com/mendersoftware/autodocs/master/verify_docs.py
@@ -114,7 +114,7 @@ test:static:
     # Verify that the Swagger docs are valid
     - swagger-cli validate docs/*.yml
     # Verify that the Swagger docs follow the autodeployment requirements
-    - python2.7 verify_docs.py `find docs -name "*.yml"`
+    - python3 verify_docs.py `find docs -name "*.yml"`
 
 test:unit:
   stage: test
