@@ -22,7 +22,7 @@ import (
 )
 
 func TestStatusUnmarshal(t *testing.T) {
-	var report statusReport
+	var report StatusReport
 
 	err := json.Unmarshal([]byte(`{"status": "aborted"}`), &report)
 	assert.EqualError(t, ErrBadStatus, err.Error())
@@ -33,7 +33,7 @@ func TestStatusUnmarshal(t *testing.T) {
 	err = json.Unmarshal([]byte(`{"status": "installing"}`), &report)
 	assert.NoError(t, err)
 	assert.Equal(t,
-		statusReport{Status: DeviceDeploymentStatusInstalling},
+		StatusReport{Status: DeviceDeploymentStatusInstalling},
 		report)
 }
 

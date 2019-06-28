@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,11 +17,14 @@ package view
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/mendersoftware/deployments/model"
 )
 
 func TestRenderPost(t *testing.T) {
@@ -131,7 +134,7 @@ func TestRenderNoUpdateForDevice(t *testing.T) {
 	t.Parallel()
 
 	router, err := rest.MakeRouter(rest.Get("/test", func(w rest.ResponseWriter, r *rest.Request) {
-		view := &DeploymentsView{}
+		view := &RESTView{}
 		view.RenderNoUpdateForDevice(w)
 	}))
 
@@ -201,7 +204,7 @@ func TestRenderDeploymentLog(t *testing.T) {
 
 	for _, tc := range tcs {
 		router, err := rest.MakeRouter(rest.Get("/test", func(w rest.ResponseWriter, r *rest.Request) {
-			view := &DeploymentsView{}
+			view := &RESTView{}
 			view.RenderDeploymentLog(w, tc.Log)
 		}))
 

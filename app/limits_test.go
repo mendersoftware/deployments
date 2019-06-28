@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/mendersoftware/deployments/model"
+	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
 	"github.com/mendersoftware/deployments/store/mongo"
 )
@@ -76,7 +77,9 @@ func TestGetLimit(t *testing.T) {
 					}),
 				tc.name).Return(tc.getLimit, tc.getErr)
 
-			d := NewDeployments(&db)
+			fs := &fs_mocks.FileStorage{}
+
+			d := NewDeployments(&db, fs, ArtifactContentType)
 
 			ctx := context.Background()
 			lim, err := d.GetLimit(ctx, tc.name)

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -56,7 +57,9 @@ func TestProvisionTenant(t *testing.T) {
 					}),
 				tc.id).Return(tc.storeErr)
 
-			d := NewDeployments(&db)
+			fs := &fs_mocks.FileStorage{}
+
+			d := NewDeployments(&db, fs, ArtifactContentType)
 
 			ctx := context.Background()
 
