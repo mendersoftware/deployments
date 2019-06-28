@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/log"
@@ -84,6 +85,11 @@ func doMain(args []string) {
 				fmt.Sprintf("error loading configuration: %s", err),
 				1)
 		}
+
+		// Enable setting config values by environment variables
+		config.Config.SetEnvPrefix("DEPLOYMENTS")
+		config.Config.AutomaticEnv()
+		config.Config.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 		return nil
 	}
