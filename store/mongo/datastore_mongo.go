@@ -31,19 +31,71 @@ import (
 )
 
 const (
-	DatabaseName          = "deployment_service"
-	CollectionLimits      = "limits"
-	CollectionImages      = "images"
-	CollectionDeployments = "deployments"
+	DatabaseName                   = "deployment_service"
+	CollectionLimits               = "limits"
+	CollectionImages               = "images"
+	CollectionDeployments          = "deployments"
+	CollectionDeviceDeploymentLogs = "devices.logs"
+	CollectionDevices              = "devices"
 )
 
 // Indexes
 const (
 	IndexUniqeNameAndDeviceTypeStr = "uniqueNameAndDeviceTypeIndex"
+	IndexDeploymentArtifactNameStr = "deploymentArtifactNameIndex"
 )
 
 var (
+	StorageIndexes = []string{
+		"$text:" + StorageKeyDeploymentName,
+		"$text:" + StorageKeyDeploymentArtifactName,
+	}
+)
+
+// Errors
+var (
+	ErrSoftwareImagesStorageInvalidID           = errors.New("Invalid id")
+	ErrSoftwareImagesStorageInvalidArtifactName = errors.New("Invalid artifact name")
+	ErrSoftwareImagesStorageInvalidName         = errors.New("Invalid name")
+	ErrSoftwareImagesStorageInvalidDeviceType   = errors.New("Invalid device type")
+	ErrSoftwareImagesStorageInvalidImage        = errors.New("Invalid image")
+
+	ErrStorageInvalidDeviceDeployment = errors.New("Invalid device deployment")
+
+	ErrDeploymentStorageInvalidDeployment = errors.New("Invalid deployment")
+	ErrStorageInvalidID                   = errors.New("Invalid id")
+	ErrStorageNotFound                    = errors.New("Not found")
+	ErrDeploymentStorageInvalidQuery      = errors.New("Invalid query")
+	ErrDeploymentStorageCannotExecQuery   = errors.New("Cannot execute query")
+	ErrStorageInvalidInput                = errors.New("invalid input")
+
 	ErrLimitNotFound = errors.New("limit not found")
+)
+
+// Database keys
+const (
+	// Need to be kept in sync with structure filed names
+	StorageKeySoftwareImageDeviceTypes = "meta_artifact.device_types_compatible"
+	StorageKeySoftwareImageName        = "meta_artifact.name"
+	StorageKeySoftwareImageId          = "_id"
+
+	StorageKeyDeviceDeploymentLogMessages = "messages"
+
+	StorageKeyDeviceDeploymentAssignedImage   = "image"
+	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + StorageKeySoftwareImageId
+	StorageKeyDeviceDeploymentDeviceId        = "deviceid"
+	StorageKeyDeviceDeploymentStatus          = "status"
+	StorageKeyDeviceDeploymentSubState        = "substate"
+	StorageKeyDeviceDeploymentDeploymentID    = "deploymentid"
+	StorageKeyDeviceDeploymentFinished        = "finished"
+	StorageKeyDeviceDeploymentIsLogAvailable  = "log"
+	StorageKeyDeviceDeploymentArtifact        = "image"
+
+	StorageKeyDeploymentName         = "deploymentconstructor.name"
+	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
+	StorageKeyDeploymentStats        = "stats"
+	StorageKeyDeploymentFinished     = "finished"
+	StorageKeyDeploymentArtifacts    = "artifacts"
 )
 
 type DataStoreMongo struct {
@@ -201,24 +253,6 @@ func (db *DataStoreMongo) ProvisionTenant(ctx context.Context, tenantId string) 
 }
 
 //images
-
-var (
-	ErrSoftwareImagesStorageInvalidID           = errors.New("Invalid id")
-	ErrSoftwareImagesStorageInvalidArtifactName = errors.New("Invalid artifact name")
-	ErrSoftwareImagesStorageInvalidName         = errors.New("Invalid name")
-	ErrSoftwareImagesStorageInvalidDeviceType   = errors.New("Invalid device type")
-	ErrSoftwareImagesStorageInvalidImage        = errors.New("Invalid image")
-)
-
-// Database KEYS
-const (
-	// Keys are corelated to field names in SoftwareImageMeta
-	// and SoftwareImageMetaArtifact structures
-	// Need to be kept in sync with that structure filed names
-	StorageKeySoftwareImageDeviceTypes = "meta_artifact.device_types_compatible"
-	StorageKeySoftwareImageName        = "meta_artifact.name"
-	StorageKeySoftwareImageId          = "_id"
-)
 
 // Ensure required indexes exists; create if not.
 func (db *DataStoreMongo) ensureIndexing(ctx context.Context, session *mgo.Session) error {
@@ -501,17 +535,6 @@ func (db *DataStoreMongo) FindAll(ctx context.Context) ([]*model.SoftwareImage, 
 
 //device deployemnt log
 
-// Database settings
-const (
-	// TODO: do we have any naming convention for mongo collections?
-	CollectionDeviceDeploymentLogs = "devices.logs"
-)
-
-// Database keys
-const (
-	StorageKeyDeviceDeploymentLogMessages = "messages"
-)
-
 func (db *DataStoreMongo) SaveDeviceDeploymentLog(ctx context.Context,
 	log model.DeploymentLog) error {
 
@@ -566,28 +589,6 @@ func (db *DataStoreMongo) GetDeviceDeploymentLog(ctx context.Context,
 }
 
 // device deployments
-// Database settings
-const (
-	CollectionDevices = "devices"
-)
-
-// Database keys
-const (
-	StorageKeyDeviceDeploymentAssignedImage   = "image"
-	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + StorageKeySoftwareImageId
-	StorageKeyDeviceDeploymentDeviceId        = "deviceid"
-	StorageKeyDeviceDeploymentStatus          = "status"
-	StorageKeyDeviceDeploymentSubState        = "substate"
-	StorageKeyDeviceDeploymentDeploymentID    = "deploymentid"
-	StorageKeyDeviceDeploymentFinished        = "finished"
-	StorageKeyDeviceDeploymentIsLogAvailable  = "log"
-	StorageKeyDeviceDeploymentArtifact        = "image"
-)
-
-// Errors
-var (
-	ErrStorageInvalidDeviceDeployment = errors.New("Invalid device deployment")
-)
 
 // InsertMany stores multiple device deployment objects.
 // TODO: Handle error cleanup, multi insert is not atomic, loop into two-phase commits
@@ -1048,35 +1049,6 @@ func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 }
 
 // deployments
-
-// Errors
-var (
-	ErrDeploymentStorageInvalidDeployment = errors.New("Invalid deployment")
-	ErrStorageInvalidID                   = errors.New("Invalid id")
-	ErrStorageNotFound                    = errors.New("Not found")
-	ErrDeploymentStorageInvalidQuery      = errors.New("Invalid query")
-	ErrDeploymentStorageCannotExecQuery   = errors.New("Cannot execute query")
-	ErrStorageInvalidInput                = errors.New("invalid input")
-)
-
-const (
-	StorageKeyDeploymentName         = "deploymentconstructor.name"
-	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
-	StorageKeyDeploymentStats        = "stats"
-	StorageKeyDeploymentFinished     = "finished"
-	StorageKeyDeploymentArtifacts    = "artifacts"
-)
-
-const (
-	IndexDeploymentArtifactNameStr = "deploymentArtifactNameIndex"
-)
-
-var (
-	StorageIndexes = []string{
-		"$text:" + StorageKeyDeploymentName,
-		"$text:" + StorageKeyDeploymentArtifactName,
-	}
-)
 
 func (db *DataStoreMongo) EnsureIndexing(ctx context.Context, session *mgo.Session) error {
 	dataBase := mstore.DbFromContext(ctx, DatabaseName)
