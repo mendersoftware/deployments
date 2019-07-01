@@ -15,13 +15,7 @@
 package http
 
 import (
-	"crypto/tls"
-	"net"
-	"time"
-
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/globalsign/mgo"
-	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/go-lib-micro/config"
 
@@ -61,61 +55,10 @@ func SetupS3(c config.Reader) (s3.FileStorage, error) {
 	return s3.NewSimpleStorageServiceDefaults(bucket, region)
 }
 
-func NewMongoSession(c config.Reader) (*mgo.Session, error) {
-
-	dialInfo, err := mgo.ParseURL(c.GetString(dconfig.SettingMongo))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open mgo session")
-	}
-
-	// Set 10s timeout - same as set by Dial
-	dialInfo.Timeout = 10 * time.Second
-
-	username := c.GetString(dconfig.SettingDbUsername)
-	if username != "" {
-		dialInfo.Username = username
-	}
-
-	passward := c.GetString(dconfig.SettingDbPassword)
-	if passward != "" {
-		dialInfo.Password = passward
-	}
-
-	if c.GetBool(dconfig.SettingDbSSL) {
-		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
-
-			// Setup TLS
-			tlsConfig := &tls.Config{}
-			tlsConfig.InsecureSkipVerify = c.GetBool(dconfig.SettingDbSSLSkipVerify)
-
-			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
-			return conn, err
-		}
-	}
-
-	masterSession, err := mgo.DialWithInfo(dialInfo)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open mgo session")
-	}
-
-	// Validate connection
-	if err := masterSession.Ping(); err != nil {
-		return nil, errors.Wrap(err, "failed to open mgo session")
-	}
-
-	// force write ack with immediate journal file fsync
-	masterSession.SetSafe(&mgo.Safe{
-		W: 1,
-		J: true,
-	})
-
-	return masterSession, nil
-}
-
 // NewRouter defines all REST API routes.
 func NewRouter(c config.Reader) (rest.App, error) {
 
-	dbSession, err := NewMongoSession(c)
+	dbSession, err := mongo.NewMongoSession(c)
 	if err != nil {
 		return nil, err
 	}
