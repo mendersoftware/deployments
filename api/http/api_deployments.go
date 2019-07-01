@@ -45,10 +45,22 @@ const (
 	DefaultMaxMetaSize = 1024 * 1024 * 10
 )
 
+// storage keys
+const (
+	GetDeploymentForDeviceQueryArtifact   = "artifact_name"
+	GetDeploymentForDeviceQueryDeviceType = "device_type"
+)
+
+// Errors
 var (
 	ErrIDNotUUIDv4                    = errors.New("ID is not UUIDv4")
 	ErrArtifactUsedInActiveDeployment = errors.New("Artifact is used in active deployment")
 	ErrInvalidExpireParam             = errors.New("Invalid expire parameter")
+
+	ErrInternal                   = errors.New("Internal error")
+	ErrDeploymentAlreadyFinished  = errors.New("Deployment already finished")
+	ErrUnexpectedDeploymentStatus = errors.New("Unexpected deployment status")
+	ErrMissingIdentity            = errors.New("Missing identity data")
 )
 
 type DeploymentsApiHandlers struct {
@@ -374,14 +386,6 @@ func (d *DeploymentsApiHandlers) getFormFieldValue(p *multipart.Part, maxMetaSiz
 
 // deployments
 
-// Errors
-var (
-	ErrInternal                   = errors.New("Internal error")
-	ErrDeploymentAlreadyFinished  = errors.New("Deployment already finished")
-	ErrUnexpectedDeploymentStatus = errors.New("Unexpected deployment status")
-	ErrMissingIdentity            = errors.New("Missing identity data")
-)
-
 func (d *DeploymentsApiHandlers) PostDeployment(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)
@@ -514,11 +518,6 @@ func (d *DeploymentsApiHandlers) AbortDeployment(w rest.ResponseWriter, r *rest.
 
 	d.view.RenderEmptySuccessResponse(w)
 }
-
-const (
-	GetDeploymentForDeviceQueryArtifact   = "artifact_name"
-	GetDeploymentForDeviceQueryDeviceType = "device_type"
-)
 
 func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
