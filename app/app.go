@@ -36,6 +36,8 @@ import (
 
 const (
 	ArtifactContentType = "application/vnd.mender-artifact"
+
+	DefaultUpdateDownloadLinkExpire = 24 * time.Hour
 )
 
 // Errors expected from App interface
@@ -61,7 +63,10 @@ var (
 	ErrStorageNotFound         = errors.New("Not found")
 	ErrDeploymentAborted       = errors.New("Deployment aborted")
 	ErrDeviceDecommissioned    = errors.New("Device decommissioned")
+	ErrNoArtifact              = errors.New("No artifact for the deployment")
 )
+
+//deployments
 
 type App interface {
 	// limits
@@ -477,16 +482,6 @@ func getArtifactIDs(artifacts []*model.SoftwareImage) []string {
 }
 
 // deployments
-
-// Defaults
-const (
-	DefaultUpdateDownloadLinkExpire = 24 * time.Hour
-)
-
-// Errors
-var (
-	ErrNoArtifact = errors.New("No artifact for the deployment")
-)
 
 // CreateDeployment precomputes new deplyomet and schedules it for devices.
 // TODO: check if specified devices are bootstrapped (when have a way to do this)
