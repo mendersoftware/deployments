@@ -32,7 +32,29 @@ const (
 	ApiUrlManagement = "/api/management/v1/deployments"
 	ApiUrlDevices    = "/api/devices/v1/deployments"
 
-	ApiUrlManagementArtifacts = ApiUrlManagement + "/artifacts"
+	ApiUrlManagementArtifacts           = ApiUrlManagement + "/artifacts"
+	ApiUrlManagementArtifactsId         = ApiUrlManagement + "/artifacts/:id"
+	ApiUrlManagementArtifactsIdDownload = ApiUrlManagement + "/artifacts/:id/download"
+
+	ApiUrlManagementDeployments           = ApiUrlManagement + "/deployments"
+	ApiUrlManagementDeploymentsId         = ApiUrlManagement + "/deployments/:id"
+	ApiUrlManagementDeploymentsStatistics = ApiUrlManagement + "/deployments/:id/statistics"
+	ApiUrlManagementDeploymentsStatus     = ApiUrlManagement + "/deployments/:id/status"
+	ApiUrlManagementDeploymentsDevices    = ApiUrlManagement + "/deployments/:id/devices"
+	ApiUrlManagementDeploymentsLog        = ApiUrlManagement + "/deployments/:id/devices/:devid/log"
+	ApiUrlManagementDeploymentsDeviceId   = ApiUrlManagement + "/deployments/devices/:id"
+
+	ApiUrlManagementReleases = ApiUrlManagement + "/deployments/releases"
+
+	ApiUrlManagementLimitsName = ApiUrlManagement + "/limits/:name"
+
+	ApiUrlDevicesDeploymentsNext  = ApiUrlDevices + "/device/deployments/next"
+	ApiUrlDevicesDeploymentStatus = ApiUrlDevices + "/device/deployments/:id/status"
+	ApiUrlDevicesDeploymentsLog   = ApiUrlDevices + "/device/deployments/:id/log"
+
+	ApiUrlInternalTenants           = ApiUrlInternal + "/tenants"
+	ApiUrlInternalTenantDeployments = ApiUrlInternal + "/tenants/:tenant/deployments"
+	ApiUrlInternalTenantArtifacts   = ApiUrlInternal + "/tenants/:tenant/artifacts"
 )
 
 func SetupS3(c config.Reader) (s3.FileStorage, error) {
@@ -99,11 +121,11 @@ func NewImagesResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 		rest.Post(ApiUrlManagementArtifacts, controller.NewImage),
 		rest.Get(ApiUrlManagementArtifacts, controller.ListImages),
 
-		rest.Get(ApiUrlManagement+"/artifacts/:id", controller.GetImage),
-		rest.Delete(ApiUrlManagement+"/artifacts/:id", controller.DeleteImage),
-		rest.Put(ApiUrlManagement+"/artifacts/:id", controller.EditImage),
+		rest.Get(ApiUrlManagementArtifactsId, controller.GetImage),
+		rest.Delete(ApiUrlManagementArtifactsId, controller.DeleteImage),
+		rest.Put(ApiUrlManagementArtifactsId, controller.EditImage),
 
-		rest.Get(ApiUrlManagement+"/artifacts/:id/download", controller.DownloadLink),
+		rest.Get(ApiUrlManagementArtifactsIdDownload, controller.DownloadLink),
 	}
 }
 
@@ -116,23 +138,23 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 	return []*rest.Route{
 
 		// Deployments
-		rest.Post(ApiUrlManagement+"/deployments", controller.PostDeployment),
-		rest.Get(ApiUrlManagement+"/deployments", controller.LookupDeployment),
-		rest.Get(ApiUrlManagement+"/deployments/:id", controller.GetDeployment),
-		rest.Get(ApiUrlManagement+"/deployments/:id/statistics", controller.GetDeploymentStats),
-		rest.Put(ApiUrlManagement+"/deployments/:id/status", controller.AbortDeployment),
-		rest.Get(ApiUrlManagement+"/deployments/:id/devices",
+		rest.Post(ApiUrlManagementDeployments, controller.PostDeployment),
+		rest.Get(ApiUrlManagementDeployments, controller.LookupDeployment),
+		rest.Get(ApiUrlManagementDeploymentsId, controller.GetDeployment),
+		rest.Get(ApiUrlManagementDeploymentsStatistics, controller.GetDeploymentStats),
+		rest.Put(ApiUrlManagementDeploymentsStatus, controller.AbortDeployment),
+		rest.Get(ApiUrlManagementDeploymentsDevices,
 			controller.GetDeviceStatusesForDeployment),
-		rest.Get(ApiUrlManagement+"/deployments/:id/devices/:devid/log",
+		rest.Get(ApiUrlManagementDeploymentsLog,
 			controller.GetDeploymentLogForDevice),
-		rest.Delete(ApiUrlManagement+"/deployments/devices/:id",
+		rest.Delete(ApiUrlManagementDeploymentsDeviceId,
 			controller.DecommissionDevice),
 
 		// Devices
-		rest.Get(ApiUrlDevices+"/device/deployments/next", controller.GetDeploymentForDevice),
-		rest.Put(ApiUrlDevices+"/device/deployments/:id/status",
+		rest.Get(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
+		rest.Put(ApiUrlDevicesDeploymentStatus,
 			controller.PutDeploymentStatusForDevice),
-		rest.Put(ApiUrlDevices+"/device/deployments/:id/log",
+		rest.Put(ApiUrlDevicesDeploymentsLog,
 			controller.PutDeploymentLogForDevice),
 	}
 }
@@ -145,7 +167,7 @@ func NewLimitsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 
 	return []*rest.Route{
 		// limits
-		rest.Get(ApiUrlManagement+"/limits/:name", controller.GetLimit),
+		rest.Get(ApiUrlManagementLimitsName, controller.GetLimit),
 	}
 }
 
@@ -155,9 +177,9 @@ func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	}
 
 	return []*rest.Route{
-		rest.Post(ApiUrlInternal+"/tenants", controller.ProvisionTenantsHandler),
-		rest.Get(ApiUrlInternal+"/tenants/:tenant/deployments", controller.DeploymentsPerTenantHandler),
-		rest.Post(ApiUrlInternal+"/tenants/:tenant/artifacts", controller.NewImageForTenantHandler),
+		rest.Post(ApiUrlInternalTenants, controller.ProvisionTenantsHandler),
+		rest.Get(ApiUrlInternalTenantDeployments, controller.DeploymentsPerTenantHandler),
+		rest.Post(ApiUrlInternalTenantArtifacts, controller.NewImageForTenantHandler),
 	}
 }
 
@@ -167,6 +189,6 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	}
 
 	return []*rest.Route{
-		rest.Get(ApiUrlManagement+"/deployments/releases", controller.GetReleases),
+		rest.Get(ApiUrlManagementReleases, controller.GetReleases),
 	}
 }
