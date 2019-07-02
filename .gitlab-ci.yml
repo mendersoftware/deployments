@@ -1,0 +1,199 @@
+image: golang:1.11
+
+cache:
+  paths:
+    - /apt-cache
+    - /go/src/github.com
+    - /go/src/golang.org
+    - /go/src/google.golang.org
+    - /go/src/gopkg.in
+    - node_modules
+
+variables:
+   DOCKER_HOST: tcp://docker:2375/
+   DOCKER_DRIVER: overlay2
+   DOCKER_REPOSITORY: mendersoftware/deployments
+
+services:
+  - docker:dind
+  - mongo
+
+stages:
+  - test_prep
+  - test
+  - build
+  - publish
+
+before_script:
+  - mkdir -p /go/src/github.com/mendersoftware /go/src/_/builds
+  - cp -r $CI_PROJECT_DIR /go/src/github.com/mendersoftware/deployments
+  - ln -s /go/src/github.com/mendersoftware /go/src/_/builds/mendersoftware
+  - cd /go/src/github.com/mendersoftware/deployments
+  # Install code coverage tooling
+  - go get -u github.com/axw/gocov/gocov
+  - go get -u golang.org/x/tools/cmd/cover
+  # Install cyclomatic dependency analysis tool
+  - go get -u github.com/fzipp/gocyclo
+
+test:build_acceptance:
+  stage: test_prep
+  script:
+    - CGO_ENABLED=0 go build -o /go/src/github.com/mendersoftware/deployments/deployments
+    - cp /go/src/github.com/mendersoftware/deployments/deployments $CI_PROJECT_DIR
+    - chmod +x $CI_PROJECT_DIR/deployments
+  artifacts:
+    untracked: true
+    paths:
+      - deployments
+
+test:prepare_acceptance:
+  image: docker
+  before_script: []
+  stage: test_prep
+  script:
+    - docker build -f Dockerfile.acceptance-testing -t $DOCKER_REPOSITORY:prtest .;
+    - docker save $DOCKER_REPOSITORY:prtest > tests_image.tar
+    - docker build -t testing -f tests/Dockerfile tests
+    - docker save testing > acceptance_testing_image.tar
+    - wget https://d1b0l86ne08fsf.cloudfront.net/mender-artifact/master/mender-artifact
+    - chmod +x mender-artifact
+  artifacts:
+    expire_in: 2w
+    paths:
+      - tests_image.tar
+      - acceptance_testing_image.tar
+      - mender-artifact
+
+test:acceptance_tests:
+  image: tiangolo/docker-with-compose
+  before_script: []
+  services:
+    - docker:dind
+  stage: test
+  dependencies:
+    - test:build_acceptance
+    - test:prepare_acceptance
+  script:
+    - apk add git bash
+    - export SHARED_PATH="$(dirname ${CI_PROJECT_DIR})"
+    - git clone https://github.com/mendersoftware/integration.git ${SHARED_PATH}/mender-integration
+    - mkdir -p ${SHARED_PATH}/tests
+    - mv ${SHARED_PATH}/mender-integration/extra/travis-testing/* docs/* deployments mender-artifact tests/* ${SHARED_PATH}/tests
+    - docker load -i acceptance_testing_image.tar
+    - docker load -i tests_image.tar
+    - TESTS_DIR=${SHARED_PATH}/tests ${SHARED_PATH}/tests/run-test-environment acceptance ${SHARED_PATH}/mender-integration ${SHARED_PATH}/tests/docker-compose-acceptance.yml ;
+    - TESTS_DIR=${SHARED_PATH}/tests ${SHARED_PATH}/tests/run-test-environment acceptance ${SHARED_PATH}/mender-integration ${SHARED_PATH}/tests/docker-compose-acceptance.mt.yml ;
+    - mv ${SHARED_PATH}/tests/coverage-acceptance.txt $CI_PROJECT_DIR
+  artifacts:
+    expire_in: 2w
+    paths:
+      - coverage-acceptance.txt
+  tags:
+    - docker
+
+test:static:
+  stage: test
+  dependencies: []
+  services: []
+  script:
+    - curl -sL https://deb.nodesource.com/setup_11.x | bash -
+    - apt-get -qq update
+    - apt-get install -qy --allow-unauthenticated python3-pip nodejs liblzma-dev
+    - pip3 install pyyaml
+    - npm install -g swagger-cli
+    # Get our own Swagger verifier
+    - wget https://raw.githubusercontent.com/mendersoftware/autodocs/master/verify_docs.py
+    # Test if code was formatted with 'go fmt'
+    # Command will format code and return modified files
+    # fail if any have been modified.
+    - if [ -n "$(go fmt)" ]; then echo 'Code is not formatted with "go fmt"'; false; fi
+    # Perform static code analysys
+    - go vet `go list ./... | grep -v vendor`
+    # Fail builds when the cyclomatic complexity reaches 15 or more
+    - gocyclo -over 15 `find . -iname '*.go' | grep -v 'vendor' | grep -v '_test.go'`
+    # Verify that the Swagger docs are valid
+    - swagger-cli validate docs/*.yml
+    # Verify that the Swagger docs follow the autodeployment requirements
+    - python3 verify_docs.py `find docs -name "*.yml"`
+
+test:unit:
+  stage: test
+  dependencies: []
+  script:
+    - apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
+    - echo "deb http://repo.mongodb.org/apt/debian stretch/mongodb-org/3.6 main" | tee /etc/apt/sources.list.d/mongodb-org-3.6.list
+    - apt-get -qq update && apt-get install -qy --allow-unauthenticated mongodb-org-server=3.6.11  liblzma-dev
+    - go list ./... | grep -v vendor | xargs -n1 -I {} -P 4 go test -v -covermode=atomic -coverprofile=../../../{}/coverage.txt {} || exit $? ;
+    - mkdir -p tests/unit-coverage && find . -name 'coverage.txt' -exec cp --parents {} ./tests/unit-coverage \;
+    - tar -cvf $CI_PROJECT_DIR/unit-coverage.tar tests/unit-coverage
+  artifacts:
+    expire_in: 2w
+    paths:
+      - unit-coverage.tar
+
+build:
+  image: docker
+  before_script: []
+  dependencies: []
+  stage: build
+  script:
+    - docker build -t $DOCKER_REPOSITORY:pr .
+    - docker save $DOCKER_REPOSITORY:pr > image.tar
+  artifacts:
+    expire_in: 2w
+    paths:
+      - image.tar
+  tags:
+    - docker
+
+publish:docs:
+  before_script: []
+  stage: publish
+  script:
+    - echo "publishing docs"
+
+publish:tests:
+  stage: publish
+  before_script: []  
+  dependencies:
+    - test:acceptance_tests
+    - test:unit
+  script:
+    - tar -xvf unit-coverage.tar
+    # - bash <(curl -s https://codecov.io/bash) -F unittests -s ./tests/unit-coverage;
+    # - bash <(curl -s https://codecov.io/bash) -F acceptance -f ./tests/coverage-acceptance.txt;
+
+publish:build:
+  image: docker
+  before_script: []
+  stage: publish
+  dependencies:
+    - build
+  script:
+    - echo "publishing image to docker hub"
+    # - docker load -i image.tar
+    # - if [ ! -z "$CI_COMMIT_TAG" ]; then export IMAGE_TAG=$CI_COMMIT_TAG; else export IMAGE_TAG=$CI_COMMIT_REF_NAME; fi ;
+    # - docker tag $DOCKER_REPOSITORY:pr $DOCKER_REPOSITORY:$IMAGE_TAG ;
+    # - docker login --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD ;
+    # - docker push $DOCKER_REPOSITORY:$IMAGE_TAG ;
+  except:
+    - master
+  tags:
+    - docker
+
+publish:build:master:
+  image: docker
+  before_script: []
+  stage: publish
+  dependencies:
+    - build
+  script:
+    - echo "publishing image to docker hub"
+    # - docker load -i image.tar
+    # - export COMMIT_TAG="$CI_COMMIT_REF_NAME"_"$CI_COMMIT_SHA";
+    # - docker tag $DOCKER_REPOSITORY:pr $DOCKER_REPOSITORY:$COMMIT_TAG;
+    # - docker push $DOCKER_REPOSITORY:$COMMIT_TAG;
+  only:
+    - master
+  tags:
+    - docker

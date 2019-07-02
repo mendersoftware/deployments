@@ -116,7 +116,7 @@ func TestMigration_1_2_1(t *testing.T) {
 			assert.True(t, hasOld)
 		}
 
-		err := m.Apply(context.Background(), migrate.Version{1, 2, 1}, migrations)
+		err := m.Apply(context.Background(), migrate.MakeVersion(1, 2, 1), migrations)
 		assert.NoError(t, err)
 
 		// verify old index dropped
