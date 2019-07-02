@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,11 +19,14 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/go-lib-micro/config"
+
+	api_http "github.com/mendersoftware/deployments/api/http"
+	dconfig "github.com/mendersoftware/deployments/config"
 )
 
-func RunServer(c config.ConfigReader) error {
-	router, err := NewRouter(c)
+func RunServer(c config.Reader) error {
+	router, err := api_http.NewRouter(c)
 	if err != nil {
 		return err
 	}
@@ -32,12 +35,12 @@ func RunServer(c config.ConfigReader) error {
 	SetupMiddleware(c, api)
 	api.SetApp(router)
 
-	listen := c.GetString(SettingListen)
+	listen := c.GetString(dconfig.SettingListen)
 
-	if c.IsSet(SettingHttps) {
+	if c.IsSet(dconfig.SettingHttps) {
 
-		cert := c.GetString(SettingHttpsCertificate)
-		key := c.GetString(SettingHttpsKey)
+		cert := c.GetString(dconfig.SettingHttpsCertificate)
+		key := c.GetString(dconfig.SettingHttpsKey)
 
 		return http.ListenAndServeTLS(listen, cert, key, api.MakeHandler())
 	}

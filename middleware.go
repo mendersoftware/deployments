@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,12 +21,14 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/accesslog"
+	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/customheader"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 
-	"github.com/mendersoftware/deployments/config"
+	api_http "github.com/mendersoftware/deployments/api/http"
+	dconfig "github.com/mendersoftware/deployments/config"
 )
 
 const (
@@ -42,9 +44,6 @@ const (
 	HttpHeaderLink                        string = "Link"
 	HttpHeaderAllow                       string = "Allow"
 	HttpHeaderAccept                      string = "Accept"
-
-	EnvProd string = "prod"
-	EnvDev  string = "dev"
 )
 
 var commonLoggingAccessStack = []rest.Middleware{
@@ -74,7 +73,7 @@ var defaultProdStack = []rest.Middleware{
 	&rest.GzipMiddleware{},
 }
 
-func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
+func SetupMiddleware(c config.Reader, api *rest.Api) {
 
 	api.Use(&customheader.CustomHeaderMiddleware{
 		HeaderName:  "X-DEPLOYMENTS-VERSION",
@@ -83,8 +82,8 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 
 	api.Use(commonLoggingAccessStack...)
 
-	mwtype := c.GetString(SettingMiddleware)
-	if mwtype == EnvDev {
+	mwtype := c.GetString(dconfig.SettingMiddleware)
+	if mwtype == dconfig.EnvDev {
 		api.Use(defaultDevStack...)
 	} else {
 		api.Use(defaultProdStack...)
@@ -100,10 +99,10 @@ func SetupMiddleware(c config.ConfigReader, api *rest.Api) {
 	// For the rest of the requests expected Content-Type is 'application/json'.
 	api.Use(&rest.IfMiddleware{
 		Condition: func(r *rest.Request) bool {
-			if r.URL.Path == ApiUrlManagementArtifacts && r.Method == http.MethodPost {
+			if r.URL.Path == api_http.ApiUrlManagementArtifacts && r.Method == http.MethodPost {
 				return true
 			} else if match, _ := regexp.MatchString(
-				ApiUrlInternal+"/tenants/([a-z0-9]+)/artifacts", r.URL.Path); match &&
+				api_http.ApiUrlInternal+"/tenants/([a-z0-9]+)/artifacts", r.URL.Path); match &&
 				r.Method == http.MethodPost {
 				return true
 			} else {

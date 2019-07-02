@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,13 +18,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/log"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/urfave/cli"
 
-	"github.com/mendersoftware/deployments/config"
-	"github.com/mendersoftware/deployments/migrations"
+	dconfig "github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/deployments/store/mongo"
 )
 
 func main() {
@@ -77,12 +79,17 @@ func doMain(args []string) {
 	app.Action = cmdServer
 	app.Before = func(args *cli.Context) error {
 
-		err := config.FromConfigFile(configPath, configDefaults)
+		err := config.FromConfigFile(configPath, dconfig.Defaults)
 		if err != nil {
 			return cli.NewExitError(
 				fmt.Sprintf("error loading configuration: %s", err),
 				1)
 		}
+
+		// Enable setting config values by environment variables
+		config.Config.SetEnvPrefix("DEPLOYMENTS")
+		config.Config.AutomaticEnv()
+		config.Config.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 		return nil
 	}
@@ -97,13 +104,13 @@ func cmdServer(args *cli.Context) error {
 
 	if devSetup {
 		l.Infof("setting up development configuration")
-		config.Config.Set(SettingMiddleware, EnvDev)
+		config.Config.Set(dconfig.SettingMiddleware, dconfig.EnvDev)
 	}
 
 	l.Printf("Deployments Service, version %s starting up",
 		CreateVersionString())
 
-	dbSession, err := NewMongoSession(config.Config)
+	dbSession, err := mongo.NewMongoSession(config.Config)
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to connect to db: %v", err),
@@ -111,7 +118,7 @@ func cmdServer(args *cli.Context) error {
 	}
 
 	if args.Bool("automigrate") {
-		err = migrations.Migrate(context.Background(), migrations.DbVersion, dbSession, true)
+		err = mongo.Migrate(context.Background(), mongo.DbVersion, dbSession, true)
 		if err != nil {
 			return cli.NewExitError(
 				fmt.Sprintf("failed to run migrations: %v", err),
@@ -130,16 +137,16 @@ func cmdServer(args *cli.Context) error {
 
 func cmdMigrate(args *cli.Context) error {
 	tenant := args.String("tenant")
-	db := mstore.DbNameForTenant(tenant, migrations.DbName)
+	db := mstore.DbNameForTenant(tenant, mongo.DbName)
 
-	dbSession, err := NewMongoSession(config.Config)
+	dbSession, err := mongo.NewMongoSession(config.Config)
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to connect to db: %v", err),
 			3)
 	}
 
-	err = migrations.MigrateSingle(context.Background(), db, migrations.DbVersion, dbSession, true)
+	err = mongo.MigrateSingle(context.Background(), db, mongo.DbVersion, dbSession, true)
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to run migrations: %v", err),

@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -14,87 +14,114 @@
 package config
 
 import (
-	"strings"
-	"time"
+	"fmt"
+	"os"
 
-	"github.com/spf13/viper"
+	"github.com/mendersoftware/go-lib-micro/config"
 )
+
+const (
+	EnvProd = "prod"
+	EnvDev  = "dev"
+
+	SettingHttps            = "https"
+	SettingHttpsCertificate = SettingHttps + ".certificate"
+	SettingHttpsKey         = SettingHttps + ".key"
+
+	SettingListen        = "listen"
+	SettingListenDefault = ":8080"
+
+	SettingsAws                   = "aws"
+	SettingAwsS3Region            = SettingsAws + ".region"
+	SettingAwsS3RegionDefault     = "us-east-1"
+	SettingAwsS3Bucket            = SettingsAws + ".bucket"
+	SettingAwsS3BucketDefault     = "mender-artifact-storage"
+	SettingAwsURI                 = SettingsAws + ".uri"
+	SettingsAwsTagArtifact        = SettingsAws + ".tag_artifact"
+	SettingsAwsTagArtifactDefault = false
+
+	SettingsAwsAuth      = SettingsAws + ".auth"
+	SettingAwsAuthKeyId  = SettingsAwsAuth + ".key"
+	SettingAwsAuthSecret = SettingsAwsAuth + ".secret"
+	SettingAwsAuthToken  = SettingsAwsAuth + ".token"
+
+	SettingMongo        = "mongo-url"
+	SettingMongoDefault = "mongo-deployments"
+
+	SettingDbSSL        = "mongo_ssl"
+	SettingDbSSLDefault = false
+
+	SettingDbSSLSkipVerify        = "mongo_ssl_skipverify"
+	SettingDbSSLSkipVerifyDefault = false
+
+	SettingDbUsername = "mongo_username"
+	SettingDbPassword = "mongo_password"
+
+	SettingGateway        = "mender-gateway"
+	SettingGatewayDefault = "localhost:9080"
+
+	SettingMiddleware        = "middleware"
+	SettingMiddlewareDefault = EnvProd
+)
+
+// ValidateAwsAuth validates configuration of SettingsAwsAuth section if provided.
+func ValidateAwsAuth(c config.Reader) error {
+
+	if c.IsSet(SettingsAwsAuth) {
+		required := []string{SettingAwsAuthKeyId, SettingAwsAuthSecret}
+		for _, key := range required {
+			if !c.IsSet(key) {
+				return MissingOptionError(key)
+			}
+
+			if c.GetString(key) == "" {
+				return MissingOptionError(key)
+			}
+		}
+	}
+
+	return nil
+}
+
+// ValidateHttps validates configuration of SettingHttps section if provided.
+func ValidateHttps(c config.Reader) error {
+
+	if c.IsSet(SettingHttps) {
+		required := []string{SettingHttpsCertificate, SettingHttpsKey}
+		for _, key := range required {
+			if !c.IsSet(key) {
+				return MissingOptionError(key)
+			}
+
+			value := c.GetString(key)
+			if value == "" {
+				return MissingOptionError(key)
+			}
+
+			if _, err := os.Stat(value); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// Generate error with missing reuired option message.
+func MissingOptionError(option string) error {
+	return fmt.Errorf("Required option: '%s'", option)
+}
 
 var (
-	Config = viper.New()
+	Validators = []config.Validator{ValidateAwsAuth, ValidateHttps}
+	Defaults   = []config.Default{
+		{Key: SettingListen, Value: SettingListenDefault},
+		{Key: SettingAwsS3Region, Value: SettingAwsS3RegionDefault},
+		{Key: SettingAwsS3Bucket, Value: SettingAwsS3BucketDefault},
+		{Key: SettingMongo, Value: SettingMongoDefault},
+		{Key: SettingDbSSL, Value: SettingDbSSLDefault},
+		{Key: SettingDbSSLSkipVerify, Value: SettingDbSSLSkipVerifyDefault},
+		{Key: SettingGateway, Value: SettingGatewayDefault},
+		{Key: SettingsAwsTagArtifact, Value: SettingsAwsTagArtifactDefault},
+	}
 )
-
-type ConfigReader interface {
-	Get(key string) interface{}
-	GetBool(key string) bool
-	GetFloat64(key string) float64
-	GetInt(key string) int
-	GetString(key string) string
-	GetStringMap(key string) map[string]interface{}
-	GetStringMapString(key string) map[string]string
-	GetStringSlice(key string) []string
-	GetTime(key string) time.Time
-	GetDuration(key string) time.Duration
-	IsSet(key string) bool
-}
-
-func FromConfigFile(filePath string,
-	defaults []Default,
-	configValidators ...Validator) error {
-
-	// map settings such as foo.bar and foo-bar to FOO_BAR environment keys
-	Config.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-
-	// Enable setting also other conig values by environment variables
-	Config.SetEnvPrefix("DEPLOYMENTS")
-	Config.AutomaticEnv()
-
-	// Set default values for config
-	SetDefaults(Config, defaults)
-
-	// Find and read the config file
-	if filePath != "" {
-		Config.SetConfigFile(filePath)
-		if err := Config.ReadInConfig(); err != nil {
-			return err
-		}
-	}
-
-	// Validate config
-	if err := ValidateConfig(Config, configValidators...); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type Validator func(c ConfigReader) error
-
-// ValidateConfig validates conifg accroding to provided validators.
-func ValidateConfig(c ConfigReader, validators ...Validator) error {
-
-	for _, validator := range validators {
-		err := validator(c)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-type Writer interface {
-	SetDefault(key string, val interface{})
-	Set(key string, val interface{})
-}
-
-type Default struct {
-	Key   string
-	Value interface{}
-}
-
-func SetDefaults(c Writer, defaults []Default) {
-	for _, def := range defaults {
-		c.SetDefault(def.Key, def.Value)
-	}
-}

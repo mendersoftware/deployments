@@ -543,6 +543,12 @@
 			"revisionTime": "2018-09-26T09:45:58Z"
 		},
 		{
+			"checksumSHA1": "ZJ/mBXOvixbQxVBoSvq6QCLLkwQ=",
+			"path": "github.com/mendersoftware/go-lib-micro/config",
+			"revision": "cb210e0b60d95a11ae26fb4e5f3df97bfc88292e",
+			"revisionTime": "2019-03-08T21:32:50Z"
+		},
+		{
 			"checksumSHA1": "Aj4a3MgVRp3PovUEFjdlORhCZ1Q=",
 			"path": "github.com/mendersoftware/go-lib-micro/context",
 			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",

@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/requestid"
+
+	"github.com/mendersoftware/deployments/model"
 )
 
 // Headers
@@ -78,4 +80,28 @@ func (p *RESTView) RenderSuccessDelete(w rest.ResponseWriter) {
 
 func (p *RESTView) RenderSuccessPut(w rest.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (p *RESTView) RenderNoUpdateForDevice(w rest.ResponseWriter) {
+	p.RenderEmptySuccessResponse(w)
+}
+
+// Success response with no data aka. 204 No Content
+func (p *RESTView) RenderEmptySuccessResponse(w rest.ResponseWriter) {
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (p *RESTView) RenderDeploymentLog(w rest.ResponseWriter, dlog model.DeploymentLog) {
+	h, _ := w.(http.ResponseWriter)
+
+	h.Header().Set("Content-Type", "text/plain")
+	h.WriteHeader(http.StatusOK)
+
+	for _, m := range dlog.Messages {
+		as := m.String()
+		h.Write([]byte(as))
+		if !strings.HasSuffix(as, "\n") {
+			h.Write([]byte("\n"))
+		}
+	}
 }
