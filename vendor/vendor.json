@@ -635,34 +635,34 @@
 			"versionExact": "mender-artifact-v3"
 		},
 		{
-			"checksumSHA1": "khFSop9rQYVvpsyXaZlI3VVqS14=",
+			"checksumSHA1": "n6OX/icNY5Jzw6qpVnkzKcC2Rzo=",
 			"path": "github.com/mendersoftware/mender-artifact/areader",
-			"revision": "becc2d7606a151145ada1ef70ffab2622c5a6998",
-			"revisionTime": "2019-04-17T06:05:40Z",
+			"revision": "a8bde8b2617763d14a563790e2ca5167d2632bab",
+			"revisionTime": "2019-07-23T09:23:37Z",
 			"version": "mender-artifact-v3",
 			"versionExact": "mender-artifact-v3"
 		},
 		{
 			"checksumSHA1": "T/foc3mY9ATnHRO6dedNQyTGEjA=",
 			"path": "github.com/mendersoftware/mender-artifact/artifact",
-			"revision": "becc2d7606a151145ada1ef70ffab2622c5a6998",
-			"revisionTime": "2019-04-17T06:05:40Z",
+			"revision": "a8bde8b2617763d14a563790e2ca5167d2632bab",
+			"revisionTime": "2019-07-23T09:23:37Z",
 			"version": "mender-artifact-v3",
 			"versionExact": "mender-artifact-v3"
 		},
 		{
-			"checksumSHA1": "RUFJgDMsz3n2Wtz136UrpipDeRc=",
+			"checksumSHA1": "pysGSQrmsC3Qhk1zxbglYQvMRfY=",
 			"path": "github.com/mendersoftware/mender-artifact/awriter",
-			"revision": "becc2d7606a151145ada1ef70ffab2622c5a6998",
-			"revisionTime": "2019-04-17T06:05:40Z",
+			"revision": "a8bde8b2617763d14a563790e2ca5167d2632bab",
+			"revisionTime": "2019-07-23T09:23:37Z",
 			"version": "mender-artifact-v3",
 			"versionExact": "mender-artifact-v3"
 		},
 		{
 			"checksumSHA1": "oO9JrIxwr2b4ElOP9V+p3JcViVw=",
 			"path": "github.com/mendersoftware/mender-artifact/handlers",
-			"revision": "becc2d7606a151145ada1ef70ffab2622c5a6998",
-			"revisionTime": "2019-04-17T06:05:40Z",
+			"revision": "a8bde8b2617763d14a563790e2ca5167d2632bab",
+			"revisionTime": "2019-07-23T09:23:37Z",
 			"version": "mender-artifact-v3",
 			"versionExact": "mender-artifact-v3"
 		},
