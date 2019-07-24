@@ -38,7 +38,7 @@ func (m *migration_1_2_1) Up(from migrate.Version) error {
 
 	// 'ns not found' simply means the idx doesn't exist
 	// DropIndex is just not idempotent, so force it
-	if err != nil && err.Error() != "ns not found" {
+	if err != nil && err.Error() != "ns not found" && err.Error() != "index not found with name" {
 		return err
 	}
 
