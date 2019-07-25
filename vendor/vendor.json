@@ -627,12 +627,6 @@
 			"revisionTime": "2018-09-26T09:45:58Z"
 		},
 		{
-			"checksumSHA1": "Uh9wFcTmKv1Y91zro3XPdKr0z1M=",
-			"path": "github.com/mendersoftware/go-liblzma",
-			"revision": "7c43a54b162c2031114bdeb3be8d64e3f507e73b",
-			"revisionTime": "2018-12-18T07:42:49Z"
-		},
-		{
 			"checksumSHA1": "NH/E/+GFtMjxQ1vuus5y2yko17A=",
 			"path": "github.com/mendersoftware/mender-artifact",
 			"revision": "09e213244bfec8cfe87746d08a331c2622e88bc1",
@@ -641,34 +635,34 @@
 			"versionExact": "mender-artifact-v3"
 		},
 		{
-			"checksumSHA1": "khFSop9rQYVvpsyXaZlI3VVqS14=",
+			"checksumSHA1": "tGUZCSS038M1UiAFGvc1ex+GaeQ=",
 			"path": "github.com/mendersoftware/mender-artifact/areader",
-			"revision": "becc2d7606a151145ada1ef70ffab2622c5a6998",
-			"revisionTime": "2019-04-17T06:05:40Z",
+			"revision": "8ed70e87c20d948cf4b5e0323c0d7332537d4aa0",
+			"revisionTime": "2019-07-23T09:23:37Z",
 			"version": "mender-artifact-v3",
 			"versionExact": "mender-artifact-v3"
 		},
 		{
-			"checksumSHA1": "T/foc3mY9ATnHRO6dedNQyTGEjA=",
+			"checksumSHA1": "BQT3jSfjct9nFoq2y2ixs/wIDh0=",
 			"path": "github.com/mendersoftware/mender-artifact/artifact",
-			"revision": "becc2d7606a151145ada1ef70ffab2622c5a6998",
-			"revisionTime": "2019-04-17T06:05:40Z",
+			"revision": "8ed70e87c20d948cf4b5e0323c0d7332537d4aa0",
+			"revisionTime": "2019-07-23T09:23:37Z",
 			"version": "mender-artifact-v3",
 			"versionExact": "mender-artifact-v3"
 		},
 		{
-			"checksumSHA1": "RUFJgDMsz3n2Wtz136UrpipDeRc=",
+			"checksumSHA1": "mzPl7+MMi+811VykgP+gQD9lzwE=",
 			"path": "github.com/mendersoftware/mender-artifact/awriter",
-			"revision": "becc2d7606a151145ada1ef70ffab2622c5a6998",
-			"revisionTime": "2019-04-17T06:05:40Z",
+			"revision": "8ed70e87c20d948cf4b5e0323c0d7332537d4aa0",
+			"revisionTime": "2019-07-23T09:23:37Z",
 			"version": "mender-artifact-v3",
 			"versionExact": "mender-artifact-v3"
 		},
 		{
 			"checksumSHA1": "oO9JrIxwr2b4ElOP9V+p3JcViVw=",
 			"path": "github.com/mendersoftware/mender-artifact/handlers",
-			"revision": "becc2d7606a151145ada1ef70ffab2622c5a6998",
-			"revisionTime": "2019-04-17T06:05:40Z",
+			"revision": "8ed70e87c20d948cf4b5e0323c0d7332537d4aa0",
+			"revisionTime": "2019-07-23T09:23:37Z",
 			"version": "mender-artifact-v3",
 			"versionExact": "mender-artifact-v3"
 		},
@@ -707,6 +701,12 @@
 			"path": "github.com/pmezard/go-difflib/difflib",
 			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
 			"revisionTime": "2016-01-10T10:55:54Z"
+		},
+		{
+			"checksumSHA1": "jjbbfjnKJYH8FMJxR07Kvi+MVWA=",
+			"path": "github.com/remyoudompheng/go-liblzma",
+			"revision": "81bf2d431b96bdf580ac348893266a79a292c258",
+			"revisionTime": "2019-05-06T20:03:33Z"
 		},
 		{
 			"checksumSHA1": "eDQ6f1EsNf+frcRO/9XukSEchm8=",
