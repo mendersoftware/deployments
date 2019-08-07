@@ -84,17 +84,24 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 
 	client := s3.New(sess)
 
-	// minio requires explicit bucket creation
-	cparams := &s3.CreateBucketInput{
-		Bucket: aws.String(bucket), // Required
-	}
+	if uri != "" {
+		// minio requires explicit bucket creation
+		cparams := &s3.CreateBucketInput{
+			Bucket: aws.String(bucket), // Required
+		}
 
-	_, err := client.CreateBucket(cparams)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
-				return nil, err
+		_, err := client.CreateBucket(cparams)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
+					return nil, err
+				}
 			}
+		}
+	} else {
+		err := validateS3Credentials(client, bucket)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to validate s3 credentials")
 		}
 	}
 
@@ -103,6 +110,41 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 		bucket:      bucket,
 		tagArtifact: tag_artifact,
 	}, nil
+}
+
+func validateS3Credentials(client *s3.S3, bucket string) error {
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String("test/test-object"),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to put test object")
+	}
+
+	_, err = client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String("test/test-object"),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to get test object")
+	}
+
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String("test/test-object"),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to delete test object")
+	}
+
+	_, err = client.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to list objects")
+	}
+
+	return nil
 }
 
 // NewSimpleStorageServiceDefaults create new S3 client model.
