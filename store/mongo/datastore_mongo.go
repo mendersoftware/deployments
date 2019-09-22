@@ -41,8 +41,18 @@ const (
 
 // Indexes
 const (
-	IndexUniqeNameAndDeviceTypeStr = "uniqueNameAndDeviceTypeIndex"
-	IndexDeploymentArtifactNameStr = "deploymentArtifactNameIndex"
+	IndexUniqeNameAndDeviceTypeStr           = "uniqueNameAndDeviceTypeIndex"
+	IndexDeploymentArtifactNameStr           = "deploymentArtifactNameIndex"
+	IndexDeploymentDeviceStatusesStr         = "deviceIdWithStatusByCreated"
+	IndexDeploymentDeviceIdStatusStr         = "devicesIdWithStatus"
+	IndexDeploymentDeviceDeploymentIdStr     = "devicesDeploymentId"
+	IndexDeploymentStatusFinishedStr         = "deploymentStatusFinished"
+	IndexDeploymentStatusPendingStr          = "deploymentStatusPending"
+	IndexDeploymentCreatedStr                = "deploymentCreated"
+	IndexDeploymentDeviceStatusRebootingStr  = "deploymentsDeviceStatusRebooting"
+	IndexDeploymentDeviceStatusPendingStr    = "deploymentsDeviceStatusPending"
+	IndexDeploymentDeviceStatusInstallingStr = "deploymentsDeviceStatusInstalling"
+	IndexDeploymentDeviceStatusFinishedStr   = "deploymentsFinished"
 )
 
 var (
@@ -50,6 +60,37 @@ var (
 		"$text:" + StorageKeyDeploymentName,
 		"$text:" + StorageKeyDeploymentArtifactName,
 	}
+	StatusIndexes = []string{
+		StorageKeyDeviceDeploymentDeviceId,
+		StorageKeyDeviceDeploymentStatus,
+		StorageKeyDeploymentStatsCreated,
+	}
+	DeviceIDStatusIndexes         = []string{"deviceID", "status"} //IndexDeploymentDeviceIdStatusStr
+	DeploymentIdIndexes           = []string{"deploymentid"}       //IndexDeploymentDeviceDeploymentIdStr
+	DeploymentStatusFinishedIndex = []string{
+		"stats.downloading",
+		"stats.installing",
+		"stats.pending",
+		"stats.rebooting",
+		"-created",
+	} //IndexDeploymentStatusFinishedStr
+	DeploymentStatusPendingIndex = []string{
+		"stats.aborted",
+		"stats.already-installed",
+		"stats.decommissioned",
+		"stats.downloading",
+		"stats.failure",
+		"stats.installing",
+		"stats.noartifact",
+		"stats.rebooting",
+		"stats.success",
+		"-created",
+	} //IndexDeploymentStatusPendingStr
+	DeploymentCreatedIndex                = []string{"-created"}         //IndexDeploymentCreatedStr
+	DeploymentDeviceStatusRebootingIndex  = []string{"stats.rebooting"}  //IndexDeploymentDeviceStatusRebootingStr
+	DeploymentDeviceStatusPendingIndex    = []string{"stats.pending"}    //IndexDeploymentDeviceStatusPendingStr
+	DeploymentDeviceStatusInstallingIndex = []string{"stats.installing"} //IndexDeploymentDeviceStatusInstallingStr
+	DeploymentDeviceStatusFinishedIndex   = []string{"finished"}         //IndexDeploymentDeviceStatusFinishedStr
 )
 
 // Errors
@@ -94,6 +135,7 @@ const (
 	StorageKeyDeploymentName         = "deploymentconstructor.name"
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
 	StorageKeyDeploymentStats        = "stats"
+	StorageKeyDeploymentStatsCreated = "created"
 	StorageKeyDeploymentFinished     = "finished"
 	StorageKeyDeploymentArtifacts    = "artifacts"
 )
@@ -551,7 +593,7 @@ func (db *DataStoreMongo) SaveDeviceDeploymentLog(ctx context.Context,
 	}
 
 	// update log messages
-	// if the deployment log is already present than messages will be overwritten
+	// if the deployment log is already present than messages will be overwritten
 	update := bson.M{
 		"$set": bson.M{
 			StorageKeyDeviceDeploymentLogMessages: log.Messages,
@@ -1068,6 +1110,182 @@ func (db *DataStoreMongo) DoEnsureIndexing(dataBase string, session *mgo.Session
 		EnsureIndex(deploymentArtifactNameIndex)
 }
 
+func (db *DataStoreMongo) DoEnsureAdditionalIndexing(dataBase string, session *mgo.Session) error {
+	deploymentDevicesStatusesIndex := mgo.Index{
+		Key:        StatusIndexes,
+		Name:       IndexDeploymentDeviceStatusesStr,
+		Background: false,
+	}
+
+	err := session.DB(dataBase).
+		C(CollectionDevices).
+		EnsureIndex(deploymentDevicesStatusesIndex)
+
+	if err != nil {
+		return err
+	}
+
+	// IndexDeploymentDeviceIdStatusStr = "devicesIdWithStatus"
+	// deviceID:1
+	// status:1
+	deploymentDevicesStatusIdIndex := mgo.Index{
+		Key:        DeviceIDStatusIndexes,
+		Name:       IndexDeploymentDeviceIdStatusStr,
+		Background: false,
+	}
+
+	err = session.DB(dataBase).
+		C(CollectionDevices).
+		EnsureIndex(deploymentDevicesStatusIdIndex)
+
+	if err != nil {
+		return err
+	}
+
+	// IndexDeploymentDeviceDeploymentIdStr = "devicesDeploymentId"
+	// deploymentid:1
+	deploymentDeviceDeploymentIdIndex := mgo.Index{
+		Key:        DeploymentIdIndexes,
+		Name:       IndexDeploymentDeviceDeploymentIdStr,
+		Background: false,
+	}
+
+	err = session.DB(dataBase).
+		C(CollectionDevices).
+		EnsureIndex(deploymentDeviceDeploymentIdIndex)
+
+	if err != nil {
+		return err
+	}
+
+	// IndexDeploymentStatusFinishedStr = "deploymentStatusFinished"
+	// stats.downloading: 1
+	// stats.installing: 1
+	// stats.pending: 1
+	// stats.rebooting: 1
+	// created: -1
+	deploymentStatusFinishedIndex := mgo.Index{
+		Key:        DeploymentStatusFinishedIndex,
+		Name:       IndexDeploymentStatusFinishedStr,
+		Background: false,
+	}
+
+	err = session.DB(dataBase).
+		C(CollectionDeployments).
+		EnsureIndex(deploymentStatusFinishedIndex)
+
+	if err != nil {
+		return err
+	}
+
+	// IndexDeploymentStatusPendingStr = "deploymentStatusPending"
+	// stats.aborted: 1
+	// stats.already-installed: 1
+	// stats.decommissioned: 1
+	// stats.downloading: 1
+	// stats.failure: 1
+	// stats.installing: 1
+	// stats.noartifact: 1
+	// stats.rebooting: 1
+	// stats.success: 1
+	// created: -1
+	deploymentStatusPendingIndex := mgo.Index{
+		Key:        DeploymentStatusPendingIndex,
+		Name:       IndexDeploymentStatusPendingStr,
+		Background: false,
+	}
+
+	err = session.DB(dataBase).
+		C(CollectionDeployments).
+		EnsureIndex(deploymentStatusPendingIndex)
+
+	if err != nil {
+		return err
+	}
+
+	// IndexDeploymentCreatedStr = "deploymentCreated"
+	// created: -1
+	deploymentCreatedIndex := mgo.Index{
+		Key:        DeploymentCreatedIndex,
+		Name:       IndexDeploymentCreatedStr,
+		Background: false,
+	}
+
+	err = session.DB(dataBase).
+		C(CollectionDeployments).
+		EnsureIndex(deploymentCreatedIndex)
+
+	if err != nil {
+		return err
+	}
+
+	// IndexDeploymentDeviceStatusRebootingStr = "deploymentsDeviceStatusRebooting"
+	// stats.rebooting: 1
+	deploymentDeviceStatusRebootingIndex := mgo.Index{
+		Key:        DeploymentDeviceStatusRebootingIndex,
+		Name:       IndexDeploymentDeviceStatusRebootingStr,
+		Background: false,
+	}
+
+	err = session.DB(dataBase).
+		C(CollectionDeployments).
+		EnsureIndex(deploymentDeviceStatusRebootingIndex)
+
+	if err != nil {
+		return err
+	}
+
+	// IndexDeploymentDeviceStatusPendingStr = "deploymentsDeviceStatusPending"
+	// stats.pending: 1
+	deploymentDeviceStatusPendingIndex := mgo.Index{
+		Key:        DeploymentDeviceStatusPendingIndex,
+		Name:       IndexDeploymentDeviceStatusPendingStr,
+		Background: false,
+	}
+
+	err = session.DB(dataBase).
+		C(CollectionDeployments).
+		EnsureIndex(deploymentDeviceStatusPendingIndex)
+
+	if err != nil {
+		return err
+	}
+
+	// IndexDeploymentDeviceStatusInstallingStr = "deploymentsDeviceStatusInstalling"
+	// stats.installing: 1
+	deploymentDeviceStatusInstallingIndex := mgo.Index{
+		Key:        DeploymentDeviceStatusInstallingIndex,
+		Name:       IndexDeploymentDeviceStatusInstallingStr,
+		Background: false,
+	}
+
+	err = session.DB(dataBase).
+		C(CollectionDeployments).
+		EnsureIndex(deploymentDeviceStatusInstallingIndex)
+
+	if err != nil {
+		return err
+	}
+
+	// IndexDeploymentDeviceStatusFinishedStr = "deploymentsFinished"
+	// finished: 1
+	deploymentDeviceStatusFinishedIndex := mgo.Index{
+		Key:        DeploymentDeviceStatusFinishedIndex,
+		Name:       IndexDeploymentDeviceStatusFinishedStr,
+		Background: false,
+	}
+
+	err = session.DB(dataBase).
+		C(CollectionDeployments).
+		EnsureIndex(deploymentDeviceStatusFinishedIndex)
+
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
 // return true if required indexing was set up
 func (db *DataStoreMongo) hasIndexing(ctx context.Context, session *mgo.Session) bool {
 	idxs, err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
@@ -1090,6 +1308,7 @@ func (db *DataStoreMongo) hasIndexing(ctx context.Context, session *mgo.Session)
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -1173,7 +1392,7 @@ func (db *DataStoreMongo) FindUnfinishedByID(ctx context.Context,
 
 	var deployment *model.Deployment
 	filter := bson.M{
-		"_id": id,
+		"_id":                        id,
 		StorageKeyDeploymentFinished: nil,
 	}
 	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).

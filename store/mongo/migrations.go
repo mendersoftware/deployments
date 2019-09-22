@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	DbVersion = "1.2.1"
+	DbVersion = "1.2.2"
 	DbName    = "deployment_service"
 )
 
@@ -82,6 +82,10 @@ func MigrateSingle(ctx context.Context,
 
 	migrations := []migrate.Migration{
 		&migration_1_2_1{
+			session: session,
+			db:      db,
+		},
+		&migration_1_2_2{
 			session: session,
 			db:      db,
 		},
