@@ -19,8 +19,6 @@ import (
 
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/mendersoftware/deployments/model"
 )
 
 func TestMigration_1_2_2(t *testing.T) {
@@ -33,39 +31,15 @@ func TestMigration_1_2_2(t *testing.T) {
 		db    string
 		dbVer string
 
-		// non-empty deployments also means the index is already present
-		// must be nil for MT databases - the index name issue implies no deployments were created ever
-		deployments []*model.Deployment
-
 		err error
 	}{
 		"ST, no index, 0.0.0": {
-			db:          "deployments_service",
-			dbVer:       "",
-			deployments: nil,
-		},
-		"ST, no index, 0.0.1": {
-			db:          "deployments_service",
-			dbVer:       "0.0.1",
-			deployments: nil,
-		},
-		"ST, with index, 0.0.1": {
 			db:    "deployments_service",
-			dbVer: "0.0.1",
-			deployments: []*model.Deployment{
-				makeDeployment(t, "one", "artifact1"),
-				makeDeployment(t, "two", "artifact2"),
-			},
+			dbVer: "",
 		},
 		"MT, no index, 0.0.0": {
-			db:          "deployments_service-59afdb71c704db002a86ad95",
-			dbVer:       "",
-			deployments: nil,
-		},
-		"MT, no index, 0.0.1": {
-			db:          "deployments_service-59afdb71c704db002a86ad95",
-			dbVer:       "0.0.1",
-			deployments: nil,
+			db:    "deployments_service-59afdb71c704db002a86ad95",
+			dbVer: "",
 		},
 	}
 
@@ -81,12 +55,6 @@ func TestMigration_1_2_2(t *testing.T) {
 			ver, err := migrate.NewVersion(tc.dbVer)
 			assert.NoError(t, err)
 			migrate.UpdateMigrationInfo(*ver, s, tc.db)
-		}
-
-		// setup existing deployments
-		for _, d := range tc.deployments {
-			err := insertDeployment(d, s, tc.db)
-			assert.NoError(t, err)
 		}
 
 		migrations := []migrate.Migration{
@@ -106,28 +74,37 @@ func TestMigration_1_2_2(t *testing.T) {
 			Automigrate: true,
 		}
 
-		//verify
-		// for DBs with data - just in case verify the old/long index was created
-		if tc.deployments != nil {
-			idxs, err := s.DB(tc.db).C(CollectionDeployments).Indexes()
-			assert.NoError(t, err)
-			hasOld := hasIndex(OldIndexName, idxs)
-			assert.True(t, hasOld)
-		}
-
 		err := m.Apply(context.Background(), migrate.MakeVersion(1, 2, 2), migrations)
 		assert.NoError(t, err)
 
-		// verify old index dropped
-		idxs, err := s.DB(tc.db).C(CollectionDeployments).Indexes()
+		devicesCollectionIndicesNames := []string{
+			IndexDeploymentDeviceStatusesStr,
+			IndexDeploymentDeviceIdStatusStr,
+			IndexDeploymentDeviceDeploymentIdStr,
+		}
+		// verify new indices present
+		idxs, err := s.DB(tc.db).C(CollectionDevices).Indexes()
 		assert.NoError(t, err)
-		hasOld := hasIndex(OldIndexName, idxs)
-		assert.False(t, hasOld)
 
-		// verify new index present - only if deployment inserted
-		if tc.deployments != nil {
-			hasNew := hasIndex(IndexDeploymentArtifactNameStr, idxs)
-			assert.NoError(t, err)
+		for _, indexName := range devicesCollectionIndicesNames {
+			hasNew := hasIndex(indexName, idxs)
+			assert.True(t, hasNew)
+		}
+
+		deploymentsCollectionIndicesNames := []string{
+			IndexDeploymentStatusFinishedStr,
+			IndexDeploymentStatusPendingStr,
+			IndexDeploymentCreatedStr,
+			IndexDeploymentDeviceStatusRebootingStr,
+			IndexDeploymentDeviceStatusPendingStr,
+			IndexDeploymentDeviceStatusInstallingStr,
+			IndexDeploymentDeviceStatusFinishedStr,
+		}
+		// verify new indices present
+		idxs, err = s.DB(tc.db).C(CollectionDeployments).Indexes()
+		assert.NoError(t, err)
+		for _, indexName := range deploymentsCollectionIndicesNames {
+			hasNew := hasIndex(indexName, idxs)
 			assert.True(t, hasNew)
 		}
 

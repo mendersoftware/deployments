@@ -1283,16 +1283,6 @@ func (db *DataStoreMongo) DoEnsureAdditionalIndexing(dataBase string, session *m
 		return err
 	}
 
-	deploymentArtifactNameIndex := mgo.Index{
-		Key:        StorageIndexes,
-		Name:       IndexDeploymentArtifactNameStr,
-		Background: false,
-	}
-
-	err = session.DB(dataBase).
-		C(CollectionDeployments).
-		EnsureIndex(deploymentArtifactNameIndex)
-
 	return err
 }
 
