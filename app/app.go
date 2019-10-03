@@ -218,7 +218,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	if err != nil {
 		pW.Close()
 		<-ch
-		return artifactID, errors.Wrap(err, ErrModelParsingArtifactFailed.Error())
+		return artifactID, ErrModelParsingArtifactFailed
 	}
 
 	// read the rest of the data,
