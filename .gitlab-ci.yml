@@ -153,15 +153,17 @@ publish:docs:
     - echo "publishing docs"
 
 publish:tests:
+  image: alpine
   stage: publish
-  before_script: []  
+  before_script:
+    - apk add --no-cache bash curl findutils git
   dependencies:
     - test:acceptance_tests
     - test:unit
   script:
     - tar -xvf unit-coverage.tar
-    # - bash <(curl -s https://codecov.io/bash) -F unittests -s ./tests/unit-coverage;
-    # - bash <(curl -s https://codecov.io/bash) -F acceptance -f ./tests/coverage-acceptance.txt;
+    - bash -c "bash <(curl -s https://codecov.io/bash) -Z -F unittests -s ./tests/unit-coverage"
+    - bash -c "bash <(curl -s https://codecov.io/bash) -Z -F acceptance -f coverage-acceptance.txt"
 
 publish:build:
   image: docker
