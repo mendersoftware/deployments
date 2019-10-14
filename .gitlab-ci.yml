@@ -155,12 +155,6 @@ build:
   tags:
     - docker
 
-publish:docs:
-  before_script: []
-  stage: publish
-  script:
-    - echo "publishing docs"
-
 publish:tests:
   image: alpine
   stage: publish
