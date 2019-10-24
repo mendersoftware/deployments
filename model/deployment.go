@@ -63,7 +63,7 @@ type Deployment struct {
 	// Auto set on create, required
 	Created *time.Time `json:"created" valid:"required"`
 
-	// Finished deplyment time
+	// Finished deployment time
 	Finished *time.Time `json:"finished,omitempty" valid:"optional"`
 
 	// Deployment id, required
