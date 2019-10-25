@@ -333,7 +333,7 @@ func (db *DataStoreMongo) Exists(ctx context.Context, id string) (bool, error) {
 	return true, nil
 }
 
-// Update proviced SoftwareImage
+// Update provided SoftwareImage
 // Return false if not found
 func (db *DataStoreMongo) Update(ctx context.Context,
 	image *model.SoftwareImage) (bool, error) {
