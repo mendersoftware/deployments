@@ -117,13 +117,11 @@ func cmdServer(args *cli.Context) error {
 			3)
 	}
 
-	if args.Bool("automigrate") {
-		err = mongo.Migrate(context.Background(), mongo.DbVersion, dbSession, true)
-		if err != nil {
-			return cli.NewExitError(
-				fmt.Sprintf("failed to run migrations: %v", err),
-				3)
-		}
+	err = mongo.Migrate(context.Background(), mongo.DbVersion, dbSession, args.Bool("automigrate"))
+	if err != nil {
+		return cli.NewExitError(
+			fmt.Sprintf("failed to run migrations: %v", err),
+			3)
 	}
 	dbSession.Close()
 
