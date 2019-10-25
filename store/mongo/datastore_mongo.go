@@ -667,7 +667,7 @@ func (db *DataStoreMongo) InsertMany(ctx context.Context,
 	return nil
 }
 
-// ExistAssignedImageWithIDAndStatuses checks if image is used by deplyment with specified status.
+// ExistAssignedImageWithIDAndStatuses checks if image is used by deployment with specified status.
 func (db *DataStoreMongo) ExistAssignedImageWithIDAndStatuses(ctx context.Context,
 	imageID string, statuses ...string) (bool, error) {
 
