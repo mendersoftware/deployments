@@ -303,7 +303,7 @@ func (db *DataStoreMongo) ensureIndexing(ctx context.Context, session *mgo.Sessi
 		Key:    []string{StorageKeySoftwareImageName, StorageKeySoftwareImageDeviceTypes},
 		Unique: true,
 		Name:   IndexUniqeNameAndDeviceTypeStr,
-		// Build index upfront - make sure this index is allways on.
+		// Build index upfront - make sure this index is always on.
 		Background: false,
 	}
 
