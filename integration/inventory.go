@@ -66,6 +66,10 @@ func (api *MenderAPI) GetDeviceInventory(ctx context.Context, id DeviceID) (*Dev
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 
+	if err != nil {
+		return nil, errors.Wrapf(err, "creating get request for URL %s", url)
+	}
+
 	//propagate request id
 	reqId := ctx.Value(requestid.RequestIdHeader)
 	if reqId != nil {
