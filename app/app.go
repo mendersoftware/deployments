@@ -483,7 +483,7 @@ func getArtifactIDs(artifacts []*model.SoftwareImage) []string {
 
 // deployments
 
-// CreateDeployment precomputes new deplyomet and schedules it for devices.
+// CreateDeployment precomputes new deployment and schedules it for devices.
 // TODO: check if specified devices are bootstrapped (when have a way to do this)
 func (d *Deployments) CreateDeployment(ctx context.Context,
 	constructor *model.DeploymentConstructor) (string, error) {
