@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -65,6 +65,10 @@ func (api *MenderAPI) GetDeviceInventory(ctx context.Context, id DeviceID) (*Dev
 	url := fmt.Sprintf(api.uri+DevicesInventory, id)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "creating get request for URL %s", url)
+	}
 
 	//propagate request id
 	reqId := ctx.Value(requestid.RequestIdHeader)
