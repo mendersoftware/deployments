@@ -120,6 +120,20 @@ test:unit:
   stage: test
   dependencies: []
   script:
+    # Install code coverage tooling
+    - go get -u github.com/axw/gocov/gocov
+    - go get -u golang.org/x/tools/cmd/cover
+
+    # Rename the branch we're on, so that it's not in the way for the
+    # subsequent fetch. It's ok if this fails, it just means we're not on any
+    # branch.
+    - git branch -m temp-branch || true
+    # Git trick: Fetch directly into our local branches instead of remote
+    # branches.
+    - git fetch origin 'refs/heads/*:refs/heads/*'
+    # Get last remaining tags, if any.
+    - git fetch --tags origin
+
     - apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
     - echo "deb http://repo.mongodb.org/apt/debian stretch/mongodb-org/3.6 main" | tee /etc/apt/sources.list.d/mongodb-org-3.6.list
     - apt-get -qq update && apt-get install -qy --allow-unauthenticated mongodb-org-server=3.6.11  liblzma-dev

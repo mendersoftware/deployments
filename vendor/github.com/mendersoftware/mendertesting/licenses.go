@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -41,30 +41,44 @@ func SetLicenseFileForDependency(license_file string) {
 	known_license_files = append(known_license_files, "--add-license="+license_file)
 }
 
-func CheckLicenses(t TSubset) {
+var firstEnterpriseCommit = ""
+
+// This should be set to the oldest commit that is not part of Open Source, only
+// part of Enterprise, if any. IOW it should be the very first commit after the
+// fork point, on the Enterprise branch.
+func SetFirstEnterpriseCommit(sha string) {
+	firstEnterpriseCommit = sha
+}
+
+func CheckMenderCompliance(t TSubset) {
 	pathToTool, err := locatePackage()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	checks := []string{
-		"check_license_go_code.sh",
-		"check_commits.sh",
+	cmdString := []string{path.Join(pathToTool, "check_license_go_code.sh")}
+	if firstEnterpriseCommit != "" {
+		cmdString = append(cmdString, "--ent-start-commit", firstEnterpriseCommit)
 	}
-
-	for i := 0; i < len(checks); i++ {
-		cmdString := path.Join(pathToTool, checks[i])
-		cmd := exec.Command(cmdString)
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Log(err.Error())
-			t.Fatal(string(output[:]))
-		}
-	}
-
-	cmdString := path.Join(pathToTool, "check_license.sh")
-	cmd := exec.Command(cmdString, known_license_files...)
+	cmd := exec.Command(cmdString[0], cmdString[1:]...)
 	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Log(err.Error())
+		t.Fatal(string(output[:]))
+	}
+
+	cmdString = []string{path.Join(pathToTool, "check_commits.sh")}
+	cmd = exec.Command(cmdString[0], cmdString[1:]...)
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		t.Log(err.Error())
+		t.Fatal(string(output[:]))
+	}
+
+	cmdString = []string{path.Join(pathToTool, "check_license.sh")}
+	cmdString = append(cmdString, known_license_files...)
+	cmd = exec.Command(cmdString[0], cmdString[1:]...)
+	output, err = cmd.CombinedOutput()
 	if err != nil {
 		t.Log(err.Error())
 		t.Fatal(string(output[:]))
