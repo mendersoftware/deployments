@@ -357,7 +357,7 @@ func (db *DataStoreMongo) Update(ctx context.Context,
 	return true, nil
 }
 
-// ImageByNameAndDeviceType finds image with speficied application name and targed device type
+// ImageByNameAndDeviceType finds image with speficied application name and target device type
 func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 	name, deviceType string) (*model.SoftwareImage, error) {
 
