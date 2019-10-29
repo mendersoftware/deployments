@@ -107,7 +107,7 @@ func ValidateHttps(c config.Reader) error {
 	return nil
 }
 
-// Generate error with missing reuired option message.
+// Generate error with missing required option message.
 func MissingOptionError(option string) error {
 	return fmt.Errorf("Required option: '%s'", option)
 }

@@ -47,7 +47,7 @@ func TestValidateDeploymentLog(t *testing.T) {
 		},
 		{
 			input: DeploymentLog{
-				// device ID and messages are to be skipped when parsing/marshalling JSON
+				// device ID and messages are to be skipped when parsing/marshaling JSON
 				DeviceID:     "1234",
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 				// messages should be picked up
@@ -65,7 +65,7 @@ func TestValidateDeploymentLog(t *testing.T) {
 		},
 		{
 			input: DeploymentLog{
-				// device ID and messages are to be skipped when parsing/marshalling JSON
+				// device ID and messages are to be skipped when parsing/marshaling JSON
 				DeviceID:     "1234",
 				DeploymentID: "asdasdad1231",
 				// messages should be picked up
@@ -117,7 +117,7 @@ func TestUnmarshalDeploymentLog(t *testing.T) {
 "timestamp": "2006-01-02T15:04:05-07:00", "level": "notice", "message": "foo"
 }]}`,
 			expected: &DeploymentLog{
-				// device ID and messages are to be skipped when parsing/marshalling JSON
+				// device ID and messages are to be skipped when parsing/marshaling JSON
 				DeviceID:     "",
 				DeploymentID: "",
 				// messages should be picked up

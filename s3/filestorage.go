@@ -141,7 +141,7 @@ func getArtifactByTenant(ctx context.Context, objectID string) string {
 	return objectID
 }
 
-// Delete removes delected file from storage.
+// Delete removes deleted file from storage.
 // Noop if ID does not exist.
 func (s *SimpleStorageService) Delete(ctx context.Context, objectID string) error {
 	objectID = getArtifactByTenant(ctx, objectID)

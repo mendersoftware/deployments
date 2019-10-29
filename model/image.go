@@ -21,7 +21,7 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
-// Informations provided by the user
+// Information provided by the user
 type SoftwareImageMetaConstructor struct {
 	// Image description
 	Description string `json:"description,omitempty" valid:"length(1|4096),optional"`
@@ -32,13 +32,13 @@ func NewSoftwareImageMetaConstructor() *SoftwareImageMetaConstructor {
 	return &SoftwareImageMetaConstructor{}
 }
 
-// Validate checkes structure according to valid tags.
+// Validate checks structure according to valid tags.
 func (s *SoftwareImageMetaConstructor) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
 }
 
-// Structure with artifact version informations
+// Structure with artifact version information
 type ArtifactInfo struct {
 	// Mender artifact format - the only possible value is "mender"
 	//Format string `json:"format" valid:"string,equal("mender"),required"`
@@ -71,7 +71,7 @@ func NewSoftwareImageMetaArtifactConstructor() *SoftwareImageMetaArtifactConstru
 	return &SoftwareImageMetaArtifactConstructor{}
 }
 
-// Validate checkes structure according to valid tags.
+// Validate checks structure according to valid tags.
 func (s *SoftwareImageMetaArtifactConstructor) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
@@ -118,13 +118,13 @@ func (s *SoftwareImage) SetModified(time time.Time) {
 	s.Modified = &time
 }
 
-// Validate checkes structure according to valid tags.
+// Validate checks structure according to valid tags.
 func (s *SoftwareImage) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
 }
 
-// MultipartUploadMsg is a structure with fields extracted from the mulitpart/form-data form
+// MultipartUploadMsg is a structure with fields extracted from the multipart/form-data form
 // send in the artifact upload request
 type MultipartUploadMsg struct {
 	// user metadata constructor

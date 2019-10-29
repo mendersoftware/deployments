@@ -354,7 +354,7 @@ func (d *DeploymentsApiHandlers) ParseMultipart(mr *multipart.Reader, maxMetaSiz
 			}
 			multipartUploadMsg.MetaConstructor.Description = *desc
 		case "artifact":
-			// valide metadata provided by the user and the image size
+			// valid metadata provided by the user and the image size
 			if err := multipartUploadMsg.MetaConstructor.Validate(); err != nil {
 				return nil, err
 			}
@@ -725,7 +725,7 @@ func (d *DeploymentsApiHandlers) PutDeploymentLogForDevice(w rest.ResponseWriter
 	}
 
 	// reuse DeploymentLog, device and deployment IDs are ignored when
-	// (un-)marshalling DeploymentLog to/from JSON
+	// (un-)marshaling DeploymentLog to/from JSON
 	var log model.DeploymentLog
 
 	err := r.DecodeJsonPayload(&log)

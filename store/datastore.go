@@ -53,7 +53,7 @@ type DataStore interface {
 	GetDeviceDeploymentLog(ctx context.Context,
 		deviceID, deploymentID string) (*model.DeploymentLog, error)
 
-	// device deployemnts
+	// device deployments
 	InsertMany(ctx context.Context,
 		deployment ...*model.DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(ctx context.Context,
