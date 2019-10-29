@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ func NewOptionsHandler(methods ...string) rest.HandlerFunc {
 }
 
 // Handle is a method for handling OPTIONS method requests.
-// This method is called concurently while serving requests and should not modify self.
+// This method is called concurrently while serving requests and should not modify self.
 func (o *OptionsHandler) handle(w rest.ResponseWriter, r *rest.Request) {
 	for method := range o.methods {
 		w.Header().Add(HttpHeaderAllow, method)

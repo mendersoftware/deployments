@@ -134,7 +134,7 @@ func SetupMiddleware(c config.Reader, api *rest.Api) {
 			return true
 		},
 
-		// Preflight request cache lenght
+		// Preflight request cache length
 		AccessControlMaxAge: 60,
 
 		// Allow authentication requests

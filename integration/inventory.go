@@ -93,7 +93,7 @@ func (api *MenderAPI) GetDeviceInventory(ctx context.Context, id DeviceID) (*Dev
 
 	device := Device{}
 	if err := json.NewDecoder(resp.Body).Decode(&device); err != nil {
-		return nil, errors.Wrap(err, "parsig server response")
+		return nil, errors.Wrap(err, "parsing server response")
 	}
 
 	if err := (&device).Validate(); err != nil {

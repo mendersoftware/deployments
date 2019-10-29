@@ -245,7 +245,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 
 	// check if artifact is unique
 	// artifact is considered to be unique if there is no artifact with the same name
-	// and supporing the same platform in the system
+	// and supporting the same platform in the system
 	isArtifactUnique, err := d.db.IsArtifactUnique(ctx,
 		metaArtifactConstructor.Name, metaArtifactConstructor.DeviceTypesCompatible)
 	if err != nil {
@@ -266,7 +266,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	return artifactID, nil
 }
 
-// GetImage allows to fetch image obeject with specified id
+// GetImage allows to fetch image object with specified id
 // Nil if not found
 func (d *Deployments) GetImage(ctx context.Context, id string) (*model.SoftwareImage, error) {
 
@@ -283,7 +283,7 @@ func (d *Deployments) GetImage(ctx context.Context, id string) (*model.SoftwareI
 }
 
 // DeleteImage removes metadata and image file
-// Noop for not exisitng images
+// Noop for not existing images
 // Allowed to remove image only if image is not scheduled or in progress for an updates - then image file is needed
 // In case of already finished updates only image file is not needed, metadata is attached directly to device deployment
 // therefore we still have some information about image that have been used (but not the file)
@@ -622,7 +622,7 @@ func (d *Deployments) ImageUsedInDeployment(ctx context.Context, imageID string)
 	return found, nil
 }
 
-// assignArtifact assignes artifact to the device deployment
+// assignArtifact assigns artifact to the device deployment
 func (d *Deployments) assignArtifact(
 	ctx context.Context,
 	deployment *model.Deployment,
@@ -646,7 +646,7 @@ func (d *Deployments) assignArtifact(
 			return errors.Wrap(err, "assigning artifact to device deployment")
 		}
 	} else {
-		// Select artifact for the device deployment from artifacts assgined to the deployment.
+		// Select artifact for the device deployment from artifacts assigned to the deployment.
 		artifact, err = d.db.ImageByIdsAndDeviceType(ctx, deployment.Artifacts, installed.DeviceType)
 		if err != nil {
 			return errors.Wrap(err, "assigning artifact to device deployment")

@@ -30,7 +30,7 @@ type LogMessage struct {
 }
 
 type DeploymentLog struct {
-	// skip these 2 field when (un)marshalling to/from JSON
+	// skip these 2 field when (un)marshaling to/from JSON
 	DeviceID     string `json:"-" valid:"required"`
 	DeploymentID string `json:"-" valid:"uuidv4,required"`
 

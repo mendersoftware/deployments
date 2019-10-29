@@ -40,7 +40,7 @@ type DeploymentConstructor struct {
 	Devices []string `json:"devices,omitempty" valid:"required" bson:"-"`
 }
 
-// Validate checkes structure according to valid tags
+// Validate checks structure according to valid tags
 // TODO: Add custom validator to check devices array content (such us UUID formatting)
 func (c *DeploymentConstructor) Validate() error {
 	if _, err := govalidator.ValidateStruct(c); err != nil {
@@ -113,13 +113,13 @@ func NewDeploymentFromConstructor(constructor *DeploymentConstructor) (*Deployme
 	return deployment, nil
 }
 
-// Validate checkes structure according to valid tags
+// Validate checks structure according to valid tags
 func (d *Deployment) Validate() error {
 	_, err := govalidator.ValidateStruct(d)
 	return err
 }
 
-// To be able to hide devices field, from API output provice custom marshaler
+// To be able to hide devices field, from API output provide custom marshaler
 func (d *Deployment) MarshalJSON() ([]byte, error) {
 
 	//Prevents from inheriting original MarshalJSON (if would, infinite loop)

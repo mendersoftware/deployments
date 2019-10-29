@@ -357,7 +357,7 @@ func (db *DataStoreMongo) Update(ctx context.Context,
 	return true, nil
 }
 
-// ImageByNameAndDeviceType finds image with speficied application name and target device type
+// ImageByNameAndDeviceType finds image with specified application name and target device type
 func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 	name, deviceType string) (*model.SoftwareImage, error) {
 
@@ -379,7 +379,7 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 	session := db.session.Copy()
 	defer session.Close()
 
-	// Both we lookup uniqe object, should be one or none.
+	// Both we lookup unique object, should be one or none.
 	var image model.SoftwareImage
 	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).Find(query).One(&image); err != nil {
@@ -392,7 +392,7 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 	return &image, nil
 }
 
-// ImageByIdsAndDeviceType finds image with id from ids and targed device type
+// ImageByIdsAndDeviceType finds image with id from ids and target device type
 func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 	ids []string, deviceType string) (*model.SoftwareImage, error) {
 
@@ -412,7 +412,7 @@ func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 	session := db.session.Copy()
 	defer session.Close()
 
-	// Both we lookup uniqe object, should be one or none.
+	// Both we lookup unique object, should be one or none.
 	var image model.SoftwareImage
 	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).Find(query).One(&image); err != nil {
@@ -425,7 +425,7 @@ func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 	return &image, nil
 }
 
-// ImagesByName finds images with speficied artifact name
+// ImagesByName finds images with specified artifact name
 func (db *DataStoreMongo) ImagesByName(
 	ctx context.Context, name string) ([]*model.SoftwareImage, error) {
 
@@ -442,7 +442,7 @@ func (db *DataStoreMongo) ImagesByName(
 	session := db.session.Copy()
 	defer session.Close()
 
-	// Both we lookup uniqe object, should be one or none.
+	// Both we lookup unique object, should be one or none.
 	var images []*model.SoftwareImage
 	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
 		C(CollectionImages).Find(query).All(&images); err != nil {
@@ -575,7 +575,7 @@ func (db *DataStoreMongo) FindAll(ctx context.Context) ([]*model.SoftwareImage, 
 	return images, nil
 }
 
-//device deployemnt log
+// device deployment log
 
 func (db *DataStoreMongo) SaveDeviceDeploymentLog(ctx context.Context,
 	log model.DeploymentLog) error {
@@ -861,7 +861,7 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentLogAvailability(ctx context.Cont
 	return nil
 }
 
-// AssignArtifact assignes artifact to the device deployment
+// AssignArtifact assigns artifact to the device deployment
 func (db *DataStoreMongo) AssignArtifact(ctx context.Context,
 	deviceID string, deploymentID string, artifact *model.SoftwareImage) error {
 
