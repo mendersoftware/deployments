@@ -812,7 +812,6 @@ func (d *DeploymentsApiHandlers) ProvisionTenantsHandler(w rest.ResponseWriter, 
 }
 
 func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWriter, r *rest.Request) {
-	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)
 	defer r.Body.Close()
 
@@ -829,7 +828,7 @@ func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWrit
 	}
 
 	ident := &identity.Identity{Tenant: tenantID}
-	ctx = identity.WithContext(r.Context(), ident)
+	ctx := identity.WithContext(r.Context(), ident)
 
 	if deps, err := d.app.LookupDeployment(ctx, query); err != nil {
 		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
