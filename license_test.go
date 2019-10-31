@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package main
 import "testing"
 import mt "github.com/mendersoftware/mendertesting"
 
-func TestLicenses(t *testing.T) {
+func TestMenderCompliance(t *testing.T) {
 	mt.SetLicenseFileForDependency("vendor/github.com/pelletier/go-buffruneio/README.md")
-	mt.CheckLicenses(t)
+	mt.CheckMenderCompliance(t)
 }
