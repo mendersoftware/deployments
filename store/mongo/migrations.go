@@ -16,11 +16,11 @@ package mongo
 import (
 	"context"
 
-	"github.com/globalsign/mgo"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	ctx_store "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const (
@@ -30,12 +30,12 @@ const (
 
 func Migrate(ctx context.Context,
 	version string,
-	session *mgo.Session,
+	client *mongo.Client,
 	automigrate bool) error {
 
 	l := log.FromContext(ctx)
 
-	dbs, err := migrate.GetTenantDbs(session, ctx_store.IsTenantDb(DbName))
+	dbs, err := migrate.GetTenantDbs(ctx, client, ctx_store.IsTenantDb(DbName))
 	if err != nil {
 		return errors.Wrap(err, "failed go retrieve tenant DBs")
 	}
@@ -51,7 +51,7 @@ func Migrate(ctx context.Context,
 	}
 
 	for _, d := range dbs {
-		err := MigrateSingle(ctx, d, version, session, automigrate)
+		err := MigrateSingle(ctx, d, version, client, automigrate)
 		if err != nil {
 			return err
 		}
@@ -63,7 +63,7 @@ func Migrate(ctx context.Context,
 func MigrateSingle(ctx context.Context,
 	db string,
 	version string,
-	session *mgo.Session,
+	client *mongo.Client,
 	automigrate bool) error {
 	l := log.FromContext(ctx)
 
@@ -75,19 +75,19 @@ func MigrateSingle(ctx context.Context,
 	}
 
 	m := migrate.SimpleMigrator{
-		Session:     session,
+		Client:      client,
 		Db:          db,
 		Automigrate: automigrate,
 	}
 
 	migrations := []migrate.Migration{
 		&migration_1_2_1{
-			session: session,
-			db:      db,
+			client: client,
+			db:     db,
 		},
 		&migration_1_2_2{
-			session: session,
-			db:      db,
+			client: client,
+			db:     db,
 		},
 	}
 

@@ -14,67 +14,38 @@
 package mongo
 
 import (
-	"strings"
-
-	"github.com/globalsign/mgo"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type migration_1_2_2 struct {
-	session *mgo.Session
-	db      string
+	client *mongo.Client
+	db     string
 }
 
-// Up drops index with len(name) > 127 chars in the 'deployments' collection
+// Up drops index with len(name) > 70 chars in the 'deployments' collection
 func (m *migration_1_2_2) Up(from migrate.Version) error {
-	s := m.session.Copy()
-	defer s.Close()
+	// There's no indexes to remove here as the only malformed index name
+	// is handeled by 1.2.1 migration. We only need to make sure that the
+	// new indexes exists
 
-	indicesArrays := [][]string{
+	// create the 'short' index
+	storage := NewDataStoreMongoWithClient(m.client)
+	if err := storage.EnsureIndexes(m.db, CollectionDevices,
 		StatusIndexes,
 		DeviceIDStatusIndexes,
-		DeploymentIdIndexes,
+		DeploymentIdIndexes); err != nil {
+		return err
 	}
-	for _, index := range indicesArrays {
-		// DropIndex will use the same rules for exploding the index name
-		// as EnsureIndexKey previously used to create the 'long' index
-		err := s.DB(m.db).
-			C(CollectionDevices).
-			DropIndex(index...)
-
-		// 'ns not found' simply means the idx doesn't exist
-		// DropIndex is just not idempotent, so force it
-		if err != nil && err.Error() != "ns not found" && !strings.HasPrefix(err.Error(), "index not found with name") {
-			return err
-		}
-	}
-
-	indicesArrays = [][]string{
+	return storage.EnsureIndexes(m.db, CollectionDeployments,
 		DeploymentStatusFinishedIndex,
 		DeploymentStatusPendingIndex,
 		DeploymentCreatedIndex,
 		DeploymentDeviceStatusRebootingIndex,
 		DeploymentDeviceStatusPendingIndex,
 		DeploymentDeviceStatusInstallingIndex,
-		DeploymentDeviceStatusFinishedIndex,
-	}
-	for _, index := range indicesArrays {
-		// DropIndex will use the same rules for exploding the index name
-		// as EnsureIndexKey previously used to create the 'long' index
-		err := s.DB(m.db).
-			C(CollectionDeployments).
-			DropIndex(index...)
+		DeploymentDeviceStatusFinishedIndex)
 
-		// 'ns not found' simply means the idx doesn't exist
-		// DropIndex is just not idempotent, so force it
-		if err != nil && err.Error() != "ns not found" && !strings.HasPrefix(err.Error(), "index not found with name") {
-			return err
-		}
-	}
-
-	// create the 'short' index
-	storage := NewDataStoreMongoWithSession(m.session)
-	return storage.DoEnsureAdditionalIndexing(m.db, m.session)
 }
 
 func (m *migration_1_2_2) Version() migrate.Version {

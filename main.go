@@ -98,6 +98,7 @@ func doMain(args []string) {
 }
 
 func cmdServer(args *cli.Context) error {
+	ctx := context.Background()
 	devSetup := args.GlobalBool("dev")
 
 	l := log.New(log.Ctx{})
@@ -110,20 +111,20 @@ func cmdServer(args *cli.Context) error {
 	l.Printf("Deployments Service, version %s starting up",
 		CreateVersionString())
 
-	dbSession, err := mongo.NewMongoSession(config.Config)
+	dbClient, err := mongo.NewMongoClient(ctx, config.Config)
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to connect to db: %v", err),
 			3)
 	}
+	defer dbClient.Disconnect(ctx)
 
-	err = mongo.Migrate(context.Background(), mongo.DbVersion, dbSession, args.Bool("automigrate"))
+	err = mongo.Migrate(ctx, mongo.DbVersion, dbClient, args.Bool("automigrate"))
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to run migrations: %v", err),
 			3)
 	}
-	dbSession.Close()
 
 	err = RunServer(config.Config)
 	if err != nil {
@@ -134,24 +135,24 @@ func cmdServer(args *cli.Context) error {
 }
 
 func cmdMigrate(args *cli.Context) error {
+	ctx := context.Background()
 	tenant := args.String("tenant")
 	db := mstore.DbNameForTenant(tenant, mongo.DbName)
 
-	dbSession, err := mongo.NewMongoSession(config.Config)
+	dbClient, err := mongo.NewMongoClient(ctx, config.Config)
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to connect to db: %v", err),
 			3)
 	}
+	defer dbClient.Disconnect(ctx)
 
-	err = mongo.MigrateSingle(context.Background(), db, mongo.DbVersion, dbSession, true)
+	err = mongo.MigrateSingle(ctx, db, mongo.DbVersion, dbClient, true)
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to run migrations: %v", err),
 			3)
 	}
-
-	dbSession.Close()
 
 	return nil
 }
