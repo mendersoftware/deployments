@@ -19,11 +19,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	ctxstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/mendersoftware/deployments/model"
 )
@@ -112,14 +113,16 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 		// Make sure we start test with empty database
 		db.Wipe()
 
-		session := db.Session()
-		store := NewDataStoreMongoWithSession(session)
+		client := db.Client()
+		store := NewDataStoreMongoWithClient(client)
 
 		ctx := context.Background()
 		if testCase.InputTenant != "" {
 			ctx = identity.WithContext(ctx, &identity.Identity{
 				Tenant: testCase.InputTenant,
 			})
+		} else {
+			ctx = context.Background()
 		}
 
 		err := store.SaveDeviceDeploymentLog(ctx,
@@ -132,12 +135,15 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 
 			// no errors, so we should be able to find the log in DB
 			var dlog model.DeploymentLog
-			err := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-				C(CollectionDeviceDeploymentLogs).
-				Find(bson.M{
-					StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceDeploymentLog.DeviceID,
-					StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeviceDeploymentLog.DeploymentID,
-				}).One(&dlog)
+			collDepLogs := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeviceDeploymentLogs)
+			err := collDepLogs.FindOne(ctx, bson.M{
+				StorageKeyDeviceDeploymentDeviceId: testCase.
+					InputDeviceDeploymentLog.DeviceID,
+				StorageKeyDeviceDeploymentDeploymentID: testCase.
+					InputDeviceDeploymentLog.DeploymentID,
+			}).Decode(&dlog)
 
 			assert.NoError(t, err)
 
@@ -149,19 +155,20 @@ func TestSaveDeviceDeploymentLog(t *testing.T) {
 			if testCase.InputTenant != "" {
 				// logs were saved to tenant's DB, double check
 				// that they are not found in default DB
-				c, err := session.DB(DatabaseName).
-					C(CollectionDeviceDeploymentLogs).
-					Find(bson.M{
-						StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceDeploymentLog.DeviceID,
-						StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeviceDeploymentLog.DeploymentID,
-					}).Count()
-				assert.Equal(t, 0, c)
-				assert.NoError(t, err)
+				var tmp interface{}
+				collDefaultDepLogs := client.
+					Database(DatabaseName).
+					Collection(CollectionDeviceDeploymentLogs)
+				err := collDefaultDepLogs.FindOne(ctx, bson.M{
+					StorageKeyDeviceDeploymentDeviceId: testCase.
+						InputDeviceDeploymentLog.DeviceID,
+					StorageKeyDeviceDeploymentDeploymentID: testCase.
+						InputDeviceDeploymentLog.DeploymentID,
+				}).Decode(&tmp)
+				assert.Equal(t, err, mongo.ErrNoDocuments)
 			}
 
 		}
-		// Need to close all sessions to be able to call wipe at next test case
-		session.Close()
 	}
 }
 
@@ -242,9 +249,9 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 	// Make sure we start test with empty database
 	db.Wipe()
 
-	session := db.Session()
+	client := db.Client()
 
-	store := NewDataStoreMongoWithSession(session)
+	store := NewDataStoreMongoWithClient(client)
 
 	for _, dl := range logs {
 		// save all messages to default DB
@@ -262,6 +269,8 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 			ctx = identity.WithContext(ctx, &identity.Identity{
 				Tenant: testCase.InputTenant,
 			})
+		} else {
+			ctx = context.Background()
 		}
 
 		dlog, err := store.GetDeviceDeploymentLog(ctx,
@@ -288,8 +297,5 @@ func TestGetDeviceDeploymentLog(t *testing.T) {
 			}
 		}
 	}
-	// Need to close all sessions to be able to call wipe at next test case
-	session.Close()
-
 	db.Wipe()
 }

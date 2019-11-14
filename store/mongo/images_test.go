@@ -20,6 +20,7 @@ import (
 
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/mendersoftware/deployments/model"
 )
@@ -30,7 +31,7 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 	}
 
 	//image dataset - common for all cases
-	inputImgs := []interface{}{
+	inputImgs := bson.A{
 		&model.SoftwareImage{
 			Id: "1",
 			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
@@ -38,7 +39,7 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name: "App1 v1.0",
+				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
@@ -50,7 +51,7 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name: "App2 v0.1",
+				Name:                  "App2 v0.1",
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []model.Update{},
 			},
@@ -58,12 +59,14 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 	}
 
 	//setup db - common for all cases
+	ctx := context.Background()
 	db.Wipe()
-	session := db.Session()
-	defer session.Close()
+	client := db.Client()
 
-	coll := session.DB(DatabaseName).C(CollectionImages)
-	assert.NoError(t, coll.Insert(inputImgs...))
+	collection := client.Database(DatabaseName).Collection(CollectionImages)
+	res, err := collection.InsertMany(ctx, inputImgs)
+	assert.NoError(t, err)
+	assert.Equal(t, len(res.InsertedIDs), len(inputImgs))
 
 	testCases := map[string]struct {
 		InputImageName string
@@ -126,6 +129,9 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			InputImageName: "App1 v1.0",
 			InputDevType:   "foo",
 			InputTenant:    "acme",
+
+			OutputImage: nil,
+			OutputError: nil,
 		},
 	}
 
@@ -134,13 +140,14 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 		// Run each test case as subtest
 		t.Run(name, func(t *testing.T) {
 
-			ctx := context.Background()
 			if tc.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: tc.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
-			store := NewDataStoreMongoWithSession(session)
+			store := NewDataStoreMongoWithClient(client)
 			img, err := store.ImageByNameAndDeviceType(ctx,
 				tc.InputImageName, tc.InputDevType)
 
@@ -174,7 +181,7 @@ func TestIsArtifactUnique(t *testing.T) {
 			},
 
 			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-				Name: "app1-v1.0",
+				Name:                  "app1-v1.0",
 				DeviceTypesCompatible: []string{"foo", "bar"},
 				Updates:               []model.Update{},
 			},
@@ -182,12 +189,13 @@ func TestIsArtifactUnique(t *testing.T) {
 	}
 
 	//setup db - common for all cases
+	ctx := context.Background()
 	db.Wipe()
-	session := db.Session()
-	defer session.Close()
+	client := db.Client()
 
-	coll := session.DB(DatabaseName).C(CollectionImages)
-	assert.NoError(t, coll.Insert(inputImgs...))
+	collection := client.Database(DatabaseName).Collection(CollectionImages)
+	_, err := collection.InsertMany(ctx, inputImgs)
+	assert.NoError(t, err)
 
 	testCases := map[string]struct {
 		InputArtifactName string
@@ -238,13 +246,14 @@ func TestIsArtifactUnique(t *testing.T) {
 		// Run test cases as subtests
 		t.Run(name, func(t *testing.T) {
 
-			ctx := context.Background()
 			if tc.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: tc.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
-			store := NewDataStoreMongoWithSession(session)
+			store := NewDataStoreMongoWithClient(client)
 			isUnique, err := store.IsArtifactUnique(ctx,
 				tc.InputArtifactName, tc.InputDevTypes)
 

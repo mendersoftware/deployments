@@ -25,6 +25,7 @@ func TestMigration_1_2_2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestMigration_1_2_2 in short mode.")
 	}
+	ctx := context.Background()
 
 	testCases := map[string]struct {
 		// ST or MT naming convention
@@ -47,67 +48,74 @@ func TestMigration_1_2_2(t *testing.T) {
 		t.Logf("test case: %s", name)
 
 		db.Wipe()
-		s := db.Session()
+		c := db.Client()
 
 		// setup
 		// setup existing migrations
 		if tc.dbVer != "" {
 			ver, err := migrate.NewVersion(tc.dbVer)
 			assert.NoError(t, err)
-			migrate.UpdateMigrationInfo(*ver, s, tc.db)
+			migrate.UpdateMigrationInfo(db.CTX(), *ver, c, tc.db)
 		}
 
 		migrations := []migrate.Migration{
 			&migration_1_2_1{
-				session: s,
-				db:      tc.db,
+				client: c,
+				db:     tc.db,
 			},
 			&migration_1_2_2{
-				session: s,
-				db:      tc.db,
+				client: c,
+				db:     tc.db,
 			},
 		}
 
 		m := migrate.SimpleMigrator{
-			Session:     s,
+			Client:      c,
 			Db:          tc.db,
 			Automigrate: true,
 		}
 
-		err := m.Apply(context.Background(), migrate.MakeVersion(1, 2, 2), migrations)
+		err := m.Apply(ctx, migrate.MakeVersion(1, 2, 2), migrations)
 		assert.NoError(t, err)
 
 		devicesCollectionIndicesNames := []string{
-			IndexDeploymentDeviceStatusesStr,
-			IndexDeploymentDeviceIdStatusStr,
-			IndexDeploymentDeviceDeploymentIdStr,
+			IndexDeploymentDeviceStatusesName,
+			IndexDeploymentDeviceIdStatusName,
+			IndexDeploymentDeviceDeploymentIdName,
 		}
 		// verify new indices present
-		idxs, err := s.DB(tc.db).C(CollectionDevices).Indexes()
-		assert.NoError(t, err)
+		collection := c.Database(tc.db).Collection(CollectionDevices)
+		indexes := collection.Indexes()
+		cursor, _ := indexes.List(ctx)
+		for cursor.Next(ctx) {
+			var tmp map[string]interface{}
+			cursor.Decode(&tmp)
+			t.Log(tmp)
+		}
 
 		for _, indexName := range devicesCollectionIndicesNames {
-			hasNew := hasIndex(indexName, idxs)
+			hasNew, err := hasIndex(ctx, indexName, indexes)
+			assert.NoError(t, err)
 			assert.True(t, hasNew)
 		}
 
 		deploymentsCollectionIndicesNames := []string{
-			IndexDeploymentStatusFinishedStr,
-			IndexDeploymentStatusPendingStr,
-			IndexDeploymentCreatedStr,
-			IndexDeploymentDeviceStatusRebootingStr,
-			IndexDeploymentDeviceStatusPendingStr,
-			IndexDeploymentDeviceStatusInstallingStr,
-			IndexDeploymentDeviceStatusFinishedStr,
+			IndexDeploymentStatusFinishedName,
+			IndexDeploymentStatusPendingName,
+			IndexDeploymentCreatedName,
+			IndexDeploymentDeviceStatusRebootingName,
+			IndexDeploymentDeviceStatusPendingName,
+			IndexDeploymentDeviceStatusInstallingName,
+			IndexDeploymentDeviceStatusFinishedName,
 		}
-		// verify new indices present
-		idxs, err = s.DB(tc.db).C(CollectionDeployments).Indexes()
-		assert.NoError(t, err)
+		// verify new deployment indices present
+		collection = c.Database(tc.db).Collection(CollectionDeployments)
+		indexes = collection.Indexes()
 		for _, indexName := range deploymentsCollectionIndicesNames {
-			hasNew := hasIndex(indexName, idxs)
+			hasNew, err := hasIndex(ctx, indexName, indexes)
+			assert.NoError(t, err)
+			t.Log("Checking index: " + indexName)
 			assert.True(t, hasNew)
 		}
-
-		s.Close()
 	}
 }

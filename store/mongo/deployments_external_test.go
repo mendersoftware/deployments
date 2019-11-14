@@ -23,7 +23,9 @@ import (
 
 	"github.com/mendersoftware/go-lib-micro/identity"
 	ctxstore "github.com/mendersoftware/go-lib-micro/store"
+	mstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/mendersoftware/deployments/model"
 	. "github.com/mendersoftware/deployments/utils/pointers"
@@ -79,13 +81,16 @@ func TestDeploymentStorageInsert(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			store := NewDataStoreMongoWithSession(db.Session())
+			client := db.Client()
+			ctx := db.CTX()
+			store := NewDataStoreMongoWithClient(client)
 
-			ctx := context.Background()
 			if testCase.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: testCase.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
 			err := store.InsertDeployment(ctx, testCase.InputDeployment)
@@ -95,22 +100,24 @@ func TestDeploymentStorageInsert(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 
-				dep := store.session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-					C(CollectionDeployments)
-				count, err := dep.Find(nil).Count()
+				collDep := client.Database(ctxstore.
+					DbFromContext(ctx, DatabaseName)).
+					Collection(CollectionDeployments)
+				count, err := collDep.CountDocuments(
+					ctx, bson.D{})
 				assert.NoError(t, err)
-				assert.Equal(t, 1, count)
+				assert.Equal(t, 1, int(count))
 
 				if testCase.InputTenant != "" {
-					indefault, _ := store.session.DB(DatabaseName).
-						C(CollectionDeployments).
-						Find(nil).Count()
-					assert.Equal(t, 0, indefault)
+					collDefaultDep := client.
+						Database(DatabaseName).
+						Collection(CollectionDeployments)
+					indefault, err := collDefaultDep.
+						CountDocuments(ctx, bson.D{})
+					assert.NoError(t, err)
+					assert.Equal(t, 0, int(indefault))
 				}
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			store.session.Close()
 		})
 	}
 }
@@ -172,19 +179,25 @@ func TestDeploymentStorageDelete(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			store := NewDataStoreMongoWithSession(db.Session())
+			client := db.Client()
+			ctx := db.CTX()
+			store := NewDataStoreMongoWithClient(client)
 
-			ctx := context.Background()
 			if testCase.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: testCase.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
-			dep := store.session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-				C(CollectionDeployments)
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
 			if testCase.InputDeploymentsCollection != nil {
-				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
+				_, err := collDep.InsertMany(ctx,
+					testCase.InputDeploymentsCollection)
+				assert.NoError(t, err)
 			}
 
 			err := store.DeleteDeployment(ctx, testCase.InputID)
@@ -194,20 +207,21 @@ func TestDeploymentStorageDelete(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 
-				count, err := dep.FindId(testCase.InputID).Count()
+				count, err := collDep.CountDocuments(ctx,
+					bson.M{"_id": testCase.InputID})
 				assert.NoError(t, err)
-				assert.Equal(t, 0, count)
+				assert.Equal(t, 0, int(count))
 
 				if testCase.InputTenant != "" {
-					indefault, _ := store.session.DB(DatabaseName).
-						C(CollectionDeployments).
-						Find(nil).Count()
-					assert.Equal(t, 0, indefault)
+					collDefaultDep := client.
+						Database(DatabaseName).
+						Collection(CollectionDeployments)
+					indefault, err := collDefaultDep.
+						CountDocuments(ctx, bson.D{})
+					assert.NoError(t, err)
+					assert.Equal(t, 0, int(indefault))
 				}
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			store.session.Close()
 		})
 	}
 }
@@ -220,7 +234,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 
 	testCases := []struct {
 		InputID                    string
-		InputDeploymentsCollection []interface{}
+		InputDeploymentsCollection bson.A
 		InputTenant                string
 
 		OutputError      error
@@ -237,7 +251,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		},
 		{
 			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
-			InputDeploymentsCollection: []interface{}{
+			InputDeploymentsCollection: bson.A{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
@@ -260,7 +274,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		},
 		{
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeploymentsCollection: []interface{}{
+			InputDeploymentsCollection: bson.A{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
@@ -323,7 +337,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		},
 		{
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeploymentsCollection: []interface{}{
+			InputDeploymentsCollection: bson.A{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
 						Name:         StringToPointer("NYC Production"),
@@ -354,19 +368,25 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			store := NewDataStoreMongoWithSession(db.Session())
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: testCase.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
-			dep := store.session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-				C(CollectionDeployments)
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
 			if testCase.InputDeploymentsCollection != nil {
-				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
+				_, err := collDep.InsertMany(
+					ctx, testCase.InputDeploymentsCollection)
+				assert.NoError(t, err)
 			}
 
 			deployment, err := store.FindDeploymentByID(ctx, testCase.InputID)
@@ -388,9 +408,6 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 				assert.Nil(t, deployment)
 				assert.Nil(t, err)
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			store.session.Close()
 		})
 	}
 }
@@ -570,19 +587,26 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			store := NewDataStoreMongoWithSession(db.Session())
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: testCase.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
-			dep := store.session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-				C(CollectionDeployments)
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
+
 			if testCase.InputDeploymentsCollection != nil {
-				assert.NoError(t, dep.Insert(testCase.InputDeploymentsCollection...))
+				_, err := collDep.InsertMany(
+					ctx, testCase.InputDeploymentsCollection)
+				assert.NoError(t, err)
 			}
 
 			deployment, err := store.FindUnfinishedByID(ctx, testCase.InputID)
@@ -604,9 +628,6 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 				assert.Nil(t, deployment)
 				assert.Nil(t, err)
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			store.session.Close()
 		})
 	}
 }
@@ -804,27 +825,35 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 
 			db.Wipe()
 
-			store := NewDataStoreMongoWithSession(db.Session())
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if tc.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: tc.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
 			if tc.InputDeployment != nil {
-				err := store.session.DB(DatabaseName).
-					C(CollectionDeployments).
-					Insert(tc.InputDeployment)
+				collDefaultDep := client.Database(DatabaseName).
+					Collection(CollectionDeployments)
+				_, err := collDefaultDep.InsertOne(ctx,
+					tc.InputDeployment)
 				assert.NoError(t, err)
 				// multi tenant test only makes sense if there
 				// is a deployment to input, if there's one
 				// we'll add it to tenant's DB
 				if tc.InputTenant != "" {
-					err = store.session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-						C(CollectionDeployments).
-						Insert(tc.InputDeployment)
+					collDep := client.Database(ctxstore.
+						DbFromContext(ctx,
+							DatabaseName)).
+						Collection(CollectionDeployments)
+
+					_, err = collDep.InsertOne(ctx,
+						tc.InputDeployment)
 					assert.NoError(t, err)
 				}
 			}
@@ -836,9 +865,12 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
 				var deployment *model.Deployment
-				err := store.session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-					C(CollectionDeployments).
-					FindId(tc.InputID).One(&deployment)
+				collDep := client.Database(ctxstore.
+					DbFromContext(ctx, DatabaseName)).
+					Collection(CollectionDeployments)
+				err := collDep.FindOne(ctx,
+					bson.M{"_id": tc.InputID}).
+					Decode(&deployment)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.OutputStats, deployment.Stats)
 
@@ -847,17 +879,17 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 				// makes sense if there's an input deployment
 				if tc.InputTenant != "" && tc.InputDeployment != nil {
 					var defDeployment *model.Deployment
-					err := store.session.DB(DatabaseName).
-						C(CollectionDeployments).
-						FindId(tc.InputID).One(&defDeployment)
+					collDefaultDep := client.
+						Database(DatabaseName).
+						Collection(CollectionDeployments)
+					err := collDefaultDep.FindOne(ctx,
+						bson.M{"_id": tc.InputID}).
+						Decode(&defDeployment)
 					assert.NoError(t, err)
 					assert.Equal(t, defDeployment.Stats, tc.InputDeployment.Stats)
 				}
 
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			store.session.Close()
 		})
 	}
 }
@@ -941,19 +973,25 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 
 			db.Wipe()
 
-			store := NewDataStoreMongoWithSession(db.Session())
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if tc.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: tc.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
-			dep := store.session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-				C(CollectionDeployments)
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
 			if tc.InputDeployment != nil {
-				assert.NoError(t, dep.Insert(tc.InputDeployment))
+				_, err := collDep.InsertOne(
+					ctx, tc.InputDeployment)
+				assert.NoError(t, err)
 			}
 
 			err := store.UpdateStatsAndFinishDeployment(ctx,
@@ -963,9 +1001,9 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
 				var deployment *model.Deployment
-				err := store.session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-					C(CollectionDeployments).
-					FindId(tc.InputID).One(&deployment)
+				err := collDep.FindOne(ctx,
+					bson.M{"_id": tc.InputID}).
+					Decode(&deployment)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.InputStats, deployment.Stats)
 			}
@@ -979,9 +1017,6 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 					tc.InputID, tc.InputStats)
 				assert.EqualError(t, err, ErrStorageInvalidID.Error())
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			store.session.Close()
 		})
 	}
 }
@@ -1389,13 +1424,16 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			store := NewDataStoreMongoWithSession(db.Session())
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: testCase.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
 			createdTime := time.Now().UTC()
@@ -1405,6 +1443,13 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				// are created with 'created time' within a
 				// minute from each other, this will ensure
 				// proper ordering
+
+				// Ensure that storage indexes are present
+				// before inserting deployment.
+				err := store.EnsureIndexes(
+					mstore.DbFromContext(ctx, DatabaseName),
+					CollectionDeployments, StorageIndexes)
+				assert.NoError(t, err)
 				d.Created = &createdTime
 				assert.NoError(t, store.InsertDeployment(ctx, d))
 				createdTime = createdTime.Add(time.Minute)
@@ -1420,7 +1465,6 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Len(t, deps, len(testCase.OutputID))
 				if out := assert.Len(t, deps, len(testCase.OutputID)); !out {
-					store.session.Close()
 					t.FailNow()
 				}
 
@@ -1443,7 +1487,13 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			if testCase.InputTenant != "" {
 				// have to add a deployment, otherwise, it won't
 				// be possible to run find queries
-				err := store.InsertDeployment(context.Background(),
+
+				// Ensure that storage indexes are present
+				// before creating deployment
+				err := store.EnsureIndexes(DatabaseName,
+					CollectionDeployments, StorageIndexes)
+				assert.NoError(t, err)
+				err = store.InsertDeployment(context.Background(),
 					&model.Deployment{
 						DeploymentConstructor: &model.DeploymentConstructor{
 							Name:         StringToPointer("foo-" + testCase.InputTenant),
@@ -1464,9 +1514,6 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				assert.Len(t, deps, 0)
 				assert.NoError(t, err)
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			store.session.Close()
 		})
 	}
 }
@@ -1509,19 +1556,24 @@ func TestDeploymentFinish(t *testing.T) {
 
 			db.Wipe()
 
-			store := NewDataStoreMongoWithSession(db.Session())
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if tc.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: tc.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
 			if tc.InputDeployment != nil {
-				dep := store.session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-					C(CollectionDeployments)
-				assert.NoError(t, dep.Insert(tc.InputDeployment))
+				_, err := collDep.InsertOne(ctx, tc.InputDeployment)
+				assert.NoError(t, err)
 			}
 
 			now := time.Now()
@@ -1531,9 +1583,9 @@ func TestDeploymentFinish(t *testing.T) {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
 				var deployment *model.Deployment
-				err := store.session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-					C(CollectionDeployments).
-					FindId(tc.InputID).One(&deployment)
+				err := collDep.FindOne(ctx,
+					bson.M{"_id": tc.InputID}).
+					Decode(&deployment)
 				assert.NoError(t, err)
 
 				if assert.NotNil(t, deployment.Finished) {
@@ -1550,8 +1602,6 @@ func TestDeploymentFinish(t *testing.T) {
 				err := store.Finish(context.Background(), tc.InputID, now)
 				assert.EqualError(t, err, ErrStorageInvalidID.Error())
 			}
-			// Need to close all sessions to be able to call wipe at next test case
-			store.session.Close()
 		})
 	}
 }
@@ -1663,18 +1713,20 @@ func TestDeploymentFiltering(t *testing.T) {
 	for idx, tc := range testCases {
 		t.Run(fmt.Sprintf("test_%d", idx), func(t *testing.T) {
 			db.Wipe()
-			session := db.Session()
+			client := db.Client()
 
-			defer session.Close()
-			store := NewDataStoreMongoWithSession(session)
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 
 			if tc.InputDeployment != nil {
 				for _, d := range tc.InputDeployment {
-					dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-						C(CollectionDeployments)
-					assert.NoError(t, dep.Insert(d))
+					collDep := client.Database(ctxstore.
+						DbFromContext(ctx,
+							DatabaseName)).
+						Collection(CollectionDeployments)
+					_, err := collDep.InsertOne(ctx, d)
+					assert.NoError(t, err)
 				}
 			}
 
@@ -1738,20 +1790,21 @@ func TestDeviceDeploymentCounting(t *testing.T) {
 	for idx, tc := range testCases {
 		t.Run(fmt.Sprintf("test_%d", idx), func(t *testing.T) {
 			db.Wipe()
-			session := db.Session()
+			client := db.Client()
 
-			defer session.Close()
-			store := NewDataStoreMongoWithSession(session)
+			store := NewDataStoreMongoWithClient(client)
 			ctx := context.Background()
 
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDevices)
 			for _, d := range tc.InputDeviceDeployment {
-				dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-					C(CollectionDevices).Insert(d)
-				assert.NoError(t, dep)
+				_, err := collDep.InsertOne(ctx, d)
+				assert.NoError(t, err)
 			}
 
 			actualCount, err := store.DeviceCountByDeployment(ctx, tc.InputDeploymentID)
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, tc.DeviceCount, actualCount)
 		})
 	}

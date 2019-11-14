@@ -21,10 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	ctxstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/utils/pointers"
@@ -96,14 +96,16 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			session := db.Session()
-			store := NewDataStoreMongoWithSession(session)
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: testCase.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
 			err := store.InsertMany(ctx,
@@ -113,26 +115,26 @@ func TestDeviceDeploymentStorageInsert(t *testing.T) {
 				assert.EqualError(t, err, testCase.OutputError.Error())
 			} else {
 				assert.NoError(t, err)
-
-				count, err := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-					C(CollectionDevices).
-					Find(nil).Count()
+				collection := client.Database(ctxstore.
+					DbFromContext(ctx, DatabaseName)).
+					Collection(CollectionDevices)
+				count, err := collection.CountDocuments(
+					ctx, bson.D{})
 				assert.NoError(t, err)
-				assert.Equal(t, len(testCase.InputDeviceDeployment), count)
+				assert.Equal(t, len(testCase.
+					InputDeviceDeployment), int(count))
 
 				if testCase.InputTenant != "" {
 					// deployment was added to tenant's DB,
 					// make sure it's not in default DB
-					count, err := session.DB(DatabaseName).
-						C(CollectionDevices).
-						Find(nil).Count()
+					collectionDefault := client.Database(
+						DatabaseName).Collection(CollectionDevices)
+					count, err = collectionDefault.
+						CountDocuments(ctx, bson.D{})
 					assert.NoError(t, err)
-					assert.Equal(t, 0, count)
+					assert.Equal(t, 0, int(count))
 				}
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			session.Close()
 		})
 	}
 }
@@ -258,16 +260,17 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			session := db.Session()
-			defer session.Close()
+			client := db.Client()
 
-			store := NewDataStoreMongoWithSession(session)
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: testCase.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
 			// deployments are created with status DeviceDeploymentStatusPending
@@ -292,7 +295,8 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 					// similar update in default DB should
 					// fail because deployments are present
 					// in tenant's DB only
-					_, err := store.UpdateDeviceDeploymentStatus(context.Background(),
+					_, err := store.UpdateDeviceDeploymentStatus(
+						context.Background(),
 						testCase.InputDeviceID, testCase.InputDeploymentID,
 						model.DeviceDeploymentStatus{
 							Status:     testCase.InputStatus,
@@ -307,12 +311,14 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			if testCase.InputDeviceDeployment != nil {
 				// these checks only make sense if there are any deployments in database
 				var deployment *model.DeviceDeployment
-				dep := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).C(CollectionDevices)
+				collDevs := client.Database(ctxstore.
+					DbFromContext(ctx, DatabaseName)).
+					Collection(CollectionDevices)
 				query := bson.M{
 					StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceID,
 					StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
 				}
-				err := dep.Find(query).One(&deployment)
+				err := collDevs.FindOne(ctx, query).Decode(&deployment)
 				assert.NoError(t, err)
 				if testCase.OutputError != nil {
 					// status must be unchanged in case of errors
@@ -407,14 +413,16 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			session := db.Session()
-			store := NewDataStoreMongoWithSession(session)
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: testCase.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
 			// deployments are created with status DeviceDeploymentStatusPending
@@ -439,21 +447,20 @@ func TestUpdateDeviceDeploymentLogAvailability(t *testing.T) {
 			}
 
 			if testCase.InputDeviceDeployment != nil {
-				var deployment *model.DeviceDeployment
+				var deployment model.DeviceDeployment
 				query := bson.M{
 					StorageKeyDeviceDeploymentDeviceId:     testCase.InputDeviceID,
 					StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
 				}
-				err := session.DB(ctxstore.DbFromContext(ctx, DatabaseName)).
-					C(CollectionDevices).
-					Find(query).One(&deployment)
+				collDevs := client.Database(ctxstore.
+					DbFromContext(ctx, DatabaseName)).
+					Collection(CollectionDevices)
 
+				err := collDevs.FindOne(ctx, query).
+					Decode(&deployment)
 				assert.NoError(t, err)
 				assert.Equal(t, testCase.InputLog, deployment.IsLogAvailable)
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			session.Close()
 		})
 	}
 }
@@ -543,14 +550,16 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			session := db.Session()
-			store := NewDataStoreMongoWithSession(session)
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if testCase.InputTenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
 					Tenant: testCase.InputTenant,
 				})
+			} else {
+				ctx = context.Background()
 			}
 
 			err := store.InsertMany(ctx, testCase.InputDeviceDeployment...)
@@ -577,9 +586,6 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 				assert.NotNil(t, stats)
 				assert.Equal(t, testCase.OutputStats, stats)
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			session.Close()
 		})
 	}
 }
@@ -640,8 +646,8 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 			// setup db - once for all cases
 			db.Wipe()
 
-			session := db.Session()
-			store := NewDataStoreMongoWithSession(session)
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if tc.tenant != "" {
@@ -672,8 +678,6 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Len(t, statuses, 0)
 			}
-
-			session.Close()
 		})
 	}
 }
@@ -745,8 +749,8 @@ func TestHasDeploymentForDevice(t *testing.T) {
 
 			db.Wipe()
 
-			session := db.Session()
-			store := NewDataStoreMongoWithSession(session)
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if tc.tenant != "" {
@@ -778,8 +782,6 @@ func TestHasDeploymentForDevice(t *testing.T) {
 					assert.NoError(t, err)
 				}
 			}
-
-			session.Close()
 		})
 	}
 }
@@ -843,8 +845,8 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 
 			db.Wipe()
 
-			session := db.Session()
-			store := NewDataStoreMongoWithSession(session)
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
 			if tc.tenant != "" {
@@ -870,8 +872,6 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, "", status)
 			}
-
-			session.Close()
 		})
 	}
 
@@ -910,7 +910,7 @@ func TestAbortDeviceDeployments(t *testing.T) {
 		},
 		"all correct": {
 			InputDeploymentID:     "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			InputDeviceDeployment: []*model.DeviceDeployment{},
+			InputDeviceDeployment: input,
 			OutputError:           nil,
 		},
 	}
@@ -921,8 +921,8 @@ func TestAbortDeviceDeployments(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			session := db.Session()
-			store := NewDataStoreMongoWithSession(session)
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
 
 			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
@@ -938,11 +938,14 @@ func TestAbortDeviceDeployments(t *testing.T) {
 			if testCase.InputDeviceDeployment != nil {
 				// these checks only make sense if there are any deployments in database
 				var deploymentList []model.DeviceDeployment
-				dep := session.DB(DatabaseName).C(CollectionDevices)
+				collDevs := client.Database(DatabaseName).
+					Collection(CollectionDevices)
 				query := bson.M{
 					StorageKeyDeviceDeploymentDeploymentID: testCase.InputDeploymentID,
 				}
-				err := dep.Find(query).All(&deploymentList)
+				cursor, err := collDevs.Find(db.CTX(), query)
+				assert.NoError(t, err)
+				err = cursor.All(db.CTX(), &deploymentList)
 				assert.NoError(t, err)
 
 				if testCase.OutputError != nil {
@@ -958,9 +961,6 @@ func TestAbortDeviceDeployments(t *testing.T) {
 					}
 				}
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			session.Close()
 		})
 	}
 }
@@ -1009,13 +1009,14 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 			// Make sure we start test with empty database
 			db.Wipe()
 
-			session := db.Session()
-			store := NewDataStoreMongoWithSession(session)
+			client := db.Client()
+			ctx := db.CTX()
+			store := NewDataStoreMongoWithClient(client)
 
-			err := store.InsertMany(context.Background(), testCase.InputDeviceDeployment...)
+			err := store.InsertMany(ctx, testCase.InputDeviceDeployment...)
 			assert.NoError(t, err)
 
-			err = store.DecommissionDeviceDeployments(context.Background(), testCase.InputDeviceId)
+			err = store.DecommissionDeviceDeployments(ctx, testCase.InputDeviceId)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -1026,11 +1027,14 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 			if testCase.InputDeviceDeployment != nil {
 				// these checks only make sense if there are any deployments in database
 				var deploymentList []model.DeviceDeployment
-				dep := session.DB(DatabaseName).C(CollectionDevices)
+				collDevs := client.Database(DatabaseName).
+					Collection(CollectionDevices)
 				query := bson.M{
 					StorageKeyDeviceDeploymentDeviceId: testCase.InputDeviceId,
 				}
-				err := dep.Find(query).All(&deploymentList)
+				cursor, err := collDevs.Find(ctx, query)
+				assert.NoError(t, err)
+				err = cursor.All(ctx, &deploymentList)
 				assert.NoError(t, err)
 
 				if testCase.OutputError != nil {
@@ -1046,9 +1050,6 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 					}
 				}
 			}
-
-			// Need to close all sessions to be able to call wipe at next test case
-			session.Close()
 		})
 	}
 }
