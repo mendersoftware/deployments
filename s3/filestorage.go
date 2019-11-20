@@ -95,6 +95,8 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
 				return nil, err
 			}
+		} else {
+			return nil, err
 		}
 	}
 
@@ -124,6 +126,8 @@ func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageServi
 			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
 				return nil, err
 			}
+		} else {
+			return nil, err
 		}
 	}
 
