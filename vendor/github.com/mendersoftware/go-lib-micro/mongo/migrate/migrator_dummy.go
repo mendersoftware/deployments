@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/globalsign/mgo"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/mendersoftware/go-lib-micro/log"
 )
@@ -26,7 +26,7 @@ import (
 // MigratorDummy does not actually apply migrations, just inserts the
 // target version into the db to mark the initial/current state.
 type DummyMigrator struct {
-	Session     *mgo.Session
+	Client     *mongo.Client
 	Db          string
 	Automigrate bool
 }
@@ -35,7 +35,7 @@ type DummyMigrator struct {
 func (m *DummyMigrator) Apply(ctx context.Context, target Version, migrations []Migration) error {
 	l := log.FromContext(ctx).F(log.Ctx{"db": m.Db})
 
-	applied, err := GetMigrationInfo(m.Session, m.Db)
+	applied, err := GetMigrationInfo(ctx, m.Client, m.Db)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (m *DummyMigrator) Apply(ctx context.Context, target Version, migrations []
 
 	if VersionIsLess(last, target) {
 		l.Infof("applying migration from version %s to %s", last, target)
-		return UpdateMigrationInfo(target, m.Session, m.Db)
+		return UpdateMigrationInfo(ctx, target, m.Client, m.Db)
 	} else {
 		l.Infof("migration to version %s skipped", target)
 	}

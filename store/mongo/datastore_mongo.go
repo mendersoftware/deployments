@@ -16,15 +16,18 @@ package mongo
 import (
 	"context"
 	"crypto/tls"
-	"net"
+	"strings"
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/mendersoftware/go-lib-micro/config"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	mopts "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
@@ -39,58 +42,159 @@ const (
 	CollectionDevices              = "devices"
 )
 
-// Indexes
-const (
-	IndexUniqeNameAndDeviceTypeStr           = "uniqueNameAndDeviceTypeIndex"
-	IndexDeploymentArtifactNameStr           = "deploymentArtifactNameIndex"
-	IndexDeploymentDeviceStatusesStr         = "deviceIdWithStatusByCreated"
-	IndexDeploymentDeviceIdStatusStr         = "devicesIdWithStatus"
-	IndexDeploymentDeviceDeploymentIdStr     = "devicesDeploymentId"
-	IndexDeploymentStatusFinishedStr         = "deploymentStatusFinished"
-	IndexDeploymentStatusPendingStr          = "deploymentStatusPending"
-	IndexDeploymentCreatedStr                = "deploymentCreated"
-	IndexDeploymentDeviceStatusRebootingStr  = "deploymentsDeviceStatusRebooting"
-	IndexDeploymentDeviceStatusPendingStr    = "deploymentsDeviceStatusPending"
-	IndexDeploymentDeviceStatusInstallingStr = "deploymentsDeviceStatusInstalling"
-	IndexDeploymentDeviceStatusFinishedStr   = "deploymentsFinished"
-)
-
 var (
-	StorageIndexes = []string{
-		"$text:" + StorageKeyDeploymentName,
-		"$text:" + StorageKeyDeploymentArtifactName,
+	// Indexes (version: 1.2.2)
+	IndexUniqueNameAndDeviceTypeName          = "uniqueNameAndDeviceTypeIndex"
+	IndexDeploymentArtifactName               = "deploymentArtifactNameIndex"
+	IndexDeploymentDeviceStatusesName         = "deviceIdWithStatusByCreated"
+	IndexDeploymentDeviceIdStatusName         = "devicesIdWithStatus"
+	IndexDeploymentDeviceDeploymentIdName     = "devicesDeploymentId"
+	IndexDeploymentStatusFinishedName         = "deploymentStatusFinished"
+	IndexDeploymentStatusPendingName          = "deploymentStatusPending"
+	IndexDeploymentCreatedName                = "deploymentCreated"
+	IndexDeploymentDeviceStatusRebootingName  = "deploymentsDeviceStatusRebooting"
+	IndexDeploymentDeviceStatusPendingName    = "deploymentsDeviceStatusPending"
+	IndexDeploymentDeviceStatusInstallingName = "deploymentsDeviceStatusInstalling"
+	IndexDeploymentDeviceStatusFinishedName   = "deploymentsFinished"
+
+	_false         = false
+	_true          = true
+	StorageIndexes = mongo.IndexModel{
+		// NOTE: Keys should be bson.D as element
+		//       order matters!
+		Keys: bson.D{
+			{Key: StorageKeyDeploymentName,
+				Value: "text"},
+			{Key: StorageKeyDeploymentArtifactName,
+				Value: "text"},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentArtifactName,
+		},
 	}
-	StatusIndexes = []string{
-		StorageKeyDeviceDeploymentDeviceId,
-		StorageKeyDeviceDeploymentStatus,
-		StorageKeyDeploymentStatsCreated,
+	StatusIndexes = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyDeviceDeploymentDeviceId,
+				Value: 1},
+			{Key: StorageKeyDeviceDeploymentStatus,
+				Value: 1},
+			{Key: StorageKeyDeploymentStatsCreated,
+				Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentDeviceStatusesName,
+		},
 	}
-	DeviceIDStatusIndexes         = []string{"deviceID", "status"} //IndexDeploymentDeviceIdStatusStr
-	DeploymentIdIndexes           = []string{"deploymentid"}       //IndexDeploymentDeviceDeploymentIdStr
-	DeploymentStatusFinishedIndex = []string{
-		"stats.downloading",
-		"stats.installing",
-		"stats.pending",
-		"stats.rebooting",
-		"-created",
-	} //IndexDeploymentStatusFinishedStr
-	DeploymentStatusPendingIndex = []string{
-		"stats.aborted",
-		"stats.already-installed",
-		"stats.decommissioned",
-		"stats.downloading",
-		"stats.failure",
-		"stats.installing",
-		"stats.noartifact",
-		"stats.rebooting",
-		"stats.success",
-		"-created",
-	} //IndexDeploymentStatusPendingStr
-	DeploymentCreatedIndex                = []string{"-created"}         //IndexDeploymentCreatedStr
-	DeploymentDeviceStatusRebootingIndex  = []string{"stats.rebooting"}  //IndexDeploymentDeviceStatusRebootingStr
-	DeploymentDeviceStatusPendingIndex    = []string{"stats.pending"}    //IndexDeploymentDeviceStatusPendingStr
-	DeploymentDeviceStatusInstallingIndex = []string{"stats.installing"} //IndexDeploymentDeviceStatusInstallingStr
-	DeploymentDeviceStatusFinishedIndex   = []string{"finished"}         //IndexDeploymentDeviceStatusFinishedStr
+	DeviceIDStatusIndexes = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "deviceID", Value: 1},
+			{Key: "status", Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentDeviceIdStatusName,
+		},
+	}
+	DeploymentIdIndexes = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "deploymentid", Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentDeviceDeploymentIdName,
+		},
+	}
+	DeploymentStatusFinishedIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "stats.downloading", Value: 1},
+			{Key: "stats.installing", Value: 1},
+			{Key: "stats.pending", Value: 1},
+			{Key: "stats.rebooting", Value: 1},
+			{Key: "created", Value: -1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentStatusFinishedName,
+		},
+	}
+	DeploymentStatusPendingIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "stats.aborted", Value: 1},
+			{Key: "stats.already-installed", Value: 1},
+			{Key: "stats.decommissioned", Value: 1},
+			{Key: "stats.downloading", Value: 1},
+			{Key: "stats.failure", Value: 1},
+			{Key: "stats.installing", Value: 1},
+			{Key: "stats.noartifact", Value: 1},
+			{Key: "stats.rebooting", Value: 1},
+			{Key: "stats.success", Value: 1},
+			{Key: "created", Value: -1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentStatusPendingName,
+		},
+	}
+	DeploymentCreatedIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "created", Value: -1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentCreatedName,
+		},
+	}
+	DeploymentDeviceStatusRebootingIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "stats.rebooting", Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentDeviceStatusRebootingName,
+		},
+	}
+	DeploymentDeviceStatusPendingIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "stats.pending", Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentDeviceStatusPendingName,
+		},
+	}
+	DeploymentDeviceStatusInstallingIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "stats.installing", Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentDeviceStatusInstallingName,
+		},
+	}
+	DeploymentDeviceStatusFinishedIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "finished", Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentDeviceStatusFinishedName,
+		},
+	}
+	UniqueNameVersionIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeySoftwareImageName,
+				Value: 1},
+			{Key: StorageKeySoftwareImageDeviceTypes,
+				Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexUniqueNameAndDeviceTypeName,
+			Unique:     &_true,
+		},
+	}
 )
 
 // Errors
@@ -141,128 +245,128 @@ const (
 )
 
 type DataStoreMongo struct {
-	session *mgo.Session
+	client *mongo.Client
 }
 
-func NewDataStoreMongoWithSession(session *mgo.Session) *DataStoreMongo {
+func NewDataStoreMongoWithClient(client *mongo.Client) *DataStoreMongo {
 	return &DataStoreMongo{
-		session: session,
+		client: client,
 	}
 }
 
-func NewMongoSession(c config.Reader) (*mgo.Session, error) {
+func NewMongoClient(ctx context.Context, c config.Reader) (*mongo.Client, error) {
 
-	dialInfo, err := mgo.ParseURL(c.GetString(dconfig.SettingMongo))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open mgo session")
+	clientOptions := mopts.Client()
+	mongoURL := c.GetString(dconfig.SettingMongo)
+	if !strings.Contains(mongoURL, "://") {
+		return nil, errors.Errorf("Invalid mongoURL %q: missing schema.",
+			mongoURL)
 	}
-
-	// Set 10s timeout - same as set by Dial
-	dialInfo.Timeout = 10 * time.Second
+	clientOptions.ApplyURI(mongoURL)
 
 	username := c.GetString(dconfig.SettingDbUsername)
 	if username != "" {
-		dialInfo.Username = username
-	}
-
-	passward := c.GetString(dconfig.SettingDbPassword)
-	if passward != "" {
-		dialInfo.Password = passward
+		credentials := mopts.Credential{
+			Username: c.GetString(dconfig.SettingDbUsername),
+		}
+		password := c.GetString(dconfig.SettingDbPassword)
+		if password != "" {
+			credentials.Password = password
+			credentials.PasswordSet = true
+		}
+		clientOptions.SetAuth(credentials)
 	}
 
 	if c.GetBool(dconfig.SettingDbSSL) {
-		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
-
-			// Setup TLS
-			tlsConfig := &tls.Config{}
-			tlsConfig.InsecureSkipVerify = c.GetBool(dconfig.SettingDbSSLSkipVerify)
-
-			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
-			return conn, err
-		}
+		tlsConfig := &tls.Config{}
+		tlsConfig.InsecureSkipVerify = c.GetBool(dconfig.SettingDbSSLSkipVerify)
+		clientOptions.SetTLSConfig(tlsConfig)
 	}
 
-	masterSession, err := mgo.DialWithInfo(dialInfo)
+	// Set writeconcern to acknowlage after write has propagated to the
+	// mongod instance and commited to the file system journal.
+	var wc *writeconcern.WriteConcern
+	wc.WithOptions(writeconcern.W(1), writeconcern.J(true))
+	clientOptions.SetWriteConcern(wc)
+
+	if clientOptions.ReplicaSet != nil {
+		clientOptions.SetReadConcern(readconcern.Linearizable())
+	}
+
+	// Set 10s timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to open mgo session")
+		return nil, errors.Wrap(err, "Failed to connect to mongo server")
 	}
 
 	// Validate connection
-	if err := masterSession.Ping(); err != nil {
-		return nil, errors.Wrap(err, "failed to open mgo session")
+	if err = client.Ping(ctx, nil); err != nil {
+		return nil, errors.Wrap(err, "Error reaching mongo server")
 	}
 
-	// force write ack with immediate journal file fsync
-	masterSession.SetSafe(&mgo.Safe{
-		W: 1,
-		J: true,
-	})
-
-	return masterSession, nil
+	return client, nil
 }
 
 func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error) {
-	session := db.session.Copy()
-	defer session.Close()
+	var pipe []bson.D
 
 	match := db.matchFromFilt(filt)
 
-	group := bson.M{
-		"$group": bson.M{
-			"_id": "$" + StorageKeySoftwareImageName,
-			"name": bson.M{
-				"$first": "$" + StorageKeySoftwareImageName,
-			},
-			"artifacts": bson.M{
-				"$push": "$$ROOT",
-			},
+	group := bson.D{
+		{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$" + StorageKeySoftwareImageName},
+			{Key: "name", Value: bson.M{
+				"$first": "$" + StorageKeySoftwareImageName}},
+			{Key: "artifacts", Value: bson.M{"$push": "$$ROOT"}}},
 		},
 	}
 
-	sort := bson.M{
-		"$sort": bson.M{
-			"name": -1,
-		},
+	sort := bson.D{
+		{Key: "$sort", Value: bson.M{
+			"name": -1}},
 	}
-
-	var pipe []bson.M
 
 	if match != nil {
-		pipe = []bson.M{
+		pipe = []bson.D{
 			match,
 			group,
 			sort,
 		}
 	} else {
-		pipe = []bson.M{
+		pipe = []bson.D{
 			group,
 			sort,
 		}
 	}
 
-	results := []model.Release{}
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
 
-	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).Pipe(&pipe).All(&results)
+	results := []model.Release{}
+	cursor, err := collImg.Aggregate(ctx, pipe)
 	if err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+		return nil, err
+	}
+	// NOTE: Call to cursor.All will automatically close cursor
+	if err = cursor.All(ctx, &results); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
 	}
-
 	return results, nil
 }
 
-func (db *DataStoreMongo) matchFromFilt(f *model.ReleaseFilter) bson.M {
+func (db *DataStoreMongo) matchFromFilt(f *model.ReleaseFilter) bson.D {
 	if f == nil {
 		return nil
 	}
 
-	return bson.M{
-		"$match": bson.M{
-			StorageKeySoftwareImageName: f.Name,
-		},
+	return bson.D{
+		{Key: "$match", Value: bson.M{
+			StorageKeySoftwareImageName: f.Name}},
 	}
 }
 
@@ -270,61 +374,59 @@ func (db *DataStoreMongo) matchFromFilt(f *model.ReleaseFilter) bson.M {
 //
 func (db *DataStoreMongo) GetLimit(ctx context.Context, name string) (*model.Limit, error) {
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collLim := database.Collection(CollectionLimits)
 
-	var limit model.Limit
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionLimits).FindId(name).One(&limit); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	limit := new(model.Limit)
+	if err := collLim.FindOne(ctx, bson.M{"_id": name}).
+		Decode(limit); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return nil, ErrLimitNotFound
 		}
 		return nil, err
 	}
 
-	return &limit, nil
+	return limit, nil
 }
 
 func (db *DataStoreMongo) ProvisionTenant(ctx context.Context, tenantId string) error {
-	session := db.session.Copy()
-	defer session.Close()
 
 	dbname := mstore.DbNameForTenant(tenantId, DbName)
 
-	return MigrateSingle(ctx, dbname, DbVersion, session, true)
+	return MigrateSingle(ctx, dbname, DbVersion, db.client, true)
 }
 
 //images
 
 // Ensure required indexes exists; create if not.
-func (db *DataStoreMongo) ensureIndexing(ctx context.Context, session *mgo.Session) error {
+func (db *DataStoreMongo) ensureIndexing(ctx context.Context, client *mongo.Client) error {
 
-	uniqueNameVersionIndex := mgo.Index{
-		Key:    []string{StorageKeySoftwareImageName, StorageKeySoftwareImageDeviceTypes},
-		Unique: true,
-		Name:   IndexUniqeNameAndDeviceTypeStr,
-		// Build index upfront - make sure this index is always on.
-		Background: false,
-	}
+	// Build index upfront - make sure this index is always on.
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
+	indexes := collImg.Indexes()
+	// NOTE: CreateIndex (CreateOne) doesn't create duplicates for mongodb
+	//       version > 3.0, db.collection.ensureIndexing is an alias for
+	//       db.collection.createIndex
+	_, err := indexes.CreateOne(ctx, UniqueNameVersionIndex)
 
-	return session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).EnsureIndex(uniqueNameVersionIndex)
+	return err
 }
 
 // Exists checks if object with ID exists
 func (db *DataStoreMongo) Exists(ctx context.Context, id string) (bool, error) {
+	var result interface{}
 
 	if govalidator.IsNull(id) {
 		return false, ErrSoftwareImagesStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
 
-	var image *model.SoftwareImage
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).FindId(id).One(&image); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	if err := collImg.FindOne(ctx, bson.M{"_id": id}).
+		Decode(&result); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return false, nil
 		}
 		return false, err
@@ -342,13 +444,15 @@ func (db *DataStoreMongo) Update(ctx context.Context,
 		return false, err
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
 
 	image.SetModified(time.Now())
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).UpdateId(image.Id, image); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	var result model.SoftwareImage
+	if err := collImg.FindOneAndUpdate(
+		ctx, bson.M{"_id": image.Id}, image).
+		Decode(&result); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return false, nil
 		}
 		return false, err
@@ -363,7 +467,6 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 
 	if govalidator.IsNull(name) {
 		return nil, ErrSoftwareImagesStorageInvalidName
-
 	}
 
 	if govalidator.IsNull(deviceType) {
@@ -375,15 +478,14 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 		StorageKeySoftwareImageDeviceTypes: deviceType,
 		StorageKeySoftwareImageName:        name,
 	}
-
-	session := db.session.Copy()
-	defer session.Close()
+	dbName := mstore.DbFromContext(ctx, DatabaseName)
+	database := db.client.Database(dbName)
+	collImg := database.Collection(CollectionImages)
 
 	// Both we lookup unique object, should be one or none.
 	var image model.SoftwareImage
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).Find(query).One(&image); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	if err := collImg.FindOne(ctx, query).Decode(&image); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
@@ -404,19 +506,18 @@ func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 		return nil, ErrSoftwareImagesStorageInvalidID
 	}
 
-	query := bson.M{
-		StorageKeySoftwareImageDeviceTypes: deviceType,
-		StorageKeySoftwareImageId:          bson.M{"$in": ids},
+	query := bson.D{
+		{Key: StorageKeySoftwareImageDeviceTypes, Value: deviceType},
+		{Key: StorageKeySoftwareImageId, Value: bson.M{"$in": ids}},
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
 
 	// Both we lookup unique object, should be one or none.
 	var image model.SoftwareImage
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).Find(query).One(&image); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	if err := collImg.FindOne(ctx, query).Decode(&image); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
@@ -429,9 +530,10 @@ func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 func (db *DataStoreMongo) ImagesByName(
 	ctx context.Context, name string) ([]*model.SoftwareImage, error) {
 
+	var images []*model.SoftwareImage
+
 	if govalidator.IsNull(name) {
 		return nil, ErrSoftwareImagesStorageInvalidName
-
 	}
 
 	// equal to artifact name
@@ -439,13 +541,14 @@ func (db *DataStoreMongo) ImagesByName(
 		StorageKeySoftwareImageName: name,
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
-
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
+	cursor, err := collImg.Find(ctx, query)
+	if err != nil {
+		return nil, err
+	}
 	// Both we lookup unique object, should be one or none.
-	var images []*model.SoftwareImage
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).Find(query).All(&images); err != nil {
+	if cursor.All(ctx, &images); err != nil {
 		return nil, err
 	}
 
@@ -463,15 +566,20 @@ func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Software
 		return err
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
 
-	if err := db.ensureIndexing(ctx, session); err != nil {
+	if err := db.ensureIndexing(ctx, db.client); err != nil {
 		return err
 	}
 
-	return session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).Insert(image)
+	res, err := collImg.InsertOne(ctx, image)
+	if err != nil {
+		return err
+	}
+	image.Id = res.InsertedID.(string)
+
+	return nil
 }
 
 // FindImageByID search storage for image with ID, returns nil if not found
@@ -482,19 +590,19 @@ func (db *DataStoreMongo) FindImageByID(ctx context.Context,
 		return nil, ErrSoftwareImagesStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
 
-	var image *model.SoftwareImage
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).FindId(id).One(&image); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	var image model.SoftwareImage
+	if err := collImg.FindOne(ctx, bson.M{"_id": id}).
+		Decode(&image); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
 	}
 
-	return image, nil
+	return &image, nil
 }
 
 // IsArtifactUnique checks if there is no artifact with the same artifactName
@@ -509,24 +617,24 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 		return false, ErrSoftwareImagesStorageInvalidArtifactName
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
 
-	query := bson.M{
-		"$and": []bson.M{
+	query := bson.D{
+		{Key: "$and", Value: []bson.M{
 			{
 				StorageKeySoftwareImageName: artifactName,
 			},
 			{
-				StorageKeySoftwareImageDeviceTypes: bson.M{"$in": deviceTypesCompatible},
+				StorageKeySoftwareImageDeviceTypes: bson.M{
+					"$in": deviceTypesCompatible},
 			},
-		},
+		}},
 	}
 
 	var image *model.SoftwareImage
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).Find(query).One(&image); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	if err := collImg.FindOne(ctx, query).Decode(&image); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return true, nil
 		}
 		return false, err
@@ -543,12 +651,11 @@ func (db *DataStoreMongo) DeleteImage(ctx context.Context, id string) error {
 		return ErrSoftwareImagesStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
 
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).RemoveId(id); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	if res, err := collImg.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
+		if res.DeletedCount == 0 {
 			return nil
 		}
 		return err
@@ -560,14 +667,18 @@ func (db *DataStoreMongo) DeleteImage(ctx context.Context, id string) error {
 // FindAll lists all images
 func (db *DataStoreMongo) FindAll(ctx context.Context) ([]*model.SoftwareImage, error) {
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collImg := database.Collection(CollectionImages)
+	cursor, err := collImg.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
 
+	// NOTE: cursor.All closes the cursor before returning
 	var images []*model.SoftwareImage
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionImages).Find(nil).All(&images); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
-			return images, nil
+	if err := cursor.All(ctx, &images); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -576,7 +687,6 @@ func (db *DataStoreMongo) FindAll(ctx context.Context) ([]*model.SoftwareImage, 
 }
 
 // device deployment log
-
 func (db *DataStoreMongo) SaveDeviceDeploymentLog(ctx context.Context,
 	log model.DeploymentLog) error {
 
@@ -584,23 +694,27 @@ func (db *DataStoreMongo) SaveDeviceDeploymentLog(ctx context.Context,
 		return err
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collLogs := database.Collection(CollectionDeviceDeploymentLogs)
 
-	query := bson.M{
-		StorageKeyDeviceDeploymentDeviceId:     log.DeviceID,
-		StorageKeyDeviceDeploymentDeploymentID: log.DeploymentID,
+	query := bson.D{
+		{Key: StorageKeyDeviceDeploymentDeviceId,
+			Value: log.DeviceID},
+		{Key: StorageKeyDeviceDeploymentDeploymentID,
+			Value: log.DeploymentID},
 	}
 
 	// update log messages
 	// if the deployment log is already present than messages will be overwritten
-	update := bson.M{
-		"$set": bson.M{
+	update := bson.D{
+		{Key: "$set", Value: bson.M{
 			StorageKeyDeviceDeploymentLogMessages: log.Messages,
-		},
+		}},
 	}
-	if _, err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeviceDeploymentLogs).Upsert(query, update); err != nil {
+	updateOptions := mopts.Update()
+	updateOptions.SetUpsert(true)
+	if _, err := collLogs.UpdateOne(
+		ctx, query, update, updateOptions); err != nil {
 		return err
 	}
 
@@ -610,8 +724,8 @@ func (db *DataStoreMongo) SaveDeviceDeploymentLog(ctx context.Context,
 func (db *DataStoreMongo) GetDeviceDeploymentLog(ctx context.Context,
 	deviceID, deploymentID string) (*model.DeploymentLog, error) {
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collLogs := database.Collection(CollectionDeviceDeploymentLogs)
 
 	query := bson.M{
 		StorageKeyDeviceDeploymentDeviceId:     deviceID,
@@ -619,9 +733,8 @@ func (db *DataStoreMongo) GetDeviceDeploymentLog(ctx context.Context,
 	}
 
 	var depl model.DeploymentLog
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeviceDeploymentLogs).Find(query).One(&depl); err != nil {
-		if err == mgo.ErrNotFound {
+	if err := collLogs.FindOne(ctx, query).Decode(&depl); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
@@ -656,11 +769,10 @@ func (db *DataStoreMongo) InsertMany(ctx context.Context,
 		list = append(list, deployment)
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Insert(list...); err != nil {
+	if _, err := collDevs.InsertMany(ctx, list); err != nil {
 		return err
 	}
 
@@ -684,14 +796,13 @@ func (db *DataStoreMongo) ExistAssignedImageWithIDAndStatuses(ctx context.Contex
 		}
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
 	// if found at least one then image in active deployment
 	var tmp interface{}
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Find(query).One(&tmp); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	if err := collDevs.FindOne(ctx, query).Decode(&tmp); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return false, nil
 		}
 		return false, err
@@ -709,20 +820,27 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 		return nil, ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
 	// Device should know only about deployments that are not finished
-	query := bson.M{
-		StorageKeyDeviceDeploymentDeviceId: deviceID,
-		StorageKeyDeviceDeploymentStatus:   bson.M{"$in": statuses},
+	query := bson.D{
+		{Key: StorageKeyDeviceDeploymentDeviceId,
+			Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentStatus,
+			Value: bson.M{"$in": statuses}},
 	}
+
+	// Find the oldest one by sorting the creation timestamp
+	// in ascending order.
+	findOptions := mopts.FindOne()
+	findOptions.SetSort(bson.M{"created": 1})
 
 	// Select only the oldest one that have not been finished yet.
 	var deployment *model.DeviceDeployment
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Find(query).Sort("created").One(&deployment); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	if err := collDevs.FindOne(ctx, query, findOptions).
+		Decode(&deployment); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
@@ -740,24 +858,28 @@ func (db *DataStoreMongo) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.
 		return nil, ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
 	// Device should know only about deployments that are not finished
-	query := bson.M{
-		StorageKeyDeviceDeploymentDeviceId: deviceID,
-		StorageKeyDeviceDeploymentStatus: bson.M{
-			"$in": statuses,
-		},
+	query := bson.D{
+		{Key: StorageKeyDeviceDeploymentDeviceId,
+			Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentStatus,
+			Value: bson.M{
+				"$in": statuses,
+			}},
 	}
 
 	var deployments []model.DeviceDeployment
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Find(query).All(&deployments); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
-			return nil, nil
-		}
+	if cursor, err := collDevs.Find(ctx, query); err != nil {
 		return nil, err
+	} else {
+		if err = cursor.All(ctx, &deployments); err != nil {
+			if err == mongo.ErrNoDocuments {
+				return nil, nil
+			}
+		}
 	}
 
 	return deployments, nil
@@ -776,13 +898,13 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(ctx context.Context,
 		return "", ErrStorageInvalidInput
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
 	// Device should know only about deployments that are not finished
-	query := bson.M{
-		StorageKeyDeviceDeploymentDeviceId:     deviceID,
-		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+	query := bson.D{
+		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentDeploymentID, Value: deploymentID},
 	}
 
 	// update status field
@@ -798,30 +920,19 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(ctx context.Context,
 		set[StorageKeyDeviceDeploymentSubState] = *ddStatus.SubState
 	}
 
-	update := bson.M{
-		"$set": set,
+	update := bson.D{
+		{Key: "$set", Value: set},
 	}
 
 	var old model.DeviceDeployment
 
-	// update and return the old status in one go
-	change := mgo.Change{
-		Update: update,
-	}
-
-	chi, err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Find(query).Apply(change, &old)
-
-	if err != nil {
-		if err == mgo.ErrNotFound {
+	if err := collDevs.FindOneAndUpdate(ctx, query, update).
+		Decode(&old); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return "", ErrStorageNotFound
 		}
 		return "", err
 
-	}
-
-	if chi.Updated == 0 {
-		return "", ErrStorageNotFound
 	}
 
 	return *old.Status, nil
@@ -836,26 +947,26 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentLogAvailability(ctx context.Cont
 		return ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
-	selector := bson.M{
-		StorageKeyDeviceDeploymentDeviceId:     deviceID,
-		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+	selector := bson.D{
+		{Key: StorageKeyDeviceDeploymentDeviceId,
+			Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentDeploymentID,
+			Value: deploymentID},
 	}
 
-	update := bson.M{
-		"$set": bson.M{
-			StorageKeyDeviceDeploymentIsLogAvailable: log,
-		},
+	update := bson.D{
+		{Key: "$set", Value: bson.M{
+			StorageKeyDeviceDeploymentIsLogAvailable: log}},
 	}
 
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Update(selector, update); err != nil {
-		if err == mgo.ErrNotFound {
-			return ErrStorageNotFound
-		}
+	// NOTE <Review> Perhaps this should be UpdateOne ?
+	if res, err := collDevs.UpdateMany(ctx, selector, update); err != nil {
 		return err
+	} else if res.MatchedCount == 0 {
+		return ErrStorageNotFound
 	}
 
 	return nil
@@ -871,26 +982,26 @@ func (db *DataStoreMongo) AssignArtifact(ctx context.Context,
 		return ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
-	selector := bson.M{
-		StorageKeyDeviceDeploymentDeviceId:     deviceID,
-		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+	selector := bson.D{
+		{Key: StorageKeyDeviceDeploymentDeviceId,
+			Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentDeploymentID,
+			Value: deploymentID},
 	}
 
-	update := bson.M{
-		"$set": bson.M{
-			StorageKeyDeviceDeploymentArtifact: artifact,
-		},
+	update := bson.D{
+		{Key: "$set", Value: bson.M{
+			StorageKeyDeviceDeploymentArtifact: artifact}},
 	}
 
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Update(selector, update); err != nil {
-		if err == mgo.ErrNotFound {
-			return ErrStorageNotFound
-		}
+	// NOTE <Review> Perhaps this should be UpdateOne ?
+	if res, err := collDevs.UpdateMany(ctx, selector, update); err != nil {
 		return err
+	} else if res.MatchedCount == 0 {
+		return ErrStorageNotFound
 	}
 
 	return nil
@@ -903,23 +1014,22 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 		return nil, ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
-	match := bson.M{
-		"$match": bson.M{
-			StorageKeyDeviceDeploymentDeploymentID: id,
+	match := bson.D{
+		{Key: "$match", Value: bson.M{
+			StorageKeyDeviceDeploymentDeploymentID: id}},
+	}
+	group := bson.D{
+		{Key: "$group", Value: bson.D{
+			{Key: "_id",
+				Value: "$" + StorageKeyDeviceDeploymentStatus},
+			{Key: "count",
+				Value: bson.M{"$sum": 1}}},
 		},
 	}
-	group := bson.M{
-		"$group": bson.M{
-			"_id": "$" + StorageKeyDeviceDeploymentStatus,
-			"count": bson.M{
-				"$sum": 1,
-			},
-		},
-	}
-	pipe := []bson.M{
+	pipeline := []bson.D{
 		match,
 		group,
 	}
@@ -927,10 +1037,12 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 		Name  string `bson:"_id"`
 		Count int
 	}
-	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Pipe(&pipe).All(&results)
+	cursor, err := collDevs.Aggregate(ctx, pipeline)
 	if err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+		return nil, err
+	}
+	if err := cursor.All(ctx, &results); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
@@ -947,18 +1059,22 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 func (db *DataStoreMongo) GetDeviceStatusesForDeployment(ctx context.Context,
 	deploymentID string) ([]model.DeviceDeployment, error) {
 
-	session := db.session.Copy()
-	defer session.Close()
+	var statuses []model.DeviceDeployment
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
 	query := bson.M{
 		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
 	}
 
-	var statuses []model.DeviceDeployment
-
-	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Find(query).All(&statuses)
+	cursor, err := collDevs.Find(ctx, query)
 	if err != nil {
+		return nil, err
+	}
+	if err = cursor.All(ctx, &statuses); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -971,19 +1087,19 @@ func (db *DataStoreMongo) GetDeviceStatusesForDeployment(ctx context.Context,
 func (db *DataStoreMongo) HasDeploymentForDevice(ctx context.Context,
 	deploymentID string, deviceID string) (bool, error) {
 
-	session := db.session.Copy()
-	defer session.Close()
+	var dep model.DeviceDeployment
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
-	query := bson.M{
-		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
-		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+	query := bson.D{
+		{Key: StorageKeyDeviceDeploymentDeploymentID,
+			Value: deploymentID},
+		{Key: StorageKeyDeviceDeploymentDeviceId,
+			Value: deviceID},
 	}
 
-	var dep model.DeviceDeployment
-	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Find(query).One(&dep)
-	if err != nil {
-		if err == mgo.ErrNotFound {
+	if err := collDevs.FindOne(ctx, query).Decode(&dep); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return false, nil
 		} else {
 			return false, err
@@ -996,19 +1112,17 @@ func (db *DataStoreMongo) HasDeploymentForDevice(ctx context.Context,
 func (db *DataStoreMongo) GetDeviceDeploymentStatus(ctx context.Context,
 	deploymentID string, deviceID string) (string, error) {
 
-	session := db.session.Copy()
-	defer session.Close()
+	var dep model.DeviceDeployment
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
 	query := bson.M{
 		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
 		StorageKeyDeviceDeploymentDeviceId:     deviceID,
 	}
 
-	var dep model.DeviceDeployment
-	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Find(query).One(&dep)
-	if err != nil {
-		if err == mgo.ErrNotFound {
+	if err := collDevs.FindOne(ctx, query).Decode(&dep); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return "", nil
 		} else {
 			return "", err
@@ -1025,8 +1139,8 @@ func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 		return ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 	selector := bson.M{
 		"$and": []bson.M{
 			{
@@ -1046,14 +1160,13 @@ func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 		},
 	}
 
-	_, err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).UpdateAll(selector, update)
-
-	if err == mgo.ErrNotFound {
+	if res, err := collDevs.UpdateMany(ctx, selector, update); err != nil {
+		return err
+	} else if res.MatchedCount == 0 {
 		return ErrStorageInvalidID
 	}
 
-	return err
+	return nil
 }
 
 func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
@@ -1063,8 +1176,8 @@ func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 		return ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 	selector := bson.M{
 		"$and": []bson.M{
 			{
@@ -1084,226 +1197,65 @@ func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 		},
 	}
 
-	_, err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).UpdateAll(selector, update)
+	if res, err := collDevs.UpdateMany(ctx, selector, update); err != nil {
+		return err
+	} else if res.MatchedCount == 0 {
+		return ErrStorageInvalidID
+	}
 
-	return err
+	return nil
 }
 
 // deployments
 
-func (db *DataStoreMongo) EnsureIndexing(ctx context.Context, session *mgo.Session) error {
-	dataBase := mstore.DbFromContext(ctx, DatabaseName)
+func (db *DataStoreMongo) EnsureIndexes(dbName string, collName string,
+	indexes ...mongo.IndexModel) error {
+	ctx := context.Background()
+	dataBase := db.client.Database(dbName)
 
-	return db.DoEnsureIndexing(dataBase, session)
-}
-
-func (db *DataStoreMongo) DoEnsureIndexing(dataBase string, session *mgo.Session) error {
-	deploymentArtifactNameIndex := mgo.Index{
-		Key:        StorageIndexes,
-		Name:       IndexDeploymentArtifactNameStr,
-		Background: false,
-	}
-
-	return session.DB(dataBase).
-		C(CollectionDeployments).
-		EnsureIndex(deploymentArtifactNameIndex)
-}
-
-func (db *DataStoreMongo) DoEnsureAdditionalIndexing(dataBase string, session *mgo.Session) error {
-	deploymentDevicesStatusesIndex := mgo.Index{
-		Key:        StatusIndexes,
-		Name:       IndexDeploymentDeviceStatusesStr,
-		Background: false,
-	}
-
-	err := session.DB(dataBase).
-		C(CollectionDevices).
-		EnsureIndex(deploymentDevicesStatusesIndex)
-
-	if err != nil {
-		return err
-	}
-
-	// IndexDeploymentDeviceIdStatusStr = "devicesIdWithStatus"
-	// deviceID:1
-	// status:1
-	deploymentDevicesStatusIdIndex := mgo.Index{
-		Key:        DeviceIDStatusIndexes,
-		Name:       IndexDeploymentDeviceIdStatusStr,
-		Background: false,
-	}
-
-	err = session.DB(dataBase).
-		C(CollectionDevices).
-		EnsureIndex(deploymentDevicesStatusIdIndex)
-
-	if err != nil {
-		return err
-	}
-
-	// IndexDeploymentDeviceDeploymentIdStr = "devicesDeploymentId"
-	// deploymentid:1
-	deploymentDeviceDeploymentIdIndex := mgo.Index{
-		Key:        DeploymentIdIndexes,
-		Name:       IndexDeploymentDeviceDeploymentIdStr,
-		Background: false,
-	}
-
-	err = session.DB(dataBase).
-		C(CollectionDevices).
-		EnsureIndex(deploymentDeviceDeploymentIdIndex)
-
-	if err != nil {
-		return err
-	}
-
-	// IndexDeploymentStatusFinishedStr = "deploymentStatusFinished"
-	// stats.downloading: 1
-	// stats.installing: 1
-	// stats.pending: 1
-	// stats.rebooting: 1
-	// created: -1
-	deploymentStatusFinishedIndex := mgo.Index{
-		Key:        DeploymentStatusFinishedIndex,
-		Name:       IndexDeploymentStatusFinishedStr,
-		Background: false,
-	}
-
-	err = session.DB(dataBase).
-		C(CollectionDeployments).
-		EnsureIndex(deploymentStatusFinishedIndex)
-
-	if err != nil {
-		return err
-	}
-
-	// IndexDeploymentStatusPendingStr = "deploymentStatusPending"
-	// stats.aborted: 1
-	// stats.already-installed: 1
-	// stats.decommissioned: 1
-	// stats.downloading: 1
-	// stats.failure: 1
-	// stats.installing: 1
-	// stats.noartifact: 1
-	// stats.rebooting: 1
-	// stats.success: 1
-	// created: -1
-	deploymentStatusPendingIndex := mgo.Index{
-		Key:        DeploymentStatusPendingIndex,
-		Name:       IndexDeploymentStatusPendingStr,
-		Background: false,
-	}
-
-	err = session.DB(dataBase).
-		C(CollectionDeployments).
-		EnsureIndex(deploymentStatusPendingIndex)
-
-	if err != nil {
-		return err
-	}
-
-	// IndexDeploymentCreatedStr = "deploymentCreated"
-	// created: -1
-	deploymentCreatedIndex := mgo.Index{
-		Key:        DeploymentCreatedIndex,
-		Name:       IndexDeploymentCreatedStr,
-		Background: false,
-	}
-
-	err = session.DB(dataBase).
-		C(CollectionDeployments).
-		EnsureIndex(deploymentCreatedIndex)
-
-	if err != nil {
-		return err
-	}
-
-	// IndexDeploymentDeviceStatusRebootingStr = "deploymentsDeviceStatusRebooting"
-	// stats.rebooting: 1
-	deploymentDeviceStatusRebootingIndex := mgo.Index{
-		Key:        DeploymentDeviceStatusRebootingIndex,
-		Name:       IndexDeploymentDeviceStatusRebootingStr,
-		Background: false,
-	}
-
-	err = session.DB(dataBase).
-		C(CollectionDeployments).
-		EnsureIndex(deploymentDeviceStatusRebootingIndex)
-
-	if err != nil {
-		return err
-	}
-
-	// IndexDeploymentDeviceStatusPendingStr = "deploymentsDeviceStatusPending"
-	// stats.pending: 1
-	deploymentDeviceStatusPendingIndex := mgo.Index{
-		Key:        DeploymentDeviceStatusPendingIndex,
-		Name:       IndexDeploymentDeviceStatusPendingStr,
-		Background: false,
-	}
-
-	err = session.DB(dataBase).
-		C(CollectionDeployments).
-		EnsureIndex(deploymentDeviceStatusPendingIndex)
-
-	if err != nil {
-		return err
-	}
-
-	// IndexDeploymentDeviceStatusInstallingStr = "deploymentsDeviceStatusInstalling"
-	// stats.installing: 1
-	deploymentDeviceStatusInstallingIndex := mgo.Index{
-		Key:        DeploymentDeviceStatusInstallingIndex,
-		Name:       IndexDeploymentDeviceStatusInstallingStr,
-		Background: false,
-	}
-
-	err = session.DB(dataBase).
-		C(CollectionDeployments).
-		EnsureIndex(deploymentDeviceStatusInstallingIndex)
-
-	if err != nil {
-		return err
-	}
-
-	// IndexDeploymentDeviceStatusFinishedStr = "deploymentsFinished"
-	// finished: 1
-	deploymentDeviceStatusFinishedIndex := mgo.Index{
-		Key:        DeploymentDeviceStatusFinishedIndex,
-		Name:       IndexDeploymentDeviceStatusFinishedStr,
-		Background: false,
-	}
-
-	err = session.DB(dataBase).
-		C(CollectionDeployments).
-		EnsureIndex(deploymentDeviceStatusFinishedIndex)
-
-	if err != nil {
-		return err
-	}
-
+	coll := dataBase.Collection(collName)
+	idxView := coll.Indexes()
+	_, err := idxView.CreateMany(ctx, indexes)
 	return err
 }
 
 // return true if required indexing was set up
-func (db *DataStoreMongo) hasIndexing(ctx context.Context, session *mgo.Session) bool {
-	idxs, err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).Indexes()
+func (db *DataStoreMongo) hasIndexing(ctx context.Context, client *mongo.Client) bool {
+
+	var idx bson.M
+	database := client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
+	idxView := collDpl.Indexes()
+
+	cursor, err := idxView.List(ctx)
 	if err != nil {
 		// check failed, assume indexing is not there
 		return false
 	}
 
 	has := map[string]bool{}
-	for _, idx := range idxs {
-		for _, i := range idx.Key {
-			has[i] = true
+	for cursor.Next(ctx) {
+		if err = cursor.Decode(&idx); err != nil {
+			continue
+		}
+		if _, ok := idx["weights"]; ok {
+			// text index
+			for k := range idx["weights"].(bson.M) {
+				has[k] = true
+			}
+		} else {
+			for i := range idx["key"].(bson.M) {
+				has[i] = true
+			}
+
 		}
 	}
+	if err != nil {
+		return false
+	}
 
-	for _, idx := range StorageIndexes {
-		_, ok := has[idx]
+	for _, key := range StorageIndexes.Keys.(bson.D) {
+		_, ok := has[key.Key]
 		if !ok {
 			return false
 		}
@@ -1323,15 +1275,10 @@ func (db *DataStoreMongo) InsertDeployment(ctx context.Context, deployment *mode
 		return err
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
 
-	if err := db.EnsureIndexing(ctx, session); err != nil {
-		return err
-	}
-
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).Insert(deployment); err != nil {
+	if _, err := collDpl.InsertOne(ctx, deployment); err != nil {
 		return err
 	}
 	return nil
@@ -1345,14 +1292,10 @@ func (db *DataStoreMongo) DeleteDeployment(ctx context.Context, id string) error
 		return ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
 
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).RemoveId(id); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
-			return nil
-		}
+	if _, err := collDpl.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
 		return err
 	}
 
@@ -1365,13 +1308,13 @@ func (db *DataStoreMongo) FindDeploymentByID(ctx context.Context, id string) (*m
 		return nil, ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
 
-	var deployment *model.Deployment
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).FindId(id).One(&deployment); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	deployment := new(model.Deployment)
+	if err := collDpl.FindOne(ctx, bson.M{"_id": id}).
+		Decode(deployment); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
@@ -1387,17 +1330,17 @@ func (db *DataStoreMongo) FindUnfinishedByID(ctx context.Context,
 		return nil, ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
 
 	var deployment *model.Deployment
-	filter := bson.M{
-		"_id":                        id,
-		StorageKeyDeploymentFinished: nil,
+	filter := bson.D{
+		{Key: "_id", Value: id},
+		{Key: StorageKeyDeploymentFinished, Value: nil},
 	}
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).Find(filter).One(&deployment); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	if err := collDpl.FindOne(ctx, filter).
+		Decode(&deployment); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
@@ -1409,21 +1352,19 @@ func (db *DataStoreMongo) FindUnfinishedByID(ctx context.Context,
 func (db *DataStoreMongo) DeviceCountByDeployment(ctx context.Context,
 	id string) (int, error) {
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
 
 	filter := bson.M{
 		"deploymentid": id,
 	}
 
-	deviceCount, err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDevices).Find(filter).Count()
-
+	deviceCount, err := collDevs.CountDocuments(ctx, filter)
 	if err != nil {
 		return 0, err
 	}
 
-	return deviceCount, nil
+	return int(deviceCount), nil
 }
 
 func (db *DataStoreMongo) UpdateStatsAndFinishDeployment(ctx context.Context,
@@ -1433,8 +1374,8 @@ func (db *DataStoreMongo) UpdateStatsAndFinishDeployment(ctx context.Context,
 		return ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
 
 	deployment, err := model.NewDeployment()
 	if err != nil {
@@ -1460,12 +1401,10 @@ func (db *DataStoreMongo) UpdateStatsAndFinishDeployment(ctx context.Context,
 		}
 	}
 
-	err = session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).UpdateId(id, update)
-	if err == mgo.ErrNotFound {
+	res, err := collDpl.UpdateOne(ctx, bson.M{"_id": id}, update)
+	if res.MatchedCount == 0 {
 		return ErrStorageInvalidID
 	}
-
 	return err
 }
 
@@ -1490,8 +1429,8 @@ func (db *DataStoreMongo) UpdateStats(ctx context.Context, id string,
 		return nil
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
 
 	// note dot notation on embedded document
 	update := bson.M{
@@ -1501,10 +1440,9 @@ func (db *DataStoreMongo) UpdateStats(ctx context.Context, id string,
 		},
 	}
 
-	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).UpdateId(id, update)
+	res, err := collDpl.UpdateOne(ctx, bson.M{"_id": id}, update)
 
-	if err == mgo.ErrNotFound {
+	if res.MatchedCount == 0 {
 		return ErrStorageInvalidID
 	}
 
@@ -1617,15 +1555,15 @@ func buildStatusQuery(status model.StatusQuery) bson.M {
 func (db *DataStoreMongo) Find(ctx context.Context,
 	match model.Query) ([]*model.Deployment, error) {
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
 
 	andq := []bson.M{}
 
 	// build deployment by name part of the query
 	if match.SearchText != "" {
 		// we must have indexing for text search
-		if !db.hasIndexing(ctx, session) {
+		if !db.hasIndexing(ctx, db.client) {
 			return nil, ErrDeploymentStorageCannotExecQuery
 		}
 
@@ -1667,14 +1605,29 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 		}
 	}
 
-	var deployment []*model.Deployment
-	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).
-		Find(&query).Sort("-created").
-		Skip(match.Skip).Limit(match.Limit).
-		All(&deployment)
+	pipeline := []bson.D{
+		bson.D{
+			{Key: "$match", Value: query},
+		},
+		bson.D{
+			{Key: "$sort", Value: bson.M{"created": -1}},
+		},
+	}
+	if match.Skip > 0 {
+		pipeline = append(pipeline,
+			bson.D{{Key: "$skip", Value: match.Skip}})
+	}
+	if match.Limit > 0 {
+		pipeline = append(pipeline,
+			bson.D{{Key: "$limit", Value: match.Limit}})
+	}
 
+	var deployment []*model.Deployment
+	cursor, err := collDpl.Aggregate(ctx, pipeline)
 	if err != nil {
+		return nil, err
+	}
+	if err := cursor.All(ctx, &deployment); err != nil {
 		return nil, err
 	}
 
@@ -1686,8 +1639,8 @@ func (db *DataStoreMongo) Finish(ctx context.Context, id string, when time.Time)
 		return ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
 
 	// note dot notation on embedded document
 	update := bson.M{
@@ -1696,10 +1649,9 @@ func (db *DataStoreMongo) Finish(ctx context.Context, id string, when time.Time)
 		},
 	}
 
-	err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).UpdateId(id, update)
+	res, err := collDpl.UpdateOne(ctx, bson.M{"_id": id}, update)
 
-	if err == mgo.ErrNotFound {
+	if res.MatchedCount == 0 {
 		return ErrStorageInvalidID
 	}
 
@@ -1715,17 +1667,16 @@ func (db *DataStoreMongo) ExistUnfinishedByArtifactId(ctx context.Context,
 		return false, ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
 
 	var tmp interface{}
-	query := bson.M{
-		StorageKeyDeploymentFinished:  nil,
-		StorageKeyDeploymentArtifacts: id,
+	query := bson.D{
+		{Key: StorageKeyDeploymentFinished, Value: nil},
+		{Key: StorageKeyDeploymentArtifacts, Value: id},
 	}
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).Find(query).One(&tmp); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	if err := collDpl.FindOne(ctx, query).Decode(&tmp); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return false, nil
 		}
 		return false, err
@@ -1742,16 +1693,15 @@ func (db *DataStoreMongo) ExistByArtifactId(ctx context.Context,
 		return false, ErrStorageInvalidID
 	}
 
-	session := db.session.Copy()
-	defer session.Close()
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
 
 	var tmp interface{}
-	query := bson.M{
-		StorageKeyDeploymentArtifacts: id,
+	query := bson.D{
+		{Key: StorageKeyDeploymentArtifacts, Value: id},
 	}
-	if err := session.DB(mstore.DbFromContext(ctx, DatabaseName)).
-		C(CollectionDeployments).Find(query).One(&tmp); err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
+	if err := collDpl.FindOne(ctx, query).Decode(&tmp); err != nil {
+		if err == mongo.ErrNoDocuments {
 			return false, nil
 		}
 		return false, err

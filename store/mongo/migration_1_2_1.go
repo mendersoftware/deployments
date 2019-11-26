@@ -14,35 +14,40 @@
 package mongo
 
 import (
-	"github.com/globalsign/mgo"
+	"context"
+	"strings"
+
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+var (
+	IndexDeploymentArtifactName_0_0_0 = "deploymentconstructor." +
+		"name_text_deploymentconstructor.artifactname_text"
 )
 
 type migration_1_2_1 struct {
-	session *mgo.Session
-	db      string
+	client *mongo.Client
+	db     string
 }
 
-// Up drops index with len(name) > 127 chars in the 'deployments' collection
+// Up drops old index with extremely long name
 func (m *migration_1_2_1) Up(from migrate.Version) error {
-	s := m.session.Copy()
-	defer s.Close()
+	ctx := context.Background()
+	collDpl := m.client.Database(m.db).Collection(CollectionDeployments)
+	indexView := collDpl.Indexes()
 
-	// DropIndex will use the same rules for exploding the index name
-	// as EnsureIndexKey previously used to create the 'long' index
-	err := s.DB(m.db).
-		C(CollectionDeployments).
-		DropIndex(StorageIndexes...)
-
-	// 'ns not found' simply means the idx doesn't exist
-	// DropIndex is just not idempotent, so force it
-	if err != nil && err.Error() != "ns not found" && err.Error() != "index not found with name" {
+	_, err := indexView.DropOne(ctx, IndexDeploymentArtifactName_0_0_0)
+	// Supress NamespaceNotFound errors - index is missing
+	if err != nil && !strings.Contains(err.Error(), "NamespaceNotFound") {
 		return err
 	}
 
 	// create the 'short' index
-	storage := NewDataStoreMongoWithSession(m.session)
-	return storage.DoEnsureIndexing(m.db, m.session)
+	storage := NewDataStoreMongoWithClient(m.client)
+	retErr := storage.EnsureIndexes(m.db,
+		CollectionDeployments, StorageIndexes)
+	return retErr
 }
 
 func (m *migration_1_2_1) Version() migrate.Version {

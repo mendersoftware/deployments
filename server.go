@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -23,10 +24,19 @@ import (
 
 	api_http "github.com/mendersoftware/deployments/api/http"
 	dconfig "github.com/mendersoftware/deployments/config"
+	mstore "github.com/mendersoftware/deployments/store/mongo"
 )
 
 func RunServer(c config.Reader) error {
-	router, err := api_http.NewRouter(c)
+
+	ctx := context.Background()
+	dbClient, err := mstore.NewMongoClient(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer dbClient.Disconnect(ctx)
+
+	router, err := api_http.NewRouter(ctx, c, dbClient)
 	if err != nil {
 		return err
 	}

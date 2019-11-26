@@ -26,10 +26,10 @@ listen: :8080
 #     key: /path/to/private_key
 
 # Mongodb connection string
-# Defaults to: "mongo-deployments"
+# Defaults to: "mongodb://mongo-deployments:27017"
 # Overwrite with environment variable: DEPLOYMENTS_MONGO_URL
 
-mongo-url: mongo-deployments
+mongo-url: "mongodb://mongo-deployments:27017"
 
 # Enable SSL for mongo connections
 # Defaults to: false

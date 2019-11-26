@@ -15,14 +15,17 @@
 package http
 
 import (
+	"context"
+
 	"github.com/ant0ine/go-json-rest/rest"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/mendersoftware/go-lib-micro/config"
 
 	"github.com/mendersoftware/deployments/app"
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/s3"
-	"github.com/mendersoftware/deployments/store/mongo"
+	mstore "github.com/mendersoftware/deployments/store/mongo"
 	"github.com/mendersoftware/deployments/utils/restutil"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 )
@@ -78,19 +81,15 @@ func SetupS3(c config.Reader) (s3.FileStorage, error) {
 }
 
 // NewRouter defines all REST API routes.
-func NewRouter(c config.Reader) (rest.App, error) {
-
-	dbSession, err := mongo.NewMongoSession(c)
-	if err != nil {
-		return nil, err
-	}
+func NewRouter(ctx context.Context, c config.Reader,
+	mongoClient *mongo.Client) (rest.App, error) {
 
 	// Storage Layer
 	fileStorage, err := SetupS3(c)
 	if err != nil {
 		return nil, err
 	}
-	mongoStorage := mongo.NewDataStoreMongoWithSession(dbSession)
+	mongoStorage := mstore.NewDataStoreMongoWithClient(mongoClient)
 
 	app := app.NewDeployments(mongoStorage, fileStorage, app.ArtifactContentType)
 

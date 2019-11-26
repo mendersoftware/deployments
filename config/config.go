@@ -46,7 +46,7 @@ const (
 	SettingAwsAuthToken  = SettingsAwsAuth + ".token"
 
 	SettingMongo        = "mongo-url"
-	SettingMongoDefault = "mongo-deployments"
+	SettingMongoDefault = "mongodb://mongo-deployments:27017"
 
 	SettingDbSSL        = "mongo_ssl"
 	SettingDbSSLDefault = false

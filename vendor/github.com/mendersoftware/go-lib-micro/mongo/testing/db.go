@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2019 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -14,18 +14,20 @@
 package testing
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/dbtest"
+	"github.com/mendersoftware/go-lib-micro/mongo/dbtest"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // TestDBRunner exports selected calls of dbtest.DBServer API, just the ones
 // that are useful in tests.
 type TestDBRunner interface {
-	Session() *mgo.Session
+	Client() *mongo.Client
 	Wipe()
+	CTX() context.Context
 }
 
 // WithDB will set up a test DB instance and pass it to `f` callback as

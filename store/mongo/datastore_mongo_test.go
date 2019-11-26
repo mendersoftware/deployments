@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/mendersoftware/deployments/model"
 	dmodel "github.com/mendersoftware/deployments/model"
@@ -28,7 +29,7 @@ func TestGetReleases(t *testing.T) {
 		t.Skip("skipping TestGetReleases in short mode.")
 	}
 
-	inputImgs := []interface{}{
+	inputImgs := bson.A{
 		model.SoftwareImage{
 			Id: "1",
 			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
@@ -211,25 +212,24 @@ func TestGetReleases(t *testing.T) {
 			releaseFilt: &dmodel.ReleaseFilter{
 				Name: "App3 v1.0",
 			},
-			releases: []dmodel.Release{},
+			releases: []model.Release{},
 		},
 	}
 
+	ctx := context.Background()
 	for name, tc := range testCases {
 
 		t.Run(name, func(t *testing.T) {
 			db.Wipe()
 
-			s := NewDataStoreMongoWithSession(db.Session())
-			defer s.session.Close()
+			ds := NewDataStoreMongoWithClient(db.Client())
 
-			sess := s.session.Copy()
-			defer sess.Close()
+			collection := ds.client.Database(DatabaseName).
+				Collection(CollectionImages)
+			_, err := collection.InsertMany(ctx, inputImgs)
+			assert.NoError(t, err)
 
-			coll := sess.DB(DatabaseName).C(CollectionImages)
-			assert.NoError(t, coll.Insert(inputImgs...))
-
-			releases, err := s.GetReleases(context.Background(), tc.releaseFilt)
+			releases, err := ds.GetReleases(ctx, tc.releaseFilt)
 
 			if tc.err != nil {
 				assert.EqualError(t, tc.err, err.Error())

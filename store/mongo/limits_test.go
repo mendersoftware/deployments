@@ -21,6 +21,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/identity"
 	ctxstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/mendersoftware/deployments/model"
 )
@@ -29,7 +30,7 @@ import (
 func getDb(ctx context.Context) *DataStoreMongo {
 	db.Wipe()
 
-	ds := NewDataStoreMongoWithSession(db.Session())
+	ds := NewDataStoreMongoWithClient(db.Client())
 
 	return ds
 }
@@ -58,19 +59,20 @@ func TestGetLimit(t *testing.T) {
 		Tenant: tenant,
 	})
 	db := getDb(dbCtx)
-	defer db.session.Close()
-	s := db.session.Copy()
-	defer s.Close()
 
-	coll := s.DB(ctxstore.DbFromContext(dbCtx, DatabaseName)).C(CollectionLimits)
-	assert.NoError(t, coll.Insert(lim1, lim2))
-
+	collection := db.client.Database(ctxstore.
+		DbFromContext(dbCtx, DatabaseName)).Collection(CollectionLimits)
+	_, err := collection.InsertMany(dbCtx,
+		bson.A{lim1, lim2})
+	assert.NoError(t, err)
 	dbCtxOtherTenant := identity.WithContext(context.Background(), &identity.Identity{
 		Tenant: "other-" + tenant,
 	})
-	collOtherTenant := s.DB(ctxstore.DbFromContext(dbCtxOtherTenant,
-		DatabaseName)).C(CollectionLimits)
-	assert.NoError(t, collOtherTenant.Insert(lim3OtherTenant))
+	collOtherTenant := db.client.Database(ctxstore.
+		DbFromContext(dbCtxOtherTenant, DatabaseName)).
+		Collection(CollectionLimits)
+	_, err = collOtherTenant.InsertOne(dbCtxOtherTenant, lim3OtherTenant)
+	assert.NoError(t, err)
 
 	// check if value is fetched correctly
 	lim, err := db.GetLimit(dbCtx, "foo")
