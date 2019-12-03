@@ -89,12 +89,21 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 		Bucket: aws.String(bucket), // Required
 	}
 
-	_, err := client.CreateBucket(cparams)
+	ctx := context.Background()
+
+	// timeout set to 5 seconds
+	var cancelFn func()
+	ctxWithTimeout, cancelFn := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelFn()
+
+	_, err := client.CreateBucketWithContext(ctxWithTimeout, cparams)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
 				return nil, err
 			}
+		} else {
+			return nil, err
 		}
 	}
 
@@ -118,12 +127,21 @@ func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageServi
 		Bucket: aws.String(bucket), // Required
 	}
 
-	_, err := client.CreateBucket(cparams)
+	ctx := context.Background()
+
+	// timeout set to 5 seconds
+	var cancelFn func()
+	ctxWithTimeout, cancelFn := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelFn()
+
+	_, err := client.CreateBucketWithContext(ctxWithTimeout, cparams)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
 				return nil, err
 			}
+		} else {
+			return nil, err
 		}
 	}
 
