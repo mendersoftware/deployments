@@ -570,6 +570,12 @@ func (d *Deployments) GetDeployment(ctx context.Context,
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for deployment by ID")
 	}
+	if deviceCount, err := d.db.DeviceCountByDeployment(ctx,
+		*deployment.Id); err != nil {
+		return nil, errors.Wrap(err, "counting device deployment")
+	} else {
+		deployment.DeviceCount = deviceCount
+	}
 
 	return deployment, nil
 }
