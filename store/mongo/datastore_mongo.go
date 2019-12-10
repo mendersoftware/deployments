@@ -573,11 +573,10 @@ func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Software
 		return err
 	}
 
-	res, err := collImg.InsertOne(ctx, image)
+	_, err := collImg.InsertOne(ctx, image)
 	if err != nil {
 		return err
 	}
-	image.Id = res.InsertedID.(string)
 
 	return nil
 }
