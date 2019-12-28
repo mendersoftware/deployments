@@ -192,7 +192,7 @@ def clean_db(mongo):
 def clean_minio():
     m = MinioClient()
 
-    for obj in m.list_objects("mender-artifact-storage"):
+    for obj in m.list_objects("mender-artifact-storage", recursive=True):
         m.remove_object("mender-artifact-storage", obj.object_name)
 
 def mongo_cleanup(mongo):
