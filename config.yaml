@@ -66,6 +66,12 @@ mongo-url: "mongodb://mongo-deployments:27017"
 
 mender-gateway: "http://mender-inventory:8080"
 
+# Workflows service address
+# Defaults to: http://mender-workflows-servers:8080
+# Env key: DEPLOYMENTS_MENDER_WORKFLOWS
+
+mender-workflows: "http://mender-workflows-server:8080"
+
 # AWS configuration section
 aws:
 

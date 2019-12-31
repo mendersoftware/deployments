@@ -23,11 +23,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/mender-artifact/areader"
 	"github.com/mendersoftware/mender-artifact/artifact"
 	"github.com/mendersoftware/mender-artifact/handlers"
 
+	"github.com/mendersoftware/deployments/client/workflows"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/s3"
 	"github.com/mendersoftware/deployments/store"
@@ -82,6 +84,8 @@ type App interface {
 	DeleteImage(ctx context.Context, imageID string) error
 	CreateImage(ctx context.Context,
 		multipartUploadMsg *model.MultipartUploadMsg) (string, error)
+	GenerateImage(ctx context.Context,
+		multipartUploadMsg *model.MultipartGenerateImageMsg) (string, error)
 	EditImage(ctx context.Context, id string,
 		constructorData *model.SoftwareImageMetaConstructor) (bool, error)
 
@@ -113,6 +117,7 @@ type Deployments struct {
 	db               store.DataStore
 	fileStorage      s3.FileStorage
 	imageContentType string
+	workflowsClient  workflows.Client
 }
 
 func NewDeployments(storage store.DataStore, fileStorage s3.FileStorage, imageContentType string) *Deployments {
@@ -120,7 +125,12 @@ func NewDeployments(storage store.DataStore, fileStorage s3.FileStorage, imageCo
 		db:               storage,
 		fileStorage:      fileStorage,
 		imageContentType: imageContentType,
+		workflowsClient:  workflows.NewClient(),
 	}
+}
+
+func (d *Deployments) SetWorkflowsClient(workflowsClient workflows.Client) {
+	d.workflowsClient = workflowsClient
 }
 
 func (d *Deployments) GetLimit(ctx context.Context, name string) (*model.Limit, error) {
@@ -145,14 +155,14 @@ func (d *Deployments) ProvisionTenant(ctx context.Context, tenant_id string) err
 	return nil
 }
 
+// maximum image size is 10G
+const MaxImageSize = 1024 * 1024 * 1024 * 10
+
 // CreateImage parses artifact and uploads artifact file to the file storage - in parallel,
 // and creates image structure in the system.
 // Returns image ID and nil on success.
 func (d *Deployments) CreateImage(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
-
-	// maximum image size is 10G
-	const MaxImageSize = 1024 * 1024 * 1024 * 10
 
 	switch {
 	case multipartUploadMsg == nil:
@@ -261,6 +271,76 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// save image structure in the system
 	if err = d.db.InsertImage(ctx, image); err != nil {
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
+	}
+
+	return artifactID, nil
+}
+
+// GenerateImage parses raw data and uploads it to the file storage - in parallel,
+// creates image structure in the system, and starts the workflow to generate the
+// artifact from them.
+// Returns image ID and nil on success.
+func (d *Deployments) GenerateImage(ctx context.Context,
+	multipartGenerateImageMsg *model.MultipartGenerateImageMsg) (string, error) {
+
+	switch {
+	case multipartGenerateImageMsg == nil:
+		return "", ErrModelMultipartUploadMsgMalformed
+	case multipartGenerateImageMsg.Size > MaxImageSize:
+		return "", ErrModelArtifactFileTooLarge
+	}
+
+	imgID, err := d.handleRawFile(ctx, multipartGenerateImageMsg)
+	if err != nil {
+		return "", err
+	}
+
+	multipartGenerateImageMsg.ArtifactID = imgID
+	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 {
+		multipartGenerateImageMsg.TenantID = id.Tenant
+	}
+
+	err = d.workflowsClient.StartGenerateArtifact(ctx, multipartGenerateImageMsg)
+	if err != nil {
+		if cleanupErr := d.fileStorage.Delete(ctx, imgID); cleanupErr != nil {
+			return "", errors.Wrap(err, cleanupErr.Error())
+		}
+		return "", err
+	}
+
+	return imgID, err
+}
+
+// handleRawFile parses raw data, uploads it to the file storage,
+// and starts the workflow to generate the artifact.
+// Returns image ID, artifact file ID and nil on success.
+func (d *Deployments) handleRawFile(ctx context.Context,
+	multipartGenerateImageMsg *model.MultipartGenerateImageMsg) (string, error) {
+
+	uid, err := uuid.NewV4()
+	if err != nil {
+		return "", errors.New("failed to generate new uuid")
+	}
+
+	artifactID := uid.String()
+
+	// check if artifact is unique
+	// artifact is considered to be unique if there is no artifact with the same name
+	// and supporting the same platform in the system
+	isArtifactUnique, err := d.db.IsArtifactUnique(ctx,
+		multipartGenerateImageMsg.Name, multipartGenerateImageMsg.DeviceTypesCompatible)
+	if err != nil {
+		return "", errors.Wrap(err, "Fail to check if artifact is unique")
+	}
+	if !isArtifactUnique {
+		return "", ErrModelArtifactNotUnique
+	}
+
+	lr := io.LimitReader(multipartGenerateImageMsg.FileReader, multipartGenerateImageMsg.Size)
+	err = d.fileStorage.UploadArtifact(ctx,
+		artifactID, multipartGenerateImageMsg.Size, lr, ArtifactContentType)
+	if err != nil {
+		return "", err
 	}
 
 	return artifactID, nil

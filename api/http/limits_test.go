@@ -18,15 +18,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"testing"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
-	"github.com/mendersoftware/go-lib-micro/requestid"
-	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -43,23 +39,6 @@ func contextMatcher() interface{} {
 		return true
 	})
 }
-
-func setUpRestTest(route string, routeType routerTypeHandler,
-	handler func(w rest.ResponseWriter, r *rest.Request)) *rest.Api {
-
-	router, _ := rest.MakeRouter(routeType(route, handler))
-	api := rest.NewApi()
-	api.Use(
-		&requestlog.RequestLogMiddleware{
-			BaseLogger: &logrus.Logger{Out: ioutil.Discard},
-		},
-		&requestid.RequestIdMiddleware{},
-	)
-	api.SetApp(router)
-
-	return api
-}
-
 func TestGetLimits(t *testing.T) {
 
 	testCases := []struct {
@@ -113,8 +92,8 @@ func TestGetLimits(t *testing.T) {
 			if tc.code == http.StatusOK {
 				assert.JSONEq(t, tc.body, recorded.Recorder.Body.String())
 			}
-			app.AssertExpectations(t)
 
+			app.AssertExpectations(t)
 		})
 	}
 }

@@ -79,6 +79,27 @@ func (_m *App) CreateImage(ctx context.Context, multipartUploadMsg *model.Multip
 	return r0, r1
 }
 
+// GenerateImage provides a mock function with given fields, ctx, multipartGenerateImageMsg
+func (_m *App) GenerateImage(ctx context.Context, multipartGenerateImageMsg *model.MultipartGenerateImageMsg) (string, error) {
+	ret := _m.Called(ctx, multipartGenerateImageMsg)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(context.Context, *model.MultipartGenerateImageMsg) string); ok {
+		r0 = rf(ctx, multipartGenerateImageMsg)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *model.MultipartGenerateImageMsg) error); ok {
+		r1 = rf(ctx, multipartGenerateImageMsg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // DecommissionDevice provides a mock function with given fields: ctx, deviceID
 func (_m *App) DecommissionDevice(ctx context.Context, deviceID string) error {
 	ret := _m.Called(ctx, deviceID)

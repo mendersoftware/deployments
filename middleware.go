@@ -99,7 +99,8 @@ func SetupMiddleware(c config.Reader, api *rest.Api) {
 	// For the rest of the requests expected Content-Type is 'application/json'.
 	api.Use(&rest.IfMiddleware{
 		Condition: func(r *rest.Request) bool {
-			if r.URL.Path == api_http.ApiUrlManagementArtifacts && r.Method == http.MethodPost {
+			if r.URL.Path == api_http.ApiUrlManagementArtifacts && r.Method == http.MethodPost ||
+				r.URL.Path == api_http.ApiUrlManagementArtifactsGenerate && r.Method == http.MethodPost {
 				return true
 			} else if match, _ := regexp.MatchString(
 				api_http.ApiUrlInternal+"/tenants/([a-z0-9]+)/artifacts", r.URL.Path); match &&
