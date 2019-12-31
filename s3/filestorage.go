@@ -92,22 +92,28 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 
 	ctx := context.Background()
 
+	l := log.FromContext(ctx)
+
 	// timeout set to 5 seconds
 	var cancelFn func()
 	ctxWithTimeout, cancelFn := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelFn()
 
+	l.Infof("deployments service creating bucket")
 	_, err := client.CreateBucketWithContext(ctxWithTimeout, cparams)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
+				l.Errorf("deployments service fatal: awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou err:%v",err)
 				return nil, err
 			}
 		} else {
+			l.Errorf("deployments service fatal:  err:%v",err)
 			return nil, err
 		}
 	}
 
+	l.Infof("deployments service created bucket.")
 	return &SimpleStorageService{
 		client:      client,
 		bucket:      bucket,
