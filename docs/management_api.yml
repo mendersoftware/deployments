@@ -527,6 +527,74 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /artifacts/generate:
+    post:
+      summary: Upload raw data to generate a new artifact
+      description: |
+        Generate a new Mender artifact from raw data and meta data. Multipart request with meta and raw file.
+        Supports generating single-file updates only, using the single file upload module. [https://hub.mender.io/t/single-file/486]: 
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          type: string
+          format: Bearer [token]
+          description: Contains the JWT token issued by the User Administration and Authentication Service.
+        - name: name
+          in: formData
+          description: Name of the artifact to generate.
+          required: true
+          type: string
+        - name: description
+          in: formData
+          description: Description of the artifact to generate.
+          required: false
+          type: string
+        - name: size
+          in: formData
+          description: Size of the file in bytes.
+          required: true
+          type: integer
+          format: long
+        - name: device_types_compatible
+          in: formData
+          description: An array of compatible device types.
+          type: array
+          collectionFormat: csv
+          items:
+            type: string
+        - name: type
+          in: formData
+          description: Update module used to generate the artifact.
+          required: true
+          type: string
+          enum: [single_file]
+        - name: args
+          in: formData
+          description: Type-specific arguments used to generate the artifact.
+          required: false
+          type: string
+        - name: file
+          in: formData
+          description: Raw file to be used to generate the artifact. It has to be the last part of request.
+          required: true
+          type: file
+      produces:
+        - application/json
+      responses:
+        201:
+          description: Artifact generation request accepted and queued for processing.
+          headers:
+            Location:
+              description: URL of the artifact going to be generated.
+              type: string
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        500:
+          $ref: "#/responses/InternalServerError"
+
   /artifacts/{id}:
     get:
       summary: Get the details of a selected artifact
@@ -956,7 +1024,6 @@ definitions:
         description: |
             Represents creation / last edition of any of the artifact properties.
       size:
-        required: false
         type: number
         format: integer
         description: |
