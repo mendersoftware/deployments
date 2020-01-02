@@ -34,6 +34,7 @@ DB_NAME = "deployment_service"
 DB_MIGRATION_COLLECTION = "migration_info"
 DB_VERSION = "1.2.1"
 
+
 class Artifact(metaclass=abc.ABCMeta):
     @abc.abstractproperty
     def size(self):
@@ -45,7 +46,6 @@ class Artifact(metaclass=abc.ABCMeta):
 
 
 class BytesArtifact(io.BytesIO, Artifact):
-
     def __init__(self, data):
         self._size = len(data)
         d = sha256()
@@ -69,7 +69,7 @@ class FileArtifact(io.RawIOBase, Artifact):
         self._size = size
 
         d = sha256()
-        with open(openedfile.name, 'rb') as inf:
+        with open(openedfile.name, "rb") as inf:
             fdata = inf.read()
             if fdata:
                 d.update(fdata)
@@ -87,20 +87,20 @@ class FileArtifact(io.RawIOBase, Artifact):
     def checksum(self):
         return self._checksum
 
-class MinioClient():
+
+class MinioClient:
     access_key = "minio"
     secret_key = "minio123"
 
     def __new__(self):
-        return minio.Minio("minio:9000",
-                            access_key="minio",
-                            secret_key="minio123",
-                            secure=False)
+        return minio.Minio(
+            "minio:9000", access_key="minio", secret_key="minio123", secure=False
+        )
 
 
 @contextmanager
 def artifact_from_mender_file(path):
-    with open(path, 'rb') as infile:
+    with open(path, "rb") as infile:
         sz = str(os.stat(path).st_size)
         yield FileArtifact(sz, infile)
 
@@ -113,34 +113,36 @@ def artifact_from_raw_data(data):
 
 
 @contextmanager
-def artifact_from_data(name='foo', data=None, devicetype='hammer'):
-    with tempfile.NamedTemporaryFile(prefix='menderout') as tmender:
-        logging.info('writing mender artifact to temp file %s', tmender.name)
+def artifact_from_data(name="foo", data=None, devicetype="hammer"):
+    with tempfile.NamedTemporaryFile(prefix="menderout") as tmender:
+        logging.info("writing mender artifact to temp file %s", tmender.name)
 
-        with tempfile.NamedTemporaryFile(prefix='menderin') as tdata:
-            logging.info('writing update data to temp file %s', tdata.name)
+        with tempfile.NamedTemporaryFile(prefix="menderin") as tdata:
+            logging.info("writing update data to temp file %s", tdata.name)
             tdata.write(data)
             tdata.flush()
 
-            cmd = 'mender-artifact write rootfs-image --device-type "{}" ' \
-                  '--file "{}" --artifact-name "{}" --output-path "{}"'.format(
-                      devicetype,
-                      tdata.name,
-                      name,
-                      tmender.name,
-                  )
+            cmd = (
+                'mender-artifact write rootfs-image --device-type "{}" '
+                '--file "{}" --artifact-name "{}" --output-path "{}"'.format(
+                    devicetype, tdata.name, name, tmender.name
+                )
+            )
             rc = subprocess.call(cmd, shell=True)
             if rc:
-                logging.error('mender-artifact call \'%s\' failed with code %d', cmd, rc)
-                raise RuntimeError('mender-artifact command \'{}\' failed with code {}'.format(cmd, rc))
+                logging.error("mender-artifact call '%s' failed with code %d", cmd, rc)
+                raise RuntimeError(
+                    "mender-artifact command '{}' failed with code {}".format(cmd, rc)
+                )
 
             # bring up temp mender artifact
             with artifact_from_mender_file(tmender.name) as fa:
                 yield fa
 
+
 @contextmanager
 def artifacts_added_from_data(artifacts):
-    data = b'foo_bar'
+    data = b"foo_bar"
     out_artifacts = []
     ac = ArtifactsClient()
 
@@ -148,7 +150,7 @@ def artifacts_added_from_data(artifacts):
         # generate artifact
         with artifact_from_data(name=name, data=data, devicetype=device_type) as art:
             logging.info("uploading artifact")
-            artid = ac.add_artifact('foo', art.size, art)
+            artid = ac.add_artifact("foo", art.size, art)
             out_artifacts.append(artid)
 
     yield out_artifacts
@@ -158,35 +160,38 @@ def artifacts_added_from_data(artifacts):
 
 
 class Device:
-    def __init__(self, device_type='hammer'):
-        self.devid = ''.join([random.choice(string.ascii_letters + string.digits) \
-                              for _ in range(10)])
+    def __init__(self, device_type="hammer"):
+        self.devid = "".join(
+            [random.choice(string.ascii_letters + string.digits) for _ in range(10)]
+        )
         self.device_type = device_type
 
     @property
     def fake_token(self):
-        claims = json.dumps({
-            'sub': self.devid,
-            'iss': 'Mender',
-        })
+        claims = json.dumps({"sub": self.devid, "iss": "Mender"})
         hdr = '{"typ": "JWT"}'
-        signature = 'fake-signature'
-        return '.'.join(urlsafe_b64encode(p.encode()).decode() \
-                        for p in [hdr, claims, signature])
+        signature = "fake-signature"
+        return ".".join(
+            urlsafe_b64encode(p.encode()).decode() for p in [hdr, claims, signature]
+        )
+
 
 @pytest.fixture(scope="session")
 def cli():
     return CliClient()
 
+
 @pytest.fixture(scope="session")
 def mongo():
-    return MongoClient('mender-mongo:27017')
+    return MongoClient("mender-mongo:27017")
 
-@pytest.yield_fixture(scope='function')
+
+@pytest.yield_fixture(scope="function")
 def clean_db(mongo):
     mongo_cleanup(mongo)
     yield mongo
     mongo_cleanup(mongo)
+
 
 @pytest.fixture(scope="function")
 def clean_minio():
@@ -195,15 +200,18 @@ def clean_minio():
     for obj in m.list_objects("mender-artifact-storage"):
         m.remove_object("mender-artifact-storage", obj.object_name)
 
+
 def mongo_cleanup(mongo):
     dbs = mongo.database_names()
-    dbs = [d for d in dbs if d not in ['local', 'admin', 'config']]
+    dbs = [d for d in dbs if d not in ["local", "admin", "config"]]
     for d in dbs:
         mongo.drop_database(d)
+
 
 @pytest.fixture(scope="session")
 def api_client_int():
     return InternalApiClient()
 
+
 def make_tenant_db(tenant_id):
-    return '{}-{}'.format(DB_NAME, tenant_id)
+    return "{}-{}".format(DB_NAME, tenant_id)

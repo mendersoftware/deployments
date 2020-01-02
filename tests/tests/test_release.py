@@ -21,6 +21,7 @@ import requests
 from client import DeploymentsClient
 from common import artifacts_added_from_data, clean_minio, MinioClient
 
+
 class TestRelease(DeploymentsClient):
     m = MinioClient()
 
@@ -28,53 +29,75 @@ class TestRelease(DeploymentsClient):
         self.setup_swagger()
 
     def test_releases_no_artifacts(self):
-        rsp = self.client.deployments.get_deployments_releases(Authorization='foo').result()
+        rsp = self.client.deployments.get_deployments_releases(
+            Authorization="foo"
+        ).result()
         assert len(rsp[0]) == 0
 
     @pytest.mark.usefixtures("clean_minio")
     def test_get_all_releses(self):
-        with artifacts_added_from_data([('foo', 'device-type-1'), ('foo', 'device-type-2'), ('bar', 'device-type-2')]):
-            rsp = self.client.deployments.get_deployments_releases(Authorization='foo').result()
+        with artifacts_added_from_data(
+            [
+                ("foo", "device-type-1"),
+                ("foo", "device-type-2"),
+                ("bar", "device-type-2"),
+            ]
+        ):
+            rsp = self.client.deployments.get_deployments_releases(
+                Authorization="foo"
+            ).result()
             res = rsp[0]
             assert len(res) == 2
             release1 = res[0]
             release2 = res[1]
-            assert release1.Name == 'foo'
+            assert release1.Name == "foo"
             assert len(release1.Artifacts) == 2
 
             r1a1 = release1.Artifacts[0]
             r1a2 = release1.Artifacts[1]
-            assert r1a1['name'] == 'foo'
-            assert r1a1['device_types_compatible'] == ['device-type-1']
-            assert r1a2['name'] == 'foo'
-            assert r1a2['device_types_compatible'] == ['device-type-2']
+            assert r1a1["name"] == "foo"
+            assert r1a1["device_types_compatible"] == ["device-type-1"]
+            assert r1a2["name"] == "foo"
+            assert r1a2["device_types_compatible"] == ["device-type-2"]
 
-            assert release2.Name == 'bar'
+            assert release2.Name == "bar"
             assert len(release2.Artifacts) == 1
             r2a = release2.Artifacts[0]
-            assert r2a['name'] == 'bar'
-            assert r2a['device_types_compatible'] == ['device-type-2']
+            assert r2a["name"] == "bar"
+            assert r2a["device_types_compatible"] == ["device-type-2"]
 
     @pytest.mark.usefixtures("clean_minio")
     def test_get_releses_by_name(self):
-        with artifacts_added_from_data([('foo', 'device-type-1'),
-                        ('foo', 'device-type-2'), ('bar', 'device-type-2')]):
+        with artifacts_added_from_data(
+            [
+                ("foo", "device-type-1"),
+                ("foo", "device-type-2"),
+                ("bar", "device-type-2"),
+            ]
+        ):
             rsp = self.client.deployments.get_deployments_releases(
-                    Authorization='foo', name='bar').result()
+                Authorization="foo", name="bar"
+            ).result()
             res = rsp[0]
             assert len(res) == 1
             release = res[0]
-            assert release.Name == 'bar'
+            assert release.Name == "bar"
             assert len(release.Artifacts) == 1
             artifact = release.Artifacts[0]
-            assert artifact['name'] == 'bar'
-            assert artifact['device_types_compatible'] == ['device-type-2']
+            assert artifact["name"] == "bar"
+            assert artifact["device_types_compatible"] == ["device-type-2"]
 
     @pytest.mark.usefixtures("clean_minio")
     def test_get_releses_by_name_no_result(self):
-        with artifacts_added_from_data([('foo', 'device-type-1'),
-                        ('foo', 'device-type-2'), ('bar', 'device-type-2')]):
+        with artifacts_added_from_data(
+            [
+                ("foo", "device-type-1"),
+                ("foo", "device-type-2"),
+                ("bar", "device-type-2"),
+            ]
+        ):
             rsp = self.client.deployments.get_deployments_releases(
-                    Authorization='foo', name='baz').result()
+                Authorization="foo", name="baz"
+            ).result()
             res = rsp[0]
             assert len(res) == 0
