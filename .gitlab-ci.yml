@@ -9,6 +9,11 @@ cache:
     - /go/src/gopkg.in
     - node_modules
 
+
+include:
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-check-python3-format.yml'
+
 variables:
   DOCKER_HOST: tcp://docker:2375/
   DOCKER_DRIVER: overlay2
