@@ -9,6 +9,11 @@ cache:
     - /go/src/gopkg.in
     - node_modules
 
+
+include:
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-check-python3-format.yml'
+
 variables:
   DOCKER_HOST: tcp://docker:2375/
   DOCKER_DRIVER: overlay2
@@ -28,6 +33,11 @@ before_script:
   - export DOCKER_TAG=${CI_COMMIT_REF_SLUG:-master}
   - export SERVICE_IMAGE=$DOCKER_REPOSITORY:$DOCKER_TAG
   - export COMMIT_TAG="$CI_COMMIT_REF_SLUG"_"$CI_COMMIT_SHA"
+
+
+test:check-python3-formatting:
+  variables:
+    FORMAT_PYTHON3_DIRECTORIES: "tests/"
 
 test:build_acceptance:
   stage: test_prep
