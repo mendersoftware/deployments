@@ -14,6 +14,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -269,6 +270,26 @@ func getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*model.SoftwareIm
 // First part should contain Metadata file. This file should be of type "application/json".
 // Second part should contain artifact file.
 func (d *DeploymentsApiHandlers) NewImage(w rest.ResponseWriter, r *rest.Request) {
+	d.newImageWithContext(r.Context(), w, r)
+}
+
+func (d *DeploymentsApiHandlers) NewImageForTenantHandler(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r)
+
+	tenantID := r.PathParam("tenant")
+
+	if tenantID == "" {
+		rest_utils.RestErrWithLog(w, r, l, fmt.Errorf("missing tenant id in path"), http.StatusBadRequest)
+		return
+	}
+
+	ident := &identity.Identity{Tenant: tenantID}
+	ctx := identity.WithContext(r.Context(), ident)
+
+	d.newImageWithContext(ctx, w, r)
+}
+
+func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
 	// parse content type and params according to RFC 1521
@@ -279,6 +300,7 @@ func (d *DeploymentsApiHandlers) NewImage(w rest.ResponseWriter, r *rest.Request
 	}
 
 	mr := multipart.NewReader(r.Body, params["boundary"])
+
 	// parse multipart message
 	multipartUploadMsg, err := d.ParseMultipart(mr, DefaultMaxMetaSize)
 	if err != nil {
@@ -286,7 +308,7 @@ func (d *DeploymentsApiHandlers) NewImage(w rest.ResponseWriter, r *rest.Request
 		return
 	}
 
-	imgID, err := d.app.CreateImage(r.Context(), multipartUploadMsg)
+	imgID, err := d.app.CreateImage(ctx, multipartUploadMsg)
 	cause := errors.Cause(err)
 	switch cause {
 	default:
@@ -305,8 +327,6 @@ func (d *DeploymentsApiHandlers) NewImage(w rest.ResponseWriter, r *rest.Request
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 	}
-
-	return
 }
 
 func formatArtifactUploadError(err error) error {
@@ -834,52 +854,5 @@ func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWrit
 		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
 	} else {
 		w.WriteJson(deps)
-	}
-}
-
-func (d *DeploymentsApiHandlers) NewImageForTenantHandler(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r)
-
-	tenantID := r.PathParam("tenant")
-
-	if tenantID == "" {
-		rest_utils.RestErrWithLog(w, r, l, fmt.Errorf("missing tenant id in path"), http.StatusBadRequest)
-		return
-	}
-
-	ident := &identity.Identity{Tenant: tenantID}
-	ctx := identity.WithContext(r.Context(), ident)
-
-	// parse content type and params according to RFC 1521
-	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil {
-		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
-		return
-	}
-
-	mr := multipart.NewReader(r.Body, params["boundary"])
-	// parse multipart message
-
-	multipartUploadMsg, err := d.ParseMultipart(mr, DefaultMaxMetaSize)
-	if err != nil {
-		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
-		return
-	}
-
-	imgID, err := d.app.CreateImage(ctx, multipartUploadMsg)
-	cause := errors.Cause(err)
-	switch cause {
-	default:
-		d.view.RenderInternalError(w, r, err, l)
-	case nil:
-		d.view.RenderSuccessPost(w, r, imgID)
-	case app.ErrModelArtifactNotUnique:
-		l.Error(err.Error())
-		d.view.RenderError(w, r, cause, http.StatusUnprocessableEntity, l)
-	case app.ErrModelMissingInputMetadata, app.ErrModelMissingInputArtifact,
-		app.ErrModelInvalidMetadata, app.ErrModelMultipartUploadMsgMalformed,
-		app.ErrModelArtifactFileTooLarge, app.ErrModelParsingArtifactFailed:
-		l.Error(err.Error())
-		d.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 	}
 }

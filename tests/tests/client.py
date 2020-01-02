@@ -114,7 +114,7 @@ class ArtifactsClient(SwaggerApiClient):
             loc = rsp.headers.get('Location', None)
             assert loc
         except AssertionError:
-            raise ArtifactsClientError('add failed failed', rsp)
+            raise ArtifactsClientError('add failed', rsp)
 
         loc = rsp.headers.get('Location', None)
         artid = os.path.basename(loc)
@@ -288,3 +288,30 @@ class InternalApiClient(SwaggerApiClient):
     def create_tenant(self, tenant_id):
         return self.client.tenants.post_tenants(tenant={
                     "tenant_id": tenant_id}).result()
+
+    def add_artifact(self, tenant_id, description='', size=0, data=None):
+        """Create new artifact with provided upload data. Data must be a file like
+        object.
+
+        Returns artifact ID or raises ArtifactsClientError if response checks
+        failed
+        """
+        # prepare upload data for multipart/form-data
+        files = ArtifactsClient.make_upload_meta({
+            'description': description,
+            'size': str(size),
+            'artifact': ('firmware', data, 'application/octet-stream', {}),
+        })
+        url = self.make_api_url('/tenants/{}/artifacts'.format(tenant_id))
+        rsp = requests.post(url, files=files, verify=False)
+        # should have been created
+        try:
+            assert rsp.status_code == 201
+            loc = rsp.headers.get('Location', None)
+            assert loc
+        except AssertionError:
+            raise ArtifactsClientError('add failed', rsp)
+        # return the artifact id
+        loc = rsp.headers.get('Location', None)
+        artid = os.path.basename(loc)
+        return artid
