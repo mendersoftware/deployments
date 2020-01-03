@@ -9,6 +9,7 @@ services:
         depends_on:
             - mender-deployments
             - mender-inventory
+            - mender-workflows-server
             - minio
             - storage-proxy
     mender-deployments:
@@ -16,3 +17,8 @@ services:
             image: mendersoftware/deployments:prtest
             volumes:
                 - "${TESTS_DIR}:/testing"
+    mender-workflows-server:
+        image: python:3
+        command: ["/app/docker-entrypoint.sh"]
+        volumes:
+            - "${TESTS_DIR}/mock-workflows:/app"
