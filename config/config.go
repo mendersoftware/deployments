@@ -60,6 +60,9 @@ const (
 	SettingGateway        = "mender-gateway"
 	SettingGatewayDefault = "localhost:9080"
 
+	SettingWorkflows        = "mender-workflows"
+	SettingWorkflowsDefault = "http://mender-workflows-server:8080"
+
 	SettingMiddleware        = "middleware"
 	SettingMiddlewareDefault = EnvProd
 )
@@ -122,6 +125,7 @@ var (
 		{Key: SettingDbSSL, Value: SettingDbSSLDefault},
 		{Key: SettingDbSSLSkipVerify, Value: SettingDbSSLSkipVerifyDefault},
 		{Key: SettingGateway, Value: SettingGatewayDefault},
+		{Key: SettingWorkflows, Value: SettingWorkflowsDefault},
 		{Key: SettingsAwsTagArtifact, Value: SettingsAwsTagArtifactDefault},
 	}
 )

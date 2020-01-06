@@ -36,6 +36,7 @@ const (
 	ApiUrlDevices    = "/api/devices/v1/deployments"
 
 	ApiUrlManagementArtifacts           = ApiUrlManagement + "/artifacts"
+	ApiUrlManagementArtifactsGenerate   = ApiUrlManagement + "/artifacts/generate"
 	ApiUrlManagementArtifactsId         = ApiUrlManagement + "/artifacts/:id"
 	ApiUrlManagementArtifactsIdDownload = ApiUrlManagement + "/artifacts/:id/download"
 
@@ -118,6 +119,7 @@ func NewImagesResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 
 	return []*rest.Route{
 		rest.Post(ApiUrlManagementArtifacts, controller.NewImage),
+		rest.Post(ApiUrlManagementArtifactsGenerate, controller.GenerateImage),
 		rest.Get(ApiUrlManagementArtifacts, controller.ListImages),
 
 		rest.Get(ApiUrlManagementArtifactsId, controller.GetImage),

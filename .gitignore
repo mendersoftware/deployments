@@ -34,3 +34,8 @@ debug
 .vscode
 
 /artifacts
+
+# Pythonn
+__pycache__/
+*.py[cod]
+venv/

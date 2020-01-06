@@ -107,9 +107,9 @@ func NewSoftwareImage(
 	return &SoftwareImage{
 		SoftwareImageMetaConstructor:         *metaConstructor,
 		SoftwareImageMetaArtifactConstructor: *metaArtifactConstructor,
-		Modified: &now,
-		Id:       id,
-		Size:     artifactSize,
+		Modified:                             &now,
+		Id:                                   id,
+		Size:                                 artifactSize,
 	}
 }
 
@@ -133,4 +133,18 @@ type MultipartUploadMsg struct {
 	ArtifactSize int64
 	// reader pointing to the beginning of the artifact data
 	ArtifactReader io.Reader
+}
+
+// MultipartGenerateImageMsg is a structure with fields extracted from the multipart/form-data
+// form sent in the artifact generation request
+type MultipartGenerateImageMsg struct {
+	Name                  string    `json:"name"`
+	Description           string    `json:"description"`
+	Size                  int64     `json:"size"`
+	DeviceTypesCompatible []string  `json:"device_types_compatible"`
+	Type                  string    `json:"type"`
+	Args                  string    `json:"args"`
+	ArtifactID            string    `json:"artifact_id"`
+	TenantID              string    `json:"tenant_id"`
+	FileReader            io.Reader `json:"-"`
 }

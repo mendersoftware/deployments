@@ -93,7 +93,6 @@ class ArtifactsClient(SwaggerApiClient):
                 upload_meta[entry] = meta[entry]
         return upload_meta
 
-
     def add_artifact(self, description='', size=0, data=None):
         """Create new artifact with provided upload data. Data must be a file like
         object.
@@ -108,6 +107,46 @@ class ArtifactsClient(SwaggerApiClient):
             'artifact': ('firmware', data, 'application/octet-stream', {}),
         })
         rsp = requests.post(self.make_api_url('/artifacts'), files=files, verify=False)
+        # should have be created
+        try:
+            assert rsp.status_code == 201
+            loc = rsp.headers.get('Location', None)
+            assert loc
+        except AssertionError:
+            raise ArtifactsClientError('add failed', rsp)
+
+        loc = rsp.headers.get('Location', None)
+        artid = os.path.basename(loc)
+        return artid
+
+    @staticmethod
+    def make_generate_meta(meta):
+        order = ['name', 'description', 'size', 'device_types_compatible', 'type', 'args', 'file']
+
+        upload_meta = OrderedDict()
+        for entry in order:
+            if entry in meta:
+                upload_meta[entry] = meta[entry]
+        return upload_meta
+
+    def generate_artifact(self, name='', description='', size=0, device_types_compatible='', type='', args='', data=None):
+        """Generate a new artifact with provided upload data.
+        Data must be a file like object.
+
+        Returns artifact ID or raises ArtifactsClientError if response checks
+        failed
+        """
+        # prepare upload data for multipart/form-data
+        files = ArtifactsClient.make_generate_meta({
+            'name': name,
+            'description': description,
+            'size': str(size),
+            'device_types_compatible': device_types_compatible,
+            'type': type,
+            'args': args,
+            'file': ('firmware', data, 'application/octet-stream', {}),
+        })
+        rsp = requests.post(self.make_api_url('/artifacts/generate'), files=files, verify=False)
         # should have be created
         try:
             assert rsp.status_code == 201
