@@ -189,7 +189,7 @@ paths:
         - name: size
           in: formData
           description: Size of the artifact file in bytes.
-          required: true
+          required: false
           type: integer
           format: long
         - name: description

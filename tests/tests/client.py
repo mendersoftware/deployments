@@ -102,8 +102,8 @@ class ArtifactsClient(SwaggerApiClient):
         """
         # prepare upload data for multipart/form-data
         files = ArtifactsClient.make_upload_meta({
-            'description': description,
-            'size': str(size),
+            'description': (None, description),
+            'size': (None, str(size)),
             'artifact': ('firmware', data, 'application/octet-stream', {}),
         })
         rsp = requests.post(self.make_api_url('/artifacts'), files=files, verify=False)
@@ -121,7 +121,7 @@ class ArtifactsClient(SwaggerApiClient):
 
     @staticmethod
     def make_generate_meta(meta):
-        order = ['name', 'description', 'size', 'device_types_compatible', 'type', 'args', 'file']
+        order = ['name', 'description', 'device_types_compatible', 'type', 'args', 'file']
 
         upload_meta = OrderedDict()
         for entry in order:
@@ -129,7 +129,7 @@ class ArtifactsClient(SwaggerApiClient):
                 upload_meta[entry] = meta[entry]
         return upload_meta
 
-    def generate_artifact(self, name='', description='', size=0, device_types_compatible='', type='', args='', data=None):
+    def generate_artifact(self, name='', description='', device_types_compatible='', type='', args='', data=None):
         """Generate a new artifact with provided upload data.
         Data must be a file like object.
 
@@ -138,12 +138,11 @@ class ArtifactsClient(SwaggerApiClient):
         """
         # prepare upload data for multipart/form-data
         files = ArtifactsClient.make_generate_meta({
-            'name': name,
-            'description': description,
-            'size': str(size),
-            'device_types_compatible': device_types_compatible,
-            'type': type,
-            'args': args,
+            'name': (None, name),
+            'description': (None, description),
+            'device_types_compatible': (None, device_types_compatible),
+            'type': (None, type),
+            'args': (None, args),
             'file': ('firmware', data, 'application/octet-stream', {}),
         })
         rsp = requests.post(self.make_api_url('/artifacts/generate'), files=files, verify=False)
@@ -337,8 +336,8 @@ class InternalApiClient(SwaggerApiClient):
         """
         # prepare upload data for multipart/form-data
         files = ArtifactsClient.make_upload_meta({
-            'description': description,
-            'size': str(size),
+            'description': (None, description),
+            'size': (None, str(size)),
             'artifact': ('firmware', data, 'application/octet-stream', {}),
         })
         url = self.make_api_url('/tenants/{}/artifacts'.format(tenant_id))

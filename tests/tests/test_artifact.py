@@ -155,46 +155,6 @@ class TestArtifact(ArtifactsClient):
             raise AssertionError('expected to fail')
 
     @pytest.mark.usefixtures("clean_minio")
-    def test_artifacts_generate_bogus_empty_file(self):
-        try:
-            res = self.client.artifacts.post_artifacts_generate(
-                Authorization='foo',
-                name='artifact',
-                description="bar",
-                device_types_compatible=['Beagle Bone'],
-                type='single_file',
-                args='',
-                size=100,
-                file=b'',
-            ).result()
-        except bravado.exception.HTTPError as e:
-            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
-            assert e.response.status_code == 400
-            assert 'The last part of the multipart/form-data message should be a file.' in e.response.text
-        else:
-            raise AssertionError('expected to fail')
-
-    @pytest.mark.usefixtures("clean_minio")
-    def test_artifacts_generate_bogus_wrong_size(self):
-        try:
-            res = self.client.artifacts.post_artifacts_generate(
-                Authorization='foo',
-                name='artifact',
-                description="bar",
-                device_types_compatible=['Beagle Bone'],
-                type='single_file',
-                args='',
-                size=-1,
-                file=('firmware', 'dummy'),
-            ).result()
-        except bravado.exception.HTTPError as e:
-            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
-            assert e.response.status_code == 400
-            assert 'No size provided before the file part of the message or the size value is wrong.' in e.response.text
-        else:
-            raise AssertionError('expected to fail')
-
-    @pytest.mark.usefixtures("clean_minio")
     def test_artifacts_generate_valid(self):
         artifact_name = str(uuid4())
         description = 'description for foo ' + artifact_name
@@ -206,7 +166,6 @@ class TestArtifact(ArtifactsClient):
         artid = self.generate_artifact(
             name=artifact_name,
             description=description,
-            size=len(data),
             device_types_compatible=device_type,
             type='single_file',
             args='',

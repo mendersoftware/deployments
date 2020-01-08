@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import (
 
 	"github.com/mendersoftware/deployments/app"
 	app_mocks "github.com/mendersoftware/deployments/app/mocks"
+	"github.com/mendersoftware/deployments/model"
 	store_mocks "github.com/mendersoftware/deployments/store/mocks"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	h "github.com/mendersoftware/deployments/utils/testing"
@@ -62,15 +63,25 @@ func TestPostArtifactsGenerate(t *testing.T) {
 		},
 		{
 			requestBodyObject:  []h.Part{},
+			requestContentType: "application/x-www-form-urlencoded",
+			responseCode:       http.StatusBadRequest,
+			responseBody:       "request Content-Type isn't multipart/form-data",
+		},
+		{
+			requestBodyObject:  []h.Part{},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "Request does not contain artifact",
+			responseBody:       "request does not contain the name of the artifact",
 		},
 		{
 			requestBodyObject: []h.Part{
 				{
 					FieldName:  "name",
 					FieldValue: "name",
+				},
+				{
+					FieldName:  "type",
+					FieldValue: "single_file",
 				},
 				{
 					FieldName:   "file",
@@ -80,7 +91,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "No size provided before the file part of the message or the size value is wrong.",
+			responseBody:       "request does not contain the list of compatible device types",
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -89,8 +100,27 @@ func TestPostArtifactsGenerate(t *testing.T) {
 					FieldValue: "name",
 				},
 				{
-					FieldName:  "size",
-					FieldValue: strconv.Itoa(-1),
+					FieldName:  "type",
+					FieldValue: "single_file",
+				},
+				{
+					FieldName:  "device_types_compatible",
+					FieldValue: "Beagle Bone",
+				},
+			},
+			requestContentType: "multipart/form-data",
+			responseCode:       http.StatusBadRequest,
+			responseBody:       "request does not contain the artifact file",
+		},
+		{
+			requestBodyObject: []h.Part{
+				{
+					FieldName:  "name",
+					FieldValue: "name",
+				},
+				{
+					FieldName:  "device_types_compatible",
+					FieldValue: "Beagle Bone",
 				},
 				{
 					FieldName:   "file",
@@ -100,47 +130,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "No size provided before the file part of the message or the size value is wrong.",
-		},
-		{
-			requestBodyObject: []h.Part{
-				{
-					FieldName:  "name",
-					FieldValue: "name",
-				},
-				{
-					FieldName:  "size",
-					FieldValue: strconv.Itoa(0),
-				},
-				{
-					FieldName:   "file",
-					ContentType: "application/octet-stream",
-					ImageData:   imageBody,
-				},
-			},
-			requestContentType: "multipart/form-data",
-			responseCode:       http.StatusBadRequest,
-			responseBody:       "No size provided before the file part of the message or the size value is wrong.",
-		},
-		{
-			requestBodyObject: []h.Part{
-				{
-					FieldName:  "name",
-					FieldValue: "name",
-				},
-				{
-					FieldName:  "size",
-					FieldValue: strconv.Itoa(len(imageBody)),
-				},
-				{
-					FieldName:   "file",
-					ContentType: "",
-					ImageData:   imageBody,
-				},
-			},
-			requestContentType: "multipart/form-data",
-			responseCode:       http.StatusBadRequest,
-			responseBody:       "The last part of the multipart/form-data message should be a file.",
+			responseBody:       "request does not contain the type of artifact",
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -351,7 +341,18 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			if tc.appGenerateImage {
 				app.On("GenerateImage",
 					h.ContextMatcher(),
-					mock.AnythingOfType("*model.MultipartGenerateImageMsg"),
+					mock.MatchedBy(func(msg *model.MultipartGenerateImageMsg) bool {
+						size, _ := strconv.Atoi(tc.requestBodyObject[2].FieldValue)
+
+						assert.Equal(t, msg.Name, tc.requestBodyObject[0].FieldValue)
+						assert.Equal(t, msg.Description, tc.requestBodyObject[1].FieldValue)
+						assert.Equal(t, msg.Size, int64(size))
+						assert.Equal(t, msg.DeviceTypesCompatible, []string{tc.requestBodyObject[3].FieldValue})
+						assert.Equal(t, msg.Type, tc.requestBodyObject[4].FieldValue)
+						assert.Equal(t, msg.Args, tc.requestBodyObject[5].FieldValue)
+
+						return true
+					}),
 				).Return(tc.appGenerateImageResponse, tc.appGenerateImageError)
 			}
 

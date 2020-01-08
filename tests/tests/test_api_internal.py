@@ -96,4 +96,4 @@ class TestInternalApiTenantCreate:
 
             artifacts_client.log.info("uploading artifact")
             with pytest.raises(ArtifactsClientError):
-                api_client_int.add_artifact(tenant_id, description, 0, art)
+                api_client_int.add_artifact(tenant_id, description, -1, art)
