@@ -171,7 +171,7 @@ paths:
       summary: Upload mender artifact
       description: |
         Upload mender artifact to a specific tenant. Multipart request with meta and artifact.
-        Supports artifact (versions v1, v2)[https://docs.mender.io/development/architecture/mender-artifacts#versions].
+        Supports artifact (versions v1, v2, and v3)[https://docs.mender.io/development/architecture/mender-artifacts#versions].
       consumes:
         - multipart/form-data
       parameters:
@@ -189,7 +189,7 @@ paths:
         - name: size
           in: formData
           description: Size of the artifact file in bytes.
-          required: true
+          required: false
           type: integer
           format: long
         - name: description

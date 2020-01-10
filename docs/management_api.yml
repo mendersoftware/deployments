@@ -501,7 +501,7 @@ paths:
         - name: size
           in: formData
           description: Size of the artifact file in bytes.
-          required: true
+          required: false
           type: integer
           format: long
         - name: description
@@ -552,12 +552,6 @@ paths:
           description: Description of the artifact to generate.
           required: false
           type: string
-        - name: size
-          in: formData
-          description: Size of the file in bytes.
-          required: true
-          type: integer
-          format: long
         - name: device_types_compatible
           in: formData
           description: An array of compatible device types.

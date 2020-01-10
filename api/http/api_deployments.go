@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,10 +16,6 @@ package http
 import (
 	"context"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"mime"
-	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -54,9 +50,13 @@ const (
 
 // Errors
 var (
-	ErrIDNotUUIDv4                    = errors.New("ID is not UUIDv4")
-	ErrArtifactUsedInActiveDeployment = errors.New("Artifact is used in active deployment")
-	ErrInvalidExpireParam             = errors.New("Invalid expire parameter")
+	ErrIDNotUUIDv4                          = errors.New("ID is not UUIDv4")
+	ErrArtifactUsedInActiveDeployment       = errors.New("Artifact is used in active deployment")
+	ErrInvalidExpireParam                   = errors.New("Invalid expire parameter")
+	ErrArtifactNameMissing                  = errors.New("request does not contain the name of the artifact")
+	ErrArtifactTypeMissing                  = errors.New("request does not contain the type of artifact")
+	ErrArtifactDeviceTypesCompatibleMissing = errors.New("request does not contain the list of compatible device types")
+	ErrArtifactFileMissing                  = errors.New("request does not contain the artifact file")
 
 	ErrInternal                   = errors.New("Internal error")
 	ErrDeploymentAlreadyFinished  = errors.New("Deployment already finished")
@@ -292,17 +292,14 @@ func (d *DeploymentsApiHandlers) NewImageForTenantHandler(w rest.ResponseWriter,
 func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
-	// parse content type and params according to RFC 1521
-	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	err := r.ParseMultipartForm(DefaultMaxMetaSize)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
-	mr := multipart.NewReader(r.Body, params["boundary"])
-
 	// parse multipart message
-	multipartUploadMsg, err := d.ParseMultipart(mr, DefaultMaxMetaSize)
+	multipartUploadMsg, err := d.ParseMultipart(r)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
@@ -355,16 +352,14 @@ func formatArtifactUploadError(err error) error {
 func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
-	// parse content type and params according to RFC 1521
-	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	err := r.ParseMultipartForm(DefaultMaxMetaSize)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
-	mr := multipart.NewReader(r.Body, params["boundary"])
 	// parse multipart message
-	multipartGenerateImageMsg, err := d.ParseGenerateImageMultipart(mr, DefaultMaxMetaSize)
+	multipartGenerateImageMsg, err := d.ParseGenerateImageMultipart(r)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
@@ -394,124 +389,71 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 }
 
 // ParseMultipart parses multipart/form-data message.
-func (d *DeploymentsApiHandlers) ParseMultipart(mr *multipart.Reader, maxMetaSize int64) (*model.MultipartUploadMsg, error) {
+func (d *DeploymentsApiHandlers) ParseMultipart(r *rest.Request) (*model.MultipartUploadMsg, error) {
 	multipartUploadMsg := &model.MultipartUploadMsg{
 		MetaConstructor: &model.SoftwareImageMetaConstructor{},
 	}
-	for {
-		p, err := mr.NextPart()
+	multipartUploadMsg.MetaConstructor.Description = r.FormValue("description")
+
+	sizeValue := r.FormValue("size")
+	var size int64
+	var err error
+	if sizeValue != "" {
+		size, err = strconv.ParseInt(sizeValue, 10, 64)
 		if err != nil {
-			return nil, errors.Wrap(err, "Request does not contain artifact")
-		}
-		switch p.FormName() {
-		case "size":
-			size, err := d.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, err
-			}
-			multipartUploadMsg.ArtifactSize, err = strconv.ParseInt(*size, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-		case "description":
-			desc, err := d.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, err
-			}
-			multipartUploadMsg.MetaConstructor.Description = *desc
-		case "artifact":
-			// valid metadata provided by the user and the image size
-			if err := multipartUploadMsg.MetaConstructor.Validate(); err != nil {
-				return nil, err
-			}
-			// artifact size part should be provided before artifact part
-			// artifact size value should be greater then 0
-			if multipartUploadMsg.ArtifactSize <= 0 {
-				return nil, errors.New("No size provided before the artifact part of the message or the size value is wrong.")
-			}
-			// HTML form can't set specific content-type, it's automatic, if not empty - it's a file
-			if p.Header.Get("Content-Type") == "" {
-				return nil, errors.New("The last part of the multipart/form-data message should be an artifact.")
-			}
-			multipartUploadMsg.ArtifactReader = p
-			return multipartUploadMsg, nil
+			return nil, err
 		}
 	}
-}
 
-func (d *DeploymentsApiHandlers) getFormFieldValue(p *multipart.Part, maxMetaSize int64) (*string, error) {
-	metaReader := io.LimitReader(p, maxMetaSize)
-	bytes, err := ioutil.ReadAll(metaReader)
-	if err != nil && err != io.EOF {
-		return nil, errors.Wrap(err, "Failed to obtain value for "+p.FormName())
+	file, fileHeader, err := r.FormFile("artifact")
+	if err != nil {
+		return nil, errors.Wrap(err, "request does not contain the file")
 	}
 
-	strValue := string(bytes)
-	return &strValue, nil
+	if size < 0 || size > 0 && size != fileHeader.Size {
+		return nil, errors.New("The size value is wrong.")
+	}
+
+	multipartUploadMsg.ArtifactReader = file
+	multipartUploadMsg.ArtifactSize = fileHeader.Size
+
+	return multipartUploadMsg, nil
 }
 
 // ParseGenerateImageMultipart parses multipart/form-data message.
-func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(mr *multipart.Reader, maxMetaSize int64) (*model.MultipartGenerateImageMsg, error) {
+func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(r *rest.Request) (*model.MultipartGenerateImageMsg, error) {
 	multipartGenerateImageMsg := &model.MultipartGenerateImageMsg{}
-	for {
-		p, err := mr.NextPart()
-		if err != nil {
-			return nil, errors.Wrap(err, "Request does not contain artifact")
-		}
-		switch p.FormName() {
-		case "name":
-			name, err := d.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, err
-			}
-			multipartGenerateImageMsg.Name = *name
-		case "description":
-			desc, err := d.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, err
-			}
-			multipartGenerateImageMsg.Description = *desc
-		case "size":
-			size, err := d.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, err
-			}
-			multipartGenerateImageMsg.Size, err = strconv.ParseInt(*size, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-		case "device_types_compatible":
-			deviceTypesCompatible, err := d.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, err
-			}
-			multipartGenerateImageMsg.DeviceTypesCompatible = strings.Split(*deviceTypesCompatible, ",")
-		case "type":
-			fileType, err := d.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, err
-			}
-			multipartGenerateImageMsg.Type = *fileType
-		case "args":
-			args, err := d.getFormFieldValue(p, maxMetaSize)
-			if err != nil {
-				return nil, err
-			}
-			multipartGenerateImageMsg.Args = *args
-		case "file":
-			// file size part should be provided before artifact part
-			// file size value should be greater then 0
-			if multipartGenerateImageMsg.Size <= 0 {
-				return nil, errors.New("No size provided before the file part of the message or the size value is wrong.")
-			}
-			// HTML form can't set specific content-type, it's automatic, if not empty - it's a file
-			if p.Header.Get("Content-Type") == "" {
-				return nil, errors.New("The last part of the multipart/form-data message should be a file.")
-			}
-			multipartGenerateImageMsg.FileReader = p
-			return multipartGenerateImageMsg, nil
-		}
+
+	multipartGenerateImageMsg.Name = r.FormValue("name")
+	if multipartGenerateImageMsg.Name == "" {
+		return nil, ErrArtifactNameMissing
 	}
+
+	multipartGenerateImageMsg.Description = r.FormValue("description")
+
+	multipartGenerateImageMsg.Type = r.FormValue("type")
+	if multipartGenerateImageMsg.Type == "" {
+		return nil, ErrArtifactTypeMissing
+	}
+
+	multipartGenerateImageMsg.Args = r.FormValue("args")
+
+	deviceTypesCompatible := r.FormValue("device_types_compatible")
+	if deviceTypesCompatible == "" {
+		return nil, ErrArtifactDeviceTypesCompatibleMissing
+	}
+
+	multipartGenerateImageMsg.DeviceTypesCompatible = strings.Split(deviceTypesCompatible, ",")
+
+	file, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		return nil, ErrArtifactFileMissing
+	}
+
+	multipartGenerateImageMsg.FileReader = file
+	multipartGenerateImageMsg.Size = fileHeader.Size
+
+	return multipartGenerateImageMsg, nil
 }
 
 // deployments
