@@ -15,8 +15,5 @@ def gen_random_object_id():
 
 @app.route("/api/v1/workflow/<name>", methods=["POST"])
 def generate_artifact(name: str):
-    response = {
-        "id": gen_random_object_id(),
-        "name": name,
-    }
+    response = {"id": gen_random_object_id(), "name": name}
     return jsonify(response), 201
