@@ -14,11 +14,17 @@
 #    limitations under the License.
 import logging
 
+
 def pytest_addoption(parser):
-    parser.addoption("--host", action="store", default="localhost",
-                     help="host running API")
-    parser.addoption("--inventory-host", action="store", default="mender-inventory:8080",
-                     help="host running API")
+    parser.addoption(
+        "--host", action="store", default="localhost", help="host running API"
+    )
+    parser.addoption(
+        "--inventory-host",
+        action="store",
+        default="mender-inventory:8080",
+        help="host running API",
+    )
     parser.addoption("--spec", default="../docs/management_api.yml")
     parser.addoption("--device-spec", default="../docs/devices_api.yml")
     parser.addoption("--internal-spec", default="../docs/internal_api.yml")
@@ -30,5 +36,5 @@ def pytest_configure(config):
         lvl = logging.DEBUG
     logging.basicConfig(level=lvl)
     # configure bravado related loggers to be less verbose
-    logging.getLogger('swagger_spec_validator').setLevel(logging.INFO)
-    logging.getLogger('bravado_core').setLevel(logging.INFO)
+    logging.getLogger("swagger_spec_validator").setLevel(logging.INFO)
+    logging.getLogger("bravado_core").setLevel(logging.INFO)
