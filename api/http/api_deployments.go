@@ -48,6 +48,12 @@ const (
 	GetDeploymentForDeviceQueryDeviceType = "device_type"
 )
 
+// JWT token
+const (
+	HTTPHeaderAuthorization       = "Authorization"
+	HTTPHeaderAuthorizationBearer = "Bearer"
+)
+
 // Errors
 var (
 	ErrIDNotUUIDv4                          = errors.New("ID is not UUIDv4")
@@ -417,6 +423,13 @@ func (d *DeploymentsApiHandlers) ParseMultipart(r *rest.Request) (*model.Multipa
 	multipartUploadMsg.ArtifactReader = file
 	multipartUploadMsg.ArtifactSize = fileHeader.Size
 
+	if id := r.FormValue("artifact_id"); id != "" {
+		if !govalidator.IsUUIDv4(id) {
+			return nil, errors.New("artifact_id is not an UUIDv4")
+		}
+		multipartUploadMsg.ArtifactID = id
+	}
+
 	return multipartUploadMsg, nil
 }
 
@@ -452,6 +465,11 @@ func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(r *rest.Request) (*
 
 	multipartGenerateImageMsg.FileReader = file
 	multipartGenerateImageMsg.Size = fileHeader.Size
+
+	auth := strings.Split(r.Header.Get(HTTPHeaderAuthorization), " ")
+	if len(auth) == 2 && auth[0] == HTTPHeaderAuthorizationBearer {
+		multipartGenerateImageMsg.Token = auth[1]
+	}
 
 	return multipartGenerateImageMsg, nil
 }

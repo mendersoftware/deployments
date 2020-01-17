@@ -34,6 +34,93 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestPostArtifacts(t *testing.T) {
+	type request struct {
+		Description string `json:"description"`
+		Size        int64  `json:"size"`
+		ArtifactID  string `json:"artifact_id"`
+	}
+
+	imageBody := []byte("123456790")
+
+	testCases := []struct {
+		requestBodyObject  []h.Part
+		requestContentType string
+		responseCode       int
+		responseBody       string
+	}{
+		{
+			requestBodyObject:  []h.Part{},
+			requestContentType: "",
+			responseCode:       http.StatusBadRequest,
+			responseBody:       "mime: no media type",
+		},
+		{
+			requestBodyObject:  []h.Part{},
+			requestContentType: "application/x-www-form-urlencoded",
+			responseCode:       http.StatusBadRequest,
+			responseBody:       "request Content-Type isn't multipart/form-data",
+		},
+		{
+			requestBodyObject:  []h.Part{},
+			requestContentType: "multipart/form-data",
+			responseCode:       http.StatusBadRequest,
+			responseBody:       "request does not contain the file: http: no such file",
+		},
+		{
+			requestBodyObject: []h.Part{
+				{
+					FieldName:  "description",
+					FieldValue: "description",
+				},
+				{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
+				{
+					FieldName:  "artifact_id",
+					FieldValue: "wrong_uuidv4",
+				},
+				{
+					FieldName:   "artifact",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			requestContentType: "multipart/form-data",
+			responseCode:       http.StatusBadRequest,
+			responseBody:       "artifact_id is not an UUIDv4",
+		},
+	}
+
+	store := &store_mocks.DataStore{}
+	restView := new(view.RESTView)
+
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			app := &app_mocks.App{}
+
+			d := NewDeploymentsApiHandlers(store, restView, app)
+			api := setUpRestTest("/api/0.0.1/artifacts", rest.Post, d.NewImage)
+			req := h.MakeMultipartRequest("POST", "http://localhost/api/0.0.1/artifacts",
+				tc.requestContentType, tc.requestBodyObject)
+			req.Header.Set("Authorization", HTTPHeaderAuthorizationBearer+" TOKEN")
+
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.responseCode)
+			if tc.responseBody == "" {
+				recorded.BodyIs(tc.responseBody)
+			} else {
+				body, _ := recorded.DecodedBody()
+				assert.Contains(t, string(body), tc.responseBody)
+			}
+		})
+	}
+
+}
+
 func TestPostArtifactsGenerate(t *testing.T) {
 	type request struct {
 		Name                  string `json:"name"`
@@ -350,6 +437,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 						assert.Equal(t, msg.DeviceTypesCompatible, []string{tc.requestBodyObject[3].FieldValue})
 						assert.Equal(t, msg.Type, tc.requestBodyObject[4].FieldValue)
 						assert.Equal(t, msg.Args, tc.requestBodyObject[5].FieldValue)
+						assert.Equal(t, msg.Token, "TOKEN")
 
 						return true
 					}),
@@ -360,6 +448,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			api := setUpRestTest("/api/0.0.1/artifacts/generate", rest.Post, d.GenerateImage)
 			req := h.MakeMultipartRequest("POST", "http://localhost/api/0.0.1/artifacts/generate",
 				tc.requestContentType, tc.requestBodyObject)
+			req.Header.Set("Authorization", HTTPHeaderAuthorizationBearer+" TOKEN")
 
 			recorded := test.RunRequest(t, api.MakeHandler(), req)
 			recorded.CodeIs(tc.responseCode)

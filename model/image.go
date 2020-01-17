@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -129,6 +129,8 @@ func (s *SoftwareImage) Validate() error {
 type MultipartUploadMsg struct {
 	// user metadata constructor
 	MetaConstructor *SoftwareImageMetaConstructor
+	// ArtifactID contains the artifact ID
+	ArtifactID string
 	// size of the artifact file
 	ArtifactSize int64
 	// reader pointing to the beginning of the artifact data
@@ -146,5 +148,6 @@ type MultipartGenerateImageMsg struct {
 	Args                  string    `json:"args"`
 	ArtifactID            string    `json:"artifact_id"`
 	TenantID              string    `json:"tenant_id"`
+	Token                 string    `json:"token"`
 	FileReader            io.Reader `json:"-"`
 }

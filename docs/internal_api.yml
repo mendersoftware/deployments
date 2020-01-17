@@ -186,6 +186,11 @@ paths:
           type: string
           format: Bearer [token]
           description: Contains the JWT token issued by the User Administration and Authentication Service.
+        - name: artifact_id
+          in: formData
+          required: false
+          description: Artifact ID, optional; the server generates a randome one if not provided.
+          type: string
         - name: size
           in: formData
           description: Size of the artifact file in bytes.
