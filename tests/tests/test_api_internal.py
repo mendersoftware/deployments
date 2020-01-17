@@ -105,3 +105,24 @@ class TestInternalApiTenantCreate:
             artifacts_client.log.info("uploading artifact")
             with pytest.raises(ArtifactsClientError):
                 api_client_int.add_artifact(tenant_id, description, -1, art)
+
+    @pytest.mark.usefixtures("clean_minio")
+    def test_artifacts_fails_invalid_artifact_id(self, api_client_int):
+        artifact_name = str(uuid4())
+        description = "description for foo " + artifact_name
+        device_type = "project-" + str(uuid4())
+        data = b"foo_bar"
+
+        tenant_id = str(ObjectId())
+
+        # generate artifact
+        with artifact_from_data(
+            name=artifact_name, data=data, devicetype=device_type
+        ) as art:
+            artifacts_client = SimpleArtifactsClient()
+
+            artifacts_client.log.info("uploading artifact")
+            with pytest.raises(ArtifactsClientError):
+                api_client_int.add_artifact(
+                    tenant_id, description, -1, art, "wrong_uuid4"
+                )

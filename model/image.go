@@ -129,6 +129,8 @@ func (s *SoftwareImage) Validate() error {
 type MultipartUploadMsg struct {
 	// user metadata constructor
 	MetaConstructor *SoftwareImageMetaConstructor
+	// ArtifactID contains the artifact ID
+	ArtifactID string
 	// size of the artifact file
 	ArtifactSize int64
 	// reader pointing to the beginning of the artifact data

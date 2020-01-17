@@ -87,7 +87,7 @@ class ArtifactsClient(SwaggerApiClient):
 
     @staticmethod
     def make_upload_meta(meta):
-        order = ["description", "size", "artifact"]
+        order = ["description", "size", "artifact", "artifact_id"]
 
         upload_meta = OrderedDict()
         for entry in order:
@@ -366,7 +366,9 @@ class InternalApiClient(SwaggerApiClient):
             tenant={"tenant_id": tenant_id}
         ).result()
 
-    def add_artifact(self, tenant_id, description="", size=0, data=None):
+    def add_artifact(
+        self, tenant_id, description="", size=0, data=None, artifact_id=None
+    ):
         """Create new artifact with provided upload data. Data must be a file like
         object.
 
@@ -379,6 +381,7 @@ class InternalApiClient(SwaggerApiClient):
                 "description": (None, description),
                 "size": (None, str(size)),
                 "artifact": ("firmware", data, "application/octet-stream", {}),
+                "artifact_id": artifact_id,
             }
         )
         url = self.make_api_url("/tenants/{}/artifacts".format(tenant_id))

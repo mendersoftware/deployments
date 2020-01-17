@@ -423,6 +423,13 @@ func (d *DeploymentsApiHandlers) ParseMultipart(r *rest.Request) (*model.Multipa
 	multipartUploadMsg.ArtifactReader = file
 	multipartUploadMsg.ArtifactSize = fileHeader.Size
 
+	if id := r.FormValue("artifact_id"); id != "" {
+		if !govalidator.IsUUIDv4(id) {
+			return nil, errors.New("artifact_id is not an UUIDv4")
+		}
+		multipartUploadMsg.ArtifactID = id
+	}
+
 	return multipartUploadMsg, nil
 }
 
