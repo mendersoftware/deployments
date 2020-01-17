@@ -48,6 +48,12 @@ const (
 	GetDeploymentForDeviceQueryDeviceType = "device_type"
 )
 
+// JWT token
+const (
+	HTTPHeaderAuthorization       = "Authorization"
+	HTTPHeaderAuthorizationBearer = "Bearer"
+)
+
 // Errors
 var (
 	ErrIDNotUUIDv4                          = errors.New("ID is not UUIDv4")
@@ -452,6 +458,11 @@ func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(r *rest.Request) (*
 
 	multipartGenerateImageMsg.FileReader = file
 	multipartGenerateImageMsg.Size = fileHeader.Size
+
+	auth := strings.Split(r.Header.Get(HTTPHeaderAuthorization), " ")
+	if len(auth) == 2 && auth[0] == HTTPHeaderAuthorizationBearer {
+		multipartGenerateImageMsg.Token = auth[1]
+	}
 
 	return multipartGenerateImageMsg, nil
 }

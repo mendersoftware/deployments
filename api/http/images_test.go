@@ -350,6 +350,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 						assert.Equal(t, msg.DeviceTypesCompatible, []string{tc.requestBodyObject[3].FieldValue})
 						assert.Equal(t, msg.Type, tc.requestBodyObject[4].FieldValue)
 						assert.Equal(t, msg.Args, tc.requestBodyObject[5].FieldValue)
+						assert.Equal(t, msg.Token, "TOKEN")
 
 						return true
 					}),
@@ -360,6 +361,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			api := setUpRestTest("/api/0.0.1/artifacts/generate", rest.Post, d.GenerateImage)
 			req := h.MakeMultipartRequest("POST", "http://localhost/api/0.0.1/artifacts/generate",
 				tc.requestContentType, tc.requestBodyObject)
+			req.Header.Set("Authorization", HTTPHeaderAuthorizationBearer+" TOKEN")
 
 			recorded := test.RunRequest(t, api.MakeHandler(), req)
 			recorded.CodeIs(tc.responseCode)
