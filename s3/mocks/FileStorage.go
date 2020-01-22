@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -76,6 +76,29 @@ func (_m *FileStorage) GetRequest(ctx context.Context, objectId string, duration
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, time.Duration, string) error); ok {
 		r1 = rf(ctx, objectId, duration, responseContentType)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetRequest provides a mock function with given fields: ctx, objectId, duration
+func (_m *FileStorage) DeleteRequest(ctx context.Context, objectId string, duration time.Duration) (*model.Link, error) {
+	ret := _m.Called(ctx, objectId, duration)
+
+	var r0 *model.Link
+	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration) *model.Link); ok {
+		r0 = rf(ctx, objectId, duration)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Link)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, time.Duration) error); ok {
+		r1 = rf(ctx, objectId, duration)
 	} else {
 		r1 = ret.Error(1)
 	}

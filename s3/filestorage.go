@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -55,6 +55,8 @@ type FileStorage interface {
 		duration time.Duration) (*model.Link, error)
 	GetRequest(ctx context.Context, objectId string,
 		duration time.Duration, responseContentType string) (*model.Link, error)
+	DeleteRequest(ctx context.Context, objectId string,
+		duration time.Duration) (*model.Link, error)
 	UploadArtifact(ctx context.Context, objectId string,
 		artifactSize int64, artifact io.Reader, contentType string) error
 }
@@ -328,6 +330,32 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
 	uri, err := req.Presign(duration)
 	if err != nil {
 		return nil, errors.Wrap(err, "Signing GET request")
+	}
+
+	return model.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
+}
+
+// DeleteRequest returns a presigned deletion request
+func (s *SimpleStorageService) DeleteRequest(ctx context.Context, objectID string,
+	duration time.Duration) (*model.Link, error) {
+
+	if err := s.validateDurationLimits(duration); err != nil {
+		return nil, err
+	}
+
+	objectID = getArtifactByTenant(ctx, objectID)
+
+	params := &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(objectID),
+	}
+
+	// Ignore out object
+	req, _ := s.client.DeleteObjectRequest(params)
+
+	uri, err := req.Presign(duration)
+	if err != nil {
+		return nil, errors.Wrap(err, "Signing DELETE request")
 	}
 
 	return model.NewLink(uri, req.Time.Add(req.ExpireTime)), nil

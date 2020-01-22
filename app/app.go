@@ -39,7 +39,8 @@ import (
 const (
 	ArtifactContentType = "application/vnd.mender-artifact"
 
-	DefaultUpdateDownloadLinkExpire = 24 * time.Hour
+	DefaultUpdateDownloadLinkExpire  = 24 * time.Hour
+	DefaultImageGenerationLinkExpire = 7 * 24 * time.Hour
 )
 
 // Errors expected from App interface
@@ -301,6 +302,18 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 {
 		multipartGenerateImageMsg.TenantID = id.Tenant
 	}
+
+	link, err := d.fileStorage.GetRequest(ctx, imgID, DefaultImageGenerationLinkExpire, ArtifactContentType)
+	if err != nil {
+		return "", err
+	}
+	multipartGenerateImageMsg.GetArtifactURI = link.Uri
+
+	link, err = d.fileStorage.DeleteRequest(ctx, imgID, DefaultImageGenerationLinkExpire)
+	if err != nil {
+		return "", err
+	}
+	multipartGenerateImageMsg.DeleteArtifactURI = link.Uri
 
 	err = d.workflowsClient.StartGenerateArtifact(ctx, multipartGenerateImageMsg)
 	if err != nil {
