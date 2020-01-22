@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -172,6 +172,108 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 	fs.AssertExpectations(t)
 }
 
+func TestGenerateImageErrorS3GetRequest(t *testing.T) {
+	db := mocks.DataStore{}
+	fs := &fs_mocks.FileStorage{}
+	d := NewDeployments(&db, fs, ArtifactContentType)
+
+	fs.On("UploadArtifact",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("int64"),
+		mock.AnythingOfType("*io.LimitedReader"),
+		mock.AnythingOfType("string"),
+	).Return(nil)
+
+	db.On("IsArtifactUnique",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("[]string"),
+	).Return(true, nil)
+
+	fs.On("GetRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+		mock.AnythingOfType("string"),
+	).Return(nil, errors.New("error get request"))
+
+	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+		Name:                  "name",
+		Description:           "description",
+		DeviceTypesCompatible: []string{"Beagle Bone"},
+		Type:                  "single_file",
+		Args:                  "",
+		Size:                  10,
+		FileReader:            bytes.NewReader([]byte("123456790")),
+	}
+
+	ctx := context.Background()
+	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
+
+	assert.Equal(t, artifactID, "")
+	assert.Error(t, err)
+	assert.EqualError(t, err, "error get request")
+
+	db.AssertExpectations(t)
+	fs.AssertExpectations(t)
+}
+
+func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
+	db := mocks.DataStore{}
+	fs := &fs_mocks.FileStorage{}
+	d := NewDeployments(&db, fs, ArtifactContentType)
+
+	fs.On("UploadArtifact",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("int64"),
+		mock.AnythingOfType("*io.LimitedReader"),
+		mock.AnythingOfType("string"),
+	).Return(nil)
+
+	db.On("IsArtifactUnique",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("[]string"),
+	).Return(true, nil)
+
+	fs.On("GetRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+		mock.AnythingOfType("string"),
+	).Return(&model.Link{
+		Uri: "GET",
+	}, nil)
+
+	fs.On("DeleteRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+	).Return(nil, errors.New("error delete request"))
+
+	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+		Name:                  "name",
+		Description:           "description",
+		DeviceTypesCompatible: []string{"Beagle Bone"},
+		Type:                  "single_file",
+		Args:                  "",
+		Size:                  10,
+		FileReader:            bytes.NewReader([]byte("123456790")),
+	}
+
+	ctx := context.Background()
+	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
+
+	assert.Equal(t, artifactID, "")
+	assert.Error(t, err)
+	assert.EqualError(t, err, "error delete request")
+
+	db.AssertExpectations(t)
+	fs.AssertExpectations(t)
+}
+
 func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
@@ -183,6 +285,24 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	).Return(&http.Response{
 		StatusCode: http.StatusBadRequest,
 		Body:       ioutil.NopCloser(strings.NewReader("")),
+	}, nil)
+
+	fs.On("GetRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+		mock.AnythingOfType("string"),
+	).Return(&model.Link{
+		Uri: "GET",
+	}, nil)
+
+	fs.On("DeleteRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+		mock.AnythingOfType("string"),
+	).Return(&model.Link{
+		Uri: "DELETE",
 	}, nil)
 
 	workflowsClient := workflows.NewClient()
@@ -246,6 +366,24 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 	workflowsClient := workflows.NewClient()
 	workflowsClient.SetHTTPClient(mockHTTPClient)
 	d.SetWorkflowsClient(workflowsClient)
+
+	fs.On("GetRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+		mock.AnythingOfType("string"),
+	).Return(&model.Link{
+		Uri: "GET",
+	}, nil)
+
+	fs.On("DeleteRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+		mock.AnythingOfType("string"),
+	).Return(&model.Link{
+		Uri: "DELETE",
+	}, nil)
 
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
@@ -314,6 +452,8 @@ func TestGenerateImageSuccessful(t *testing.T) {
 			assert.Equal(t, "args", multipartGenerateImage.Args)
 			assert.Empty(t, multipartGenerateImage.TenantID)
 			assert.NotEmpty(t, multipartGenerateImage.ArtifactID)
+			assert.Equal(t, "GET", multipartGenerateImage.GetArtifactURI)
+			assert.Equal(t, "DELETE", multipartGenerateImage.DeleteArtifactURI)
 			return true
 		}),
 	).Return(&http.Response{
@@ -324,6 +464,24 @@ func TestGenerateImageSuccessful(t *testing.T) {
 	workflowsClient := workflows.NewClient()
 	workflowsClient.SetHTTPClient(mockHTTPClient)
 	d.SetWorkflowsClient(workflowsClient)
+
+	fs.On("GetRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+		mock.AnythingOfType("string"),
+	).Return(&model.Link{
+		Uri: "GET",
+	}, nil)
+
+	fs.On("DeleteRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+		mock.AnythingOfType("string"),
+	).Return(&model.Link{
+		Uri: "DELETE",
+	}, nil)
 
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
@@ -386,6 +544,8 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 			assert.Equal(t, "args", multipartGenerateImage.Args)
 			assert.Equal(t, "tenant_id", multipartGenerateImage.TenantID)
 			assert.NotEmpty(t, multipartGenerateImage.ArtifactID)
+			assert.Equal(t, "GET", multipartGenerateImage.GetArtifactURI)
+			assert.Equal(t, "DELETE", multipartGenerateImage.DeleteArtifactURI)
 			return true
 		}),
 	).Return(&http.Response{
@@ -396,6 +556,24 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 	workflowsClient := workflows.NewClient()
 	workflowsClient.SetHTTPClient(mockHTTPClient)
 	d.SetWorkflowsClient(workflowsClient)
+
+	fs.On("GetRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+		mock.AnythingOfType("string"),
+	).Return(&model.Link{
+		Uri: "GET",
+	}, nil)
+
+	fs.On("DeleteRequest",
+		h.ContextMatcher(),
+		mock.AnythingOfType("string"),
+		mock.AnythingOfType("time.Duration"),
+		mock.AnythingOfType("string"),
+	).Return(&model.Link{
+		Uri: "DELETE",
+	}, nil)
 
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),

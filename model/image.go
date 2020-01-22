@@ -147,6 +147,8 @@ type MultipartGenerateImageMsg struct {
 	Type                  string    `json:"type"`
 	Args                  string    `json:"args"`
 	ArtifactID            string    `json:"artifact_id"`
+	GetArtifactURI        string    `json:"get_artifact_uri"`
+	DeleteArtifactURI     string    `json:"delete_artifact_uri"`
 	TenantID              string    `json:"tenant_id"`
 	Token                 string    `json:"token"`
 	FileReader            io.Reader `json:"-"`
