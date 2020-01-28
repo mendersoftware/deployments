@@ -200,7 +200,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	lr := io.LimitReader(multipartUploadMsg.ArtifactReader, multipartUploadMsg.ArtifactSize)
 	tee := io.TeeReader(lr, pW)
 
-	uid, err := uuid.FromBytes([]byte(multipartUploadMsg.ArtifactID))
+	uid, err := uuid.FromString(multipartUploadMsg.ArtifactID)
 	if err != nil {
 		uid, err = uuid.NewV4()
 		if err != nil {
