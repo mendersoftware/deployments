@@ -44,10 +44,13 @@ func TestPostArtifacts(t *testing.T) {
 	imageBody := []byte("123456790")
 
 	testCases := []struct {
-		requestBodyObject  []h.Part
-		requestContentType string
-		responseCode       int
-		responseBody       string
+		requestBodyObject      []h.Part
+		requestContentType     string
+		responseCode           int
+		responseBody           string
+		appCreateImage         bool
+		appCreateImageResponse string
+		appCreateImageError    error
 	}{
 		{
 			requestBodyObject:  []h.Part{},
@@ -91,6 +94,37 @@ func TestPostArtifacts(t *testing.T) {
 			responseCode:       http.StatusBadRequest,
 			responseBody:       "artifact_id is not an UUIDv4",
 		},
+		{
+			requestBodyObject: []h.Part{
+				{
+					FieldName:  "id",
+					FieldValue: "5e2fbcf6a6a7eca56cbc9476",
+				},
+				{
+					FieldName:  "artifact_id",
+					FieldValue: "24436884-a710-4d20-aec4-82c89fbfe29e",
+				},
+				{
+					FieldName:  "description",
+					FieldValue: "description",
+				},
+				{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
+				{
+					FieldName:   "artifact",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			requestContentType:     "multipart/form-data",
+			responseCode:           http.StatusCreated,
+			responseBody:           "",
+			appCreateImage:         true,
+			appCreateImageResponse: "24436884-a710-4d20-aec4-82c89fbfe29e",
+			appCreateImageError:    nil,
+		},
 	}
 
 	store := &store_mocks.DataStore{}
@@ -101,6 +135,18 @@ func TestPostArtifacts(t *testing.T) {
 
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			app := &app_mocks.App{}
+
+			if tc.appCreateImage {
+				app.On("CreateImage",
+					h.ContextMatcher(),
+					mock.MatchedBy(func(msg *model.MultipartUploadMsg) bool {
+						assert.Equal(t, msg.ArtifactID, tc.requestBodyObject[1].FieldValue)
+						assert.Equal(t, msg.MetaConstructor.Description, tc.requestBodyObject[2].FieldValue)
+
+						return true
+					}),
+				).Return(tc.appCreateImageResponse, tc.appCreateImageError)
+			}
 
 			d := NewDeploymentsApiHandlers(store, restView, app)
 			api := setUpRestTest("/api/0.0.1/artifacts", rest.Post, d.NewImage)
@@ -115,6 +161,10 @@ func TestPostArtifacts(t *testing.T) {
 			} else {
 				body, _ := recorded.DecodedBody()
 				assert.Contains(t, string(body), tc.responseBody)
+			}
+
+			if tc.appCreateImage {
+				app.AssertExpectations(t)
 			}
 		})
 	}
