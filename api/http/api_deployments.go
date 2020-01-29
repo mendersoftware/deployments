@@ -289,8 +289,13 @@ func (d *DeploymentsApiHandlers) NewImageForTenantHandler(w rest.ResponseWriter,
 		return
 	}
 
-	ident := &identity.Identity{Tenant: tenantID}
-	ctx := identity.WithContext(r.Context(), ident)
+	var ctx context.Context
+	if tenantID != "default" {
+		ident := &identity.Identity{Tenant: tenantID}
+		ctx = identity.WithContext(r.Context(), ident)
+	} else {
+		ctx = r.Context()
+	}
 
 	d.newImageWithContext(ctx, w, r)
 }

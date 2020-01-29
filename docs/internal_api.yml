@@ -178,14 +178,8 @@ paths:
         - name: id
           in: path
           type: string
-          description: Tenant ID
+          description: Tenant ID, or "default" if running in non-multitenant setup
           required: true
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: artifact_id
           in: formData
           required: false

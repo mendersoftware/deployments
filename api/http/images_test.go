@@ -171,6 +171,142 @@ func TestPostArtifacts(t *testing.T) {
 
 }
 
+func TestPostArtifactsInternal(t *testing.T) {
+	type request struct {
+		Description string `json:"description"`
+		Size        int64  `json:"size"`
+		ArtifactID  string `json:"artifact_id"`
+	}
+
+	imageBody := []byte("123456790")
+
+	testCases := []struct {
+		requestBodyObject      []h.Part
+		requestContentType     string
+		responseCode           int
+		responseBody           string
+		appCreateImage         bool
+		appCreateImageResponse string
+		appCreateImageError    error
+	}{
+		{
+			requestBodyObject:  []h.Part{},
+			requestContentType: "",
+			responseCode:       http.StatusBadRequest,
+			responseBody:       "mime: no media type",
+		},
+		{
+			requestBodyObject:  []h.Part{},
+			requestContentType: "application/x-www-form-urlencoded",
+			responseCode:       http.StatusBadRequest,
+			responseBody:       "request Content-Type isn't multipart/form-data",
+		},
+		{
+			requestBodyObject:  []h.Part{},
+			requestContentType: "multipart/form-data",
+			responseCode:       http.StatusBadRequest,
+			responseBody:       "request does not contain the file: http: no such file",
+		},
+		{
+			requestBodyObject: []h.Part{
+				{
+					FieldName:  "description",
+					FieldValue: "description",
+				},
+				{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
+				{
+					FieldName:  "artifact_id",
+					FieldValue: "wrong_uuidv4",
+				},
+				{
+					FieldName:   "artifact",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			requestContentType: "multipart/form-data",
+			responseCode:       http.StatusBadRequest,
+			responseBody:       "artifact_id is not an UUIDv4",
+		},
+		{
+			requestBodyObject: []h.Part{
+				{
+					FieldName:  "id",
+					FieldValue: "5e2fbcf6a6a7eca56cbc9476",
+				},
+				{
+					FieldName:  "artifact_id",
+					FieldValue: "24436884-a710-4d20-aec4-82c89fbfe29e",
+				},
+				{
+					FieldName:  "description",
+					FieldValue: "description",
+				},
+				{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
+				{
+					FieldName:   "artifact",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			requestContentType:     "multipart/form-data",
+			responseCode:           http.StatusCreated,
+			responseBody:           "",
+			appCreateImage:         true,
+			appCreateImageResponse: "24436884-a710-4d20-aec4-82c89fbfe29e",
+			appCreateImageError:    nil,
+		},
+	}
+
+	store := &store_mocks.DataStore{}
+	restView := new(view.RESTView)
+
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			app := &app_mocks.App{}
+
+			if tc.appCreateImage {
+				app.On("CreateImage",
+					h.ContextMatcher(),
+					mock.MatchedBy(func(msg *model.MultipartUploadMsg) bool {
+						assert.Equal(t, msg.ArtifactID, tc.requestBodyObject[1].FieldValue)
+						assert.Equal(t, msg.MetaConstructor.Description, tc.requestBodyObject[2].FieldValue)
+
+						return true
+					}),
+				).Return(tc.appCreateImageResponse, tc.appCreateImageError)
+			}
+
+			d := NewDeploymentsApiHandlers(store, restView, app)
+			api := setUpRestTest("/api/0.0.1/tenants/:tenant/artifacts", rest.Post, d.NewImageForTenantHandler)
+			req := h.MakeMultipartRequest("POST", "http://localhost/api/0.0.1/tenants/default/artifacts",
+				tc.requestContentType, tc.requestBodyObject)
+			req.Header.Set("Authorization", HTTPHeaderAuthorizationBearer+" TOKEN")
+
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.responseCode)
+			if tc.responseBody == "" {
+				recorded.BodyIs(tc.responseBody)
+			} else {
+				body, _ := recorded.DecodedBody()
+				assert.Contains(t, string(body), tc.responseBody)
+			}
+
+			if tc.appCreateImage {
+				app.AssertExpectations(t)
+			}
+		})
+	}
+}
+
 func TestPostArtifactsGenerate(t *testing.T) {
 	type request struct {
 		Name                  string `json:"name"`
