@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -449,7 +449,7 @@ func (db *DataStoreMongo) Update(ctx context.Context,
 
 	image.SetModified(time.Now())
 	var result model.SoftwareImage
-	if err := collImg.FindOneAndUpdate(
+	if err := collImg.FindOneAndReplace(
 		ctx, bson.M{"_id": image.Id}, image).
 		Decode(&result); err != nil {
 		if err == mongo.ErrNoDocuments {

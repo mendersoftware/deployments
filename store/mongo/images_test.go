@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -266,4 +266,46 @@ func TestIsArtifactUnique(t *testing.T) {
 		})
 	}
 
+}
+
+func TestArtifactUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestArtifactUpdate in short mode.")
+	}
+
+	//image dataset - common for all cases
+	img := &model.SoftwareImage{
+		Id: "a3719bc6-62af-4d65-b781-effa992048ba",
+		SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+			Description: "description",
+		},
+
+		SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+			Name:                  "app1-v1.0",
+			DeviceTypesCompatible: []string{"foo", "bar"},
+			Updates:               []model.Update{},
+		},
+	}
+
+	//setup db - common for all cases
+	ctx := context.Background()
+	db.Wipe()
+	client := db.Client()
+
+	collection := client.Database(DatabaseName).Collection(CollectionImages)
+	_, err := collection.InsertOne(ctx, img)
+	assert.NoError(t, err)
+
+	store := NewDataStoreMongoWithClient(client)
+
+	img.SoftwareImageMetaConstructor.Description = "updated description"
+	done, err := store.Update(ctx, img)
+	assert.NoError(t, err)
+	assert.True(t, done)
+
+	imgFromDB, err := store.ImageByNameAndDeviceType(ctx,
+		img.SoftwareImageMetaArtifactConstructor.Name,
+		img.SoftwareImageMetaArtifactConstructor.DeviceTypesCompatible[0])
+	assert.NoError(t, err)
+	assert.Equal(t, img.SoftwareImageMetaConstructor.Description, imgFromDB.SoftwareImageMetaConstructor.Description)
 }
