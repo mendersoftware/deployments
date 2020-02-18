@@ -679,6 +679,8 @@ func (d *DeploymentsApiHandlers) PutDeploymentStatusForDevice(w rest.ResponseWri
 
 		if err == app.ErrDeploymentAborted || err == app.ErrDeviceDecommissioned {
 			d.view.RenderError(w, r, err, http.StatusConflict, l)
+		} else if err == app.ErrStorageNotFound {
+			d.view.RenderErrorNotFound(w, r, l)
 		} else {
 			d.view.RenderInternalError(w, r, err, l)
 		}
