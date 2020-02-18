@@ -20,7 +20,7 @@ variables:
   GIT_DEPTH: 0
 
 services:
-  - docker:dind
+  - docker:19.03.5-dind
   - mongo
 
 stages:
@@ -70,7 +70,7 @@ test:prepare_acceptance:
 test:acceptance_tests:
   image: tiangolo/docker-with-compose
   services:
-    - docker:dind
+    - docker:19.03.5-dind
   stage: test
   dependencies:
     - test:build_acceptance
@@ -189,7 +189,7 @@ publish:build:
   image: docker:git
   stage: publish
   services:
-    - docker:dind
+    - docker:19.03.5-dind
   dependencies:
     - build
   script:
