@@ -232,7 +232,7 @@ func (d *DeploymentsApiHandlers) EditImage(w rest.ResponseWriter, r *rest.Reques
 		return
 	}
 
-	constructor, err := getSoftwareImageMetaConstructorFromBody(r)
+	constructor, err := getImageMetaFromBody(r)
 	if err != nil {
 		d.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
 		return
@@ -256,9 +256,9 @@ func (d *DeploymentsApiHandlers) EditImage(w rest.ResponseWriter, r *rest.Reques
 	d.view.RenderSuccessPut(w)
 }
 
-func getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*model.SoftwareImageMetaConstructor, error) {
+func getImageMetaFromBody(r *rest.Request) (*model.ImageMeta, error) {
 
-	var constructor *model.SoftwareImageMetaConstructor
+	var constructor *model.ImageMeta
 
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err
@@ -404,7 +404,7 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 // ParseMultipart parses multipart/form-data message.
 func (d *DeploymentsApiHandlers) ParseMultipart(r *rest.Request) (*model.MultipartUploadMsg, error) {
 	multipartUploadMsg := &model.MultipartUploadMsg{
-		MetaConstructor: &model.SoftwareImageMetaConstructor{},
+		MetaConstructor: &model.ImageMeta{},
 	}
 	multipartUploadMsg.MetaConstructor.Description = r.FormValue("description")
 

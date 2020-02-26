@@ -15,7 +15,7 @@ package model
 
 type Release struct {
 	Name      string
-	Artifacts []SoftwareImage
+	Artifacts []Image
 }
 
 type ReleaseFilter struct {

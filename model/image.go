@@ -19,21 +19,22 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Information provided by the user
-type SoftwareImageMetaConstructor struct {
+type ImageMeta struct {
 	// Image description
 	Description string `json:"description,omitempty" valid:"length(1|4096),optional"`
 }
 
-// Creates new, empty SoftwareImageMetaConstructor
-func NewSoftwareImageMetaConstructor() *SoftwareImageMetaConstructor {
-	return &SoftwareImageMetaConstructor{}
+// Creates new, empty ImageMeta
+func NewImageMeta() *ImageMeta {
+	return &ImageMeta{}
 }
 
 // Validate checks structure according to valid tags.
-func (s *SoftwareImageMetaConstructor) Validate() error {
+func (s *ImageMeta) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
 }
@@ -49,8 +50,8 @@ type ArtifactInfo struct {
 	Version uint `json:"version" valid:"required"`
 }
 
-// Information provided with YOCTO image
-type SoftwareImageMetaArtifactConstructor struct {
+// Information provided by the Mender Artifact header
+type ArtifactMeta struct {
 	// artifact_name from artifact file
 	Name string `json:"name" bson:"name" valid:"length(1|4096),required"`
 
@@ -65,25 +66,37 @@ type SoftwareImageMetaArtifactConstructor struct {
 
 	// List of updates
 	Updates []Update `json:"updates" valid:"-"`
+
+	// Provides is a map[string]interface{} (JSON) of artifact_provides used
+	// for checking artifact (version 3) dependencies.
+	Provides bson.M `json:"artifact_provides,omitempty" bson:"provides" valid:"-"`
+
+	// Depends is a map[string]interface{} (JSON) of artifact_depends used
+	// for checking/validate against artifact (version 3) provides.
+	Depends bson.M `json:"artifact_depends,omitempty" bson:"depends" valid:"-"`
+
+	// DependsIdx is a list of 'exploded' depends (cross products across all array items)
+	// used only internally as an index for detecting 'uniqueness', i.e. array overlap
+	DependsIdx []bson.D `json:"-" bson:"depends_idx" valid:"-"`
 }
 
-func NewSoftwareImageMetaArtifactConstructor() *SoftwareImageMetaArtifactConstructor {
-	return &SoftwareImageMetaArtifactConstructor{}
+func NewArtifactMeta() *ArtifactMeta {
+	return &ArtifactMeta{}
 }
 
 // Validate checks structure according to valid tags.
-func (s *SoftwareImageMetaArtifactConstructor) Validate() error {
+func (s *ArtifactMeta) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
 }
 
-// SoftwareImage YOCTO image with user application
-type SoftwareImage struct {
+// Image YOCTO image with user application
+type Image struct {
 	// User provided field set
-	SoftwareImageMetaConstructor `bson:"meta"`
+	ImageMeta `bson:"meta"`
 
 	// Field set provided with yocto image
-	SoftwareImageMetaArtifactConstructor `bson:"meta_artifact"`
+	ArtifactMeta `bson:"meta_artifact"`
 
 	// Image ID
 	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
@@ -95,31 +108,31 @@ type SoftwareImage struct {
 	Modified *time.Time `json:"modified" valid:"-"`
 }
 
-// NewSoftwareImage creates new software image object.
-func NewSoftwareImage(
+// NewImage creates new software image object.
+func NewImage(
 	id string,
-	metaConstructor *SoftwareImageMetaConstructor,
-	metaArtifactConstructor *SoftwareImageMetaArtifactConstructor,
-	artifactSize int64) *SoftwareImage {
+	metaConstructor *ImageMeta,
+	metaArtifactConstructor *ArtifactMeta,
+	artifactSize int64) *Image {
 
 	now := time.Now()
 
-	return &SoftwareImage{
-		SoftwareImageMetaConstructor:         *metaConstructor,
-		SoftwareImageMetaArtifactConstructor: *metaArtifactConstructor,
-		Modified:                             &now,
-		Id:                                   id,
-		Size:                                 artifactSize,
+	return &Image{
+		ImageMeta:    *metaConstructor,
+		ArtifactMeta: *metaArtifactConstructor,
+		Modified:     &now,
+		Id:           id,
+		Size:         artifactSize,
 	}
 }
 
 // SetModified set last modification time for the image.
-func (s *SoftwareImage) SetModified(time time.Time) {
+func (s *Image) SetModified(time time.Time) {
 	s.Modified = &time
 }
 
 // Validate checks structure according to valid tags.
-func (s *SoftwareImage) Validate() error {
+func (s *Image) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
 }
@@ -128,7 +141,7 @@ func (s *SoftwareImage) Validate() error {
 // send in the artifact upload request
 type MultipartUploadMsg struct {
 	// user metadata constructor
-	MetaConstructor *SoftwareImageMetaConstructor
+	MetaConstructor *ImageMeta
 	// ArtifactID contains the artifact ID
 	ArtifactID string
 	// size of the artifact file

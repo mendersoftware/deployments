@@ -67,7 +67,7 @@ type DeviceDeployment struct {
 	Id *string `json:"-" bson:"_id" valid:"uuidv4,required"`
 
 	// Assigned software image
-	Image *SoftwareImage `json:"-" valid:"-"`
+	Image *Image `json:"-" valid:"-"`
 
 	// Target device type
 	DeviceType *string `json:"device_type,omitempty" valid:"-"`

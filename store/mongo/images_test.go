@@ -25,32 +25,32 @@ import (
 	"github.com/mendersoftware/deployments/model"
 )
 
-func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
+func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestDeploymentStorageImageByNameAndDeviceType in short mode.")
 	}
 
 	//image dataset - common for all cases
 	inputImgs := bson.A{
-		&model.SoftwareImage{
+		&model.Image{
 			Id: "1",
-			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+			ImageMeta: model.ImageMeta{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+			ArtifactMeta: model.ArtifactMeta{
 				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
 		},
-		&model.SoftwareImage{
+		&model.Image{
 			Id: "2",
-			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+			ImageMeta: model.ImageMeta{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+			ArtifactMeta: model.ArtifactMeta{
 				Name:                  "App2 v0.1",
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []model.Update{},
@@ -73,21 +73,21 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 		InputDevType   string
 		InputTenant    string
 
-		OutputImage *model.SoftwareImage
+		OutputImage *model.Image
 		OutputError error
 	}{
 		"name and dev type ok - single type": {
 			InputImageName: "App1 v1.0",
 			InputDevType:   "foo",
 
-			OutputImage: inputImgs[0].(*model.SoftwareImage),
+			OutputImage: inputImgs[0].(*model.Image),
 			OutputError: nil,
 		},
 		"name and dev type ok - multiple types": {
 			InputImageName: "App2 v0.1",
 			InputDevType:   "bar",
 
-			OutputImage: inputImgs[1].(*model.SoftwareImage),
+			OutputImage: inputImgs[1].(*model.Image),
 			OutputError: nil,
 		},
 		"name ok, dev type incompatible - single type": {
@@ -116,14 +116,14 @@ func TestSoftwareImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			InputDevType:   "foo",
 
 			OutputImage: nil,
-			OutputError: ErrSoftwareImagesStorageInvalidName,
+			OutputError: ErrImagesStorageInvalidName,
 		},
 		"dev type validation error": {
 			InputImageName: "App2 v0.1",
 			InputDevType:   "",
 
 			OutputImage: nil,
-			OutputError: ErrSoftwareImagesStorageInvalidDeviceType,
+			OutputError: ErrImagesStorageInvalidDeviceType,
 		},
 		"other tenant": {
 			InputImageName: "App1 v1.0",
@@ -174,16 +174,65 @@ func TestIsArtifactUnique(t *testing.T) {
 
 	//image dataset - common for all cases
 	inputImgs := []interface{}{
-		&model.SoftwareImage{
+		&model.Image{
 			Id: "1",
-			SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+			ImageMeta: model.ImageMeta{
 				Description: "description",
 			},
 
-			SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+			ArtifactMeta: model.ArtifactMeta{
 				Name:                  "app1-v1.0",
 				DeviceTypesCompatible: []string{"foo", "bar"},
 				Updates:               []model.Update{},
+
+				Depends: bson.M{
+					ArtifactDependsDeviceType: []interface{}{"foo", "bar"},
+				},
+
+				DependsIdx: []bson.D{
+					bson.D{
+						bson.E{Key: ArtifactDependsDeviceType, Value: "foo"},
+					},
+					bson.D{
+						bson.E{Key: ArtifactDependsDeviceType, Value: "bar"},
+					},
+				},
+			},
+		},
+		&model.Image{
+			Id: "2",
+			ImageMeta: model.ImageMeta{
+				Description: "description",
+			},
+
+			ArtifactMeta: model.ArtifactMeta{
+				Name:                  "app2-v2.0",
+				DeviceTypesCompatible: []string{"baz", "bax"},
+				Updates:               []model.Update{},
+
+				Depends: bson.M{
+					ArtifactDependsDeviceType: []interface{}{"baz", "bax"},
+					"extra":                   []interface{}{"1", "2"},
+				},
+
+				DependsIdx: []bson.D{
+					bson.D{
+						bson.E{Key: ArtifactDependsDeviceType, Value: "baz"},
+						bson.E{Key: "extra", Value: "1"},
+					},
+					bson.D{
+						bson.E{Key: ArtifactDependsDeviceType, Value: "bax"},
+						bson.E{Key: "extra", Value: "1"},
+					},
+					bson.D{
+						bson.E{Key: ArtifactDependsDeviceType, Value: "baz"},
+						bson.E{Key: "extra", Value: "2"},
+					},
+					bson.D{
+						bson.E{Key: ArtifactDependsDeviceType, Value: "bax"},
+						bson.E{Key: "extra", Value: "2"},
+					},
+				},
 			},
 		},
 	}
@@ -229,7 +278,7 @@ func TestIsArtifactUnique(t *testing.T) {
 		"empty artifact name": {
 			InputDevTypes: []string{"baz", "bah"},
 
-			OutputError: ErrSoftwareImagesStorageInvalidArtifactName,
+			OutputError: ErrImagesStorageInvalidArtifactName,
 		},
 		"other tenant": {
 			// is unique because we're using another DB
@@ -274,13 +323,13 @@ func TestArtifactUpdate(t *testing.T) {
 	}
 
 	//image dataset - common for all cases
-	img := &model.SoftwareImage{
+	img := &model.Image{
 		Id: "a3719bc6-62af-4d65-b781-effa992048ba",
-		SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+		ImageMeta: model.ImageMeta{
 			Description: "description",
 		},
 
-		SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
+		ArtifactMeta: model.ArtifactMeta{
 			Name:                  "app1-v1.0",
 			DeviceTypesCompatible: []string{"foo", "bar"},
 			Updates:               []model.Update{},
@@ -298,14 +347,14 @@ func TestArtifactUpdate(t *testing.T) {
 
 	store := NewDataStoreMongoWithClient(client)
 
-	img.SoftwareImageMetaConstructor.Description = "updated description"
+	img.ImageMeta.Description = "updated description"
 	done, err := store.Update(ctx, img)
 	assert.NoError(t, err)
 	assert.True(t, done)
 
 	imgFromDB, err := store.ImageByNameAndDeviceType(ctx,
-		img.SoftwareImageMetaArtifactConstructor.Name,
-		img.SoftwareImageMetaArtifactConstructor.DeviceTypesCompatible[0])
+		img.ArtifactMeta.Name,
+		img.ArtifactMeta.DeviceTypesCompatible[0])
 	assert.NoError(t, err)
-	assert.Equal(t, img.SoftwareImageMetaConstructor.Description, imgFromDB.SoftwareImageMetaConstructor.Description)
+	assert.Equal(t, img.ImageMeta.Description, imgFromDB.ImageMeta.Description)
 }
