@@ -1,6 +1,4 @@
 FROM golang:1.11 as builder
-# RUN apk update && apk upgrade && apk add xz-dev musl-dev gcc
-RUN go get -u github.com/axw/gocov/gocov && go get -u golang.org/x/tools/cmd/cover && go get -u github.com/fzipp/gocyclo
 RUN mkdir -p /go/src/github.com/mendersoftware/deployments
 COPY . /go/src/github.com/mendersoftware/deployments
 RUN cd /go/src/github.com/mendersoftware/deployments && \
