@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -98,7 +98,6 @@ func doMain(args []string) {
 }
 
 func cmdServer(args *cli.Context) error {
-	ctx := context.Background()
 	devSetup := args.GlobalBool("dev")
 
 	l := log.New(log.Ctx{})
@@ -111,19 +110,9 @@ func cmdServer(args *cli.Context) error {
 	l.Printf("Deployments Service, version %s starting up",
 		CreateVersionString())
 
-	dbClient, err := mongo.NewMongoClient(ctx, config.Config)
+	err := migrate("", args.Bool("automigrate"))
 	if err != nil {
-		return cli.NewExitError(
-			fmt.Sprintf("failed to connect to db: %v", err),
-			3)
-	}
-	defer dbClient.Disconnect(ctx)
-
-	err = mongo.Migrate(ctx, mongo.DbVersion, dbClient, args.Bool("automigrate"))
-	if err != nil {
-		return cli.NewExitError(
-			fmt.Sprintf("failed to run migrations: %v", err),
-			3)
+		return err
 	}
 
 	err = RunServer(config.Config)
@@ -135,9 +124,12 @@ func cmdServer(args *cli.Context) error {
 }
 
 func cmdMigrate(args *cli.Context) error {
-	ctx := context.Background()
 	tenant := args.String("tenant")
-	db := mstore.DbNameForTenant(tenant, mongo.DbName)
+	return migrate(tenant, true)
+}
+
+func migrate(tenant string, automigrate bool) error {
+	ctx := context.Background()
 
 	dbClient, err := mongo.NewMongoClient(ctx, config.Config)
 	if err != nil {
@@ -147,7 +139,12 @@ func cmdMigrate(args *cli.Context) error {
 	}
 	defer dbClient.Disconnect(ctx)
 
-	err = mongo.MigrateSingle(ctx, db, mongo.DbVersion, dbClient, true)
+	if tenant != "" {
+		db := mstore.DbNameForTenant(tenant, mongo.DbName)
+		err = mongo.MigrateSingle(ctx, db, mongo.DbVersion, dbClient, true)
+	} else {
+		err = mongo.Migrate(ctx, mongo.DbVersion, dbClient, true)
+	}
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("failed to run migrations: %v", err),
