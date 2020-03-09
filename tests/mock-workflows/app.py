@@ -13,7 +13,7 @@ def gen_random_object_id():
     return timestamp + rest
 
 
-@app.route("/api/v1/workflow/<name>", methods=["POST"])
+@app.route("/api/workflow/<name>", methods=["POST"])
 def generate_artifact(name: str):
     response = {"id": gen_random_object_id(), "name": name}
     return jsonify(response), 201

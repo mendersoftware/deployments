@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	generateArtifactURL = "/api/v1/workflow/generate_artifact"
+	generateArtifactURL = "/api/workflow/generate_artifact"
 	workflowTimeout     = 5 * time.Second
 )
 
