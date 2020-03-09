@@ -110,10 +110,6 @@ func (dbs *DBServer) start() {
 		"--dbpath", dbs.dbpath,
 		"--bind_ip", "127.0.0.1",
 		"--port", strconv.Itoa(addr.Port),
-		"--nssize", "1",
-		"--noprealloc",
-		"--smallfiles",
-		"--nojournal",
 	}
 	dbs.tomb = tomb.Tomb{}
 	dbs.server = exec.Command("mongod", args...)

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/mendersoftware/mender-artifact.svg?branch=master)](https://travis-ci.org/mendersoftware/mender-artifact)
+[![Build Status](https://gitlab.com/Northern.tech/Mender/mender-artifact/badges/master/pipeline.svg)](https://gitlab.com/Northern.tech/Mender/mender-artifact/pipelines)
 [![codecov](https://codecov.io/gh/mendersoftware/mender-artifact/branch/master/graph/badge.svg)](https://codecov.io/gh/mendersoftware/mender-artifact)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mendersoftware/mender-artifact)](https://goreportcard.com/report/github.com/mendersoftware/mender-artifact)
 
@@ -26,7 +26,7 @@ The artifacts library might also be useful for other updaters or
 purposes. We are always happy to see other uses of it!
 
 
-![Mender logo](https://mender.io/user/pages/resources/06.digital-assets/mender.io.png)
+![Mender logo](https://mender.io/user/pages/04.resources/logos/logoS.png)
 
 
 ## Getting started
@@ -49,6 +49,13 @@ import (
 
 For sample usage, please see the [Mender client source code](https://github.com/mendersoftware/mender).
 
+
+## Downloading the binaries
+
+You can find the latest `mender-artifact` binaries in the [Downloads page on
+Mender Docs](https://docs.mender.io/downloads).
+
+
 ## Contributing
 
 We welcome and ask for your contribution. If you would like to contribute to Mender, please read our guide on how to best get started [contributing code or
@@ -69,9 +76,10 @@ issue. We thank you in advance for your cooperation.
 
 ## Connect with us
 
-* Join our [Google
-  group](https://groups.google.com/a/lists.mender.io/forum/#!forum/mender)
-* Follow us on [Twitter](https://twitter.com/mender_io?target=_blank). Please
+* Join the [Mender Hub discussion forum](https://hub.mender.io)
+* Follow us on [Twitter](https://twitter.com/mender_io). Please
   feel free to tweet us questions.
 * Fork us on [Github](https://github.com/mendersoftware)
+* Create an issue in the [bugtracker](https://tracker.mender.io/projects/MEN)
 * Email us at [contact@mender.io](mailto:contact@mender.io)
+* Connect to the [#mender IRC channel on Freenode](http://webchat.freenode.net/?channels=mender)

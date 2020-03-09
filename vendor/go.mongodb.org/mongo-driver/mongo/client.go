@@ -237,6 +237,9 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 }
 
 // StartSession starts a new session configured with the given options.
+//
+// If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
+// concern, write concern, or read preference will be used, respectively.
 func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
@@ -596,7 +599,7 @@ func (c *Client) configureKeyVault(opts *options.AutoEncryptionOptions) error {
 
 func (c *Client) configureMongocryptd(opts *options.AutoEncryptionOptions) error {
 	var err error
-	c.mongocryptd, err = newMcryptClient(opts.ExtraOptions)
+	c.mongocryptd, err = newMcryptClient(opts)
 	return err
 }
 
@@ -645,13 +648,15 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 	return newDatabase(c, name, opts...)
 }
 
-// ListDatabases performs a listDatabases operation and returns the result.
+// ListDatabases executes a listDatabases command and returns the result.
 //
-// The filter parameter should be a document containing query operatiors and can be used to select which
+// The filter parameter must be a document containing query operators and can be used to select which
 // databases are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include
 // all databases.
 //
 // The opts paramter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
 func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -705,12 +710,17 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	return newListDatabasesResultFromOperation(op.Result()), nil
 }
 
-// ListDatabaseNames performs a listDatabases operation and returns a slice containing the names of all of the databases
+// ListDatabaseNames executes a listDatabases command and returns a slice containing the names of all of the databases
 // on the server.
 //
-// The filter parameter should be a document containing query operators and can be used to select which databases
+// The filter parameter must be a document containing query operators and can be used to select which databases
 // are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
 // databases.
+//
+// The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions
+// documentation.)
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
 func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
@@ -727,38 +737,30 @@ func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts
 	return names, nil
 }
 
-// WithSession allows a user to start a session themselves and manage
-// its lifetime. The only way to provide a session to a CRUD method is
-// to invoke that CRUD method with the mongo.SessionContext within the
-// closure. The mongo.SessionContext can be used as a regular context,
-// so methods like context.WithDeadline and context.WithTimeout are
-// supported.
+// WithSession creates a new SessionContext from the ctx and sess parameters and uses it to call the fn callback. The
+// SessionContext must be used as the Context parameter for any operations in the fn callback that should be executed
+// under the session.
 //
-// If the context.Context already has a mongo.Session attached, that
-// mongo.Session will be replaced with the one provided.
+// If the ctx parameter already contains a Session, that Session will be replaced with the one provided.
 //
-// Errors returned from the closure are transparently returned from
-// this function.
+// Any error returned by the fn callback will be returned without any modifications.
 func WithSession(ctx context.Context, sess Session, fn func(SessionContext) error) error {
 	return fn(contextWithSession(ctx, sess))
 }
 
-// UseSession creates a new session that is only valid for the
-// lifetime of the fn callback. No cleanup outside of closing the session
-// is done upon exiting the closure. This means that an outstanding
-// transaction will be aborted, even if the closure returns an error.
+// UseSession creates a new Session and uses it to create a new SessionContext, which is used to call the fn callback.
+// The SessionContext parameter must be used as the Context parameter for any operations in the fn callback that should
+// be executed under a session. After the callback returns, the created Session is ended, meaning that any in-progress
+// transactions started by fn will be aborted even if fn returns an error.
 //
-// If ctx already contains a mongo.Session, that mongo.Session will be
-// replaced with the newly created one.
+// If the ctx parameter already contains a Session, that Session will be replaced with the newly created one.
 //
-// Errors returned from the closure are transparently returned from
-// this method.
+// Any error returned by the fn callback will be returned without any modifications.
 func (c *Client) UseSession(ctx context.Context, fn func(SessionContext) error) error {
 	return c.UseSessionWithOptions(ctx, options.Session(), fn)
 }
 
-// UseSessionWithOptions works like UseSession but allows the caller
-// to specify the options used to create the session.
+// UseSessionWithOptions operates like UseSession but uses the given SessionOptions to create the Session.
 func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error {
 	defaultSess, err := c.StartSession(opts)
 	if err != nil {
@@ -775,15 +777,16 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 	return fn(sessCtx)
 }
 
-// Watch returns a change stream for all changes on the connected deployment. See https://docs.mongodb.com/manual/changeStreams/
-// for more information about change streams.
+// Watch returns a change stream for all changes on the deployment. See
+// https://docs.mongodb.com/manual/changeStreams/ for more information about change streams.
 //
 // The client must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
-// The pipeline parameter should be an array of documents, each representing a pipeline stage. See
-// https://docs.mongodb.com/manual/changeStreams/ for a list of pipeline stages that can be used with change streams.
-// For a pipeline of bson.D documents, the mongo.Pipeline{} type can be used.
+// The pipeline parameter must be an array of documents, each representing a pipeline stage. The pipeline cannot be
+// nil or empty. The stage documents must all be non-nil. See https://docs.mongodb.com/manual/changeStreams/ for a list
+// of pipeline stages that can be used with change streams. For a pipeline of bson.D documents, the mongo.Pipeline{}
+// type can be used.
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
