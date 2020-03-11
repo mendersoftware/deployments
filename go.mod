@@ -1,0 +1,47 @@
+module github.com/mendersoftware/deployments
+
+require (
+	github.com/DataDog/zstd v1.4.4
+	github.com/ant0ine/go-json-rest v0.0.0-20170913041208-ebb33769ae01
+	github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf
+	github.com/aws/aws-sdk-go v1.12.27
+	github.com/davecgh/go-spew v1.1.1
+	github.com/fsnotify/fsnotify v1.4.7
+	github.com/go-ini/ini v0.0.0-20180910192601-fa25069db393
+	github.com/go-stack/stack v1.8.0
+	github.com/golang/snappy v0.0.0-20190904063534-ff6b7dc882cf
+	github.com/hashicorp/hcl v1.0.0
+	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
+	github.com/konsorten/go-windows-terminal-sequences v0.0.0-20180402223658-b729f2633dfe
+	github.com/magiconair/properties v1.8.0
+	github.com/mendersoftware/go-lib-micro v0.0.0-20191114142713-7109d19865f7
+	github.com/mendersoftware/mender-artifact v0.0.0-20190723092337-8ed70e87c20d
+	github.com/mendersoftware/mendertesting v0.0.0-20191030103815-c1cfa6a171dd
+	github.com/mitchellh/mapstructure v1.0.0
+	github.com/pelletier/go-buffruneio v0.0.0-20180827162605-de1592c34d9c
+	github.com/pelletier/go-toml v1.2.0
+	github.com/pkg/errors v0.0.0-20180911062113-c059e472caf7
+	github.com/pmezard/go-difflib v1.0.0
+	github.com/remyoudompheng/go-liblzma v0.0.0-20190506200333-81bf2d431b96
+	github.com/satori/go.uuid v0.0.0-20180103174451-36e9d2ebbde5
+	github.com/sirupsen/logrus v1.1.0
+	github.com/spf13/afero v1.1.2
+	github.com/spf13/cast v1.2.0
+	github.com/spf13/jwalterweatherman v1.0.0
+	github.com/spf13/pflag v1.0.3
+	github.com/spf13/viper v0.0.0-20180907130602-3171ef9a2299
+	github.com/stretchr/objx v0.0.0-20180531200725-0ab728f62c7f
+	github.com/stretchr/testify v1.2.2
+	github.com/urfave/cli v0.0.0-20180821064027-934abfb2f102
+	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
+	github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
+	go.mongodb.org/mongo-driver v0.0.0-20191107214308-85a8e363c138
+	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
+	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	golang.org/x/sys v0.0.0-20190922100055-0a153f010e69
+	golang.org/x/text v0.3.0
+	golang.org/x/tools v0.0.0-20180927044812-b14f328a6211
+	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
+	gopkg.in/yaml.v2 v2.2.1
+)
