@@ -133,7 +133,7 @@ func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			InputDevType:   "foo",
 
 			OutputImage: nil,
-			OutputError: ErrImagesStorageInvalidName,
+			OutputError: ErrImagesStorageInvalidArtifactName,
 		},
 		"dev type validation error": {
 			InputImageName: "App2 v0.1",

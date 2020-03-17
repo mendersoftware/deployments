@@ -15,7 +15,6 @@
 package http
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -23,11 +22,13 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
+	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/deployments/app"
 	app_mocks "github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
 	store_mocks "github.com/mendersoftware/deployments/store/mocks"
+	store_mongo "github.com/mendersoftware/deployments/store/mongo"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/stretchr/testify/assert"
@@ -40,6 +41,13 @@ func TestPostArtifacts(t *testing.T) {
 		Size        int64  `json:"size"`
 		ArtifactID  string `json:"artifact_id"`
 	}
+
+	var testConflictError = model.NewConflictError(
+		store_mongo.ErrMsgConflictingDepends,
+		`{meta_artifact.artifact_name: "foobar", `+
+			`meta_artifact.depends_idx: {`+
+			`"device_type": "arm6", "checksum": "2"}}`,
+	)
 
 	imageBody := []byte("123456790")
 
@@ -124,6 +132,39 @@ func TestPostArtifacts(t *testing.T) {
 			appCreateImage:         true,
 			appCreateImageResponse: "24436884-a710-4d20-aec4-82c89fbfe29e",
 			appCreateImageError:    nil,
+		},
+		{
+			requestBodyObject: []h.Part{
+				{
+					FieldName:  "id",
+					FieldValue: "5e2fbcf6a6a7eca56cbc9476",
+				},
+				{
+					FieldName:  "artifact_id",
+					FieldValue: "24436884-a710-4d20-aec4-82c89fbfe29e",
+				},
+				{
+					FieldName:  "description",
+					FieldValue: "description",
+				},
+				{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
+				{
+					FieldName:   "artifact",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			requestContentType: "multipart/form-data",
+			responseCode:       http.StatusConflict,
+			// no slashes will be present in the real response - must be added
+			// because we're comparing to body, _ := recorded.DecodedBody(), which does does funny formatting
+			responseBody:           store_mongo.ErrMsgConflictingDepends,
+			appCreateImage:         true,
+			appCreateImageResponse: "24436884-a710-4d20-aec4-82c89fbfe29e",
+			appCreateImageError:    testConflictError,
 		},
 	}
 
@@ -160,7 +201,8 @@ func TestPostArtifacts(t *testing.T) {
 				recorded.BodyIs(tc.responseBody)
 			} else {
 				body, _ := recorded.DecodedBody()
-				assert.Contains(t, string(body), tc.responseBody)
+				assert.Contains(t, string(body), tc.responseBody,
+					`"%s" not in "%s"`, string(body), tc.responseBody)
 			}
 
 			if tc.appCreateImage {
@@ -179,6 +221,12 @@ func TestPostArtifactsInternal(t *testing.T) {
 	}
 
 	imageBody := []byte("123456790")
+	var testConflictError = model.NewConflictError(
+		store_mongo.ErrMsgConflictingDepends,
+		`{meta_artifact.artifact_name: "foobar", `+
+			`meta_artifact.depends_idx: {`+
+			`"device_type": "arm6", "checksum": "2"}}`,
+	)
 
 	testCases := []struct {
 		requestBodyObject      []h.Part
@@ -261,6 +309,39 @@ func TestPostArtifactsInternal(t *testing.T) {
 			appCreateImage:         true,
 			appCreateImageResponse: "24436884-a710-4d20-aec4-82c89fbfe29e",
 			appCreateImageError:    nil,
+		},
+		{
+			requestBodyObject: []h.Part{
+				{
+					FieldName:  "id",
+					FieldValue: "5e2fbcf6a6a7eca56cbc9476",
+				},
+				{
+					FieldName:  "artifact_id",
+					FieldValue: "24436884-a710-4d20-aec4-82c89fbfe29e",
+				},
+				{
+					FieldName:  "description",
+					FieldValue: "description",
+				},
+				{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
+				{
+					FieldName:   "artifact",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			requestContentType: "multipart/form-data",
+			responseCode:       http.StatusConflict,
+			// no slashes will be present in the real response - must be added
+			// because we're comparing to body, _ := recorded.DecodedBody(), which does does funny formatting
+			responseBody:           store_mongo.ErrMsgConflictingDepends,
+			appCreateImage:         true,
+			appCreateImageResponse: "24436884-a710-4d20-aec4-82c89fbfe29e",
+			appCreateImageError:    testConflictError,
 		},
 	}
 

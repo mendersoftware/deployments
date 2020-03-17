@@ -94,7 +94,7 @@ func (m *migration_1_2_3) Up(from migrate.Version) error {
 		CollectionImages,
 		IndexArtifactNameDepends)
 
-	return nil
+	return err
 }
 
 func (m *migration_1_2_3) Version() migrate.Version {

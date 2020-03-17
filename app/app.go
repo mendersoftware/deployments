@@ -34,7 +34,6 @@ import (
 	"github.com/mendersoftware/deployments/s3"
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mongo"
-	"github.com/mendersoftware/deployments/utils/mgoutils"
 )
 
 const (
@@ -268,10 +267,8 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 
 	// save image structure in the system
 	if err = d.db.InsertImage(ctx, image); err != nil {
-		if idxErr, ok := err.(*mgoutils.IndexError); ok {
-			return artifactID, errors.Errorf(
-				ErrMsgArtifactConflict+`: %s`,
-				idxErr)
+		if idxErr, ok := err.(*model.ConflictError); ok {
+			return artifactID, idxErr
 		}
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
 	}

@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -11,13 +11,16 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package mocks
 
-import context "context"
-import mock "github.com/stretchr/testify/mock"
-import model "github.com/mendersoftware/deployments/model"
+import (
+	"context"
+	"time"
 
-import time "time"
+	"github.com/mendersoftware/deployments/model"
+	"github.com/stretchr/testify/mock"
+)
 
 // DataStore is an auto-generated mock type for the DataStore type
 type DataStore struct {

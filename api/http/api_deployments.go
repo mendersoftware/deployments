@@ -11,6 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package http
 
 import (
@@ -319,13 +320,19 @@ func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest
 	}
 
 	imgID, err := d.app.CreateImage(ctx, multipartUploadMsg)
+	if err == nil {
+		d.view.RenderSuccessPost(w, r, imgID)
+		return
+	}
+	l.Error(err.Error())
+	if cErr, ok := err.(*model.ConflictError); ok {
+		d.view.RenderError(w, r, cErr, http.StatusConflict, l)
+		return
+	}
 	cause := errors.Cause(err)
 	switch cause {
 	default:
 		d.view.RenderInternalError(w, r, err, l)
-		return
-	case nil:
-		d.view.RenderSuccessPost(w, r, imgID)
 		return
 	case app.ErrModelArtifactNotUnique:
 		l.Error(err.Error())
@@ -340,10 +347,6 @@ func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest
 		app.ErrModelArtifactFileTooLarge:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusBadRequest, l)
-		return
-	}
-	if strings.HasPrefix(err.Error(), app.ErrMsgArtifactConflict) {
-		d.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
 		return
 	}
 }

@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/utils/mgoutils"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -73,8 +72,8 @@ func TestMigration_1_2_3_DeviceTypeNameIndexReplaced(t *testing.T) {
 				},
 			},
 			idxConflicts: map[string]interface{}{
-				"artifact_name": "release1",
-				"depends": map[interface{}]interface{}{
+				"meta_artifact.name": "release1",
+				"meta_artifact.depends_idx": map[interface{}]interface{}{
 					"device_type": "arm6",
 				},
 			},
@@ -88,8 +87,8 @@ func TestMigration_1_2_3_DeviceTypeNameIndexReplaced(t *testing.T) {
 				},
 			},
 			idxConflicts: map[string]interface{}{
-				"artifact_name": "release1",
-				"depends": map[interface{}]interface{}{
+				"meta_artifact.name": "release1",
+				"meta_artifact.depends_idx": map[interface{}]interface{}{
 					"device_type": "arm7",
 				},
 			},
@@ -103,8 +102,8 @@ func TestMigration_1_2_3_DeviceTypeNameIndexReplaced(t *testing.T) {
 				},
 			},
 			idxConflicts: map[string]interface{}{
-				"artifact_name": "release1",
-				"depends": map[interface{}]interface{}{
+				"meta_artifact.name": "release1",
+				"meta_artifact.depends_idx": map[interface{}]interface{}{
 					"device_type": "arm6",
 				},
 			},
@@ -181,8 +180,9 @@ func TestMigration_1_2_3_DeviceTypeNameIndexReplaced(t *testing.T) {
 		// try insert image under test
 		err = store.InsertImage(ctx, tc.img)
 		if tc.idxConflicts != nil {
-			assert.NotNil(t, err)
-			assertDupErr(t, err, tc.idxConflicts)
+			if assert.NotNil(t, err) {
+				assert.IsType(t, &model.ConflictError{}, err)
+			}
 		} else {
 			assert.NoError(t, err)
 		}
@@ -263,8 +263,8 @@ func TestMigration_1_2_3_OverlappingDepends(t *testing.T) {
 				},
 			},
 			idxConflicts: map[string]interface{}{
-				"artifact_name": "release1",
-				"depends": map[interface{}]interface{}{
+				"meta_artifact.name": "release1",
+				"meta_artifact.depends_idx": map[interface{}]interface{}{
 					"device_type": "arm6",
 					"checksum":    "2",
 				},
@@ -282,8 +282,8 @@ func TestMigration_1_2_3_OverlappingDepends(t *testing.T) {
 				},
 			},
 			idxConflicts: map[string]interface{}{
-				"artifact_name": "release1",
-				"depends": map[interface{}]interface{}{
+				"meta_artifact.name": "release1",
+				"meta_artifact.depends_idx": map[interface{}]interface{}{
 					"device_type": "arm6",
 					"checksum":    "1",
 				},
@@ -301,8 +301,8 @@ func TestMigration_1_2_3_OverlappingDepends(t *testing.T) {
 				},
 			},
 			idxConflicts: map[string]interface{}{
-				"artifact_name": "release1",
-				"depends": map[interface{}]interface{}{
+				"meta_artifact.name": "release1",
+				"meta_artifact.depends_idx": map[interface{}]interface{}{
 					"device_type": "arm6",
 					"checksum":    "1",
 				},
@@ -321,8 +321,8 @@ func TestMigration_1_2_3_OverlappingDepends(t *testing.T) {
 				},
 			},
 			idxConflicts: map[string]interface{}{
-				"artifact_name": "release1",
-				"depends": map[interface{}]interface{}{
+				"meta_artifact.name": "release1",
+				"meta_artifact.depends_idx": map[interface{}]interface{}{
 					"device_type": "arm8",
 					"checksum":    "3",
 					"foo":         "foo1",
@@ -404,28 +404,13 @@ func TestMigration_1_2_3_OverlappingDepends(t *testing.T) {
 		err = store.InsertImage(ctx, tc.img)
 		if tc.idxConflicts != nil {
 			if assert.NotNil(t, err) {
-				assertDupErr(t, err, tc.idxConflicts)
+				// The best we can do is check the error type.
+				// The driver has a tendency to return invalid
+				// in the error message.
+				assert.IsType(t, &model.ConflictError{}, err)
 			}
 		} else {
 			assert.NoError(t, err)
-		}
-	}
-}
-
-// assertDupErr verifies the error message w.r.t duplicated
-// 'depends' values.
-// it's not safe to compare messages verbatim because
-// order of attributes is not guaranteed (maps underneath everything)
-func assertDupErr(t *testing.T, err error, idxConflicts map[string]interface{}) {
-	assert.Error(t, err)
-	if err == nil {
-		return
-	}
-
-	if assert.IsType(t, &mgoutils.IndexError{}, err) {
-		idxErr := err.(*mgoutils.IndexError)
-		if assert.NotNil(t, idxErr) {
-			assert.Equal(t, idxConflicts, idxErr.IndexConflict)
 		}
 	}
 }

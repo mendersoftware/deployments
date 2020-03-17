@@ -31,7 +31,6 @@ import (
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
-	"github.com/mendersoftware/deployments/utils/mgoutils"
 )
 
 const (
@@ -237,6 +236,11 @@ var (
 	ErrLimitNotFound = errors.New("limit not found")
 )
 
+const (
+	ErrMsgConflictingDepends = "An artifact with the same name has " +
+		"conflicting depends"
+)
+
 // Database keys
 const (
 	// Need to be kept in sync with structure filed names
@@ -266,7 +270,7 @@ const (
 	StorageKeyDeploymentFinished     = "finished"
 	StorageKeyDeploymentArtifacts    = "artifacts"
 
-	ArtifactDependsDeviceType = "device_types"
+	ArtifactDependsDeviceType = "device_type"
 )
 
 type DataStoreMongo struct {
@@ -480,14 +484,12 @@ func (db *DataStoreMongo) Update(ctx context.Context,
 	collImg := database.Collection(CollectionImages)
 
 	image.SetModified(time.Now())
-	var result model.Image
-	if err := collImg.FindOneAndUpdate(
-		ctx, bson.M{"_id": image.Id}, image).
-		Decode(&result); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return false, nil
-		}
+	if res, err := collImg.ReplaceOne(
+		ctx, bson.M{"_id": image.Id}, image,
+	); err != nil {
 		return false, err
+	} else if res.MatchedCount == 0 {
+		return false, nil
 	}
 
 	return true, nil
@@ -615,18 +617,19 @@ func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Image) e
 	_, err := collImg.InsertOne(ctx, image)
 	if err != nil {
 		if except, ok := err.(mongo.WriteException); ok {
-			e := mgoutils.NewIndexError(except)
-			if e == nil {
-				return err
+			var conflicts string
+			if len(except.WriteErrors) > 0 {
+				err := except.WriteErrors[0]
+				yamlStart := strings.IndexByte(err.Message, '{')
+				if yamlStart != -1 {
+					conflicts = err.Message[yamlStart:]
+				}
 			}
-			// Provide keys in a more readable format
-			e.IndexConflict["artifact_name"] = e.
-				IndexConflict[StorageKeyImageName]
-			delete(e.IndexConflict, StorageKeyImageName)
-			e.IndexConflict["depends"] = e.
-				IndexConflict[StorageKeyImageDependsIdx]
-			delete(e.IndexConflict, StorageKeyImageDependsIdx)
-			return e
+			conflictErr := model.NewConflictError(
+				ErrMsgConflictingDepends,
+				conflicts,
+			)
+			return conflictErr
 		}
 	}
 
@@ -710,7 +713,7 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 		return false, err
 	}
 
-	return false, nil
+	return true, nil
 }
 
 // Delete image specified by ID

@@ -11,13 +11,23 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package model
 
-type Release struct {
-	Name      string
-	Artifacts []Image
+import "fmt"
+
+type ConflictError struct {
+	Conflicts string
+	Err       error
 }
 
-type ReleaseFilter struct {
-	Name string `json:"name"`
+func NewConflictError(errMsg, conflicts string) *ConflictError {
+	return &ConflictError{
+		Conflicts: conflicts,
+		Err:       fmt.Errorf("%s: %s", errMsg, conflicts),
+	}
+}
+
+func (ce *ConflictError) Error() string {
+	return ce.Err.Error()
 }
