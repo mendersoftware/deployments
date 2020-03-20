@@ -311,6 +311,8 @@ func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest
 
 	// parse multipart message
 	multipartUploadMsg, err := d.ParseMultipart(r)
+	defer r.MultipartForm.RemoveAll()
+
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
