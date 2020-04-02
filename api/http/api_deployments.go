@@ -323,19 +323,28 @@ func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest
 	switch cause {
 	default:
 		d.view.RenderInternalError(w, r, err, l)
+		return
 	case nil:
 		d.view.RenderSuccessPost(w, r, imgID)
+		return
 	case app.ErrModelArtifactNotUnique:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusUnprocessableEntity, l)
+		return
 	case app.ErrModelParsingArtifactFailed:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, formatArtifactUploadError(err), http.StatusBadRequest, l)
+		return
 	case app.ErrModelMissingInputMetadata, app.ErrModelMissingInputArtifact,
 		app.ErrModelInvalidMetadata, app.ErrModelMultipartUploadMsgMalformed,
 		app.ErrModelArtifactFileTooLarge:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusBadRequest, l)
+		return
+	}
+	if strings.HasPrefix(err.Error(), app.ErrMsgArtifactConflict) {
+		d.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
+		return
 	}
 }
 
@@ -627,9 +636,9 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 	}
 
 	q := r.URL.Query()
-	installed := model.InstalledDeviceDeployment{
-		Artifact:   q.Get(GetDeploymentForDeviceQueryArtifact),
-		DeviceType: q.Get(GetDeploymentForDeviceQueryDeviceType),
+	installed := &model.InstalledDeviceDeployment{
+		ArtifactName: q.Get(GetDeploymentForDeviceQueryArtifact),
+		DeviceType:   q.Get(GetDeploymentForDeviceQueryDeviceType),
 	}
 
 	if err := installed.Validate(); err != nil {
@@ -648,6 +657,45 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 		return
 	}
 
+	d.view.RenderSuccessGet(w, deployment)
+}
+
+func (d *DeploymentsApiHandlers) PostDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	idata := identity.FromContext(ctx)
+	if idata == nil {
+		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
+		return
+	}
+
+	var installed model.InstalledDeviceDeployment
+	if err := r.DecodeJsonPayload(&installed); err != nil {
+		d.view.RenderError(w, r,
+			errors.Wrap(err, "invalid schema"),
+			http.StatusBadRequest, l)
+		return
+	}
+
+	if err := installed.Validate(); err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+
+	deployment, err := d.app.GetDeploymentForDeviceWithCurrent(ctx, idata.Subject, &installed)
+	if err != nil {
+		d.view.RenderInternalError(w, r, err, l)
+		return
+	}
+
+	if deployment == nil {
+		d.view.RenderNoUpdateForDevice(w)
+		return
+	}
+
+	// NOTE: Must use the RenderSuccessGet as the POST variant reports
+	//       incorrect status code.
 	d.view.RenderSuccessGet(w, deployment)
 }
 

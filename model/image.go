@@ -19,7 +19,9 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/go-lib-micro/mongo/doc"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // Information provided by the user
@@ -69,43 +71,84 @@ type ArtifactMeta struct {
 
 	// Provides is a map[string]interface{} (JSON) of artifact_provides used
 	// for checking artifact (version 3) dependencies.
-	Provides bson.M `json:"artifact_provides,omitempty" bson:"provides" valid:"-"`
+	Provides map[string]string `json:"artifact_provides,omitempty" bson:"provides" valid:"-"`
 
 	// Depends is a map[string]interface{} (JSON) of artifact_depends used
 	// for checking/validate against artifact (version 3) provides.
-	Depends bson.M `json:"artifact_depends,omitempty" bson:"depends" valid:"-"`
+	Depends map[string]interface{} `json:"artifact_depends,omitempty" bson:"depends" valid:"-"`
+}
 
-	// DependsIdx is a list of 'exploded' depends (cross products across all array items)
-	// used only internally as an index for detecting 'uniqueness', i.e. array overlap
-	DependsIdx []bson.D `json:"-" bson:"depends_idx" valid:"-"`
+// MarshalBSON transparently creates depends_idx field on bson.Marshal
+func (am *ArtifactMeta) MarshalBSON() ([]byte, error) {
+	if err := am.Validate(); err != nil {
+		return nil, err
+	}
+	dependsIdx, err := doc.UnwindMap(am.Depends)
+	if err != nil {
+		return nil, err
+	}
+	doc := doc.DocumentFromStruct(am, bson.E{
+		Key: "depends_idx", Value: dependsIdx,
+	})
+	return bson.Marshal(doc)
+}
+
+// MarshalBSONValue transparently creates depends_idx field on bson.MarshalValue
+// which is called if ArtifactMeta is marshaled as an embedded document.
+func (am *ArtifactMeta) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	if err := am.Validate(); err != nil {
+		return bsontype.Null, nil, err
+	}
+	dependsIdx, err := doc.UnwindMap(am.Depends)
+	if err != nil {
+		return bsontype.Null, nil, err
+	}
+	doc := doc.DocumentFromStruct(am, bson.E{
+		Key: "depends_idx", Value: dependsIdx,
+	})
+	return bson.MarshalValue(doc)
+}
+
+// Validate checks structure according to valid tags.
+func (am *ArtifactMeta) Validate() error {
+	if am.Depends == nil {
+		am.Depends = make(map[string]interface{})
+	}
+	am.Depends["device_type"] = am.DeviceTypesCompatible
+	_, err := govalidator.ValidateStruct(am)
+	return err
 }
 
 func NewArtifactMeta() *ArtifactMeta {
 	return &ArtifactMeta{}
 }
 
-// Validate checks structure according to valid tags.
-func (s *ArtifactMeta) Validate() error {
-	_, err := govalidator.ValidateStruct(s)
-	return err
-}
-
 // Image YOCTO image with user application
 type Image struct {
-	// User provided field set
-	ImageMeta `bson:"meta"`
-
-	// Field set provided with yocto image
-	ArtifactMeta `bson:"meta_artifact"`
-
 	// Image ID
 	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
+
+	// User provided field set
+	*ImageMeta `bson:"meta"`
+
+	// Field set provided with yocto image
+	*ArtifactMeta `bson:"meta_artifact"`
 
 	// Artifact total size
 	Size int64 `json:"size" bson:"size" valid:"-"`
 
 	// Last modification time, including image upload time
 	Modified *time.Time `json:"modified" valid:"-"`
+}
+
+// MarshalBSON needs to be overridden so it doesn't inherit ImageMeta's function.
+func (img *Image) MarshalBSON() ([]byte, error) {
+	return bson.Marshal(doc.DocumentFromStruct(img))
+}
+
+// MarshalBSON needs to be overridden so it doesn't inherit ImageMeta's function.
+func (img *Image) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	return bson.MarshalValue(doc.DocumentFromStruct(img))
 }
 
 // NewImage creates new software image object.
@@ -118,8 +161,8 @@ func NewImage(
 	now := time.Now()
 
 	return &Image{
-		ImageMeta:    *metaConstructor,
-		ArtifactMeta: *metaArtifactConstructor,
+		ImageMeta:    metaConstructor,
+		ArtifactMeta: metaArtifactConstructor,
 		Modified:     &now,
 		Id:           id,
 		Size:         artifactSize,

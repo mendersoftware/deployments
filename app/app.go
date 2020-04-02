@@ -34,6 +34,7 @@ import (
 	"github.com/mendersoftware/deployments/s3"
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mongo"
+	"github.com/mendersoftware/deployments/utils/mgoutils"
 )
 
 const (
@@ -56,6 +57,8 @@ var (
 	ErrModelImageInActiveDeployment     = errors.New("Image is used in active deployment and cannot be removed")
 	ErrModelImageUsedInAnyDeployment    = errors.New("Image has already been used in deployment")
 	ErrModelParsingArtifactFailed       = errors.New("Cannot parse artifact file")
+
+	ErrMsgArtifactConflict = "An artifact with the same name has conflicting dependencies"
 
 	// deployments
 	ErrModelMissingInput       = errors.New("Missing input deployment data")
@@ -98,7 +101,7 @@ type App interface {
 	AbortDeployment(ctx context.Context, deploymentID string) error
 	GetDeploymentStats(ctx context.Context, deploymentID string) (model.Stats, error)
 	GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
-		current model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error)
+		current *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error)
 	HasDeploymentForDevice(ctx context.Context, deploymentID string,
 		deviceID string) (bool, error)
 	UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
@@ -265,6 +268,11 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 
 	// save image structure in the system
 	if err = d.db.InsertImage(ctx, image); err != nil {
+		if idxErr, ok := err.(*mgoutils.IndexError); ok {
+			return artifactID, errors.Errorf(
+				ErrMsgArtifactConflict+`: %s`,
+				idxErr)
+		}
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
 	}
 
@@ -452,7 +460,7 @@ func (d *Deployments) EditImage(ctx context.Context, imageID string,
 	}
 
 	foundImage.SetModified(time.Now())
-	foundImage.ImageMeta = *constructor
+	foundImage.ImageMeta = constructor
 
 	_, err = d.db.Update(ctx, foundImage)
 	if err != nil {
@@ -533,7 +541,21 @@ func getMetaFromArchive(r *io.Reader) (*model.ArtifactMeta, error) {
 
 	metaArtifact.Info = getArtifactInfo(aReader.GetInfo())
 	metaArtifact.DeviceTypesCompatible = aReader.GetCompatibleDevices()
+
 	metaArtifact.Name = aReader.GetArtifactName()
+	if metaArtifact.Info.Version == 3 {
+		metaArtifact.Depends, err = aReader.MergeArtifactDepends()
+		if err != nil {
+			return nil, errors.Wrap(err,
+				"error parsing version 3 artifact")
+		}
+
+		metaArtifact.Provides, err = aReader.MergeArtifactProvides()
+		if err != nil {
+			return nil, errors.Wrap(err,
+				"error parsing version 3 artifact")
+		}
+	}
 
 	for _, p := range aReader.GetHandlers() {
 		uFiles, err := getUpdateFiles(p.GetUpdateFiles())
@@ -720,21 +742,29 @@ func (d *Deployments) assignArtifact(
 	ctx context.Context,
 	deployment *model.Deployment,
 	deviceDeployment *model.DeviceDeployment,
-	installed model.InstalledDeviceDeployment) error {
+	installed *model.InstalledDeviceDeployment) error {
 
 	// Assign artifact to the device deployment.
 	var artifact *model.Image
 	var err error
+
+	if err = installed.Validate(); err != nil {
+		return err
+	}
+
+	if deviceDeployment.DeploymentId == nil || deviceDeployment.DeviceId == nil {
+		return ErrModelInternal
+	}
+
 	// Clear device deployment image
 	// New artifact will be selected for the device deployment
-	// TODO: Should selecting different artifact be treated as an error?
 	deviceDeployment.Image = nil
 
 	// First case is for backward compatibility.
 	// It is possible that there is old deployment structure in the system.
 	// In such case we need to select artifact using name and device type.
 	if deployment.Artifacts == nil || len(deployment.Artifacts) == 0 {
-		artifact, err = d.db.ImageByNameAndDeviceType(ctx, installed.Artifact, installed.DeviceType)
+		artifact, err = d.db.ImageByNameAndDeviceType(ctx, installed.ArtifactName, installed.DeviceType)
 		if err != nil {
 			return errors.Wrap(err, "assigning artifact to device deployment")
 		}
@@ -744,10 +774,6 @@ func (d *Deployments) assignArtifact(
 		if err != nil {
 			return errors.Wrap(err, "assigning artifact to device deployment")
 		}
-	}
-
-	if deviceDeployment.DeploymentId == nil || deviceDeployment.DeviceId == nil {
-		return ErrModelInternal
 	}
 
 	// If not having appropriate image, set noartifact status
@@ -775,7 +801,7 @@ func (d *Deployments) assignArtifact(
 
 // GetDeploymentForDeviceWithCurrent returns deployment for the device
 func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
-	installed model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
+	installed *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
 
 	deviceDeployment, err := d.db.FindOldestDeploymentForDeviceIDWithStatuses(
 		ctx,
@@ -799,7 +825,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		return nil, nil
 	}
 
-	if installed.Artifact != "" && *deployment.ArtifactName == installed.Artifact {
+	if installed.ArtifactName != "" && *deployment.ArtifactName == installed.ArtifactName {
 		// pretend there is no deployment for this device, but update
 		// its status to already installed first
 

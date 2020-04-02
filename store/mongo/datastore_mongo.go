@@ -31,6 +31,7 @@ import (
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/deployments/utils/mgoutils"
 )
 
 const (
@@ -59,6 +60,7 @@ var (
 
 	// Indexes (version: 1.2.3)
 	IndexArtifactNameDependsName = "artifactNameDepends"
+	IndexNameAndDeviceTypeName   = "artifactNameAndDeviceTypeIndex"
 
 	_false         = false
 	_true          = true
@@ -238,11 +240,12 @@ var (
 // Database keys
 const (
 	// Need to be kept in sync with structure filed names
-	StorageKeyImageDeviceTypes = "meta_artifact.device_types_compatible"
-	StorageKeyImageName        = "meta_artifact.name"
 	StorageKeyImageId          = "_id"
 	StorageKeyImageDepends     = "meta_artifact.depends"
 	StorageKeyImageDependsIdx  = "meta_artifact.depends_idx"
+	StorageKeyImageSize        = "size"
+	StorageKeyImageDeviceTypes = "meta_artifact.device_types_compatible"
+	StorageKeyImageName        = "meta_artifact.name"
 
 	StorageKeyDeviceDeploymentLogMessages = "messages"
 
@@ -336,6 +339,11 @@ func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseFi
 
 	match := db.matchFromFilt(filt)
 
+	project := bson.D{
+		// Remove (possibly expensive) sub-document from pipeline
+		{Key: "$project", Value: bson.M{StorageKeyImageDependsIdx: 0}},
+	}
+
 	group := bson.D{
 		{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$" + StorageKeyImageName},
@@ -353,11 +361,13 @@ func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseFi
 	if match != nil {
 		pipe = []bson.D{
 			match,
+			project,
 			group,
 			sort,
 		}
 	} else {
 		pipe = []bson.D{
+			project,
 			group,
 			sort,
 		}
@@ -488,7 +498,7 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 	name, deviceType string) (*model.Image, error) {
 
 	if govalidator.IsNull(name) {
-		return nil, ErrImagesStorageInvalidName
+		return nil, ErrImagesStorageInvalidArtifactName
 	}
 
 	if govalidator.IsNull(deviceType) {
@@ -497,16 +507,22 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 
 	// equal to device type & software version (application name + version)
 	query := bson.M{
-		StorageKeyImageDeviceTypes: deviceType,
 		StorageKeyImageName:        name,
+		StorageKeyImageDeviceTypes: deviceType,
 	}
+
+	// If multiple entries matches, pick the smallest one.
+	findOpts := mopts.FindOne()
+	findOpts.SetSort(bson.M{StorageKeyImageSize: 1})
+
 	dbName := mstore.DbFromContext(ctx, DatabaseName)
 	database := db.client.Database(dbName)
 	collImg := database.Collection(CollectionImages)
 
 	// Both we lookup unique object, should be one or none.
 	var image model.Image
-	if err := collImg.FindOne(ctx, query).Decode(&image); err != nil {
+	if err := collImg.FindOne(ctx, query, findOpts).
+		Decode(&image); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
@@ -529,16 +545,21 @@ func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 	}
 
 	query := bson.D{
-		{Key: StorageKeyImageDeviceTypes, Value: deviceType},
 		{Key: StorageKeyImageId, Value: bson.M{"$in": ids}},
+		{Key: StorageKeyImageDeviceTypes, Value: deviceType},
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
+	// If multiple entries matches, pick the smallest one
+	findOpts := mopts.FindOne()
+	findOpts.SetSort(bson.M{StorageKeyImageSize: 1})
+
 	// Both we lookup unique object, should be one or none.
 	var image model.Image
-	if err := collImg.FindOne(ctx, query).Decode(&image); err != nil {
+	if err := collImg.FindOne(ctx, query, findOpts).
+		Decode(&image); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
@@ -591,13 +612,22 @@ func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Image) e
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
-	if err := db.ensureIndexing(ctx, db.client); err != nil {
-		return err
-	}
-
 	_, err := collImg.InsertOne(ctx, image)
 	if err != nil {
-		return err
+		if except, ok := err.(mongo.WriteException); ok {
+			e := mgoutils.NewIndexError(except)
+			if e == nil {
+				return err
+			}
+			// Provide keys in a more readable format
+			e.IndexConflict["artifact_name"] = e.
+				IndexConflict[StorageKeyImageName]
+			delete(e.IndexConflict, StorageKeyImageName)
+			e.IndexConflict["depends"] = e.
+				IndexConflict[StorageKeyImageDependsIdx]
+			delete(e.IndexConflict, StorageKeyImageDependsIdx)
+			return e
+		}
 	}
 
 	return nil
@@ -671,6 +701,10 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 		// the artifact already has same name and overlapping dev type
 		// if there are no more depends than dev type - it's not unique
 		if len(i.ArtifactMeta.Depends) == 1 {
+			if _, ok := i.ArtifactMeta.Depends["device_type"]; ok {
+				return false, nil
+			}
+		} else if len(i.ArtifactMeta.Depends) == 0 {
 			return false, nil
 		}
 		return false, err

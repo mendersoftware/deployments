@@ -196,11 +196,11 @@ func (_m *App) GetDeployment(ctx context.Context, deploymentID string) (*model.D
 }
 
 // GetDeploymentForDeviceWithCurrent provides a mock function with given fields: ctx, deviceID, current
-func (_m *App) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string, current model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
+func (_m *App) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string, current *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
 	ret := _m.Called(ctx, deviceID, current)
 
 	var r0 *model.DeploymentInstructions
-	if rf, ok := ret.Get(0).(func(context.Context, string, model.InstalledDeviceDeployment) *model.DeploymentInstructions); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.InstalledDeviceDeployment) *model.DeploymentInstructions); ok {
 		r0 = rf(ctx, deviceID, current)
 	} else {
 		if ret.Get(0) != nil {
@@ -209,7 +209,7 @@ func (_m *App) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID s
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, model.InstalledDeviceDeployment) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, *model.InstalledDeviceDeployment) error); ok {
 		r1 = rf(ctx, deviceID, current)
 	} else {
 		r1 = ret.Error(1)

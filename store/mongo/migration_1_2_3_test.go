@@ -1,23 +1,29 @@
 // Copyright 2020 Northern.tech AS
 //
-//    All Rights Reserved
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
 package mongo
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/deployments/utils/mgoutils"
 	"go.mongodb.org/mongo-driver/bson"
-)
-
-const (
-	errDupPrefix = `artifact has duplicate 'depends' attributes: `
-	errDupSuffix = `: artifact not unique`
 )
 
 func TestMigration_1_2_3_DeviceTypeNameIndexReplaced(t *testing.T) {
@@ -33,21 +39,21 @@ func TestMigration_1_2_3_DeviceTypeNameIndexReplaced(t *testing.T) {
 	inputImages := []*model.Image{
 		&model.Image{
 			Id: "0cb87b3d-4f08-420b-b004-4347c07f70f6",
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "release1",
 				DeviceTypesCompatible: []string{"arm6"},
 			},
 		},
 		&model.Image{
 			Id: "0cb87b3d-4f08-420b-b004-4347c07f70f7",
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "release1",
 				DeviceTypesCompatible: []string{"arm7"},
 			},
 		},
 		&model.Image{
 			Id: "0cb87b3d-4f08-420b-b004-4347c07f70f8",
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "release2",
 				DeviceTypesCompatible: []string{"arm8", "arm9"},
 			},
@@ -55,112 +61,71 @@ func TestMigration_1_2_3_DeviceTypeNameIndexReplaced(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		img     *model.Image
-		errMsgs []string
+		img          *model.Image
+		idxConflicts map[string]interface{}
 	}{
 		"conflict 1": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70f9",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release1",
 					DeviceTypesCompatible: []string{"arm6"},
-					Depends: bson.M{
-						ArtifactDependsDeviceType: []interface{}{"arm6"},
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-							bson.E{Key: ArtifactDependsDeviceType, Value: "arm6"},
-						},
-					},
 				},
 			},
-			errMsgs: []string{
-				`device_type: "arm6"`,
+			idxConflicts: map[string]interface{}{
+				"artifact_name": "release1",
+				"depends": map[interface{}]interface{}{
+					"device_type": "arm6",
+				},
 			},
 		},
 		"conflict 2": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70f9",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release1",
 					DeviceTypesCompatible: []string{"arm7"},
-					Depends: bson.M{
-						ArtifactDependsDeviceType: []interface{}{"arm7"},
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-							bson.E{Key: ArtifactDependsDeviceType, Value: "arm7"},
-						},
-					},
 				},
 			},
-			errMsgs: []string{
-				`device_type: "arm7"`,
+			idxConflicts: map[string]interface{}{
+				"artifact_name": "release1",
+				"depends": map[interface{}]interface{}{
+					"device_type": "arm7",
+				},
 			},
 		},
 		"conflict 3": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70f9",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release1",
 					DeviceTypesCompatible: []string{"arm6", "arm7"},
-					Depends: bson.M{
-						ArtifactDependsDeviceType: []interface{}{"arm6"},
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-							bson.E{Key: ArtifactDependsDeviceType, Value: "arm6"},
-						},
-						bson.D{
-							bson.E{Key: ArtifactDependsDeviceType, Value: "arm5"},
-						},
-					},
 				},
 			},
-			errMsgs: []string{
-				`device_type: "arm6"`,
+			idxConflicts: map[string]interface{}{
+				"artifact_name": "release1",
+				"depends": map[interface{}]interface{}{
+					"device_type": "arm6",
+				},
 			},
 		},
 		"no conflict 1: different release": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70f9",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release2",
 					DeviceTypesCompatible: []string{"arm6", "arm7"},
-					Depends: bson.M{
-						ArtifactDependsDeviceType: []interface{}{"arm6"},
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-
-							bson.E{Key: ArtifactDependsDeviceType, Value: "arm6"},
-						},
-						bson.D{
-							bson.E{Key: ArtifactDependsDeviceType, Value: "arm7"},
-						},
-					},
 				},
 			},
 		},
 		"no conflict 2: artifact has extra depends = no overlap": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70f9",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release1",
 					DeviceTypesCompatible: []string{"arm6", "arm7"},
 					Depends: bson.M{
-						ArtifactDependsDeviceType: []interface{}{"arm6"},
-						"checksum":                "1",
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-							bson.E{Key: "checksum", Value: "1"},
-							bson.E{Key: ArtifactDependsDeviceType, Value: "arm6"},
-						},
-						bson.D{
-							bson.E{Key: "checksum", Value: "1"},
-							bson.E{Key: ArtifactDependsDeviceType, Value: "arm7"},
-						},
+						"checksum": "1",
 					},
 				},
 			},
@@ -215,9 +180,9 @@ func TestMigration_1_2_3_DeviceTypeNameIndexReplaced(t *testing.T) {
 
 		// try insert image under test
 		err = store.InsertImage(ctx, tc.img)
-		if tc.errMsgs != nil {
+		if tc.idxConflicts != nil {
 			assert.NotNil(t, err)
-			assertDupErr(t, err, tc.errMsgs)
+			assertDupErr(t, err, tc.idxConflicts)
 		} else {
 			assert.NoError(t, err)
 		}
@@ -225,7 +190,6 @@ func TestMigration_1_2_3_DeviceTypeNameIndexReplaced(t *testing.T) {
 		all, _ := store.FindAll(ctx)
 		for _, a := range all {
 			assert.NotNil(t, a.ArtifactMeta.Depends)
-			assert.NotNil(t, a.ArtifactMeta.DependsIdx)
 		}
 	}
 
@@ -242,252 +206,139 @@ func TestMigration_1_2_3_OverlappingDepends(t *testing.T) {
 	inputImages := []*model.Image{
 		&model.Image{
 			Id: "0cb87b3d-4f08-420b-b004-4347c07f70f9",
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "release1",
 				DeviceTypesCompatible: []string{"arm6"},
 				Depends: bson.M{
-					ArtifactDependsDeviceType: []interface{}{"arm6"},
-					"checksum":                "1",
-				},
-				DependsIdx: []bson.D{
-					bson.D{
-						bson.E{Key: "checksum", Value: "1"},
-						bson.E{Key: ArtifactDependsDeviceType, Value: "arm6"},
-					},
+					"checksum": "1",
 				},
 			},
 		},
 		&model.Image{
 			Id: "0cb87b3d-4f08-420b-b004-4347c07f70fa",
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "release1",
 				DeviceTypesCompatible: []string{"arm7"},
 				Depends: bson.M{
-					ArtifactDependsDeviceType: []interface{}{"arm7"},
-					"checksum":                "1",
-				},
-				DependsIdx: []bson.D{
-					bson.D{
-						bson.E{Key: "checksum", Value: "1"},
-						bson.E{Key: ArtifactDependsDeviceType, Value: "arm7"},
-					},
+					"checksum": "1",
 				},
 			},
 		},
 		&model.Image{
 			Id: "0cb87b3d-4f08-420b-b004-4347c07f70fb",
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "release1",
 				DeviceTypesCompatible: []string{"arm6"},
 				Depends: bson.M{
-					ArtifactDependsDeviceType: []interface{}{"arm6"},
-					"checksum":                "2",
-				},
-				DependsIdx: []bson.D{
-					bson.D{
-						bson.E{Key: "checksum", Value: "2"},
-						bson.E{Key: ArtifactDependsDeviceType, Value: "arm6"},
-					},
+					"checksum": "2",
 				},
 			},
 		},
 		&model.Image{
 			Id: "0cb87b3d-4f08-420b-b004-4347c07f70fc",
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "release1",
 				DeviceTypesCompatible: []string{"arm8", "arm9"},
 				Depends: bson.M{
-					ArtifactDependsDeviceType: []interface{}{"arm8", "arm9"},
-					"checksum":                "3",
-					"foo":                     []interface{}{"foo1", "foo2"},
-				},
-				DependsIdx: []bson.D{
-					bson.D{
-						bson.E{Key: "checksum", Value: "3"},
-						bson.E{Key: ArtifactDependsDeviceType, Value: "arm8"},
-						bson.E{Key: "foo", Value: "foo1"},
-					},
-
-					bson.D{
-						bson.E{Key: "checksum", Value: "3"},
-						bson.E{Key: ArtifactDependsDeviceType, Value: "arm8"},
-						bson.E{Key: "foo", Value: "foo2"},
-					},
-					bson.D{
-						bson.E{Key: "checksum", Value: "3"},
-						bson.E{Key: ArtifactDependsDeviceType, Value: "arm9"},
-						bson.E{Key: "foo", Value: "foo1"},
-					},
-					bson.D{
-						bson.E{Key: "checksum", Value: "3"},
-						bson.E{Key: ArtifactDependsDeviceType, Value: "arm9"},
-						bson.E{Key: "foo", Value: "foo2"},
-					},
+					"checksum": "3",
+					"foo":      []interface{}{"foo1", "foo2"},
 				},
 			},
 		},
 	}
 
 	testCases := map[string]struct {
-		img     *model.Image
-		errMsgs []string
+		img          *model.Image
+		idxConflicts map[string]interface{}
 	}{
 		"conflict 1": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70ff",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release1",
 					DeviceTypesCompatible: []string{"arm6", "arm7"},
 					Depends: map[string]interface{}{
-						ArtifactDependsDeviceType: []interface{}{"arm6", "arm7"},
-						"checksum":                "2",
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-							bson.E{
-								Key: "checksum", Value: "2",
-							},
-							bson.E{
-								Key: ArtifactDependsDeviceType, Value: "arm6",
-							},
-						},
-						bson.D{
-							bson.E{
-								Key: "checksum", Value: "2",
-							},
-							bson.E{
-								Key: ArtifactDependsDeviceType, Value: "arm7",
-							},
-						},
+						"checksum": "2",
 					},
 				},
 			},
-			errMsgs: []string{
-				`device_type: "arm6"`,
-				`checksum: "2"`,
+			idxConflicts: map[string]interface{}{
+				"artifact_name": "release1",
+				"depends": map[interface{}]interface{}{
+					"device_type": "arm6",
+					"checksum":    "2",
+				},
 			},
 		},
 		"conflict 2": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70ff",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release1",
 					DeviceTypesCompatible: []string{"arm6", "arm8"},
 					Depends: map[string]interface{}{
-						ArtifactDependsDeviceType: []interface{}{"arm6", "arm8"},
-						"checksum":                "1",
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-							bson.E{
-								Key: "checksum", Value: "1",
-							},
-							bson.E{
-								Key: ArtifactDependsDeviceType, Value: "arm6",
-							},
-						},
-						bson.D{
-							bson.E{
-								Key: "checksum", Value: "1",
-							},
-							bson.E{
-								Key: ArtifactDependsDeviceType, Value: "arm8",
-							},
-						},
+						"checksum": "1",
 					},
 				},
 			},
-			errMsgs: []string{
-				`device_type: "arm6"`,
-				`checksum: "1"`,
+			idxConflicts: map[string]interface{}{
+				"artifact_name": "release1",
+				"depends": map[interface{}]interface{}{
+					"device_type": "arm6",
+					"checksum":    "1",
+				},
 			},
 		},
 		"conflict 3": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70ff",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release1",
 					DeviceTypesCompatible: []string{"arm6"},
 					Depends: map[string]interface{}{
-						ArtifactDependsDeviceType: []interface{}{"arm6"},
-						"checksum":                "1",
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-							bson.E{
-								Key: "checksum", Value: "1",
-							},
-							bson.E{
-								Key: ArtifactDependsDeviceType, Value: "arm6",
-							},
-						},
+						"checksum": "1",
 					},
 				},
 			},
-			errMsgs: []string{
-				`device_type: "arm6"`,
-				`checksum: "1"`,
+			idxConflicts: map[string]interface{}{
+				"artifact_name": "release1",
+				"depends": map[interface{}]interface{}{
+					"device_type": "arm6",
+					"checksum":    "1",
+				},
 			},
 		},
 		"conflict 4": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70ff",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release1",
 					DeviceTypesCompatible: []string{"arm8"},
 					Depends: map[string]interface{}{
-						ArtifactDependsDeviceType: []interface{}{"arm8"},
-						"checksum":                "3",
-						"foo":                     "foo1",
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-							bson.E{
-								Key: "checksum", Value: "3",
-							},
-							bson.E{
-								Key: ArtifactDependsDeviceType, Value: "arm8",
-							},
-							bson.E{
-								Key: "foo", Value: "foo1",
-							},
-						},
+						"checksum": "3",
+						"foo":      "foo1",
 					},
 				},
 			},
-			errMsgs: []string{
-				`device_type: "arm8"`,
-				`checksum: "3"`,
-				`foo: "foo1"`,
+			idxConflicts: map[string]interface{}{
+				"artifact_name": "release1",
+				"depends": map[interface{}]interface{}{
+					"device_type": "arm8",
+					"checksum":    "3",
+					"foo":         "foo1",
+				},
 			},
 		},
 		"no conflict: overlap + extra param": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70ff",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release1",
 					DeviceTypesCompatible: []string{"arm8"},
 					Depends: map[string]interface{}{
-						ArtifactDependsDeviceType: []interface{}{"arm8"},
-						"checksum":                "3",
-						"foo":                     "foo1",
-						"bar":                     "bar1",
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-							bson.E{
-								Key: "checksum", Value: "1",
-							},
-							bson.E{
-								Key: ArtifactDependsDeviceType, Value: "arm8",
-							},
-							bson.E{
-								Key: "bar", Value: "bar1",
-							},
-							bson.E{
-								Key: "foo", Value: "foo1",
-							},
-						},
+						"checksum": "3",
+						"foo":      "foo1",
+						"bar":      "bar1",
 					},
 				},
 			},
@@ -495,22 +346,11 @@ func TestMigration_1_2_3_OverlappingDepends(t *testing.T) {
 		"no conflict: overlap but different release": {
 			img: &model.Image{
 				Id: "0cb87b3d-4f08-420b-b004-4347c07f70ff",
-				ArtifactMeta: model.ArtifactMeta{
+				ArtifactMeta: &model.ArtifactMeta{
 					Name:                  "release2",
 					DeviceTypesCompatible: []string{"arm6"},
 					Depends: map[string]interface{}{
-						ArtifactDependsDeviceType: []interface{}{"arm6"},
-						"checksum":                "1",
-					},
-					DependsIdx: []bson.D{
-						bson.D{
-							bson.E{
-								Key: "checksum", Value: "1",
-							},
-							bson.E{
-								Key: ArtifactDependsDeviceType, Value: "arm6",
-							},
-						},
+						"checksum": "1",
 					},
 				},
 			},
@@ -555,13 +395,17 @@ func TestMigration_1_2_3_OverlappingDepends(t *testing.T) {
 		// insert input images
 		for _, i := range inputImages {
 			err = store.InsertImage(ctx, i)
-			assert.NoError(t, err)
+			if !assert.NoError(t, err) {
+				t.FailNow()
+			}
 		}
 
 		// try insert image under test
 		err = store.InsertImage(ctx, tc.img)
-		if tc.errMsgs != nil {
-			assertDupErr(t, err, tc.errMsgs)
+		if tc.idxConflicts != nil {
+			if assert.NotNil(t, err) {
+				assertDupErr(t, err, tc.idxConflicts)
+			}
 		} else {
 			assert.NoError(t, err)
 		}
@@ -572,31 +416,16 @@ func TestMigration_1_2_3_OverlappingDepends(t *testing.T) {
 // 'depends' values.
 // it's not safe to compare messages verbatim because
 // order of attributes is not guaranteed (maps underneath everything)
-func assertDupErr(t *testing.T, err error, errMsgs []string) {
+func assertDupErr(t *testing.T, err error, idxConflicts map[string]interface{}) {
+	assert.Error(t, err)
 	if err == nil {
-		assert.FailNow(t, "expected error to be non-nil")
+		return
 	}
 
-	msg := err.Error()
-	assert.True(t, strings.Contains(msg, errDupPrefix))
-
-	msg = strings.TrimPrefix(msg, errDupPrefix)
-	msg = strings.TrimSuffix(msg, errDupSuffix)
-
-	msgs := strings.Split(msg, ",")
-
-	assert.Equal(t, len(errMsgs), len(msgs))
-
-	for _, e := range errMsgs {
-		found := false
-		for _, m := range msgs {
-			m = strings.TrimSpace(m)
-			found = m == e
-			if found {
-				break
-			}
+	if assert.IsType(t, &mgoutils.IndexError{}, err) {
+		idxErr := err.(*mgoutils.IndexError)
+		if assert.NotNil(t, idxErr) {
+			assert.Equal(t, idxConflicts, idxErr.IndexConflict)
 		}
-		assert.True(t, found)
-
 	}
 }

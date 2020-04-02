@@ -156,8 +156,8 @@ func ActiveDeploymentStatuses() []string {
 // InstalledDeviceDeployment describes a deployment currently installed on the
 // device, usually reported by a device
 type InstalledDeviceDeployment struct {
-	Artifact   string `valid:"required"`
-	DeviceType string `valid:"required"`
+	ArtifactName string `json:"artifact_name" valid:"length(1|4096),required"`
+	DeviceType   string `json:"device_type" valid:"length(1|4096),required"`
 }
 
 func (i *InstalledDeviceDeployment) Validate() error {

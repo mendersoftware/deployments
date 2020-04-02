@@ -47,12 +47,12 @@ func TestGetReleases(t *testing.T) {
 					Artifacts: []model.Image{
 						model.Image{
 							Id: "1",
-							ImageMeta: model.ImageMeta{
+							ImageMeta: &model.ImageMeta{
 								Description: "description",
 							},
 
-							ArtifactMeta: model.ArtifactMeta{
-								Name: "App1 v1.0",
+							ArtifactMeta: &model.ArtifactMeta{
+								Name:                  "App1 v1.0",
 								DeviceTypesCompatible: []string{"bar", "baz"},
 								Updates:               []model.Update{},
 							},
@@ -68,12 +68,12 @@ func TestGetReleases(t *testing.T) {
 						Artifacts: []model.Image{
 							model.Image{
 								Id: "1",
-								ImageMeta: model.ImageMeta{
+								ImageMeta: &model.ImageMeta{
 									Description: "description",
 								},
 
-								ArtifactMeta: model.ArtifactMeta{
-									Name: "App1 v1.0",
+								ArtifactMeta: &model.ArtifactMeta{
+									Name:                  "App1 v1.0",
 									DeviceTypesCompatible: []string{"bar", "baz"},
 									Updates:               []model.Update{},
 								},

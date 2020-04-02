@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/mendersoftware/go-lib-micro/identity"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -29,28 +30,31 @@ func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestDeploymentStorageImageByNameAndDeviceType in short mode.")
 	}
+	newID := func() string {
+		return uuid.Must(uuid.NewV4()).String()
+	}
 
 	//image dataset - common for all cases
-	inputImgs := bson.A{
+	inputImgs := []*model.Image{
 		&model.Image{
-			Id: "1",
-			ImageMeta: model.ImageMeta{
+			Id: newID(),
+			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
 
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
 		},
 		&model.Image{
-			Id: "2",
-			ImageMeta: model.ImageMeta{
+			Id: newID(),
+			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
 
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "App2 v0.1",
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []model.Update{},
@@ -62,11 +66,24 @@ func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 	ctx := context.Background()
 	db.Wipe()
 	client := db.Client()
+	store := NewDataStoreMongoWithClient(client)
 
-	collection := client.Database(DatabaseName).Collection(CollectionImages)
-	res, err := collection.InsertMany(ctx, inputImgs)
-	assert.NoError(t, err)
-	assert.Equal(t, len(res.InsertedIDs), len(inputImgs))
+	for _, image := range inputImgs {
+		err := store.InsertImage(ctx, image)
+		assert.NoError(t, err)
+		if err != nil {
+			assert.Fail(t, "error setting up image collection")
+		}
+
+		// Convert Depends["device_type"] to bson.A for the sake of
+		// simplifying test case definitions.
+		image.Depends = make(map[string]interface{})
+		image.Depends["device_type"] = make(bson.A, len(image.
+			DeviceTypesCompatible))
+		for i, devType := range image.DeviceTypesCompatible {
+			image.Depends["device_type"].(bson.A)[i] = devType
+		}
+	}
 
 	testCases := map[string]struct {
 		InputImageName string
@@ -80,14 +97,14 @@ func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			InputImageName: "App1 v1.0",
 			InputDevType:   "foo",
 
-			OutputImage: inputImgs[0].(*model.Image),
+			OutputImage: inputImgs[0],
 			OutputError: nil,
 		},
 		"name and dev type ok - multiple types": {
 			InputImageName: "App2 v0.1",
 			InputDevType:   "bar",
 
-			OutputImage: inputImgs[1].(*model.Image),
+			OutputImage: inputImgs[1],
 			OutputError: nil,
 		},
 		"name ok, dev type incompatible - single type": {
@@ -147,7 +164,6 @@ func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 			} else {
 				ctx = context.Background()
 			}
-			store := NewDataStoreMongoWithClient(client)
 			img, err := store.ImageByNameAndDeviceType(ctx,
 				tc.InputImageName, tc.InputDevType)
 
@@ -171,67 +187,36 @@ func TestIsArtifactUnique(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestIsArtifactUnique in short mode.")
 	}
+	newID := func() string {
+		return uuid.Must(uuid.NewV4()).String()
+	}
 
 	//image dataset - common for all cases
 	inputImgs := []interface{}{
 		&model.Image{
-			Id: "1",
-			ImageMeta: model.ImageMeta{
+			Id: newID(),
+			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
 
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "app1-v1.0",
 				DeviceTypesCompatible: []string{"foo", "bar"},
 				Updates:               []model.Update{},
-
-				Depends: bson.M{
-					ArtifactDependsDeviceType: []interface{}{"foo", "bar"},
-				},
-
-				DependsIdx: []bson.D{
-					bson.D{
-						bson.E{Key: ArtifactDependsDeviceType, Value: "foo"},
-					},
-					bson.D{
-						bson.E{Key: ArtifactDependsDeviceType, Value: "bar"},
-					},
-				},
 			},
 		},
 		&model.Image{
-			Id: "2",
-			ImageMeta: model.ImageMeta{
+			Id: newID(),
+			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
 
-			ArtifactMeta: model.ArtifactMeta{
+			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "app2-v2.0",
 				DeviceTypesCompatible: []string{"baz", "bax"},
 				Updates:               []model.Update{},
-
 				Depends: bson.M{
-					ArtifactDependsDeviceType: []interface{}{"baz", "bax"},
-					"extra":                   []interface{}{"1", "2"},
-				},
-
-				DependsIdx: []bson.D{
-					bson.D{
-						bson.E{Key: ArtifactDependsDeviceType, Value: "baz"},
-						bson.E{Key: "extra", Value: "1"},
-					},
-					bson.D{
-						bson.E{Key: ArtifactDependsDeviceType, Value: "bax"},
-						bson.E{Key: "extra", Value: "1"},
-					},
-					bson.D{
-						bson.E{Key: ArtifactDependsDeviceType, Value: "baz"},
-						bson.E{Key: "extra", Value: "2"},
-					},
-					bson.D{
-						bson.E{Key: ArtifactDependsDeviceType, Value: "bax"},
-						bson.E{Key: "extra", Value: "2"},
-					},
+					"extra": []interface{}{"1", "2"},
 				},
 			},
 		},
@@ -325,11 +310,11 @@ func TestArtifactUpdate(t *testing.T) {
 	//image dataset - common for all cases
 	img := &model.Image{
 		Id: "a3719bc6-62af-4d65-b781-effa992048ba",
-		ImageMeta: model.ImageMeta{
+		ImageMeta: &model.ImageMeta{
 			Description: "description",
 		},
 
-		ArtifactMeta: model.ArtifactMeta{
+		ArtifactMeta: &model.ArtifactMeta{
 			Name:                  "app1-v1.0",
 			DeviceTypesCompatible: []string{"foo", "bar"},
 			Updates:               []model.Update{},
