@@ -57,6 +57,8 @@ var (
 	ErrModelImageUsedInAnyDeployment    = errors.New("Image has already been used in deployment")
 	ErrModelParsingArtifactFailed       = errors.New("Cannot parse artifact file")
 
+	ErrMsgArtifactConflict = "An artifact with the same name has conflicting dependencies"
+
 	// deployments
 	ErrModelMissingInput       = errors.New("Missing input deployment data")
 	ErrModelInvalidDeviceID    = errors.New("Invalid device ID")
@@ -78,17 +80,17 @@ type App interface {
 
 	// images
 	ListImages(ctx context.Context,
-		filters map[string]string) ([]*model.SoftwareImage, error)
+		filters map[string]string) ([]*model.Image, error)
 	DownloadLink(ctx context.Context, imageID string,
 		expire time.Duration) (*model.Link, error)
-	GetImage(ctx context.Context, id string) (*model.SoftwareImage, error)
+	GetImage(ctx context.Context, id string) (*model.Image, error)
 	DeleteImage(ctx context.Context, imageID string) error
 	CreateImage(ctx context.Context,
 		multipartUploadMsg *model.MultipartUploadMsg) (string, error)
 	GenerateImage(ctx context.Context,
 		multipartUploadMsg *model.MultipartGenerateImageMsg) (string, error)
 	EditImage(ctx context.Context, id string,
-		constructorData *model.SoftwareImageMetaConstructor) (bool, error)
+		constructorData *model.ImageMeta) (bool, error)
 
 	// deployments
 	CreateDeployment(ctx context.Context,
@@ -98,7 +100,7 @@ type App interface {
 	AbortDeployment(ctx context.Context, deploymentID string) error
 	GetDeploymentStats(ctx context.Context, deploymentID string) (model.Stats, error)
 	GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
-		current model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error)
+		current *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error)
 	HasDeploymentForDevice(ctx context.Context, deploymentID string,
 		deviceID string) (bool, error)
 	UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
@@ -256,23 +258,18 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		return artifactID, ErrModelInvalidMetadata
 	}
 
-	// check if artifact is unique
-	// artifact is considered to be unique if there is no artifact with the same name
-	// and supporting the same platform in the system
-	isArtifactUnique, err := d.db.IsArtifactUnique(ctx,
-		metaArtifactConstructor.Name, metaArtifactConstructor.DeviceTypesCompatible)
-	if err != nil {
-		return artifactID, errors.Wrap(err, "Fail to check if artifact is unique")
-	}
-	if !isArtifactUnique {
-		return artifactID, ErrModelArtifactNotUnique
-	}
-
-	image := model.NewSoftwareImage(
-		artifactID, multipartUploadMsg.MetaConstructor, metaArtifactConstructor, multipartUploadMsg.ArtifactSize)
+	image := model.NewImage(
+		artifactID,
+		multipartUploadMsg.MetaConstructor,
+		metaArtifactConstructor,
+		multipartUploadMsg.ArtifactSize,
+	)
 
 	// save image structure in the system
 	if err = d.db.InsertImage(ctx, image); err != nil {
+		if idxErr, ok := err.(*model.ConflictError); ok {
+			return artifactID, idxErr
+		}
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
 	}
 
@@ -363,7 +360,7 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 
 // GetImage allows to fetch image object with specified id
 // Nil if not found
-func (d *Deployments) GetImage(ctx context.Context, id string) (*model.SoftwareImage, error) {
+func (d *Deployments) GetImage(ctx context.Context, id string) (*model.Image, error) {
 
 	image, err := d.db.FindImageByID(ctx, id)
 	if err != nil {
@@ -419,7 +416,7 @@ func (d *Deployments) DeleteImage(ctx context.Context, imageID string) error {
 
 // ListImages according to specified filers.
 func (d *Deployments) ListImages(ctx context.Context,
-	filters map[string]string) ([]*model.SoftwareImage, error) {
+	filters map[string]string) ([]*model.Image, error) {
 
 	imageList, err := d.db.FindAll(ctx)
 	if err != nil {
@@ -427,7 +424,7 @@ func (d *Deployments) ListImages(ctx context.Context,
 	}
 
 	if imageList == nil {
-		return make([]*model.SoftwareImage, 0), nil
+		return make([]*model.Image, 0), nil
 	}
 
 	return imageList, nil
@@ -435,7 +432,7 @@ func (d *Deployments) ListImages(ctx context.Context,
 
 // EditObject allows editing only if image have not been used yet in any deployment.
 func (d *Deployments) EditImage(ctx context.Context, imageID string,
-	constructor *model.SoftwareImageMetaConstructor) (bool, error) {
+	constructor *model.ImageMeta) (bool, error) {
 
 	if err := constructor.Validate(); err != nil {
 		return false, errors.Wrap(err, "Validating image metadata")
@@ -460,7 +457,7 @@ func (d *Deployments) EditImage(ctx context.Context, imageID string,
 	}
 
 	foundImage.SetModified(time.Now())
-	foundImage.SoftwareImageMetaConstructor = *constructor
+	foundImage.ImageMeta = constructor
 
 	_, err = d.db.Update(ctx, foundImage)
 	if err != nil {
@@ -522,8 +519,8 @@ func getUpdateFiles(uFiles []*handlers.DataFile) ([]model.UpdateFile, error) {
 	return files, nil
 }
 
-func getMetaFromArchive(r *io.Reader) (*model.SoftwareImageMetaArtifactConstructor, error) {
-	metaArtifact := model.NewSoftwareImageMetaArtifactConstructor()
+func getMetaFromArchive(r *io.Reader) (*model.ArtifactMeta, error) {
+	metaArtifact := model.NewArtifactMeta()
 
 	aReader := areader.NewReader(*r)
 
@@ -541,7 +538,21 @@ func getMetaFromArchive(r *io.Reader) (*model.SoftwareImageMetaArtifactConstruct
 
 	metaArtifact.Info = getArtifactInfo(aReader.GetInfo())
 	metaArtifact.DeviceTypesCompatible = aReader.GetCompatibleDevices()
+
 	metaArtifact.Name = aReader.GetArtifactName()
+	if metaArtifact.Info.Version == 3 {
+		metaArtifact.Depends, err = aReader.MergeArtifactDepends()
+		if err != nil {
+			return nil, errors.Wrap(err,
+				"error parsing version 3 artifact")
+		}
+
+		metaArtifact.Provides, err = aReader.MergeArtifactProvides()
+		if err != nil {
+			return nil, errors.Wrap(err,
+				"error parsing version 3 artifact")
+		}
+	}
 
 	for _, p := range aReader.GetHandlers() {
 		uFiles, err := getUpdateFiles(p.GetUpdateFiles())
@@ -568,7 +579,7 @@ func getMetaFromArchive(r *io.Reader) (*model.SoftwareImageMetaArtifactConstruct
 	return metaArtifact, nil
 }
 
-func getArtifactIDs(artifacts []*model.SoftwareImage) []string {
+func getArtifactIDs(artifacts []*model.Image) []string {
 	artifactIDs := make([]string, 0, len(artifacts))
 	for _, artifact := range artifacts {
 		artifactIDs = append(artifactIDs, artifact.Id)
@@ -728,21 +739,29 @@ func (d *Deployments) assignArtifact(
 	ctx context.Context,
 	deployment *model.Deployment,
 	deviceDeployment *model.DeviceDeployment,
-	installed model.InstalledDeviceDeployment) error {
+	installed *model.InstalledDeviceDeployment) error {
 
 	// Assign artifact to the device deployment.
-	var artifact *model.SoftwareImage
+	var artifact *model.Image
 	var err error
+
+	if err = installed.Validate(); err != nil {
+		return err
+	}
+
+	if deviceDeployment.DeploymentId == nil || deviceDeployment.DeviceId == nil {
+		return ErrModelInternal
+	}
+
 	// Clear device deployment image
 	// New artifact will be selected for the device deployment
-	// TODO: Should selecting different artifact be treated as an error?
 	deviceDeployment.Image = nil
 
 	// First case is for backward compatibility.
 	// It is possible that there is old deployment structure in the system.
 	// In such case we need to select artifact using name and device type.
 	if deployment.Artifacts == nil || len(deployment.Artifacts) == 0 {
-		artifact, err = d.db.ImageByNameAndDeviceType(ctx, installed.Artifact, installed.DeviceType)
+		artifact, err = d.db.ImageByNameAndDeviceType(ctx, installed.ArtifactName, installed.DeviceType)
 		if err != nil {
 			return errors.Wrap(err, "assigning artifact to device deployment")
 		}
@@ -752,10 +771,6 @@ func (d *Deployments) assignArtifact(
 		if err != nil {
 			return errors.Wrap(err, "assigning artifact to device deployment")
 		}
-	}
-
-	if deviceDeployment.DeploymentId == nil || deviceDeployment.DeviceId == nil {
-		return ErrModelInternal
 	}
 
 	// If not having appropriate image, set noartifact status
@@ -783,7 +798,7 @@ func (d *Deployments) assignArtifact(
 
 // GetDeploymentForDeviceWithCurrent returns deployment for the device
 func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
-	installed model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
+	installed *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
 
 	deviceDeployment, err := d.db.FindOldestDeploymentForDeviceIDWithStatuses(
 		ctx,
@@ -807,7 +822,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		return nil, nil
 	}
 
-	if installed.Artifact != "" && *deployment.ArtifactName == installed.Artifact {
+	if installed.ArtifactName != "" && *deployment.ArtifactName == installed.ArtifactName {
 		// pretend there is no deployment for this device, but update
 		// its status to already installed first
 

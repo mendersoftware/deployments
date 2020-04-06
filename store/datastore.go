@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -11,6 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package store
 
 import (
@@ -32,21 +33,21 @@ type DataStore interface {
 
 	//images
 	Exists(ctx context.Context, id string) (bool, error)
-	Update(ctx context.Context, image *model.SoftwareImage) (bool, error)
-	InsertImage(ctx context.Context, image *model.SoftwareImage) error
-	FindImageByID(ctx context.Context, id string) (*model.SoftwareImage, error)
+	Update(ctx context.Context, image *model.Image) (bool, error)
+	InsertImage(ctx context.Context, image *model.Image) error
+	FindImageByID(ctx context.Context, id string) (*model.Image, error)
 	IsArtifactUnique(ctx context.Context, artifactName string,
 		deviceTypesCompatible []string) (bool, error)
 	DeleteImage(ctx context.Context, id string) error
-	FindAll(ctx context.Context) ([]*model.SoftwareImage, error)
+	FindAll(ctx context.Context) ([]*model.Image, error)
 
 	//artifact getter
 	ImagesByName(ctx context.Context,
-		artifactName string) ([]*model.SoftwareImage, error)
+		artifactName string) ([]*model.Image, error)
 	ImageByIdsAndDeviceType(ctx context.Context,
-		ids []string, deviceType string) (*model.SoftwareImage, error)
+		ids []string, deviceType string) (*model.Image, error)
 	ImageByNameAndDeviceType(ctx context.Context,
-		name, deviceType string) (*model.SoftwareImage, error)
+		name, deviceType string) (*model.Image, error)
 
 	//device deployment log
 	SaveDeviceDeploymentLog(ctx context.Context, log model.DeploymentLog) error
@@ -67,7 +68,7 @@ type DataStore interface {
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
 	AssignArtifact(ctx context.Context, deviceID string,
-		deploymentID string, artifact *model.SoftwareImage) error
+		deploymentID string, artifact *model.Image) error
 	AggregateDeviceDeploymentByStatus(ctx context.Context,
 		id string) (model.Stats, error)
 	GetDeviceStatusesForDeployment(ctx context.Context,

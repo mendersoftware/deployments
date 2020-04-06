@@ -2,13 +2,14 @@ GO ?= go
 GOFMT ?= gofmt
 V ?=
 PKGS = $(shell go list ./... | grep -v vendor)
-BUILDFILES = $(shell find cli/mender-artifact \( -path ./vendor -o -path ./Godeps \) -prune \
+SUBPKGS = $(shell go list ./... | sed '1d' | tr '\n' ',' | sed 's/,$$//1')
+BUILDFILES = $(shell find cli/mender-artifact -maxdepth 1 \( -path ./vendor -o -path ./Godeps \) -prune \
 	                     -o -type f -name '*.go' -print |  tr ' ' '\n' | grep -v _test.go)
 PKGNAME = mender-artifact
 PKGFILES = $(shell find . \( -path ./vendor -o -path ./Godeps \) -prune \
 		-o -type f -name '*.go' -print)
 PKGFILES_notest = $(shell echo $(PKGFILES) | tr ' ' '\n' | grep -v _test.go)
-GOCYCLO ?= 15
+GOCYCLO ?= 20
 
 CGO_ENABLED=1
 export CGO_ENABLED
@@ -41,11 +42,40 @@ endif
 build:
 	$(GO) build $(GO_LDFLAGS) $(BUILDV) $(BUILDTAGS) -o $(PKGNAME) $(BUILDFILES)
 
+PLATFORMS := darwin linux windows
+
+GO_LDFLAGS_WIN = -ldflags "-X main.Version=$(VERSION) -linkmode=internal -s -w -extldflags '-static' -extld=x86_64-w64-mingw32-gcc"
+
+build-natives:
+	@arch="amd64";
+	@echo "building mac";
+	@env GOOS=darwin GOARCH=$$arch CGO_ENABLED=0 \
+		$(GO) build -a $(GO_LDFLAGS) $(BUILDV) $(BUILDTAGS) -o $(PKGNAME)-darwin $(BUILDFILES) ;
+	@echo "building linux";
+	@env GOOS=linux GOARCH=$$arch \
+		$(GO) build -a $(GO_LDFLAGS) $(BUILDV) $(BUILDTAGS) -o $(PKGNAME)-linux $(BUILDFILES) ;
+	@echo "building windows";
+	@env GOOS=windows GOARCH=$$arch CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ \
+		$(GO) build $(GO_LDFLAGS_WIN) $(BUILDV) -tags $(TAGS) nolzma -o $(PKGNAME)-windows.exe $(BUILDFILES) ;
+
+build-contained:
+	rm -f mender-artifact && \
+	image_id=$$(docker build -f Dockerfile . | awk '/Successfully built/{print $$NF;}') && \
+	docker run --rm --entrypoint "/bin/sh" -v $(shell pwd):/binary $$image_id -c "cp /go/bin/mender-artifact /binary" && \
+	docker image rm $$image_id
+
+build-natives-contained:
+	rm -f mender-artifact && \
+	image_id=$$(docker build -f Dockerfile.binaries . | awk '/Successfully built/{print $$NF;}') && \
+	docker run --rm --entrypoint "/bin/sh" -v $(shell pwd):/binary $$image_id -c "cp /go/bin/mender-artifact* /binary" && \
+	docker image rm $$image_id
+
 install:
 	cd $(INSTALL_DIR) && $(GO) install $(GO_LDFLAGS) $(BUILDV) $(BUILDTAGS)
 
 clean:
 	$(GO) clean
+	rm -f mender-artifact-darwin mender-artifact-linux mender-artifact-windows.exe
 	rm -f coverage.txt coverage-tmp.txt
 
 get-tools:
@@ -90,7 +120,7 @@ coverage:
 	echo 'mode: set' > coverage.txt
 	set -e ; for p in $(PKGS); do \
 		rm -f coverage-tmp.txt;  \
-		$(GO) test -coverprofile=coverage-tmp.txt $$p ; \
+		$(GO) test -coverprofile=coverage-tmp.txt -coverpkg=$(SUBPKGS) $$p ; \
 		if [ -f coverage-tmp.txt ]; then \
 			cat coverage-tmp.txt |grep -v 'mode:' | cat >> coverage.txt; \
 		fi; \

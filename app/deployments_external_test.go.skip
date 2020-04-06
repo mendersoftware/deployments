@@ -237,10 +237,10 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 
 	//t.Parallel()
 
-	image := model.NewSoftwareImage(
+	image := model.NewImage(
 		validUUIDv4,
-		&model.SoftwareImageMetaConstructor{},
-		&model.SoftwareImageMetaArtifactConstructor{
+		&model.ImageMeta{},
+		&model.ArtifactMeta{
 			Name: "foo-artifact",
 			DeviceTypesCompatible: []string{
 				"hammer",
@@ -258,7 +258,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 
 		InputInstalledDeployment model.InstalledDeviceDeployment
 
-		InputArtifact                      *model.SoftwareImage
+		InputArtifact                      *model.Image
 		InputImageByIdsAndDeviceTypeError  error
 		InputImageByNameAndDeviceTypeError error
 
@@ -285,10 +285,10 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 		{
 			InputID: "ID:123",
 			InputOlderstDeviceDeployment: &model.DeviceDeployment{
-				Image: model.NewSoftwareImage(
+				Image: model.NewImage(
 					validUUIDv4,
-					&model.SoftwareImageMetaConstructor{},
-					&model.SoftwareImageMetaArtifactConstructor{
+					&model.ImageMeta{},
+					&model.ArtifactMeta{
 						Name: image.Name,
 						DeviceTypesCompatible: []string{
 							"hammer",
@@ -297,10 +297,10 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				DeviceId:     StringToPointer("ID:123"),
 				DeploymentId: StringToPointer("ID:678"),
 			},
-			InputArtifact: model.NewSoftwareImage(
+			InputArtifact: model.NewImage(
 				validUUIDv4,
-				&model.SoftwareImageMetaConstructor{},
-				&model.SoftwareImageMetaArtifactConstructor{
+				&model.ImageMeta{},
+				&model.ArtifactMeta{
 					Name: image.Name,
 					DeviceTypesCompatible: []string{
 						"hammer",
@@ -382,7 +382,7 @@ func TestDeploymentModelGetDeploymentForDevice(t *testing.T) {
 				h.ContextMatcher(),
 				mock.AnythingOfType("string"),
 				mock.AnythingOfType("string"),
-				mock.AnythingOfType("*model.SoftwareImage")).
+				mock.AnythingOfType("*model.Image")).
 				Return(nil)
 				//Return(testCase.InputAssignArtifactError)
 
@@ -563,10 +563,10 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				h.ContextMatcher(),
 				mock.AnythingOfType("string")).
 				Return(
-					[]*model.SoftwareImage{model.NewSoftwareImage(
+					[]*model.Image{model.NewImage(
 						validUUIDv4,
-						&model.SoftwareImageMetaConstructor{},
-						&model.SoftwareImageMetaArtifactConstructor{
+						&model.ImageMeta{},
+						&model.ArtifactMeta{
 							//Name: *testCase.InputConstructor.ArtifactName,
 							Name: "App 123",
 							DeviceTypesCompatible: []string{

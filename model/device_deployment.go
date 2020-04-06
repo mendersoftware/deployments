@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ type DeviceDeployment struct {
 	Id *string `json:"-" bson:"_id" valid:"uuidv4,required"`
 
 	// Assigned software image
-	Image *SoftwareImage `json:"-" valid:"-"`
+	Image *Image `json:"-" valid:"-"`
 
 	// Target device type
 	DeviceType *string `json:"device_type,omitempty" valid:"-"`
@@ -156,8 +156,8 @@ func ActiveDeploymentStatuses() []string {
 // InstalledDeviceDeployment describes a deployment currently installed on the
 // device, usually reported by a device
 type InstalledDeviceDeployment struct {
-	Artifact   string `valid:"required"`
-	DeviceType string `valid:"required"`
+	ArtifactName string `json:"artifact_name" valid:"length(1|4096),required"`
+	DeviceType   string `json:"device_type" valid:"length(1|4096),required"`
 }
 
 func (i *InstalledDeviceDeployment) Validate() error {

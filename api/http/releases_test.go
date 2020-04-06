@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -11,6 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package http
 
 import (
@@ -44,15 +45,15 @@ func TestGetReleases(t *testing.T) {
 		"ok": {
 			storeReleases: []dmodel.Release{
 				dmodel.Release{
-					Artifacts: []model.SoftwareImage{
-						model.SoftwareImage{
+					Artifacts: []model.Image{
+						model.Image{
 							Id: "1",
-							SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+							ImageMeta: &model.ImageMeta{
 								Description: "description",
 							},
 
-							SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-								Name: "App1 v1.0",
+							ArtifactMeta: &model.ArtifactMeta{
+								Name:                  "App1 v1.0",
 								DeviceTypesCompatible: []string{"bar", "baz"},
 								Updates:               []model.Update{},
 							},
@@ -65,15 +66,15 @@ func TestGetReleases(t *testing.T) {
 				nil,
 				[]dmodel.Release{
 					dmodel.Release{
-						Artifacts: []model.SoftwareImage{
-							model.SoftwareImage{
+						Artifacts: []model.Image{
+							model.Image{
 								Id: "1",
-								SoftwareImageMetaConstructor: model.SoftwareImageMetaConstructor{
+								ImageMeta: &model.ImageMeta{
 									Description: "description",
 								},
 
-								SoftwareImageMetaArtifactConstructor: model.SoftwareImageMetaArtifactConstructor{
-									Name: "App1 v1.0",
+								ArtifactMeta: &model.ArtifactMeta{
+									Name:                  "App1 v1.0",
 									DeviceTypesCompatible: []string{"bar", "baz"},
 									Updates:               []model.Update{},
 								},

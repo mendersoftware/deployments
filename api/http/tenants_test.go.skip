@@ -105,7 +105,7 @@ func TestProvisionTenant(t *testing.T) {
 
 			imageModelMock := &mocks.App{}
 			restView := new(view.RESTView)
-			imgCtrl := imageController.NewSoftwareImagesController(imageModelMock, restView)
+			imgCtrl := imageController.NewImagesController(imageModelMock, restView)
 
 			c := NewController(m, deps, imageModelMock, imgCtrl, restView)
 
@@ -196,7 +196,7 @@ func TestInteralTenantNewImage(t *testing.T) {
 
 			deps := &deploymentsModel.DeploymentsModel{}
 			restView := new(view.RESTView)
-			imgCtrl := imageController.NewSoftwareImagesController(imageModelMock, nil)
+			imgCtrl := imageController.NewImagesController(imageModelMock, nil)
 			c := NewController(m, deps, imageModelMock, imgCtrl, restView)
 
 			api := setUpRestTest("/r/tenants/:tenant/artifacts", rest.Post, c.NewImageForTenantHandler)

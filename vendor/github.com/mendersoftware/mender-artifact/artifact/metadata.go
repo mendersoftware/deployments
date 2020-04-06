@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package artifact
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 
@@ -55,6 +56,7 @@ func decode(p []byte, data WriteValidator) error {
 	}
 
 	dec := json.NewDecoder(bytes.NewReader(p))
+	dec.DisallowUnknownFields()
 	err := dec.Decode(data)
 	if err != nil {
 		return err
@@ -75,7 +77,7 @@ type UpdateType struct {
 	Type string `json:"type"`
 }
 
-// HeaderInfoer wraps headerInfo version 1,2 and 3,
+// HeaderInfoer wraps headerInfo version 2 and 3,
 // in order to supply the artifact reader with the information it needs.
 type HeaderInfoer interface {
 	Write(b []byte) (n int, err error)
@@ -162,8 +164,8 @@ func (hi *HeaderInfo) GetArtifactProvides() *ArtifactProvides {
 
 type HeaderInfoV3 struct {
 	// For historical reasons, "payloads" are often referred to as "updates"
-	// in the code, since this was the old name (and still is, in V2 and
-	// V1). This is the reason why the struct field is still called
+	// in the code, since this was the old name (and still is, in V2).
+	// This is the reason why the struct field is still called
 	// "Updates".
 	Updates          []UpdateType      `json:"payloads"`
 	ArtifactProvides *ArtifactProvides `json:"artifact_provides"` // Has its own json marshaller tags.
@@ -287,9 +289,125 @@ func (ti *TypeInfo) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-type TypeInfoDepends map[string]string
+type TypeInfoDepends map[string]interface{}
+
+func (t TypeInfoDepends) Map() map[string]interface{} {
+	return map[string]interface{}(t)
+}
+
+func NewTypeInfoDepends(m interface{}) (ti TypeInfoDepends, err error) {
+
+	const errMsgInvalidTypeFmt = "Invalid TypeInfo depends type: %T"
+	const errMsgInvalidTypeEntFmt = errMsgInvalidTypeFmt + ", with value %v"
+
+	ti = make(map[string]interface{})
+	switch m.(type) {
+	case map[string]interface{}:
+		m := m.(map[string]interface{})
+		for k, v := range m {
+			switch v.(type) {
+
+			case string, []string:
+				ti[k] = v
+
+			case []interface{}:
+				valFace := v.([]interface{})
+				valStr := make([]string, len(valFace))
+				for i, entFace := range v.([]interface{}) {
+					entStr, ok := entFace.(string)
+					if !ok {
+						return nil, fmt.Errorf(
+							errMsgInvalidTypeEntFmt,
+							v, v)
+					}
+					valStr[i] = entStr
+				}
+				ti[k] = valStr
+
+			default:
+				return nil, fmt.Errorf(
+					errMsgInvalidTypeEntFmt,
+					v, v)
+			}
+		}
+		return ti, nil
+	case map[string]string:
+		m := m.(map[string]string)
+		for k, v := range m {
+			ti[k] = v
+		}
+		return ti, nil
+	case map[string][]string:
+		m := m.(map[string][]string)
+		for k, v := range m {
+			ti[k] = v
+		}
+		return ti, nil
+	default:
+		return nil, fmt.Errorf(errMsgInvalidTypeFmt, m)
+	}
+}
+
+// UnmarshalJSON attempts to deserialize the json stream into a 'map[string]interface{}',
+// where each interface value is required to be either a string, or an array of strings
+func (t *TypeInfoDepends) UnmarshalJSON(b []byte) error {
+	m := make(map[string]interface{})
+	err := json.Unmarshal(b, &m)
+	if err != nil {
+		return err
+	}
+	*t, err = NewTypeInfoDepends(m)
+	return err
+}
 
 type TypeInfoProvides map[string]string
+
+func (t TypeInfoProvides) Map() map[string]string {
+	return t
+}
+
+func NewTypeInfoProvides(m interface{}) (ti TypeInfoProvides, err error) {
+
+	const errMsgInvalidTypeFmt = "Invalid TypeInfo provides type: %T"
+	const errMsgInvalidTypeEntFmt = errMsgInvalidTypeFmt + ", with value %v"
+
+	ti = make(map[string]string)
+	switch m.(type) {
+	case map[string]interface{}:
+		m := m.(map[string]interface{})
+		for k, v := range m {
+			switch v.(type) {
+			case string:
+				ti[k] = v.(string)
+				continue
+			default:
+				return nil, fmt.Errorf(errMsgInvalidTypeEntFmt,
+					v, v)
+			}
+		}
+		return ti, nil
+	case map[string]string:
+		m := m.(map[string]string)
+		for k, v := range m {
+			ti[k] = v
+		}
+		return ti, nil
+	default:
+		return nil, fmt.Errorf(errMsgInvalidTypeFmt, m)
+	}
+}
+
+// UnmarshalJSON attempts to deserialize the json stream into a 'map[string]interface{}',
+// where each interface value is required to be either a string, or an array of strings
+func (t *TypeInfoProvides) UnmarshalJSON(b []byte) error {
+	m := make(map[string]interface{})
+	err := json.Unmarshal(b, &m)
+	if err != nil {
+		return err
+	}
+	*t, err = NewTypeInfoProvides(m)
+	return err
+}
 
 // TypeInfoV3 provides information about the type of update contained within the
 // headerstructure.
@@ -298,9 +416,9 @@ type TypeInfoV3 struct {
 	Type string `json:"type"`
 	// Checksum of the image that needs to be installed on the device in order to
 	// apply the current update.
-	ArtifactDepends *TypeInfoDepends `json:"artifact_depends,omitempty"`
+	ArtifactDepends TypeInfoDepends `json:"artifact_depends,omitempty"`
 	// Checksum of the image currently installed on the device.
-	ArtifactProvides *TypeInfoProvides `json:"artifact_provides,omitempty"`
+	ArtifactProvides TypeInfoProvides `json:"artifact_provides,omitempty"`
 }
 
 // Validate checks that the required `Type` field is set.
