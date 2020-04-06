@@ -67,6 +67,7 @@ var (
 	ErrDeploymentAborted       = errors.New("Deployment aborted")
 	ErrDeviceDecommissioned    = errors.New("Device decommissioned")
 	ErrNoArtifact              = errors.New("No artifact for the deployment")
+	ErrInvalidArtifactSize     = errors.New("invalid artifact size")
 )
 
 //deployments
@@ -197,7 +198,10 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	pR, pW := io.Pipe()
 
 	// limit reader to the size provided with the upload message
-	lr := io.LimitReader(multipartUploadMsg.ArtifactReader, multipartUploadMsg.ArtifactSize)
+	lr := io.LimitReader(
+		multipartUploadMsg.ArtifactReader,
+		multipartUploadMsg.ArtifactSize,
+	).(*io.LimitedReader)
 	tee := io.TeeReader(lr, pW)
 
 	uid, err := uuid.FromString(multipartUploadMsg.ArtifactID)
@@ -241,6 +245,14 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		pW.Close()
 		<-ch
 		return artifactID, err
+	} else if lr.N > 0 {
+		pW.Close()
+		<-ch
+		return "", errors.Wrapf(
+			ErrInvalidArtifactSize,
+			"artifact size %d != %d",
+			lr.N, multipartUploadMsg.ArtifactSize,
+		)
 	}
 
 	// close the pipe
@@ -249,6 +261,25 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// collect output from the goroutine
 	if uploadResponseErr := <-ch; uploadResponseErr != nil {
 		return artifactID, uploadResponseErr
+	}
+
+	// Check that the submitted size is correct
+	var b [1]byte
+	N, err := multipartUploadMsg.ArtifactReader.Read(b[:])
+	if N > 0 && err == nil {
+		go func() {
+			l := log.FromContext(ctx)
+			err := d.fileStorage.Delete(ctx, artifactID)
+			if err != nil {
+				l.Errorf(
+					"Failed to delete broken image %s: %s",
+					artifactID, err)
+			}
+		}()
+		return "", errors.Wrap(
+			ErrInvalidArtifactSize,
+			"size smaller than expected",
+		)
 	}
 
 	// validate artifact metadata
