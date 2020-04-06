@@ -483,15 +483,15 @@ func (db *DataStoreMongo) Update(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
+	update := bson.M{"$set": image}
+
 	image.SetModified(time.Now())
-	if res, err := collImg.ReplaceOne(
-		ctx, bson.M{"_id": image.Id}, image,
-	); err != nil {
+	if res, err := collImg.UpdateOne(
+		ctx, bson.M{"_id": image.Id}, update); err != nil {
 		return false, err
 	} else if res.MatchedCount == 0 {
 		return false, nil
 	}
-
 	return true, nil
 }
 
