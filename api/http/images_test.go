@@ -64,7 +64,7 @@ func TestPostArtifacts(t *testing.T) {
 			requestBodyObject:  []h.Part{},
 			requestContentType: "",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "mime: no media type",
+			responseBody:       "request Content-Type isn't multipart/form-data",
 		},
 		{
 			requestBodyObject:  []h.Part{},
@@ -76,7 +76,7 @@ func TestPostArtifacts(t *testing.T) {
 			requestBodyObject:  []h.Part{},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "request does not contain the file: http: no such file",
+			responseBody:       ErrArtifactFileMissing.Error(),
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -100,7 +100,7 @@ func TestPostArtifacts(t *testing.T) {
 			},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "artifact_id is not an UUIDv4",
+			responseBody:       "artifact_id is not a valid UUID",
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -241,7 +241,7 @@ func TestPostArtifactsInternal(t *testing.T) {
 			requestBodyObject:  []h.Part{},
 			requestContentType: "",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "mime: no media type",
+			responseBody:       "request Content-Type isn't multipart/form-data",
 		},
 		{
 			requestBodyObject:  []h.Part{},
@@ -253,7 +253,7 @@ func TestPostArtifactsInternal(t *testing.T) {
 			requestBodyObject:  []h.Part{},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "request does not contain the file: http: no such file",
+			responseBody:       ErrArtifactFileMissing.Error(),
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -277,7 +277,7 @@ func TestPostArtifactsInternal(t *testing.T) {
 			},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "artifact_id is not an UUIDv4",
+			responseBody:       "artifact_id is not a valid UUID",
 		},
 		{
 			requestBodyObject: []h.Part{

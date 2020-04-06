@@ -140,7 +140,6 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("int64"),
 		mock.AnythingOfType("*io.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(errors.New("error while uploading"))
@@ -180,7 +179,6 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("int64"),
 		mock.AnythingOfType("*io.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
@@ -227,7 +225,6 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("int64"),
 		mock.AnythingOfType("*io.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
@@ -312,7 +309,6 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("int64"),
 		mock.AnythingOfType("*io.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
@@ -388,7 +384,6 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("int64"),
 		mock.AnythingOfType("*io.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
@@ -486,7 +481,6 @@ func TestGenerateImageSuccessful(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("int64"),
 		mock.AnythingOfType("*io.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
@@ -578,7 +572,6 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("int64"),
 		mock.AnythingOfType("*io.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)

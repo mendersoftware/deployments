@@ -17,6 +17,9 @@ package http
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -69,6 +72,7 @@ var (
 	ErrDeploymentAlreadyFinished  = errors.New("Deployment already finished")
 	ErrUnexpectedDeploymentStatus = errors.New("Unexpected deployment status")
 	ErrMissingIdentity            = errors.New("Missing identity data")
+	ErrMissingSize                = errors.New("missing size form-data")
 )
 
 type DeploymentsApiHandlers struct {
@@ -304,14 +308,14 @@ func (d *DeploymentsApiHandlers) NewImageForTenantHandler(w rest.ResponseWriter,
 func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
-	err := r.ParseMultipartForm(DefaultMaxMetaSize)
+	formReader, err := r.MultipartReader()
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
 	// parse multipart message
-	multipartUploadMsg, err := d.ParseMultipart(r)
+	multipartUploadMsg, err := d.ParseMultipart(formReader)
 	defer r.MultipartForm.RemoveAll()
 
 	if err != nil {
@@ -414,42 +418,75 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 }
 
 // ParseMultipart parses multipart/form-data message.
-func (d *DeploymentsApiHandlers) ParseMultipart(r *rest.Request) (*model.MultipartUploadMsg, error) {
-	multipartUploadMsg := &model.MultipartUploadMsg{
-		MetaConstructor: &model.ImageMeta{},
-	}
-	multipartUploadMsg.MetaConstructor.Description = r.FormValue("description")
+func (d *DeploymentsApiHandlers) ParseMultipart(r *multipart.Reader) (*model.MultipartUploadMsg, error) {
 
-	sizeValue := r.FormValue("size")
-	var size int64
-	var err error
-	if sizeValue != "" {
-		size, err = strconv.ParseInt(sizeValue, 10, 64)
+	uploadMsg := &model.MultipartUploadMsg{
+		MetaConstructor: &model.ImageMeta{},
+		ArtifactSize:    app.MaxImageSize,
+	}
+	// Parse the multipart form sequentially. To remain backward compatible
+	// all form names that are not part of the API are ignored.
+	for {
+		part, err := r.NextPart()
 		if err != nil {
+			if err == io.EOF {
+				// The whole message has been consumed without
+				// the "artifact" form part.
+				return nil, ErrArtifactFileMissing
+			}
 			return nil, err
 		}
-	}
+		switch strings.ToLower(part.FormName()) {
+		case "description":
+			// Add description to the metadata
+			dscr, err := ioutil.ReadAll(part)
+			if err != nil {
+				return nil, err
+			}
+			uploadMsg.MetaConstructor.Description = string(dscr)
 
-	file, fileHeader, err := r.FormFile("artifact")
-	if err != nil {
-		return nil, errors.Wrap(err, "request does not contain the file")
-	}
+		case "size":
+			// Add size limit to the metadata
+			sz, err := ioutil.ReadAll(part)
+			if err != nil {
+				return nil, err
+			}
+			size, err := strconv.ParseInt(string(sz), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			// Add one since this will impose the upper limit on the
+			// artifact size.
+			if size > app.MaxImageSize {
+				return nil, app.ErrModelArtifactFileTooLarge
+			}
+			uploadMsg.ArtifactSize = size
 
-	if size < 0 || size > 0 && size != fileHeader.Size {
-		return nil, errors.New("The size value is wrong.")
-	}
+		case "artifact_id":
+			// Add artifact id to the metadata (must be a valid UUID).
+			b, err := ioutil.ReadAll(part)
+			if err != nil {
+				return nil, err
+			}
+			id := string(b)
+			if !govalidator.IsUUID(id) {
+				return nil, errors.New(
+					"artifact_id is not a valid UUID",
+				)
+			}
+			uploadMsg.ArtifactID = id
 
-	multipartUploadMsg.ArtifactReader = file
-	multipartUploadMsg.ArtifactSize = fileHeader.Size
+		case "artifact":
+			// Assign the form-data payload to the artifact reader
+			// and return. The content is consumed elsewhere.
+			uploadMsg.ArtifactReader = part
+			return uploadMsg, nil
 
-	if id := r.FormValue("artifact_id"); id != "" {
-		if !govalidator.IsUUIDv4(id) {
-			return nil, errors.New("artifact_id is not an UUIDv4")
+		default:
+			// Ignore all non-API sections.
+			continue
 		}
-		multipartUploadMsg.ArtifactID = id
 	}
-
-	return multipartUploadMsg, nil
 }
 
 // ParseGenerateImageMultipart parses multipart/form-data message.
