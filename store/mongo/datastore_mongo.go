@@ -513,8 +513,10 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 		StorageKeyImageDeviceTypes: deviceType,
 	}
 
-	// If multiple entries matches, pick the smallest one.
 	findOpts := mopts.FindOne()
+	// Project away redundant "meta_artifact.depends_idx" sub-document
+	findOpts.SetProjection(bson.M{StorageKeyImageDependsIdx: 0})
+	// If multiple entries matches, pick the smallest one.
 	findOpts.SetSort(bson.M{StorageKeyImageSize: 1})
 
 	dbName := mstore.DbFromContext(ctx, DatabaseName)
@@ -554,8 +556,10 @@ func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
-	// If multiple entries matches, pick the smallest one
 	findOpts := mopts.FindOne()
+	// Project away redundant "meta_artifact.depends_idx" sub-document
+	findOpts.SetProjection(bson.M{StorageKeyImageDependsIdx: 0})
+	// If multiple entries matches, pick the smallest one
 	findOpts.SetSort(bson.M{StorageKeyImageSize: 1})
 
 	// Both we lookup unique object, should be one or none.
@@ -586,9 +590,13 @@ func (db *DataStoreMongo) ImagesByName(
 		StorageKeyImageName: name,
 	}
 
+	// Project away redundant "meta_artifact.depends_idx" sub-document
+	findOpts := mopts.Find()
+	findOpts.SetProjection(bson.M{StorageKeyImageDependsIdx: 0})
+
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
-	cursor, err := collImg.Find(ctx, query)
+	cursor, err := collImg.Find(ctx, query, findOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -647,8 +655,12 @@ func (db *DataStoreMongo) FindImageByID(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
+	// Project away redundant "meta_artifact.depends_idx" sub-document
+	findOpts := mopts.FindOne()
+	findOpts.SetProjection(bson.M{StorageKeyImageDependsIdx: 0})
+
 	var image model.Image
-	if err := collImg.FindOne(ctx, bson.M{"_id": id}).
+	if err := collImg.FindOne(ctx, bson.M{"_id": id}, findOpts).
 		Decode(&image); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -686,10 +698,14 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 		},
 	}
 
+	// Project away redundant "meta_artifact.depends_idx" sub-document
+	findOpts := mopts.Find()
+	findOpts.SetProjection(bson.M{StorageKeyImageDependsIdx: 0})
+
 	// do part of the job manually
 	// if candidate images have any extra 'depends' - guaranteed non-overlap
 	// otherwise it's a match
-	cur, err := collImg.Find(ctx, query)
+	cur, err := collImg.Find(ctx, query, findOpts)
 	if err != nil {
 		return false, err
 	}
