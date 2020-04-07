@@ -414,7 +414,6 @@ func (d *DeploymentsApiHandlers) ParseMultipart(r *multipart.Reader) (*model.Mul
 	uploadMsg := &model.MultipartUploadMsg{
 		MetaConstructor: &model.SoftwareImageMetaConstructor{},
 	}
-	var sizeParsed bool
 	for {
 		part, err := r.NextPart()
 		if err != nil {
@@ -431,21 +430,6 @@ func (d *DeploymentsApiHandlers) ParseMultipart(r *multipart.Reader) (*model.Mul
 			}
 			uploadMsg.MetaConstructor.Description = string(dscr)
 
-		case "size":
-			size, err := ioutil.ReadAll(part)
-			if err != nil {
-				return nil, err
-			}
-			uploadMsg.ArtifactSize, err = strconv.
-				ParseInt(string(size), 10, 64)
-			if err != nil {
-				return nil, app.ErrInvalidArtifactSize
-			}
-			if uploadMsg.ArtifactSize < 0 {
-				return nil, app.ErrInvalidArtifactSize
-			}
-			sizeParsed = true
-
 		case "artifact_id":
 			b, err := ioutil.ReadAll(part)
 			if err != nil {
@@ -460,9 +444,6 @@ func (d *DeploymentsApiHandlers) ParseMultipart(r *multipart.Reader) (*model.Mul
 			uploadMsg.ArtifactID = id
 
 		case "artifact":
-			if !sizeParsed {
-				return nil, ErrMissingSize
-			}
 			uploadMsg.ArtifactReader = part
 			return uploadMsg, nil
 

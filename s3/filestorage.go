@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 	"time"
 
@@ -27,12 +26,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/go-lib-micro/identity"
-
-	"github.com/mendersoftware/go-lib-micro/log"
 )
 
 const (
@@ -58,7 +56,7 @@ type FileStorage interface {
 	DeleteRequest(ctx context.Context, objectId string,
 		duration time.Duration) (*model.Link, error)
 	UploadArtifact(ctx context.Context, objectId string,
-		artifactSize int64, artifact io.Reader, contentType string) error
+		artifact io.Reader, contentType string) error
 }
 
 // SimpleStorageService - AWS S3 client.
@@ -219,63 +217,80 @@ func (s *SimpleStorageService) Exists(ctx context.Context, objectID string) (boo
 // UploadArtifact uploads given artifact into the file server (AWS S3 or minio)
 // using objectID as a key
 func (s *SimpleStorageService) UploadArtifact(ctx context.Context,
-	objectID string, size int64, artifact io.Reader, contentType string) error {
+	objectID string, artifact io.Reader, contentType string) error {
 	objectID = getArtifactByTenant(ctx, objectID)
 
-	params := &s3.PutObjectInput{
-		// Required
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(objectID),
+	uploader := s3manager.NewUploaderWithClient(
+		s.client,
+		func(u *s3manager.Uploader) {
+			u.PartSize = 64 * 1024 * 1024 // 64MiB per part
+			u.Concurrency = 1
+		},
+	)
+	uploadExpiresAt := time.Now().Add(10 * time.Minute)
+	uploadParams := &s3manager.UploadInput{
+		Bucket:      &s.bucket,
+		Key:         &objectID,
+		Body:        artifact,
+		ContentType: &contentType,
+		Expires:     &uploadExpiresAt,
 	}
+	_, err := uploader.Upload(uploadParams)
+	return err
+	//params := &s3.PutObjectInput{
+	//	// Required
+	//	Bucket: aws.String(s.bucket),
+	//	Key:    aws.String(objectID),
+	//}
 
-	// Ignore out object
-	r, _ := s.client.PutObjectRequest(params)
+	//// Ignore out object
+	//r, _ := s.client.PutObjectRequest(params)
 
-	// Presign request
-	uri, err := r.Presign(5 * time.Minute)
-	if err != nil {
-		return err
-	}
+	//// Presign request
+	//uri, err := r.Presign(5 * time.Minute)
+	//if err != nil {
+	//	return err
+	//}
 
-	client := &http.Client{}
-	request, err := http.NewRequest(http.MethodPut, uri, artifact)
-	if err != nil {
-		return err
-	}
-	request.Header.Set("Content-Type", contentType)
-	request.ContentLength = size
-	resp, err := client.Do(request)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+	//client := &http.Client{}
+	//request, err := http.NewRequest(http.MethodPut, uri, artifact)
+	//if err != nil {
+	//	return err
+	//}
+	//request.Header.Set("Content-Type", contentType)
+	//request.ContentLength = size
+	//resp, err := client.Do(request)
+	//if err != nil {
+	//	return err
+	//}
+	//defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		err = getS3Error(resp)
-		return errors.Wrapf(err,
-			"Artifact upload failed with HTTP status %v", resp.Status)
-	}
+	//if resp.StatusCode != http.StatusOK {
+	//	err = getS3Error(resp)
+	//	return errors.Wrapf(err,
+	//		"Artifact upload failed with HTTP status %v", resp.Status)
+	//}
 
-	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 && s.tagArtifact {
-		input := &s3.PutObjectTaggingInput{
-			Bucket: params.Bucket,
-			Key:    params.Key,
-			Tagging: &s3.Tagging{
-				TagSet: []*s3.Tag{
-					{
-						Key:   aws.String("tenant_id"),
-						Value: aws.String(id.Tenant),
-					},
-				},
-			},
-		}
-		if _, err := s.client.PutObjectTagging(input); err != nil {
-			l := log.FromContext(r.Context())
-			l.Warnf("failed to tag artifact : %s\n", objectID)
-		}
-	}
+	//if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 && s.tagArtifact {
+	//	input := &s3.PutObjectTaggingInput{
+	//		Bucket: params.Bucket,
+	//		Key:    params.Key,
+	//		Tagging: &s3.Tagging{
+	//			TagSet: []*s3.Tag{
+	//				{
+	//					Key:   aws.String("tenant_id"),
+	//					Value: aws.String(id.Tenant),
+	//				},
+	//			},
+	//		},
+	//	}
+	//	if _, err := s.client.PutObjectTagging(input); err != nil {
+	//		l := log.FromContext(r.Context())
+	//		l.Warnf("failed to tag artifact : %s\n", objectID)
+	//	}
+	//}
 
-	return nil
+	//return nil
 }
 
 // PutRequest duration is limited to 7 days (AWS limitation)

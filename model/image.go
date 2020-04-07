@@ -135,8 +135,6 @@ type MultipartUploadMsg struct {
 	ArtifactSize int64
 	// reader pointing to the beginning of the artifact data
 	ArtifactReader io.ReadCloser
-	// ArtifactFileName holds the filename of the multipart form
-	ArtifactFileName string
 }
 
 // MultipartGenerateImageMsg is a structure with fields extracted from the multipart/form-data

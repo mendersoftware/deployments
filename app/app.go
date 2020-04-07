@@ -166,17 +166,6 @@ const MaxImageSize = 1024 * 1024 * 1024 * 10
 func (d *Deployments) CreateImage(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
 
-	switch {
-	case multipartUploadMsg == nil:
-		return "", ErrModelMultipartUploadMsgMalformed
-	case multipartUploadMsg.MetaConstructor == nil:
-		return "", ErrModelMissingInputMetadata
-	case multipartUploadMsg.ArtifactReader == nil:
-		return "", ErrModelMissingInputArtifact
-	case multipartUploadMsg.ArtifactSize > MaxImageSize:
-		return "", ErrModelArtifactFileTooLarge
-	}
-
 	artifactID, err := d.handleArtifact(ctx, multipartUploadMsg)
 	// try to remove artifact file from file storage on error
 	if err != nil {
@@ -200,7 +189,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// limit reader to the size provided with the upload message
 	lr := io.LimitReader(
 		multipartUploadMsg.ArtifactReader,
-		multipartUploadMsg.ArtifactSize,
+		MaxImageSize,
 	).(*io.LimitedReader)
 	tee := io.TeeReader(lr, pW)
 
@@ -221,8 +210,9 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	//
 	// uploading and parsing artifact in the same process will cause in a deadlock!
 	go func() {
-		err := d.fileStorage.UploadArtifact(ctx,
-			artifactID, multipartUploadMsg.ArtifactSize, pR, ArtifactContentType)
+		err := d.fileStorage.UploadArtifact(
+			ctx, artifactID, pR, ArtifactContentType,
+		)
 		if err != nil {
 			pR.CloseWithError(err)
 		}
@@ -245,28 +235,10 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		pW.Close()
 		<-ch
 		return artifactID, err
-	} else if lr.N > 0 {
+	} else if lr.N <= 0 {
+		// LimitReader exhausted, artifact file too large.
 		pW.Close()
 		<-ch
-		return "", errors.Wrapf(
-			ErrInvalidArtifactSize,
-			"artifact size %d != %d",
-			lr.N, multipartUploadMsg.ArtifactSize,
-		)
-	}
-
-	// close the pipe
-	pW.Close()
-
-	// collect output from the goroutine
-	if uploadResponseErr := <-ch; uploadResponseErr != nil {
-		return artifactID, uploadResponseErr
-	}
-
-	// Check that the submitted size is correct
-	var b [1]byte
-	N, err := multipartUploadMsg.ArtifactReader.Read(b[:])
-	if N > 0 && err == nil {
 		go func() {
 			l := log.FromContext(ctx)
 			err := d.fileStorage.Delete(ctx, artifactID)
@@ -276,10 +248,17 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 					artifactID, err)
 			}
 		}()
-		return "", errors.Wrap(
-			ErrInvalidArtifactSize,
-			"size smaller than expected",
-		)
+		return "", ErrModelArtifactFileTooLarge
+	}
+	// close the pipe
+	pW.Close()
+
+	// Assign artifact size to the actual uploaded size
+	multipartUploadMsg.ArtifactSize = MaxImageSize - lr.N
+
+	// collect output from the goroutine
+	if uploadResponseErr := <-ch; uploadResponseErr != nil {
+		return artifactID, uploadResponseErr
 	}
 
 	// validate artifact metadata
@@ -383,8 +362,9 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 	}
 
 	lr := io.LimitReader(multipartGenerateImageMsg.FileReader, multipartGenerateImageMsg.Size)
-	err = d.fileStorage.UploadArtifact(ctx,
-		artifactID, multipartGenerateImageMsg.Size, lr, ArtifactContentType)
+	err = d.fileStorage.UploadArtifact(
+		ctx, artifactID, lr, ArtifactContentType,
+	)
 	if err != nil {
 		return "", err
 	}

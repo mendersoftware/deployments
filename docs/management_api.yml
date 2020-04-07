@@ -500,7 +500,9 @@ paths:
           description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: size
           in: formData
-          description: Size of the artifact file in bytes.
+          description: |
+            Size of the artifact file in bytes.
+            DEPRECATED: Size is determined from uploaded content.
           required: false
           type: integer
           format: long
