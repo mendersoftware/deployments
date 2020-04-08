@@ -598,7 +598,6 @@ func getArtifactIDs(artifacts []*model.Image) []string {
 // deployments
 
 // CreateDeployment precomputes new deployment and schedules it for devices.
-// TODO: check if specified devices are bootstrapped (when have a way to do this)
 func (d *Deployments) CreateDeployment(ctx context.Context,
 	constructor *model.DeploymentConstructor) (string, error) {
 
@@ -774,24 +773,116 @@ func (d *Deployments) assignArtifact(
 	return nil
 }
 
-// GetDeploymentForDeviceWithCurrent returns deployment for the device
-func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
-	installed *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
+// Retrieves the model.Deployment and model.DeviceDeployment structures
+// for the device. Upon error, nil is returned for both deployment structures.
+func (d *Deployments) getDeploymentForDevice(ctx context.Context,
+	deviceID string) (*model.Deployment, *model.DeviceDeployment, error) {
 
+	// Retrieve device deployment
 	deviceDeployment, err := d.db.FindOldestDeploymentForDeviceIDWithStatuses(
 		ctx,
 		deviceID,
 		model.ActiveDeploymentStatuses()...)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "Searching for oldest active deployment for the device")
-	}
-
-	if deviceDeployment == nil {
-		return nil, nil
+		return nil, nil, errors.Wrap(err,
+			"Searching for oldest active deployment for the device")
+	} else if deviceDeployment == nil {
+		return d.getNewDeploymentForDevice(ctx, deviceID)
 	}
 
 	deployment, err := d.db.FindDeploymentByID(ctx, *deviceDeployment.DeploymentId)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "checking deployment id")
+	}
+	if deployment == nil {
+		return nil, nil, errors.New("No deployment corresponding to device deployment")
+	}
+
+	return deployment, deviceDeployment, nil
+}
+
+// getNewDeploymentForDevice returns deployment object and creates and returns
+// new device deployment for the device;
+//
+// we are interested only in the deployments that are newer than the latest
+// deployment applied by the device;
+// this way we guarantee that the device will not receive deployment
+// that is older than the one installed on the device;
+func (d *Deployments) getNewDeploymentForDevice(ctx context.Context,
+	deviceID string) (*model.Deployment, *model.DeviceDeployment, error) {
+
+	var lastDeployment *time.Time
+	//get latest device deployment for the device;
+	deviceDeployment, err := d.db.FindLatestDeploymentForDeviceIDWithStatuses(
+		ctx,
+		deviceID,
+		model.InactiveDeploymentStatuses()...)
+	if err != nil {
+		return nil, nil, errors.Wrap(err,
+			"Searching for latest active deployment for the device")
+	} else if deviceDeployment == nil {
+		lastDeployment = &time.Time{}
+	} else {
+		lastDeployment = deviceDeployment.Created
+	}
+
+	//get deployments newer then last device deployment
+	//iterate over deployments and check if the device is part of the deployment or not
+	for skip := 0; true; skip++ {
+		deployments, err := d.db.FindNewerActiveDeployments(ctx, lastDeployment, skip, 1)
+		if err != nil {
+			return nil, nil, errors.Wrap(err,
+				"Failed to search for newer active deployments")
+		}
+		if len(deployments) == 0 {
+			return nil, nil, nil
+		}
+		ok, err := d.isDevicePartOfDeployment(ctx, deviceID, deployments[0])
+		if err != nil {
+			return nil, nil, err
+		}
+		if ok {
+			deviceDeployment, err := d.createDeviceDeployment(ctx, deviceID, deployments[0])
+			if err != nil {
+				return nil, nil, err
+			}
+			return deployments[0], deviceDeployment, nil
+		}
+	}
+
+	return nil, nil, nil
+}
+
+func (d *Deployments) createDeviceDeployment(ctx context.Context, deviceID string, deployment *model.Deployment) (*model.DeviceDeployment, error) {
+	deviceDeployment, err := model.NewDeviceDeployment(deviceID, *deployment.Id)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create device deployment")
+	}
+
+	deviceDeployment.Created = deployment.Created
+
+	if err := d.db.InsertDeviceDeployment(ctx, deviceDeployment); err != nil {
+		return nil, err
+	}
+
+	return deviceDeployment, nil
+}
+
+func (d *Deployments) isDevicePartOfDeployment(ctx context.Context, deviceID string, deployment *model.Deployment) (bool, error) {
+	for _, id := range deployment.DeviceList {
+		if id == deviceID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// GetDeploymentForDeviceWithCurrent returns deployment for the device
+func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
+	installed *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
+
+	deployment, deviceDeployment, err := d.getDeploymentForDevice(ctx, deviceID)
 	if err != nil {
 		return nil, ErrModelInternal
 	}
@@ -1041,13 +1132,11 @@ func (d *Deployments) AbortDeployment(ctx context.Context, deploymentID string) 
 		return errors.Wrap(err, "failed to update deployment stats")
 	}
 
-	// recalc status via an ad hoc deployment model
-	deployment, err := model.NewDeployment()
+	// get deployment and recalc deployment status
+	deployment, err := d.db.FindDeploymentByID(ctx, deploymentID)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to get deployment with id: %s", deploymentID)
 	}
-	deployment.Id = &deploymentID
-	deployment.Stats = stats
 
 	err = d.recalcDeploymentStatus(ctx, deployment)
 	if err != nil {
@@ -1087,13 +1176,11 @@ func (d *Deployments) DecommissionDevice(ctx context.Context, deviceId string) e
 			return errors.Wrap(err, "failed to update deployment stats")
 		}
 
-		// recalc status via an ad hoc deployment model
-		deployment, err := model.NewDeployment()
+		// get deployment and recalc deployment status
+		deployment, err := d.db.FindDeploymentByID(ctx, *deviceDeployment.DeploymentId)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Failed to get deployment with id: %s", *deviceDeployment.DeploymentId)
 		}
-		deployment.Id = deviceDeployment.DeploymentId
-		deployment.Stats = stats
 
 		err = d.recalcDeploymentStatus(ctx, deployment)
 		if err != nil {

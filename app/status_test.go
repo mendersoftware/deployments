@@ -116,6 +116,7 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 			Devices:      []string{devType},
 		},
 	)
+	fakeDeployment.MaxDevices = 1
 	assert.NoError(t, err)
 
 	fakeDeviceDeployment, err := model.NewDeviceDeployment(
@@ -177,6 +178,19 @@ func TestAbortDeployment(t *testing.T) {
 
 	depId := "foo"
 	stats := model.NewDeviceDeploymentStats()
+	depName := "foo"
+	depArtifact := "bar"
+	fakeDeployment, err := model.NewDeploymentFromConstructor(
+		&model.DeploymentConstructor{
+			Name:         &depName,
+			ArtifactName: &depArtifact,
+			Devices:      []string{"baz"},
+		},
+	)
+	fakeDeployment.MaxDevices = 1
+	fakeDeployment.Stats = stats
+	fakeDeployment.Id = &depId
+	assert.NoError(t, err)
 
 	db := mocks.DataStore{}
 	db.On("AbortDeviceDeployments", ctx, depId).Return(nil)
@@ -186,6 +200,9 @@ func TestAbortDeployment(t *testing.T) {
 
 	db.On("UpdateStats", ctx, depId, stats).Return(nil)
 
+	db.On("FindDeploymentByID", ctx, *fakeDeployment.Id).Return(
+		fakeDeployment, nil)
+
 	db.On("SetDeploymentStatus", ctx,
 		depId,
 		"finished",
@@ -193,7 +210,7 @@ func TestAbortDeployment(t *testing.T) {
 
 	ds := NewDeployments(&db, nil, "")
 
-	err := ds.AbortDeployment(ctx, "foo")
+	err = ds.AbortDeployment(ctx, "foo")
 	assert.NoError(t, err)
 }
 
@@ -202,6 +219,20 @@ func TestDecommission(t *testing.T) {
 
 	devId := "foo"
 	depId := "bar"
+	stats := model.NewDeviceDeploymentStats()
+	depName := "foo"
+	depArtifact := "bar"
+	fakeDeployment, err := model.NewDeploymentFromConstructor(
+		&model.DeploymentConstructor{
+			Name:         &depName,
+			ArtifactName: &depArtifact,
+			Devices:      []string{"baz"},
+		},
+	)
+	fakeDeployment.MaxDevices = 1
+	fakeDeployment.Stats = stats
+	fakeDeployment.Id = &depId
+	assert.NoError(t, err)
 
 	db := mocks.DataStore{}
 	db.On("DecommissionDeviceDeployments", ctx, devId).Return(nil)
@@ -216,10 +247,13 @@ func TestDecommission(t *testing.T) {
 		devId,
 		[]string{model.DeviceDeploymentStatusDecommissioned}).Return(dds, nil)
 
-	stats := model.NewDeviceDeploymentStats()
 	stats[model.DeviceDeploymentStatusDecommissioned] = 1
+	fakeDeployment.Stats = stats
 
 	db.On("AggregateDeviceDeploymentByStatus", ctx, depId).Return(stats, nil)
+
+	db.On("FindDeploymentByID", ctx, *fakeDeployment.Id).Return(
+		fakeDeployment, nil)
 
 	db.On("UpdateStats", ctx, depId, stats).Return(nil)
 
@@ -230,6 +264,6 @@ func TestDecommission(t *testing.T) {
 
 	ds := NewDeployments(&db, nil, "")
 
-	err := ds.DecommissionDevice(ctx, devId)
+	err = ds.DecommissionDevice(ctx, devId)
 	assert.NoError(t, err)
 }

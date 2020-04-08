@@ -153,6 +153,18 @@ func ActiveDeploymentStatuses() []string {
 	}
 }
 
+func InactiveDeploymentStatuses() []string {
+	return []string{
+		DeviceDeploymentStatusAlreadyInst,
+		DeviceDeploymentStatusSuccess,
+		DeviceDeploymentStatusFailure,
+		DeviceDeploymentStatusNoArtifact,
+		DeviceDeploymentStatusAlreadyInst,
+		DeviceDeploymentStatusAborted,
+		DeviceDeploymentStatusDecommissioned,
+	}
+}
+
 // InstalledDeviceDeployment describes a deployment currently installed on the
 // device, usually reported by a device
 type InstalledDeviceDeployment struct {
