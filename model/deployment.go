@@ -77,6 +77,9 @@ type Deployment struct {
 	// Individual counter incremented/decremented according to device status updates.
 	Stats map[string]int `json:"-"`
 
+	// Status is the overall deployment status
+	Status string `json:"status" bson:"status"`
+
 	// Total number of devices targeted
 	DeviceCount int `json:"device_count" bson:"-"`
 }
