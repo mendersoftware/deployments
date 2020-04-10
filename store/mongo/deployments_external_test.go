@@ -632,9 +632,9 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 	}
 }
 
-func TestDeploymentStorageUpdateStats(t *testing.T) {
+func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping TestDeploymentStorageUpdateStats in short mode.")
+		t.Skip("skipping TestDeploymentStorageUpdateStatsInc in short mode.")
 	}
 
 	testCases := map[string]struct {
@@ -858,7 +858,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 				}
 			}
 
-			err := store.UpdateStats(ctx,
+			err := store.UpdateStatsInc(ctx,
 				tc.InputID, tc.InputStateFrom, tc.InputStateTo)
 
 			if tc.OutputError != nil {
@@ -894,22 +894,22 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 	}
 }
 
-func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
+func TestDeploymentStorageUpdateStats(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping TestDeploymentStorageUpdateStatsAndFinishDeployment in short mode.")
+		t.Skip("skipping TestDeploymentStorageUpdateStats in short mode.")
 	}
 
 	testCases := map[string]struct {
-		InputID         string
-		InputDeployment *model.Deployment
-		InputStats      map[string]int
-		InputTenant     string
+		id     string
+		dep    *model.Deployment
+		stats  map[string]int
+		tenant string
 
-		OutputError error
+		err error
 	}{
 		"all correct": {
-			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeployment: &model.Deployment{
+			id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			dep: &model.Deployment{
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 				Stats: map[string]int{
 					model.DeviceDeploymentStatusDownloading: 1,
@@ -923,7 +923,7 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 					model.DeviceDeploymentStatusAborted:     5,
 				},
 			},
-			InputStats: map[string]int{
+			stats: map[string]int{
 				model.DeviceDeploymentStatusDownloading: 1,
 				model.DeviceDeploymentStatusInstalling:  2,
 				model.DeviceDeploymentStatusRebooting:   3,
@@ -934,42 +934,38 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 				model.DeviceDeploymentStatusAlreadyInst: 0,
 				model.DeviceDeploymentStatusAborted:     5,
 			},
-
-			OutputError: nil,
 		},
 		"invalid deployment id": {
-			InputID:         "",
-			InputDeployment: nil,
-			InputStats:      nil,
+			id:    "",
+			dep:   nil,
+			stats: nil,
 
-			OutputError: ErrStorageInvalidID,
+			err: ErrStorageInvalidID,
 		},
 		"wrong deployment id": {
-			InputID:         "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeployment: nil,
-			InputStats:      nil,
+			id:    "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			dep:   nil,
+			stats: nil,
 
-			OutputError: ErrStorageInvalidID,
+			err: ErrStorageInvalidID,
 		},
 		"tenant, all correct": {
-			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeployment: &model.Deployment{
+			id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			dep: &model.Deployment{
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 				Stats: newTestStats(model.Stats{
 					model.DeviceDeploymentStatusRebooting: 3,
 				}),
 			},
-			InputStats: newTestStats(model.Stats{
+			stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusRebooting: 3,
 			}),
-			InputTenant: "acme",
-
-			OutputError: nil,
+			tenant: "acme",
 		},
 	}
 
-	for testCaseName, tc := range testCases {
-		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
+	for name, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", name), func(t *testing.T) {
 
 			db.Wipe()
 
@@ -977,48 +973,42 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
-			if tc.InputTenant != "" {
+			if tc.tenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
-					Tenant: tc.InputTenant,
+					Tenant: tc.tenant,
 				})
-			} else {
-				ctx = context.Background()
 			}
 
 			collDep := client.Database(ctxstore.
 				DbFromContext(ctx, DatabaseName)).
 				Collection(CollectionDeployments)
-			if tc.InputDeployment != nil {
+			if tc.dep != nil {
 				_, err := collDep.InsertOne(
-					ctx, tc.InputDeployment)
+					ctx, tc.dep)
 				assert.NoError(t, err)
 			}
 
-			err := store.UpdateStatsAndFinishDeployment(ctx,
-				tc.InputID, tc.InputStats)
+			err := store.UpdateStats(ctx, tc.id, tc.stats)
 
-			if tc.OutputError != nil {
-				assert.EqualError(t, err, tc.OutputError.Error())
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
 			} else {
 				var deployment *model.Deployment
 				err := collDep.FindOne(ctx,
-					bson.M{"_id": tc.InputID}).
+					bson.M{"_id": tc.id}).
 					Decode(&deployment)
 				assert.NoError(t, err)
-				assert.Equal(t, tc.InputStats, deployment.Stats)
+				assert.Equal(t, tc.stats, deployment.Stats)
 			}
 
-			if tc.InputTenant != "" && tc.InputDeployment != nil {
-				// tenant is configured, so deployments that are
-				// part of test input were added to tenant's DB,
-				// trying to update them in default DB will
-				// raise an error
-				err := store.UpdateStatsAndFinishDeployment(context.Background(),
-					tc.InputID, tc.InputStats)
+			if tc.tenant != "" && tc.dep != nil {
+				err := store.UpdateStats(context.Background(),
+					tc.id, tc.stats)
 				assert.EqualError(t, err, ErrStorageInvalidID.Error())
 			}
 		})
 	}
+
 }
 
 func newTestStats(stats model.Stats) model.Stats {

@@ -1451,7 +1451,7 @@ func (db *DataStoreMongo) DeviceCountByDeployment(ctx context.Context,
 	return int(deviceCount), nil
 }
 
-func (db *DataStoreMongo) UpdateStatsAndFinishDeployment(ctx context.Context,
+func (db *DataStoreMongo) UpdateStats(ctx context.Context,
 	id string, stats model.Stats) error {
 
 	if govalidator.IsNull(id) {
@@ -1492,7 +1492,7 @@ func (db *DataStoreMongo) UpdateStatsAndFinishDeployment(ctx context.Context,
 	return err
 }
 
-func (db *DataStoreMongo) UpdateStats(ctx context.Context, id string,
+func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 	state_from, state_to string) error {
 
 	if govalidator.IsNull(id) {

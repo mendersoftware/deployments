@@ -86,8 +86,8 @@ type DataStore interface {
 	FindDeploymentByID(ctx context.Context, id string) (*model.Deployment, error)
 	FindUnfinishedByID(ctx context.Context,
 		id string) (*model.Deployment, error)
-	UpdateStats(ctx context.Context, id string, state_from, state_to string) error
-	UpdateStatsAndFinishDeployment(ctx context.Context,
+	UpdateStatsInc(ctx context.Context, id string, state_from, state_to string) error
+	UpdateStats(ctx context.Context,
 		id string, stats model.Stats) error
 	Find(ctx context.Context,
 		query model.Query) ([]*model.Deployment, error)
