@@ -917,23 +917,32 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 		return err
 	}
 
-	if err = d.db.UpdateStats(ctx, deploymentID, old, ddStatus.Status); err != nil {
+	if err = d.db.UpdateStatsInc(ctx, deploymentID, old, ddStatus.Status); err != nil {
 		return err
 	}
 
-	// fetch deployment stats and update finished field if needed
+	// fetch deployment stats and update deployment status
 	deployment, err := d.db.FindDeploymentByID(ctx, deploymentID)
 	if err != nil {
 		return errors.Wrap(err, "failed when searching for deployment")
 	}
 
-	if deployment.IsFinished() {
-		// TODO: Make this part of UpdateStats() call as currently we are doing two
-		// write operations on DB - as well as it's safer to keep them in single transaction.
-		l.Infof("Finish deployment: %s", deploymentID)
-		if err := d.db.Finish(ctx, deploymentID, time.Now()); err != nil {
-			return errors.Wrap(err, "failed to mark deployment as finished")
-		}
+	err = d.recalcDeploymentStatus(ctx, deployment)
+	if err != nil {
+		return errors.Wrap(err, "failed to update deployment status")
+	}
+
+	return nil
+}
+
+// recalcDeploymentStatus inspects the deployment stats and
+// recalculates and updates its status
+// it should be used whenever deployment stats are touched
+func (d *Deployments) recalcDeploymentStatus(ctx context.Context, dep *model.Deployment) error {
+	status := dep.GetStatus()
+
+	if err := d.db.SetDeploymentStatus(ctx, *dep.Id, status, time.Now()); err != nil {
+		return err
 	}
 
 	return nil
@@ -1056,11 +1065,25 @@ func (d *Deployments) AbortDeployment(ctx context.Context, deploymentID string) 
 		return err
 	}
 
-	// Update deployment stats and finish deployment (set finished timestamp to current time)
-	// Aborted deployment is considered to be finished even if some devices are
-	// still processing this deployment.
-	return d.db.UpdateStatsAndFinishDeployment(ctx,
-		deploymentID, stats)
+	// update statistics
+	if err := d.db.UpdateStats(ctx, deploymentID, stats); err != nil {
+		return errors.Wrap(err, "failed to update deployment stats")
+	}
+
+	// recalc status via an ad hoc deployment model
+	deployment, err := model.NewDeployment()
+	if err != nil {
+		return err
+	}
+	deployment.Id = &deploymentID
+	deployment.Stats = stats
+
+	err = d.recalcDeploymentStatus(ctx, deployment)
+	if err != nil {
+		return errors.Wrap(err, "failed to update deployment status")
+	}
+
+	return nil
 }
 
 func (d *Deployments) DecommissionDevice(ctx context.Context, deviceId string) error {
@@ -1087,9 +1110,23 @@ func (d *Deployments) DecommissionDevice(ctx context.Context, deviceId string) e
 		if err != nil {
 			return err
 		}
-		if err := d.db.UpdateStatsAndFinishDeployment(
-			ctx, *deviceDeployment.DeploymentId, stats); err != nil {
+
+		// update statistics
+		if err := d.db.UpdateStats(ctx, *deviceDeployment.DeploymentId, stats); err != nil {
+			return errors.Wrap(err, "failed to update deployment stats")
+		}
+
+		// recalc status via an ad hoc deployment model
+		deployment, err := model.NewDeployment()
+		if err != nil {
 			return err
+		}
+		deployment.Id = deviceDeployment.DeploymentId
+		deployment.Stats = stats
+
+		err = d.recalcDeploymentStatus(ctx, deployment)
+		if err != nil {
+			return errors.Wrap(err, "failed to update deployment status")
 		}
 	}
 
