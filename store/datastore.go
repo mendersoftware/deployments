@@ -91,7 +91,7 @@ type DataStore interface {
 		id string, stats model.Stats) error
 	Find(ctx context.Context,
 		query model.Query) ([]*model.Deployment, error)
-	Finish(ctx context.Context, id string, when time.Time) error
+	SetDeploymentStatus(ctx context.Context, id, status string, now time.Time) error
 	ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error)
 	ExistByArtifactId(ctx context.Context, id string) (bool, error)
 	DeviceCountByDeployment(ctx context.Context, id string) (int, error)

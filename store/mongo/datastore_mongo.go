@@ -1718,7 +1718,9 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 	return deployment, nil
 }
 
-func (db *DataStoreMongo) Finish(ctx context.Context, id string, when time.Time) error {
+// SetDeploymentStatus simply sets the status field
+// optionally sets 'finished time' if deployment is indeed finished
+func (db *DataStoreMongo) SetDeploymentStatus(ctx context.Context, id, status string, now time.Time) error {
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
 	}
@@ -1726,11 +1728,20 @@ func (db *DataStoreMongo) Finish(ctx context.Context, id string, when time.Time)
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDpl := database.Collection(CollectionDeployments)
 
-	// note dot notation on embedded document
-	update := bson.M{
-		"$set": bson.M{
-			StorageKeyDeploymentFinished: &when,
-		},
+	var update bson.M
+	if status == model.DeploymentStatusFinished {
+		update = bson.M{
+			"$set": bson.M{
+				StorageKeyDeploymentStatus:   status,
+				StorageKeyDeploymentFinished: &now,
+			},
+		}
+	} else {
+		update = bson.M{
+			"$set": bson.M{
+				StorageKeyDeploymentStatus: status,
+			},
+		}
 	}
 
 	res, err := collDpl.UpdateOne(ctx, bson.M{"_id": id}, update)
