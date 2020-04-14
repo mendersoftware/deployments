@@ -618,6 +618,31 @@ func (d *DeploymentsApiHandlers) GetDeploymentStats(w rest.ResponseWriter, r *re
 	d.view.RenderSuccessGet(w, stats)
 }
 
+func (d *DeploymentsApiHandlers) GetDeploymentDeviceList(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	id := r.PathParam("id")
+
+	if !govalidator.IsUUIDv4(id) {
+		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		return
+	}
+
+	deployment, err := d.app.GetDeployment(ctx, id)
+	if err != nil {
+		d.view.RenderInternalError(w, r, err, l)
+		return
+	}
+
+	if deployment == nil {
+		d.view.RenderErrorNotFound(w, r, l)
+		return
+	}
+
+	d.view.RenderSuccessGet(w, deployment.DeviceList)
+}
+
 func (d *DeploymentsApiHandlers) AbortDeployment(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)
