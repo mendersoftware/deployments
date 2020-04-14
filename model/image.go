@@ -19,21 +19,24 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/mendersoftware/go-lib-micro/mongo/doc"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // Information provided by the user
-type SoftwareImageMetaConstructor struct {
+type ImageMeta struct {
 	// Image description
 	Description string `json:"description,omitempty" valid:"length(1|4096),optional"`
 }
 
-// Creates new, empty SoftwareImageMetaConstructor
-func NewSoftwareImageMetaConstructor() *SoftwareImageMetaConstructor {
-	return &SoftwareImageMetaConstructor{}
+// Creates new, empty ImageMeta
+func NewImageMeta() *ImageMeta {
+	return &ImageMeta{}
 }
 
 // Validate checks structure according to valid tags.
-func (s *SoftwareImageMetaConstructor) Validate() error {
+func (s *ImageMeta) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
 }
@@ -49,8 +52,8 @@ type ArtifactInfo struct {
 	Version uint `json:"version" valid:"required"`
 }
 
-// Information provided with YOCTO image
-type SoftwareImageMetaArtifactConstructor struct {
+// Information provided by the Mender Artifact header
+type ArtifactMeta struct {
 	// artifact_name from artifact file
 	Name string `json:"name" bson:"name" valid:"length(1|4096),required"`
 
@@ -65,28 +68,71 @@ type SoftwareImageMetaArtifactConstructor struct {
 
 	// List of updates
 	Updates []Update `json:"updates" valid:"-"`
+
+	// Provides is a map[string]interface{} (JSON) of artifact_provides used
+	// for checking artifact (version 3) dependencies.
+	Provides map[string]string `json:"artifact_provides,omitempty" bson:"provides" valid:"-"`
+
+	// Depends is a map[string]interface{} (JSON) of artifact_depends used
+	// for checking/validate against artifact (version 3) provides.
+	Depends map[string]interface{} `json:"artifact_depends,omitempty" bson:"depends" valid:"-"`
 }
 
-func NewSoftwareImageMetaArtifactConstructor() *SoftwareImageMetaArtifactConstructor {
-	return &SoftwareImageMetaArtifactConstructor{}
+// MarshalBSON transparently creates depends_idx field on bson.Marshal
+func (am *ArtifactMeta) MarshalBSON() ([]byte, error) {
+	if err := am.Validate(); err != nil {
+		return nil, err
+	}
+	dependsIdx, err := doc.UnwindMap(am.Depends)
+	if err != nil {
+		return nil, err
+	}
+	doc := doc.DocumentFromStruct(am, bson.E{
+		Key: "depends_idx", Value: dependsIdx,
+	})
+	return bson.Marshal(doc)
+}
+
+// MarshalBSONValue transparently creates depends_idx field on bson.MarshalValue
+// which is called if ArtifactMeta is marshaled as an embedded document.
+func (am *ArtifactMeta) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	if err := am.Validate(); err != nil {
+		return bsontype.Null, nil, err
+	}
+	dependsIdx, err := doc.UnwindMap(am.Depends)
+	if err != nil {
+		return bsontype.Null, nil, err
+	}
+	doc := doc.DocumentFromStruct(am, bson.E{
+		Key: "depends_idx", Value: dependsIdx,
+	})
+	return bson.MarshalValue(doc)
 }
 
 // Validate checks structure according to valid tags.
-func (s *SoftwareImageMetaArtifactConstructor) Validate() error {
-	_, err := govalidator.ValidateStruct(s)
+func (am *ArtifactMeta) Validate() error {
+	if am.Depends == nil {
+		am.Depends = make(map[string]interface{})
+	}
+	am.Depends["device_type"] = am.DeviceTypesCompatible
+	_, err := govalidator.ValidateStruct(am)
 	return err
 }
 
-// SoftwareImage YOCTO image with user application
-type SoftwareImage struct {
-	// User provided field set
-	SoftwareImageMetaConstructor `bson:"meta"`
+func NewArtifactMeta() *ArtifactMeta {
+	return &ArtifactMeta{}
+}
 
-	// Field set provided with yocto image
-	SoftwareImageMetaArtifactConstructor `bson:"meta_artifact"`
-
+// Image YOCTO image with user application
+type Image struct {
 	// Image ID
 	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
+
+	// User provided field set
+	*ImageMeta `bson:"meta"`
+
+	// Field set provided with yocto image
+	*ArtifactMeta `bson:"meta_artifact"`
 
 	// Artifact total size
 	Size int64 `json:"size" bson:"size" valid:"-"`
@@ -95,31 +141,41 @@ type SoftwareImage struct {
 	Modified *time.Time `json:"modified" valid:"-"`
 }
 
-// NewSoftwareImage creates new software image object.
-func NewSoftwareImage(
+// MarshalBSON needs to be overridden so it doesn't inherit ImageMeta's function.
+func (img *Image) MarshalBSON() ([]byte, error) {
+	return bson.Marshal(doc.DocumentFromStruct(img))
+}
+
+// MarshalBSON needs to be overridden so it doesn't inherit ImageMeta's function.
+func (img *Image) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	return bson.MarshalValue(doc.DocumentFromStruct(img))
+}
+
+// NewImage creates new software image object.
+func NewImage(
 	id string,
-	metaConstructor *SoftwareImageMetaConstructor,
-	metaArtifactConstructor *SoftwareImageMetaArtifactConstructor,
-	artifactSize int64) *SoftwareImage {
+	metaConstructor *ImageMeta,
+	metaArtifactConstructor *ArtifactMeta,
+	artifactSize int64) *Image {
 
 	now := time.Now()
 
-	return &SoftwareImage{
-		SoftwareImageMetaConstructor:         *metaConstructor,
-		SoftwareImageMetaArtifactConstructor: *metaArtifactConstructor,
-		Modified:                             &now,
-		Id:                                   id,
-		Size:                                 artifactSize,
+	return &Image{
+		ImageMeta:    metaConstructor,
+		ArtifactMeta: metaArtifactConstructor,
+		Modified:     &now,
+		Id:           id,
+		Size:         artifactSize,
 	}
 }
 
 // SetModified set last modification time for the image.
-func (s *SoftwareImage) SetModified(time time.Time) {
+func (s *Image) SetModified(time time.Time) {
 	s.Modified = &time
 }
 
 // Validate checks structure according to valid tags.
-func (s *SoftwareImage) Validate() error {
+func (s *Image) Validate() error {
 	_, err := govalidator.ValidateStruct(s)
 	return err
 }
@@ -128,7 +184,7 @@ func (s *SoftwareImage) Validate() error {
 // send in the artifact upload request
 type MultipartUploadMsg struct {
 	// user metadata constructor
-	MetaConstructor *SoftwareImageMetaConstructor
+	MetaConstructor *ImageMeta
 	// ArtifactID contains the artifact ID
 	ArtifactID string
 	// size of the artifact file

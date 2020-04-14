@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ const (
 )
 
 func TestValidateEmptyImageMeta(t *testing.T) {
-	image := NewSoftwareImageMetaConstructor()
+	image := NewImageMeta()
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()
@@ -30,7 +30,7 @@ func TestValidateEmptyImageMeta(t *testing.T) {
 }
 
 func TestValidateEmptyImageMetaArtifact(t *testing.T) {
-	image := NewSoftwareImageMetaArtifactConstructor()
+	image := NewArtifactMeta()
 
 	if err := image.Validate(); err == nil {
 		t.FailNow()
@@ -38,7 +38,7 @@ func TestValidateEmptyImageMetaArtifact(t *testing.T) {
 }
 
 func TestValidateCorrectImageMeta(t *testing.T) {
-	image := NewSoftwareImageMetaConstructor()
+	image := NewImageMeta()
 
 	if err := image.Validate(); err != nil {
 		t.FailNow()
@@ -46,7 +46,7 @@ func TestValidateCorrectImageMeta(t *testing.T) {
 }
 
 func TestValidateCorrectImageMetaYocot(t *testing.T) {
-	image := NewSoftwareImageMetaArtifactConstructor()
+	image := NewArtifactMeta()
 	required := "required"
 
 	image.Name = required
@@ -63,13 +63,13 @@ func TestValidateCorrectImageMetaYocot(t *testing.T) {
 
 func TestValidateCorrectImage(t *testing.T) {
 	required := "required"
-	imageMeta := NewSoftwareImageMetaConstructor()
-	imageMetaArtifact := NewSoftwareImageMetaArtifactConstructor()
+	imageMeta := NewImageMeta()
+	imageMetaArtifact := NewArtifactMeta()
 
 	imageMetaArtifact.Name = required
 	imageMetaArtifact.DeviceTypesCompatible = []string{"required"}
 
-	image := NewSoftwareImage(
+	image := NewImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 
 	if err := image.Validate(); err != nil {

@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import (
 
 	"github.com/mendersoftware/mender-artifact/artifact"
 	"github.com/mendersoftware/mender-artifact/handlers"
+	"github.com/mendersoftware/mender-artifact/utils"
 	"github.com/pkg/errors"
 )
 
@@ -165,7 +166,7 @@ func (ar *Reader) readHeader(headerSum []byte, comp artifact.Compressor) error {
 func (ar *Reader) populateArtifactInfo(version int, tr *tar.Reader) error {
 	var hInfo artifact.HeaderInfoer
 	switch version {
-	case 1, 2:
+	case 2:
 		hInfo = new(artifact.HeaderInfo)
 	case 3:
 		hInfo = new(artifact.HeaderInfoV3)
@@ -250,30 +251,6 @@ func (ar *Reader) RegisterHandler(handler handlers.Installer) error {
 
 func (ar *Reader) GetHandlers() map[int]handlers.Installer {
 	return ar.installers
-}
-
-func (ar *Reader) readHeaderV1() error {
-	if ar.shouldBeSigned {
-		return errors.New("reader: expecting signed artifact; " +
-			"v1 is not supporting signatures")
-	}
-	hdr, err := getNext(ar.menderTarReader)
-	if err != nil {
-		return errors.New("reader: error reading header")
-	}
-	if !strings.HasPrefix(hdr.Name, "header.tar") {
-		return errors.Errorf("reader: invalid header element: %v", hdr.Name)
-	}
-
-	comp, err := artifact.NewCompressorFromFileName(hdr.Name)
-	if err != nil {
-		return errors.New("reader: can't get compressor")
-	}
-
-	if err = ar.readHeader(nil, comp); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (ar *Reader) readManifest(name string) error {
@@ -587,7 +564,7 @@ func (ar *Reader) ReadArtifactHeaders() error {
 
 	switch ver.Version {
 	case 1:
-		err = ar.readHeaderV1()
+		err = errors.New("reader: Mender-Artifact version 1 is no longer supported")
 	case 2:
 		err = ar.readHeaderV2(vRaw)
 	case 3:
@@ -599,18 +576,16 @@ func (ar *Reader) ReadArtifactHeaders() error {
 		return err
 	}
 
-	for no, us := range ar.updateStorers {
-		err = us.Initialize(ar.hInfo, ar.augmentedhInfo, ar.installers[no])
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
 func (ar *Reader) ReadArtifactData() error {
-	err := ar.readData(ar.menderTarReader)
+	err := ar.initializeUpdateStorers()
+	if err != nil {
+		return err
+	}
+
+	err = ar.readData(ar.menderTarReader)
 	if err != nil {
 		return err
 	}
@@ -681,21 +656,47 @@ func (ar *Reader) setInstallers(upd []artifact.UpdateType, augmented bool) error
 				ar.installers[i] = w.NewInstance()
 			}
 		} else if ar.ForbidUnknownHandlers {
-			return fmt.Errorf("Cannot load handler for unknown Payload type '%s'",
-				update.Type)
+			errstr := fmt.Sprintf("Artifact Payload type '%s' is not supported by this Mender Client", update.Type)
+			if update.Type == "rootfs-image" {
+				return errors.New(errstr + ". Ensure that the Mender Client is fully integrated and that the RootfsPartA/B configuration variables are set correctly in 'mender.conf'")
+			} else {
+				return errors.New(errstr)
+			}
 		} else {
 			err := ar.makeInstallersForUnknownTypes(update.Type, i, augmented)
 			if err != nil {
 				return err
 			}
 		}
+	}
+	return nil
+}
 
+func (ar *Reader) initializeUpdateStorers() error {
+	if len(ar.updateStorers) == len(ar.installers) {
+		// Already done.
+		return nil
+	}
+
+	for i, update := range ar.installers {
 		var err error
-		ar.updateStorers[i], err = ar.installers[i].NewUpdateStorer(update.Type, i)
+
+		ar.updateStorers[i], err = ar.installers[i].NewUpdateStorer(update.GetUpdateType(), i)
+		if err != nil {
+			return err
+		}
+
+		err = ar.updateStorers[i].Initialize(ar.hInfo, ar.augmentedhInfo, ar.installers[i])
 		if err != nil {
 			return err
 		}
 	}
+	if len(ar.updateStorers) != len(ar.installers) {
+		return errors.Errorf(
+			"Mismatch between installers/updateStorers lengths (%d != %d). Should not happen!",
+			len(ar.updateStorers), len(ar.installers))
+	}
+
 	return nil
 }
 
@@ -1022,15 +1023,93 @@ func (ar *Reader) readAndInstallDataFiles(tar *tar.Reader, i handlers.Installer,
 }
 
 func (ar *Reader) GetUpdateStorers() ([]handlers.UpdateStorer, error) {
+	err := ar.initializeUpdateStorers()
+	if err != nil {
+		return nil, err
+	}
+
 	length := len(ar.updateStorers)
 	list := make([]handlers.UpdateStorer, length)
 
 	for i := range ar.updateStorers {
 		if i >= length {
-			return []handlers.UpdateStorer{}, errors.New("Update payload numbers are not in strictly increasing numbers from zero")
+			return nil, errors.New("Update payload numbers are not in strictly increasing numbers from zero")
 		}
 		list[i] = ar.updateStorers[i]
 	}
 
 	return list, nil
+}
+
+func (ar *Reader) MergeArtifactDepends() (map[string]interface{}, error) {
+
+	depends := ar.GetArtifactDepends()
+	if depends == nil {
+		// Artifact version < 3
+		return nil, nil
+	}
+
+	retMap, err := utils.MarshallStructToMap(depends)
+	if err != nil {
+		return nil, errors.Wrap(err,
+			"error encoding struct as type map")
+	}
+
+	// No depends in the augmented header info
+
+	for _, upd := range ar.installers {
+		deps, err := upd.GetUpdateDepends()
+		if err != nil {
+			return nil, err
+		} else if deps == nil {
+			continue
+		}
+		for key, val := range deps.Map() {
+			// Ensure there are no matching keys
+			if _, ok := retMap[key]; ok {
+				return nil, fmt.Errorf("Conflicting keys not allowed in the provides parameters. key: %s", key)
+			}
+			retMap[key] = val
+		}
+	}
+
+	return retMap, nil
+}
+
+func (ar *Reader) MergeArtifactProvides() (map[string]string, error) {
+
+	provides := ar.GetArtifactProvides()
+	if provides == nil {
+		// Artifact version < 3
+		return nil, nil
+	}
+	providesMap, err := utils.MarshallStructToMap(provides)
+	if err != nil {
+		return nil, errors.Wrap(err,
+			"error encoding struct as type map")
+	}
+	retMap := make(map[string]string)
+	for key, value := range providesMap {
+		retMap[key] = value.(string)
+	}
+
+	// No provides in the augmented header info
+	for _, upd := range ar.installers {
+		p, err := upd.GetUpdateProvides()
+		if err != nil {
+			return nil, err
+		} else if p == nil {
+			continue
+		}
+
+		for key, val := range p.Map() {
+			// Ensure there are no matching keys
+			if _, ok := retMap[key]; ok {
+				return nil, fmt.Errorf("Conflicting keys not allowed in the provides parameters. key: %s", key)
+			}
+			retMap[key] = val
+		}
+	}
+
+	return retMap, nil
 }

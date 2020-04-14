@@ -67,7 +67,7 @@ func setUpRestTest(route string, routeType routerTypeHandler, handler func(w res
 
 func TestControllerGetImage(t *testing.T) {
 	imagesModel := &mocks.App{}
-	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
+	controller := NewImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Get, controller.GetImage)
 
@@ -106,9 +106,9 @@ func TestControllerGetImage(t *testing.T) {
 
 	id = uid.String()
 
-	imageMeta := model.NewSoftwareImageMetaConstructor()
-	imageMetaArtifact := model.NewSoftwareImageMetaArtifactConstructor()
-	constructorImage := model.NewSoftwareImage(
+	imageMeta := model.NewImageMeta()
+	imageMetaArtifact := model.NewArtifactMeta()
+	constructorImage := model.NewImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	imagesModel.On("GetImage", h.ContextMatcher(), id).
 		Return(constructorImage, nil)
@@ -117,7 +117,7 @@ func TestControllerGetImage(t *testing.T) {
 	recorded.CodeIs(http.StatusOK)
 	recorded.ContentTypeIsJson()
 
-	var receivedImage model.SoftwareImage
+	var receivedImage model.Image
 	if err := recorded.DecodeJsonPayload(&receivedImage); err != nil {
 		t.FailNow()
 	}
@@ -125,7 +125,7 @@ func TestControllerGetImage(t *testing.T) {
 
 func TestControllerListImages(t *testing.T) {
 	imagesModel := &mocks.App{}
-	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
+	controller := NewImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images", rest.Get, controller.ListImages)
 
@@ -138,14 +138,14 @@ func TestControllerListImages(t *testing.T) {
 
 	//getting list OK
 	imagesModel = &mocks.App{}
-	controller = NewSoftwareImagesController(imagesModel, new(view.RESTView))
+	controller = NewImagesController(imagesModel, new(view.RESTView))
 	api = setUpRestTest("/api/0.0.1/images", rest.Get, controller.ListImages)
-	imageMeta := model.NewSoftwareImageMetaConstructor()
-	imageMetaArtifact := model.NewSoftwareImageMetaArtifactConstructor()
-	constructorImage := model.NewSoftwareImage(
+	imageMeta := model.NewImageMeta()
+	imageMetaArtifact := model.NewArtifactMeta()
+	constructorImage := model.NewImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 	imagesModel.On("ListImages", h.ContextMatcher(), mock.Anything).
-		Return([]*model.SoftwareImage{constructorImage}, nil)
+		Return([]*model.Image{constructorImage}, nil)
 	recorded = test.RunRequest(t, api.MakeHandler(),
 		test.MakeSimpleRequest("GET", "http://localhost/api/0.0.1/images", nil))
 	recorded.CodeIs(http.StatusOK)
@@ -154,13 +154,13 @@ func TestControllerListImages(t *testing.T) {
 
 func TestControllerDeleteImage(t *testing.T) {
 	imagesModel := &mocks.App{}
-	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
+	controller := NewImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Delete, controller.DeleteImage)
 
-	imageMeta := model.NewSoftwareImageMetaConstructor()
-	imageMetaArtifact := model.NewSoftwareImageMetaArtifactConstructor()
-	constructorImage := model.NewSoftwareImage(
+	imageMeta := model.NewImageMeta()
+	imageMetaArtifact := model.NewArtifactMeta()
+	constructorImage := model.NewImage(
 		validUUIDv4, imageMeta, imageMetaArtifact, artifactSize)
 
 	// wrong id
@@ -198,7 +198,7 @@ func TestControllerDeleteImage(t *testing.T) {
 
 func TestControllerEditImage(t *testing.T) {
 	imagesModel := &mocks.App{}
-	controller := NewSoftwareImagesController(imagesModel, new(view.RESTView))
+	controller := NewImagesController(imagesModel, new(view.RESTView))
 
 	api := setUpRestTest("/api/0.0.1/images/:id", rest.Put, controller.EditImage)
 
@@ -273,7 +273,7 @@ func TestControllerEditImage(t *testing.T) {
 	recorded.BodyIs("")
 }
 
-func TestSoftwareImagesControllerNewImage(t *testing.T) {
+func TestImagesControllerNewImage(t *testing.T) {
 	t.Parallel()
 
 	file := h.CreateValidImageFile()
@@ -430,7 +430,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 				Return(testCase.InputModelID, testCase.InputModelError)
 
 			api := setUpRestTest("/r", rest.Post,
-				NewSoftwareImagesController(model, new(view.RESTView)).NewImage)
+				NewImagesController(model, new(view.RESTView)).NewImage)
 
 			req := h.MakeMultipartRequest("POST", "http://localhost/r",
 				testCase.InputContentType, testCase.InputBodyObject)
@@ -442,7 +442,7 @@ func TestSoftwareImagesControllerNewImage(t *testing.T) {
 	}
 }
 
-func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
+func TestImagesControllerDownloadLink(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -506,7 +506,7 @@ func TestSoftwareImagesControllerDownloadLink(t *testing.T) {
 			Return(testCase.InputModelLink, testCase.InputModelError)
 
 		api := setUpRestTest("/:id", rest.Post,
-			NewSoftwareImagesController(model, new(view.RESTView)).DownloadLink)
+			NewImagesController(model, new(view.RESTView)).DownloadLink)
 
 		var expire string
 		if testCase.InputParamExpire != nil {

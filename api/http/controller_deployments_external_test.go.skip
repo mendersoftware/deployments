@@ -73,12 +73,12 @@ func TestControllerGetDeploymentForDevice(t *testing.T) {
 
 	t.Parallel()
 
-	image := model.NewSoftwareImage(
+	image := model.NewImage(
 		validUUIDv4,
-		&model.SoftwareImageMetaConstructor{
+		&model.ImageMeta{
 			Description: "foo-image-desc",
 		},
-		&model.SoftwareImageMetaArtifactConstructor{
+		&model.ArtifactMeta{
 			Name: "artifact-name",
 			DeviceTypesCompatible: []string{
 				"hammer",

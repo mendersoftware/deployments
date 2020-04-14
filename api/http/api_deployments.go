@@ -11,6 +11,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package http
 
 import (
@@ -232,7 +233,7 @@ func (d *DeploymentsApiHandlers) EditImage(w rest.ResponseWriter, r *rest.Reques
 		return
 	}
 
-	constructor, err := getSoftwareImageMetaConstructorFromBody(r)
+	constructor, err := getImageMetaFromBody(r)
 	if err != nil {
 		d.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
 		return
@@ -256,9 +257,9 @@ func (d *DeploymentsApiHandlers) EditImage(w rest.ResponseWriter, r *rest.Reques
 	d.view.RenderSuccessPut(w)
 }
 
-func getSoftwareImageMetaConstructorFromBody(r *rest.Request) (*model.SoftwareImageMetaConstructor, error) {
+func getImageMetaFromBody(r *rest.Request) (*model.ImageMeta, error) {
 
-	var constructor *model.SoftwareImageMetaConstructor
+	var constructor *model.ImageMeta
 
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err
@@ -319,23 +320,34 @@ func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest
 	}
 
 	imgID, err := d.app.CreateImage(ctx, multipartUploadMsg)
+	if err == nil {
+		d.view.RenderSuccessPost(w, r, imgID)
+		return
+	}
+	l.Error(err.Error())
+	if cErr, ok := err.(*model.ConflictError); ok {
+		d.view.RenderError(w, r, cErr, http.StatusConflict, l)
+		return
+	}
 	cause := errors.Cause(err)
 	switch cause {
 	default:
 		d.view.RenderInternalError(w, r, err, l)
-	case nil:
-		d.view.RenderSuccessPost(w, r, imgID)
+		return
 	case app.ErrModelArtifactNotUnique:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusUnprocessableEntity, l)
+		return
 	case app.ErrModelParsingArtifactFailed:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, formatArtifactUploadError(err), http.StatusBadRequest, l)
+		return
 	case app.ErrModelMissingInputMetadata, app.ErrModelMissingInputArtifact,
 		app.ErrModelInvalidMetadata, app.ErrModelMultipartUploadMsgMalformed,
 		app.ErrModelArtifactFileTooLarge:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusBadRequest, l)
+		return
 	}
 }
 
@@ -404,7 +416,7 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 // ParseMultipart parses multipart/form-data message.
 func (d *DeploymentsApiHandlers) ParseMultipart(r *rest.Request) (*model.MultipartUploadMsg, error) {
 	multipartUploadMsg := &model.MultipartUploadMsg{
-		MetaConstructor: &model.SoftwareImageMetaConstructor{},
+		MetaConstructor: &model.ImageMeta{},
 	}
 	multipartUploadMsg.MetaConstructor.Description = r.FormValue("description")
 
@@ -627,9 +639,9 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 	}
 
 	q := r.URL.Query()
-	installed := model.InstalledDeviceDeployment{
-		Artifact:   q.Get(GetDeploymentForDeviceQueryArtifact),
-		DeviceType: q.Get(GetDeploymentForDeviceQueryDeviceType),
+	installed := &model.InstalledDeviceDeployment{
+		ArtifactName: q.Get(GetDeploymentForDeviceQueryArtifact),
+		DeviceType:   q.Get(GetDeploymentForDeviceQueryDeviceType),
 	}
 
 	if err := installed.Validate(); err != nil {
@@ -648,6 +660,45 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 		return
 	}
 
+	d.view.RenderSuccessGet(w, deployment)
+}
+
+func (d *DeploymentsApiHandlers) PostDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	idata := identity.FromContext(ctx)
+	if idata == nil {
+		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
+		return
+	}
+
+	var installed model.InstalledDeviceDeployment
+	if err := r.DecodeJsonPayload(&installed); err != nil {
+		d.view.RenderError(w, r,
+			errors.Wrap(err, "invalid schema"),
+			http.StatusBadRequest, l)
+		return
+	}
+
+	if err := installed.Validate(); err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+
+	deployment, err := d.app.GetDeploymentForDeviceWithCurrent(ctx, idata.Subject, &installed)
+	if err != nil {
+		d.view.RenderInternalError(w, r, err, l)
+		return
+	}
+
+	if deployment == nil {
+		d.view.RenderNoUpdateForDevice(w)
+		return
+	}
+
+	// NOTE: Must use the RenderSuccessGet as the POST variant reports
+	//       incorrect status code.
 	d.view.RenderSuccessGet(w, deployment)
 }
 

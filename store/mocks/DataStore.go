@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -11,13 +11,16 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 package mocks
 
-import context "context"
-import mock "github.com/stretchr/testify/mock"
-import model "github.com/mendersoftware/deployments/model"
+import (
+	"context"
+	"time"
 
-import time "time"
+	"github.com/mendersoftware/deployments/model"
+	"github.com/stretchr/testify/mock"
+)
 
 // DataStore is an auto-generated mock type for the DataStore type
 type DataStore struct {
@@ -62,11 +65,11 @@ func (_m *DataStore) AggregateDeviceDeploymentByStatus(ctx context.Context, id s
 }
 
 // AssignArtifact provides a mock function with given fields: ctx, deviceID, deploymentID, artifact
-func (_m *DataStore) AssignArtifact(ctx context.Context, deviceID string, deploymentID string, artifact *model.SoftwareImage) error {
+func (_m *DataStore) AssignArtifact(ctx context.Context, deviceID string, deploymentID string, artifact *model.Image) error {
 	ret := _m.Called(ctx, deviceID, deploymentID, artifact)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.SoftwareImage) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.Image) error); ok {
 		r0 = rf(ctx, deviceID, deploymentID, artifact)
 	} else {
 		r0 = ret.Error(0)
@@ -246,15 +249,15 @@ func (_m *DataStore) Find(ctx context.Context, query model.Query) ([]*model.Depl
 }
 
 // FindAll provides a mock function with given fields: ctx
-func (_m *DataStore) FindAll(ctx context.Context) ([]*model.SoftwareImage, error) {
+func (_m *DataStore) FindAll(ctx context.Context) ([]*model.Image, error) {
 	ret := _m.Called(ctx)
 
-	var r0 []*model.SoftwareImage
-	if rf, ok := ret.Get(0).(func(context.Context) []*model.SoftwareImage); ok {
+	var r0 []*model.Image
+	if rf, ok := ret.Get(0).(func(context.Context) []*model.Image); ok {
 		r0 = rf(ctx)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.SoftwareImage)
+			r0 = ret.Get(0).([]*model.Image)
 		}
 	}
 
@@ -315,15 +318,15 @@ func (_m *DataStore) FindDeploymentByID(ctx context.Context, id string) (*model.
 }
 
 // FindImageByID provides a mock function with given fields: ctx, id
-func (_m *DataStore) FindImageByID(ctx context.Context, id string) (*model.SoftwareImage, error) {
+func (_m *DataStore) FindImageByID(ctx context.Context, id string) (*model.Image, error) {
 	ret := _m.Called(ctx, id)
 
-	var r0 *model.SoftwareImage
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.SoftwareImage); ok {
+	var r0 *model.Image
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Image); ok {
 		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.SoftwareImage)
+			r0 = ret.Get(0).(*model.Image)
 		}
 	}
 
@@ -532,15 +535,15 @@ func (_m *DataStore) HasDeploymentForDevice(ctx context.Context, deploymentID st
 }
 
 // ImageByIdsAndDeviceType provides a mock function with given fields: ctx, ids, deviceType
-func (_m *DataStore) ImageByIdsAndDeviceType(ctx context.Context, ids []string, deviceType string) (*model.SoftwareImage, error) {
+func (_m *DataStore) ImageByIdsAndDeviceType(ctx context.Context, ids []string, deviceType string) (*model.Image, error) {
 	ret := _m.Called(ctx, ids, deviceType)
 
-	var r0 *model.SoftwareImage
-	if rf, ok := ret.Get(0).(func(context.Context, []string, string) *model.SoftwareImage); ok {
+	var r0 *model.Image
+	if rf, ok := ret.Get(0).(func(context.Context, []string, string) *model.Image); ok {
 		r0 = rf(ctx, ids, deviceType)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.SoftwareImage)
+			r0 = ret.Get(0).(*model.Image)
 		}
 	}
 
@@ -555,15 +558,15 @@ func (_m *DataStore) ImageByIdsAndDeviceType(ctx context.Context, ids []string, 
 }
 
 // ImageByNameAndDeviceType provides a mock function with given fields: ctx, name, deviceType
-func (_m *DataStore) ImageByNameAndDeviceType(ctx context.Context, name string, deviceType string) (*model.SoftwareImage, error) {
+func (_m *DataStore) ImageByNameAndDeviceType(ctx context.Context, name string, deviceType string) (*model.Image, error) {
 	ret := _m.Called(ctx, name, deviceType)
 
-	var r0 *model.SoftwareImage
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.SoftwareImage); ok {
+	var r0 *model.Image
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.Image); ok {
 		r0 = rf(ctx, name, deviceType)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.SoftwareImage)
+			r0 = ret.Get(0).(*model.Image)
 		}
 	}
 
@@ -578,15 +581,15 @@ func (_m *DataStore) ImageByNameAndDeviceType(ctx context.Context, name string, 
 }
 
 // ImagesByName provides a mock function with given fields: ctx, artifactName
-func (_m *DataStore) ImagesByName(ctx context.Context, artifactName string) ([]*model.SoftwareImage, error) {
+func (_m *DataStore) ImagesByName(ctx context.Context, artifactName string) ([]*model.Image, error) {
 	ret := _m.Called(ctx, artifactName)
 
-	var r0 []*model.SoftwareImage
-	if rf, ok := ret.Get(0).(func(context.Context, string) []*model.SoftwareImage); ok {
+	var r0 []*model.Image
+	if rf, ok := ret.Get(0).(func(context.Context, string) []*model.Image); ok {
 		r0 = rf(ctx, artifactName)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.SoftwareImage)
+			r0 = ret.Get(0).([]*model.Image)
 		}
 	}
 
@@ -615,11 +618,11 @@ func (_m *DataStore) InsertDeployment(ctx context.Context, deployment *model.Dep
 }
 
 // InsertImage provides a mock function with given fields: ctx, image
-func (_m *DataStore) InsertImage(ctx context.Context, image *model.SoftwareImage) error {
+func (_m *DataStore) InsertImage(ctx context.Context, image *model.Image) error {
 	ret := _m.Called(ctx, image)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *model.SoftwareImage) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *model.Image) error); ok {
 		r0 = rf(ctx, image)
 	} else {
 		r0 = ret.Error(0)
@@ -692,18 +695,18 @@ func (_m *DataStore) SaveDeviceDeploymentLog(ctx context.Context, log model.Depl
 }
 
 // Update provides a mock function with given fields: ctx, image
-func (_m *DataStore) Update(ctx context.Context, image *model.SoftwareImage) (bool, error) {
+func (_m *DataStore) Update(ctx context.Context, image *model.Image) (bool, error) {
 	ret := _m.Called(ctx, image)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(context.Context, *model.SoftwareImage) bool); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *model.Image) bool); ok {
 		r0 = rf(ctx, image)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *model.SoftwareImage) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *model.Image) error); ok {
 		r1 = rf(ctx, image)
 	} else {
 		r1 = ret.Error(1)
