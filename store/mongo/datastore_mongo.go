@@ -676,7 +676,7 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 
 	query := bson.M{
 		"$and": []bson.M{
-			bson.M{
+			{
 				StorageKeyImageName: artifactName,
 			},
 			{
@@ -710,7 +710,6 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 		} else if len(i.ArtifactMeta.Depends) == 0 {
 			return false, nil
 		}
-		return false, err
 	}
 
 	return true, nil
@@ -1677,10 +1676,10 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 	}
 
 	pipeline := []bson.D{
-		bson.D{
+		{
 			{Key: "$match", Value: query},
 		},
-		bson.D{
+		{
 			{Key: "$sort", Value: bson.M{"created": -1}},
 		},
 	}
