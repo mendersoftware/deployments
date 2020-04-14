@@ -19,7 +19,13 @@ import bravado
 import requests
 
 from client import DeploymentsClient
-from common import artifacts_added_from_data, clean_minio, MinioClient
+from common import (
+    artifacts_added_from_data,
+    clean_db,
+    clean_minio,
+    MinioClient,
+    mongo,
+)
 
 
 class TestRelease(DeploymentsClient):
@@ -34,7 +40,7 @@ class TestRelease(DeploymentsClient):
         ).result()
         assert len(rsp[0]) == 0
 
-    @pytest.mark.usefixtures("clean_minio")
+    @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_get_all_releses(self):
         with artifacts_added_from_data(
             [
@@ -66,7 +72,7 @@ class TestRelease(DeploymentsClient):
             assert r2a["name"] == "bar"
             assert r2a["device_types_compatible"] == ["device-type-2"]
 
-    @pytest.mark.usefixtures("clean_minio")
+    @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_get_releses_by_name(self):
         with artifacts_added_from_data(
             [
@@ -87,7 +93,7 @@ class TestRelease(DeploymentsClient):
             assert artifact["name"] == "bar"
             assert artifact["device_types_compatible"] == ["device-type-2"]
 
-    @pytest.mark.usefixtures("clean_minio")
+    @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_get_releses_by_name_no_result(self):
         with artifacts_added_from_data(
             [
