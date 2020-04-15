@@ -43,6 +43,9 @@ const (
 	DefaultImageGenerationLinkExpire = 7 * 24 * time.Hour
 )
 
+// maximum image size is 10G
+const MaxImageSize = 1024 * 1024 * 1024 * 10
+
 // Errors expected from App interface
 var (
 	// images
@@ -158,23 +161,13 @@ func (d *Deployments) ProvisionTenant(ctx context.Context, tenant_id string) err
 	return nil
 }
 
-// maximum image size is 10G
-const MaxImageSize = 1024 * 1024 * 1024 * 10
-
 // CreateImage parses artifact and uploads artifact file to the file storage - in parallel,
 // and creates image structure in the system.
 // Returns image ID and nil on success.
 func (d *Deployments) CreateImage(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
 
-	switch {
-	case multipartUploadMsg == nil:
-		return "", ErrModelMultipartUploadMsgMalformed
-	case multipartUploadMsg.MetaConstructor == nil:
-		return "", ErrModelMissingInputMetadata
-	case multipartUploadMsg.ArtifactReader == nil:
-		return "", ErrModelMissingInputArtifact
-	case multipartUploadMsg.ArtifactSize > MaxImageSize:
+	if multipartUploadMsg.ArtifactSize > MaxImageSize {
 		return "", ErrModelArtifactFileTooLarge
 	}
 
@@ -199,7 +192,10 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	pR, pW := io.Pipe()
 
 	// limit reader to the size provided with the upload message
-	lr := io.LimitReader(multipartUploadMsg.ArtifactReader, multipartUploadMsg.ArtifactSize)
+	lr := io.LimitReader(
+		multipartUploadMsg.ArtifactReader,
+		multipartUploadMsg.ArtifactSize+1,
+	).(*io.LimitedReader)
 	tee := io.TeeReader(lr, pW)
 
 	uid, err := uuid.FromString(multipartUploadMsg.ArtifactID)
@@ -219,8 +215,9 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	//
 	// uploading and parsing artifact in the same process will cause in a deadlock!
 	go func() {
-		err := d.fileStorage.UploadArtifact(ctx,
-			artifactID, multipartUploadMsg.ArtifactSize, pR, ArtifactContentType)
+		err := d.fileStorage.UploadArtifact(
+			ctx, artifactID, pR, ArtifactContentType,
+		)
 		if err != nil {
 			pR.CloseWithError(err)
 		}
@@ -240,13 +237,23 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// just in case the artifact library did not read all the data from the reader
 	_, err = io.Copy(ioutil.Discard, tee)
 	if err != nil {
-		pW.Close()
+		// CloseWithError will cause the reading end to abort upload.
+		pW.CloseWithError(err)
 		<-ch
 		return artifactID, err
+	} else if lr.N <= 0 {
+		// LimitReader exhausted, artifact file too large.
+		pW.CloseWithError(ErrModelArtifactFileTooLarge)
+		<-ch
+		return "", ErrModelArtifactFileTooLarge
 	}
-
 	// close the pipe
 	pW.Close()
+
+	// Assign artifact size to the actual uploaded size
+	// NOTE: the limited reader is capped at one over the size limit.
+	multipartUploadMsg.
+		ArtifactSize = multipartUploadMsg.ArtifactSize - (lr.N - 1)
 
 	// collect output from the goroutine
 	if uploadResponseErr := <-ch; uploadResponseErr != nil {
@@ -349,8 +356,9 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 	}
 
 	lr := io.LimitReader(multipartGenerateImageMsg.FileReader, multipartGenerateImageMsg.Size)
-	err = d.fileStorage.UploadArtifact(ctx,
-		artifactID, multipartGenerateImageMsg.Size, lr, ArtifactContentType)
+	err = d.fileStorage.UploadArtifact(
+		ctx, artifactID, lr, ArtifactContentType,
+	)
 	if err != nil {
 		return "", err
 	}

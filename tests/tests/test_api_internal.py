@@ -20,7 +20,13 @@ import requests
 from uuid import uuid4
 
 from bson.objectid import ObjectId
-from common import api_client_int, artifact_from_data, mongo, clean_db, clean_minio
+from common import (
+    api_client_int,
+    artifact_from_data,
+    mongo,
+    clean_db,
+    clean_minio,
+)
 from client import SimpleArtifactsClient, ArtifactsClientError
 
 
@@ -31,7 +37,8 @@ class TestInternalApiTenantCreate:
 
         assert "deployment_service-foobar" in clean_db.database_names()
         assert (
-            "migration_info" in clean_db["deployment_service-foobar"].collection_names()
+            "migration_info"
+            in clean_db["deployment_service-foobar"].collection_names()
         )
 
     def test_create_twice(self, api_client_int, clean_db):
@@ -66,45 +73,31 @@ class TestInternalApiTenantCreate:
             artifacts_client = SimpleArtifactsClient()
 
             artifacts_client.log.info("uploading artifact")
-            artid = api_client_int.add_artifact(tenant_id, description, art.size, art)
+            artid = api_client_int.add_artifact(
+                tenant_id, description, art.size, art
+            )
             assert artid is not None
 
             # verify the artifact has been stored correctly in mongodb
-            artifact = mongo["deployment_service-{}".format(tenant_id)].images.find_one(
-                {"_id": artid}
-            )
+            artifact = mongo[
+                "deployment_service-{}".format(tenant_id)
+            ].images.find_one({"_id": artid})
             assert artifact is not None
             #
             assert artifact["_id"] == artid
             assert artifact["meta_artifact"]["name"] == artifact_name
             assert artifact["meta"]["description"] == description
             assert artifact["size"] == int(art.size)
-            assert device_type in artifact["meta_artifact"]["device_types_compatible"]
+            assert (
+                device_type
+                in artifact["meta_artifact"]["device_types_compatible"]
+            )
             assert len(artifact["meta_artifact"]["updates"]) == 1
             update = artifact["meta_artifact"]["updates"][0]
             assert len(update["files"]) == 1
             uf = update["files"][0]
             assert uf["size"] == len(data)
             assert uf["checksum"]
-
-    @pytest.mark.usefixtures("clean_minio")
-    def test_artifacts_fails_invalid_size(self, api_client_int):
-        artifact_name = str(uuid4())
-        description = "description for foo " + artifact_name
-        device_type = "project-" + str(uuid4())
-        data = b"foo_bar"
-
-        tenant_id = str(ObjectId())
-
-        # generate artifact
-        with artifact_from_data(
-            name=artifact_name, data=data, devicetype=device_type
-        ) as art:
-            artifacts_client = SimpleArtifactsClient()
-
-            artifacts_client.log.info("uploading artifact")
-            with pytest.raises(ArtifactsClientError):
-                api_client_int.add_artifact(tenant_id, description, -1, art)
 
     @pytest.mark.usefixtures("clean_minio")
     def test_artifacts_fails_invalid_artifact_id(self, api_client_int):

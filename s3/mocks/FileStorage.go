@@ -151,12 +151,12 @@ func (_m *FileStorage) PutRequest(ctx context.Context, objectId string, duration
 }
 
 // UploadArtifact provides a mock function with given fields: ctx, objectId, artifactSize, artifact, contentType
-func (_m *FileStorage) UploadArtifact(ctx context.Context, objectId string, artifactSize int64, artifact io.Reader, contentType string) error {
-	ret := _m.Called(ctx, objectId, artifactSize, artifact, contentType)
+func (_m *FileStorage) UploadArtifact(ctx context.Context, objectId string, artifact io.Reader, contentType string) error {
+	ret := _m.Called(ctx, objectId, artifact, contentType)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, int64, io.Reader, string) error); ok {
-		r0 = rf(ctx, objectId, artifactSize, artifact, contentType)
+	if rf, ok := ret.Get(0).(func(context.Context, string, io.Reader, string) error); ok {
+		r0 = rf(ctx, objectId, artifact, contentType)
 	} else {
 		r0 = ret.Error(0)
 	}

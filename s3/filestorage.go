@@ -15,24 +15,23 @@
 package s3
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/go-lib-micro/identity"
-
-	"github.com/mendersoftware/go-lib-micro/log"
 )
 
 const (
@@ -58,7 +57,7 @@ type FileStorage interface {
 	DeleteRequest(ctx context.Context, objectId string,
 		duration time.Duration) (*model.Link, error)
 	UploadArtifact(ctx context.Context, objectId string,
-		artifactSize int64, artifact io.Reader, contentType string) error
+		artifact io.Reader, contentType string) error
 }
 
 // SimpleStorageService - AWS S3 client.
@@ -216,66 +215,179 @@ func (s *SimpleStorageService) Exists(ctx context.Context, objectID string) (boo
 	return false, nil
 }
 
-// UploadArtifact uploads given artifact into the file server (AWS S3 or minio)
-// using objectID as a key
-func (s *SimpleStorageService) UploadArtifact(ctx context.Context,
-	objectID string, size int64, artifact io.Reader, contentType string) error {
+func fillBuffer(b []byte, r io.Reader) (int, error) {
+	var offset int
+	var err error
+	for n := 0; offset < len(b) && err == nil; offset += n {
+		n, err = r.Read(b[offset:])
+	}
+	return offset, err
+}
+
+// uploadMultipart uploads an artifact using the multipart API.
+func (s *SimpleStorageService) uploadMultipart(
+	ctx context.Context,
+	buf []byte,
+	objectID string,
+	artifact io.Reader,
+	contentType string,
+) error {
+	const maxPartNum = 10000
+	var partNum int64
+	var rspUpload *s3.UploadPartOutput
+
+	// Pre-allocate 100 completed part (generous guesstimate)
+	completedParts := make([]*s3.CompletedPart, 0, 100)
+	// expiresAt is the maximum time the s3 service will cache the uploaded
+	// parts. All request will be presigned relative to this time.
+	expiresAt := time.Now().Add(10 * time.Minute)
+	requestOptions := func(req *request.Request) {
+		// This will pre-sign the request for the given duration.
+		exp := expiresAt.Sub(time.Now())
+		req.ExpireTime = exp
+	}
+
 	objectID = getArtifactByTenant(ctx, objectID)
-
-	params := &s3.PutObjectInput{
-		// Required
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(objectID),
+	// Initiate Multipart upload
+	createParams := &s3.CreateMultipartUploadInput{
+		Bucket:      &s.bucket,
+		Key:         &objectID,
+		ContentType: &contentType,
+		Expires:     &expiresAt,
 	}
-
-	// Ignore out object
-	r, _ := s.client.PutObjectRequest(params)
-
-	// Presign request
-	uri, err := r.Presign(5 * time.Minute)
+	rspCreate, err := s.client.CreateMultipartUploadWithContext(
+		ctx, createParams, requestOptions,
+	)
 	if err != nil {
 		return err
 	}
+	uploadParams := &s3.UploadPartInput{
+		Bucket:     &s.bucket,
+		Key:        &objectID,
+		UploadId:   rspCreate.UploadId,
+		PartNumber: &partNum,
+	}
 
-	client := &http.Client{}
-	request, err := http.NewRequest(http.MethodPut, uri, artifact)
+	// Upload the first chunk already stored in buffer
+	r := bytes.NewReader(buf)
+	// Readjust upload parameters
+	uploadParams.Body = r
+	rspUpload, err = s.client.UploadPartWithContext(
+		ctx,
+		uploadParams,
+		requestOptions,
+	)
 	if err != nil {
 		return err
 	}
-	request.Header.Set("Content-Type", contentType)
-	request.ContentLength = size
-	resp, err := client.Do(request)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+	part := partNum
+	completedParts = append(
+		completedParts,
+		&s3.CompletedPart{
+			ETag:       rspUpload.ETag,
+			PartNumber: &part,
+		},
+	)
 
-	if resp.StatusCode != http.StatusOK {
-		err = getS3Error(resp)
-		return errors.Wrapf(err,
-			"Artifact upload failed with HTTP status %v", resp.Status)
-	}
-
-	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 && s.tagArtifact {
-		input := &s3.PutObjectTaggingInput{
-			Bucket: params.Bucket,
-			Key:    params.Key,
-			Tagging: &s3.Tagging{
-				TagSet: []*s3.Tag{
-					{
-						Key:   aws.String("tenant_id"),
-						Value: aws.String(id.Tenant),
-					},
+	// The following is loop is very similar to io.Copy except the
+	// destination is the s3 bucket.
+	for partNum = 1; partNum < maxPartNum; partNum++ {
+		// Read next chunk from stream (fill the whole buffer)
+		offset, eRead := fillBuffer(buf, artifact)
+		if offset > 0 {
+			r := bytes.NewReader(buf[:offset])
+			// Readjust upload parameters
+			uploadParams.Body = r
+			rspUpload, err = s.client.UploadPartWithContext(
+				ctx,
+				uploadParams,
+				requestOptions,
+			)
+			if err != nil {
+				break
+			}
+			part := partNum
+			completedParts = append(
+				completedParts,
+				&s3.CompletedPart{
+					ETag:       rspUpload.ETag,
+					PartNumber: &part,
 				},
+			)
+		} else {
+			// Read did not return any bytes
+			break
+		}
+		if eRead != nil {
+			err = eRead
+			break
+		}
+	}
+	if err == nil || err == io.EOF {
+		// Complete upload
+		uploadParams := &s3.CompleteMultipartUploadInput{
+			Bucket:   &s.bucket,
+			Key:      &objectID,
+			UploadId: rspCreate.UploadId,
+			MultipartUpload: &s3.CompletedMultipartUpload{
+				Parts: completedParts,
 			},
 		}
-		if _, err := s.client.PutObjectTagging(input); err != nil {
-			l := log.FromContext(r.Context())
-			l.Warnf("failed to tag artifact : %s\n", objectID)
+		_, err = s.client.CompleteMultipartUploadWithContext(
+			ctx,
+			uploadParams,
+			requestOptions,
+		)
+	} else {
+		// Abort multipart upload!
+		uploadParams := &s3.AbortMultipartUploadInput{
+			Bucket:   &s.bucket,
+			Key:      &objectID,
+			UploadId: rspCreate.UploadId,
 		}
+		_, err = s.client.AbortMultipartUploadWithContext(
+			ctx,
+			uploadParams,
+			requestOptions,
+		)
 	}
+	return err
 
-	return nil
+}
+
+// UploadArtifact uploads given artifact into the file server (AWS S3 or minio)
+// using objectID as a key. If the artifact is larger than 5 MiB, the file is
+// uploaded using the s3 multipart API, otherwise the object is created in a
+// single request.
+func (s *SimpleStorageService) UploadArtifact(
+	ctx context.Context,
+	objectID string,
+	artifact io.Reader,
+	contentType string,
+) error {
+	const multipartSize = 10 * 1024 * 1024 // 10MiB (must be at least 5MiB)
+	buf := make([]byte, multipartSize)
+	n, err := fillBuffer(buf, artifact)
+	// If only one part, use PutObject API.
+	if n < len(buf) || err == io.EOF {
+		// Ordinary single-file upload
+		uploadParams := &s3.PutObjectInput{
+			Body:   bytes.NewReader(buf[:n]),
+			Bucket: &s.bucket,
+			Key:    &objectID,
+		}
+		_, err := s.client.PutObjectWithContext(
+			ctx,
+			uploadParams,
+			func(req *request.Request) {
+				// ExpireTime will presign URI to expire after
+				// 5 minutes
+				req.ExpireTime = time.Minute * 5
+			},
+		)
+		return err
+	}
+	return s.uploadMultipart(ctx, buf, objectID, artifact, contentType)
 }
 
 // PutRequest duration is limited to 7 days (AWS limitation)
