@@ -79,6 +79,8 @@ type DataStore interface {
 		deploymentID string, deviceID string) (string, error)
 	AbortDeviceDeployments(ctx context.Context, deploymentID string) error
 	DecommissionDeviceDeployments(ctx context.Context, deviceId string) error
+	GetDeviceDeployment(ctx context.Context,
+		deploymentID string, deviceID string) (*model.DeviceDeployment, error)
 
 	// deployments
 	InsertDeployment(ctx context.Context, deployment *model.Deployment) error

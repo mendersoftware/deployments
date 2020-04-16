@@ -1290,6 +1290,28 @@ func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 	return nil
 }
 
+func (db *DataStoreMongo) GetDeviceDeployment(ctx context.Context,
+	deploymentID string, deviceID string) (*model.DeviceDeployment, error) {
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
+
+	filter := bson.M{
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+	}
+
+	var dd model.DeviceDeployment
+	if err := collDevs.FindOne(ctx, filter).Decode(&dd); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrStorageNotFound
+		}
+		return nil, err
+	}
+
+	return &dd, nil
+}
+
 // deployments
 
 func (db *DataStoreMongo) EnsureIndexes(dbName string, collName string,
