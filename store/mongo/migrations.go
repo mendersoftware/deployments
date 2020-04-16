@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	DbVersion = "1.2.2"
+	DbVersion = "1.2.3"
 	DbName    = "deployment_service"
 )
 
@@ -86,6 +86,10 @@ func MigrateSingle(ctx context.Context,
 			db:     db,
 		},
 		&migration_1_2_2{
+			client: client,
+			db:     db,
+		},
+		&migration_1_2_3{
 			client: client,
 			db:     db,
 		},
