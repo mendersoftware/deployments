@@ -1196,7 +1196,7 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 func (db *DataStoreMongo) GetDeviceStatusesForDeployment(ctx context.Context,
 	deploymentID string) ([]model.DeviceDeployment, error) {
 
-	var statuses []model.DeviceDeployment
+	statuses := []model.DeviceDeployment{}
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDevs := database.Collection(CollectionDevices)
 

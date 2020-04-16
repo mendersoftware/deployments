@@ -124,10 +124,16 @@ class TestDeployment(DeploymentsClient):
             else:
                 raise AssertionError("expected to fail")
 
+            dc = SimpleDeviceClient()
+            nextdep = dc.get_next_deployment(
+                dev.fake_token,
+                artifact_name="different {}".format(artifact_name),
+                device_type=dev.device_type,
+            )
+
             dep = self.client.deployments.get_deployments_id(
                 Authorization="foo", id=depid
             ).result()[0]
-            self.log.debug("deployment dep: %s", dep)
             assert dep.artifact_name == artifact_name
             assert dep.id == depid
             assert dep.status == "pending"
@@ -136,7 +142,6 @@ class TestDeployment(DeploymentsClient):
             depdevs = self.client.deployments.get_deployments_deployment_id_devices(
                 Authorization="foo", deployment_id=depid
             ).result()[0]
-            self.log.debug("deployment devices: %s", depdevs)
             assert len(depdevs) == 1
             depdev = depdevs[0]
             assert depdev.status == "pending"
@@ -329,8 +334,6 @@ class TestDeployment(DeploymentsClient):
                     dc = SimpleDeviceClient()
                     self.log.debug("device token %s", dev.fake_token)
 
-                    self.verify_deployment_stats(depid, expected={"pending": 1})
-
                     # pretend we have another artifact installed
                     nextdep = dc.get_next_deployment(
                         dev.fake_token,
@@ -343,6 +346,8 @@ class TestDeployment(DeploymentsClient):
                     assert (
                         dev.device_type in nextdep.artifact["device_types_compatible"]
                     )
+
+                    self.verify_deployment_stats(depid, expected={"pending": 1})
 
                     for st in ["downloading", "installing", "rebooting"]:
                         dc.report_status(
