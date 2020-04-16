@@ -118,6 +118,7 @@ func NewDeploymentFromConstructor(constructor *DeploymentConstructor) (*Deployme
 	}
 
 	deployment.DeploymentConstructor = constructor
+	deployment.Status = DeploymentStatusPending
 
 	return deployment, nil
 }
@@ -137,11 +138,9 @@ func (d *Deployment) MarshalJSON() ([]byte, error) {
 	slim := struct {
 		*Alias
 		Devices []string `json:"devices,omitempty"`
-		Status  string   `json:"status"`
 	}{
 		Alias:   (*Alias)(d),
 		Devices: nil,
-		Status:  d.GetStatus(),
 	}
 
 	return json.Marshal(&slim)
