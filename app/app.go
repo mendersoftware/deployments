@@ -889,11 +889,12 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 		finishTime = &now
 	}
 
-	currentStatus, err := d.db.GetDeviceDeploymentStatus(ctx,
-		deploymentID, deviceID)
+	dd, err := d.db.GetDeviceDeployment(ctx, deploymentID, deviceID)
 	if err != nil {
 		return err
 	}
+
+	currentStatus := *dd.Status
 
 	if currentStatus == model.DeviceDeploymentStatusAborted {
 		return ErrDeploymentAborted
