@@ -366,8 +366,12 @@ func (s *SimpleStorageService) UploadArtifact(
 	contentType string,
 ) error {
 	const multipartSize = 10 * 1024 * 1024 // 10MiB (must be at least 5MiB)
+
+	objectID = getArtifactByTenant(ctx, objectID)
+
 	buf := make([]byte, multipartSize)
 	n, err := fillBuffer(buf, artifact)
+
 	// If only one part, use PutObject API.
 	if n < len(buf) || err == io.EOF {
 		// Ordinary single-file upload
