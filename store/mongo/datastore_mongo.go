@@ -1559,105 +1559,6 @@ func buildStatusKey(status string) string {
 	return StorageKeyDeploymentStats + "." + status
 }
 
-func buildStatusQuery(status model.StatusQuery) bson.M {
-
-	gt0 := bson.M{"$gt": 0}
-	eq0 := bson.M{"$eq": 0}
-	notNull := bson.M{"$ne": nil}
-
-	// empty query, catches StatusQueryAny
-	stq := bson.M{}
-
-	switch status {
-	case model.StatusQueryInProgress:
-		{
-			// downloading, installing or rebooting are non 0, or
-			// already-installed/success/failure/noimage >0 and pending > 0
-			stq = bson.M{
-				"$or": []bson.M{
-					{
-						buildStatusKey(model.DeviceDeploymentStatusDownloading): gt0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusInstalling): gt0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusRebooting): gt0,
-					},
-					{
-						"$and": []bson.M{
-							{
-								buildStatusKey(model.DeviceDeploymentStatusPending): gt0,
-							},
-							{
-								"$or": []bson.M{
-									{
-										buildStatusKey(model.DeviceDeploymentStatusAlreadyInst): gt0,
-									},
-									{
-										buildStatusKey(model.DeviceDeploymentStatusSuccess): gt0,
-									},
-									{
-										buildStatusKey(model.DeviceDeploymentStatusFailure): gt0,
-									},
-									{
-										buildStatusKey(model.DeviceDeploymentStatusNoArtifact): gt0,
-									},
-								},
-							},
-						},
-					},
-				},
-			}
-		}
-
-	case model.StatusQueryPending:
-		{
-			// all status counters, except for pending, are 0
-			stq = bson.M{
-				"$and": []bson.M{
-					{
-						buildStatusKey(model.DeviceDeploymentStatusDownloading): eq0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusInstalling): eq0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusRebooting): eq0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusSuccess): eq0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusAlreadyInst): eq0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusAborted): eq0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusDecommissioned): eq0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusFailure): eq0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusNoArtifact): eq0,
-					},
-					{
-						buildStatusKey(model.DeviceDeploymentStatusPending): gt0,
-					},
-				},
-			}
-		}
-	case model.StatusQueryFinished:
-		{
-			stq = bson.M{StorageKeyDeploymentFinished: notNull}
-		}
-	}
-
-	return stq
-}
-
 func (db *DataStoreMongo) Find(ctx context.Context,
 	match model.Query) ([]*model.Deployment, error) {
 
@@ -1684,7 +1585,15 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 
 	// build deployment by status part of the query
 	if match.Status != model.StatusQueryAny {
-		stq := buildStatusQuery(match.Status)
+		var status string
+		if match.Status == model.StatusQueryPending {
+			status = model.DeploymentStatusPending
+		} else if match.Status == model.StatusQueryInProgress {
+			status = model.DeploymentStatusInProgress
+		} else {
+			status = model.DeploymentStatusFinished
+		}
+		stq := bson.M{StorageKeyDeploymentStatus: status}
 		andq = append(andq, stq)
 	}
 
@@ -1711,33 +1620,25 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 		}
 	}
 
-	pipeline := []bson.D{
-		{
-			{Key: "$match", Value: query},
-		},
-		{
-			{Key: "$sort", Value: bson.M{"created": -1}},
-		},
-	}
+	options := &mopts.FindOptions{}
+	options.SetSort(bson.M{"created": -1})
 	if match.Skip > 0 {
-		pipeline = append(pipeline,
-			bson.D{{Key: "$skip", Value: match.Skip}})
+		options.SetSkip(int64(match.Skip))
 	}
 	if match.Limit > 0 {
-		pipeline = append(pipeline,
-			bson.D{{Key: "$limit", Value: match.Limit}})
+		options.SetLimit(int64(match.Limit))
 	}
 
-	var deployment []*model.Deployment
-	cursor, err := collDpl.Aggregate(ctx, pipeline)
+	var deployments []*model.Deployment
+	cursor, err := collDpl.Find(ctx, query, options)
 	if err != nil {
 		return nil, err
 	}
-	if err := cursor.All(ctx, &deployment); err != nil {
+	if err := cursor.All(ctx, &deployments); err != nil {
 		return nil, err
 	}
 
-	return deployment, nil
+	return deployments, nil
 }
 
 // SetDeploymentStatus simply sets the status field
