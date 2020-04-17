@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -181,18 +181,7 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 	dep.Devices = []string{"Device 123"}
 	dep.Id = StringToPointer("14ddec54-30be-49bf-aa6b-97ce271d71f5")
 	dep.DeviceCount = 1337
-
-	dep.Stats = map[string]int{
-		DeviceDeploymentStatusInstalling:  1,
-		DeviceDeploymentStatusRebooting:   2,
-		DeviceDeploymentStatusPending:     3,
-		DeviceDeploymentStatusSuccess:     4,
-		DeviceDeploymentStatusFailure:     5,
-		DeviceDeploymentStatusNoArtifact:  6,
-		DeviceDeploymentStatusDownloading: 7,
-		DeviceDeploymentStatusAlreadyInst: 8,
-		DeviceDeploymentStatusAborted:     0,
-	}
+	dep.Status = DeploymentStatusInProgress
 
 	j, err := dep.MarshalJSON()
 	assert.NoError(t, err)

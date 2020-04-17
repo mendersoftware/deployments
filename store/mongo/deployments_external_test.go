@@ -1038,6 +1038,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusNoArtifact: 1,
 			}),
+			Status:   model.DeploymentStatusFinished,
 			Finished: &now,
 		},
 		{
@@ -1050,6 +1051,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusNoArtifact: 1,
 			}),
+			Status:   model.DeploymentStatusFinished,
 			Finished: &now,
 		},
 		{
@@ -1062,6 +1064,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusFailure: 2,
 			}),
+			Status:   model.DeploymentStatusFinished,
 			Finished: &now,
 		},
 		{
@@ -1074,6 +1077,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusNoArtifact: 1,
 			}),
+			Status:   model.DeploymentStatusFinished,
 			Finished: &now,
 		},
 		{
@@ -1086,6 +1090,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusDownloading: 1,
 			}),
+			Status: model.DeploymentStatusInProgress,
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
@@ -1098,6 +1103,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				model.DeviceDeploymentStatusDownloading: 1,
 				model.DeviceDeploymentStatusPending:     1,
 			}),
+			Status: model.DeploymentStatusInProgress,
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
@@ -1109,6 +1115,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusPending: 1,
 			}),
+			Status: model.DeploymentStatusPending,
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
@@ -1121,6 +1128,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				model.DeviceDeploymentStatusNoArtifact: 1,
 				model.DeviceDeploymentStatusSuccess:    1,
 			}),
+			Status:   model.DeploymentStatusFinished,
 			Finished: &now,
 		},
 		{
@@ -1133,6 +1141,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusAborted: 1,
 			}),
+			Status:   model.DeploymentStatusFinished,
 			Finished: &now,
 		},
 
@@ -1148,6 +1157,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				model.DeviceDeploymentStatusPending:     1,
 				model.DeviceDeploymentStatusAlreadyInst: 1,
 			}),
+			Status: model.DeploymentStatusInProgress,
 		},
 		//in progress deployment, with only pending and success counters > 0
 		{
@@ -1161,6 +1171,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				model.DeviceDeploymentStatusPending: 1,
 				model.DeviceDeploymentStatusSuccess: 1,
 			}),
+			Status: model.DeploymentStatusInProgress,
 		},
 		//in progress deployment, with only pending and failure counters > 0
 		{
@@ -1174,6 +1185,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				model.DeviceDeploymentStatusPending: 1,
 				model.DeviceDeploymentStatusFailure: 1,
 			}),
+			Status: model.DeploymentStatusInProgress,
 		},
 		//in progress deployment, with only pending and noartifact counters > 0
 		{
@@ -1187,6 +1199,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				model.DeviceDeploymentStatusPending:    1,
 				model.DeviceDeploymentStatusNoArtifact: 1,
 			}),
+			Status: model.DeploymentStatusInProgress,
 		},
 		//finished deployment, with only already installed counter > 0
 		{
@@ -1199,6 +1212,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusAlreadyInst: 1,
 			}),
+			Status:   model.DeploymentStatusFinished,
 			Finished: &now,
 		},
 	}
