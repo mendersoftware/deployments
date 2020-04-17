@@ -386,18 +386,27 @@ func (_m *DataStore) FindUnfinishedByID(ctx context.Context, id string) (*model.
 	return r0, r1
 }
 
-// Finish provides a mock function with given fields: ctx, id, when
-func (_m *DataStore) Finish(ctx context.Context, id string, when time.Time) error {
-	ret := _m.Called(ctx, id, when)
+// GetDeviceDeployment provides a mock function with given fields: ctx, deploymentID, deviceID
+func (_m *DataStore) GetDeviceDeployment(ctx context.Context, deploymentID string, deviceID string) (*model.DeviceDeployment, error) {
+	ret := _m.Called(ctx, deploymentID, deviceID)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, time.Time) error); ok {
-		r0 = rf(ctx, id, when)
+	var r0 *model.DeviceDeployment
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.DeviceDeployment); ok {
+		r0 = rf(ctx, deploymentID, deviceID)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.DeviceDeployment)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, deploymentID, deviceID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // GetDeviceDeploymentLog provides a mock function with given fields: ctx, deviceID, deploymentID
@@ -694,6 +703,20 @@ func (_m *DataStore) SaveDeviceDeploymentLog(ctx context.Context, log model.Depl
 	return r0
 }
 
+// SetDeploymentStatus provides a mock function with given fields: ctx, id, status, now
+func (_m *DataStore) SetDeploymentStatus(ctx context.Context, id string, status string, now time.Time) error {
+	ret := _m.Called(ctx, id, status, now)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, time.Time) error); ok {
+		r0 = rf(ctx, id, status, now)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Update provides a mock function with given fields: ctx, image
 func (_m *DataStore) Update(ctx context.Context, image *model.Image) (bool, error) {
 	ret := _m.Called(ctx, image)
@@ -750,13 +773,13 @@ func (_m *DataStore) UpdateDeviceDeploymentStatus(ctx context.Context, deviceID 
 	return r0, r1
 }
 
-// UpdateStats provides a mock function with given fields: ctx, id, state_from, state_to
-func (_m *DataStore) UpdateStats(ctx context.Context, id string, state_from string, state_to string) error {
-	ret := _m.Called(ctx, id, state_from, state_to)
+// UpdateStats provides a mock function with given fields: ctx, id, stats
+func (_m *DataStore) UpdateStats(ctx context.Context, id string, stats model.Stats) error {
+	ret := _m.Called(ctx, id, stats)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
-		r0 = rf(ctx, id, state_from, state_to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.Stats) error); ok {
+		r0 = rf(ctx, id, stats)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -764,13 +787,13 @@ func (_m *DataStore) UpdateStats(ctx context.Context, id string, state_from stri
 	return r0
 }
 
-// UpdateStatsAndFinishDeployment provides a mock function with given fields: ctx, id, stats
-func (_m *DataStore) UpdateStatsAndFinishDeployment(ctx context.Context, id string, stats model.Stats) error {
-	ret := _m.Called(ctx, id, stats)
+// UpdateStatsInc provides a mock function with given fields: ctx, id, state_from, state_to
+func (_m *DataStore) UpdateStatsInc(ctx context.Context, id string, state_from string, state_to string) error {
+	ret := _m.Called(ctx, id, state_from, state_to)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, model.Stats) error); ok {
-		r0 = rf(ctx, id, stats)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+		r0 = rf(ctx, id, state_from, state_to)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -79,6 +79,8 @@ type DataStore interface {
 		deploymentID string, deviceID string) (string, error)
 	AbortDeviceDeployments(ctx context.Context, deploymentID string) error
 	DecommissionDeviceDeployments(ctx context.Context, deviceId string) error
+	GetDeviceDeployment(ctx context.Context,
+		deploymentID string, deviceID string) (*model.DeviceDeployment, error)
 
 	// deployments
 	InsertDeployment(ctx context.Context, deployment *model.Deployment) error
@@ -86,12 +88,12 @@ type DataStore interface {
 	FindDeploymentByID(ctx context.Context, id string) (*model.Deployment, error)
 	FindUnfinishedByID(ctx context.Context,
 		id string) (*model.Deployment, error)
-	UpdateStats(ctx context.Context, id string, state_from, state_to string) error
-	UpdateStatsAndFinishDeployment(ctx context.Context,
+	UpdateStatsInc(ctx context.Context, id string, state_from, state_to string) error
+	UpdateStats(ctx context.Context,
 		id string, stats model.Stats) error
 	Find(ctx context.Context,
 		query model.Query) ([]*model.Deployment, error)
-	Finish(ctx context.Context, id string, when time.Time) error
+	SetDeploymentStatus(ctx context.Context, id, status string, now time.Time) error
 	ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error)
 	ExistByArtifactId(ctx context.Context, id string) (bool, error)
 	DeviceCountByDeployment(ctx context.Context, id string) (int, error)

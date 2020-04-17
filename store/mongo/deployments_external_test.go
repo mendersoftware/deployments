@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -632,9 +632,9 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 	}
 }
 
-func TestDeploymentStorageUpdateStats(t *testing.T) {
+func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping TestDeploymentStorageUpdateStats in short mode.")
+		t.Skip("skipping TestDeploymentStorageUpdateStatsInc in short mode.")
 	}
 
 	testCases := map[string]struct {
@@ -858,7 +858,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 				}
 			}
 
-			err := store.UpdateStats(ctx,
+			err := store.UpdateStatsInc(ctx,
 				tc.InputID, tc.InputStateFrom, tc.InputStateTo)
 
 			if tc.OutputError != nil {
@@ -894,22 +894,22 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 	}
 }
 
-func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
+func TestDeploymentStorageUpdateStats(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping TestDeploymentStorageUpdateStatsAndFinishDeployment in short mode.")
+		t.Skip("skipping TestDeploymentStorageUpdateStats in short mode.")
 	}
 
 	testCases := map[string]struct {
-		InputID         string
-		InputDeployment *model.Deployment
-		InputStats      map[string]int
-		InputTenant     string
+		id     string
+		dep    *model.Deployment
+		stats  map[string]int
+		tenant string
 
-		OutputError error
+		err error
 	}{
 		"all correct": {
-			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeployment: &model.Deployment{
+			id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			dep: &model.Deployment{
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 				Stats: map[string]int{
 					model.DeviceDeploymentStatusDownloading: 1,
@@ -923,7 +923,7 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 					model.DeviceDeploymentStatusAborted:     5,
 				},
 			},
-			InputStats: map[string]int{
+			stats: map[string]int{
 				model.DeviceDeploymentStatusDownloading: 1,
 				model.DeviceDeploymentStatusInstalling:  2,
 				model.DeviceDeploymentStatusRebooting:   3,
@@ -934,42 +934,38 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 				model.DeviceDeploymentStatusAlreadyInst: 0,
 				model.DeviceDeploymentStatusAborted:     5,
 			},
-
-			OutputError: nil,
 		},
 		"invalid deployment id": {
-			InputID:         "",
-			InputDeployment: nil,
-			InputStats:      nil,
+			id:    "",
+			dep:   nil,
+			stats: nil,
 
-			OutputError: ErrStorageInvalidID,
+			err: ErrStorageInvalidID,
 		},
 		"wrong deployment id": {
-			InputID:         "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeployment: nil,
-			InputStats:      nil,
+			id:    "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			dep:   nil,
+			stats: nil,
 
-			OutputError: ErrStorageInvalidID,
+			err: ErrStorageInvalidID,
 		},
 		"tenant, all correct": {
-			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeployment: &model.Deployment{
+			id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			dep: &model.Deployment{
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
 				Stats: newTestStats(model.Stats{
 					model.DeviceDeploymentStatusRebooting: 3,
 				}),
 			},
-			InputStats: newTestStats(model.Stats{
+			stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusRebooting: 3,
 			}),
-			InputTenant: "acme",
-
-			OutputError: nil,
+			tenant: "acme",
 		},
 	}
 
-	for testCaseName, tc := range testCases {
-		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
+	for name, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", name), func(t *testing.T) {
 
 			db.Wipe()
 
@@ -977,48 +973,42 @@ func TestDeploymentStorageUpdateStatsAndFinishDeployment(t *testing.T) {
 			store := NewDataStoreMongoWithClient(client)
 
 			ctx := context.Background()
-			if tc.InputTenant != "" {
+			if tc.tenant != "" {
 				ctx = identity.WithContext(ctx, &identity.Identity{
-					Tenant: tc.InputTenant,
+					Tenant: tc.tenant,
 				})
-			} else {
-				ctx = context.Background()
 			}
 
 			collDep := client.Database(ctxstore.
 				DbFromContext(ctx, DatabaseName)).
 				Collection(CollectionDeployments)
-			if tc.InputDeployment != nil {
+			if tc.dep != nil {
 				_, err := collDep.InsertOne(
-					ctx, tc.InputDeployment)
+					ctx, tc.dep)
 				assert.NoError(t, err)
 			}
 
-			err := store.UpdateStatsAndFinishDeployment(ctx,
-				tc.InputID, tc.InputStats)
+			err := store.UpdateStats(ctx, tc.id, tc.stats)
 
-			if tc.OutputError != nil {
-				assert.EqualError(t, err, tc.OutputError.Error())
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
 			} else {
 				var deployment *model.Deployment
 				err := collDep.FindOne(ctx,
-					bson.M{"_id": tc.InputID}).
+					bson.M{"_id": tc.id}).
 					Decode(&deployment)
 				assert.NoError(t, err)
-				assert.Equal(t, tc.InputStats, deployment.Stats)
+				assert.Equal(t, tc.stats, deployment.Stats)
 			}
 
-			if tc.InputTenant != "" && tc.InputDeployment != nil {
-				// tenant is configured, so deployments that are
-				// part of test input were added to tenant's DB,
-				// trying to update them in default DB will
-				// raise an error
-				err := store.UpdateStatsAndFinishDeployment(context.Background(),
-					tc.InputID, tc.InputStats)
+			if tc.tenant != "" && tc.dep != nil {
+				err := store.UpdateStats(context.Background(),
+					tc.id, tc.stats)
 				assert.EqualError(t, err, ErrStorageInvalidID.Error())
 			}
 		})
 	}
+
 }
 
 func newTestStats(stats model.Stats) model.Stats {
@@ -1518,230 +1508,6 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 	}
 }
 
-func TestDeploymentFinish(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping TestDeploymentFinish in short mode.")
-	}
-
-	testCases := map[string]struct {
-		InputID         string
-		InputDeployment *model.Deployment
-		InputTenant     string
-
-		OutputError error
-	}{
-		"finished": {
-			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeployment: &model.Deployment{
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-			},
-			OutputError: nil,
-		},
-		"nonexistent": {
-			InputID:     "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			OutputError: errors.New("Invalid id"),
-		},
-		"tenant, finished": {
-			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-			InputDeployment: &model.Deployment{
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-			},
-			InputTenant: "acme",
-			OutputError: nil,
-		},
-	}
-
-	for testCaseName, tc := range testCases {
-		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
-
-			db.Wipe()
-
-			client := db.Client()
-			store := NewDataStoreMongoWithClient(client)
-
-			ctx := context.Background()
-			if tc.InputTenant != "" {
-				ctx = identity.WithContext(ctx, &identity.Identity{
-					Tenant: tc.InputTenant,
-				})
-			} else {
-				ctx = context.Background()
-			}
-
-			collDep := client.Database(ctxstore.
-				DbFromContext(ctx, DatabaseName)).
-				Collection(CollectionDeployments)
-			if tc.InputDeployment != nil {
-				_, err := collDep.InsertOne(ctx, tc.InputDeployment)
-				assert.NoError(t, err)
-			}
-
-			now := time.Now()
-			err := store.Finish(ctx, tc.InputID, now)
-
-			if tc.OutputError != nil {
-				assert.EqualError(t, err, tc.OutputError.Error())
-			} else {
-				var deployment *model.Deployment
-				err := collDep.FindOne(ctx,
-					bson.M{"_id": tc.InputID}).
-					Decode(&deployment)
-				assert.NoError(t, err)
-
-				if assert.NotNil(t, deployment.Finished) {
-					// mongo might have trimmed our time a
-					// bit, let's check that we are within a
-					// 1s range
-					assert.WithinDuration(t, now, *deployment.Finished, time.Second)
-				}
-			}
-
-			if tc.InputTenant != "" {
-				// deployment was added to tenant's DB, so this
-				// should fail with default DB
-				err := store.Finish(context.Background(), tc.InputID, now)
-				assert.EqualError(t, err, ErrStorageInvalidID.Error())
-			}
-		})
-	}
-}
-
-func TestDeploymentFiltering(t *testing.T) {
-	testCases := []struct {
-		InputDeployment []*model.Deployment
-		InputQuery      *model.Query
-		returnsResult   int
-	}{
-		{
-			InputDeployment: []*model.Deployment{
-				&model.Deployment{
-					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
-						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
-					},
-					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
-					Created: TimePtr(time.Now()),
-				},
-			},
-			InputQuery:    &model.Query{CreatedBefore: TimePtr(time.Now().Add(1 * time.Hour).UTC())},
-			returnsResult: 1,
-		},
-		{
-			InputDeployment: []*model.Deployment{
-				&model.Deployment{
-					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("MTL Production"),
-						ArtifactName: StringToPointer("App 514"),
-						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
-					},
-					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
-					Created: TimePtr(time.Now()),
-				},
-			},
-			InputQuery:    &model.Query{CreatedAfter: TimePtr(time.Now().Add(-1 * time.Hour).UTC())},
-			returnsResult: 1,
-		},
-		{
-			InputDeployment: []*model.Deployment{
-				&model.Deployment{
-					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("Foo"),
-						ArtifactName: StringToPointer("Foo2"),
-						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
-					},
-					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
-					Created: TimePtr(time.Now()),
-				},
-			},
-			InputQuery:    &model.Query{CreatedAfter: TimePtr(time.Now().AddDate(-1, 0, 0).UTC())},
-			returnsResult: 1,
-		},
-		{
-			InputDeployment: []*model.Deployment{
-				&model.Deployment{
-					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("Foo"),
-						ArtifactName: StringToPointer("Foo2"),
-						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
-					},
-					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
-					Created: TimePtr(time.Now()),
-				},
-			},
-			InputQuery:    &model.Query{CreatedAfter: TimePtr(time.Now().AddDate(1, 0, 0).UTC())},
-			returnsResult: 0,
-		},
-		{
-			InputDeployment: []*model.Deployment{
-				&model.Deployment{
-					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("Foo"),
-						ArtifactName: StringToPointer("Foo2"),
-						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
-					},
-					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
-					Created: TimePtr(time.Now()),
-				},
-			},
-			InputQuery: &model.Query{
-				CreatedAfter:  TimePtr(time.Now().AddDate(-1, 0, 0).UTC()),
-				CreatedBefore: TimePtr(time.Now().AddDate(1, 0, 0).UTC()),
-			},
-			returnsResult: 1,
-		},
-		{
-			InputDeployment: []*model.Deployment{
-				&model.Deployment{
-					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("Foo"),
-						ArtifactName: StringToPointer("Foo2"),
-						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
-					},
-					Id:      StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
-					Created: TimePtr(time.Now()),
-				},
-			},
-			InputQuery: &model.Query{
-				CreatedAfter:  TimePtr(time.Now().AddDate(-1, 0, 0).UTC()),
-				CreatedBefore: TimePtr(time.Now().AddDate(0, 0, -1).UTC()),
-			},
-			returnsResult: 0,
-		},
-	}
-
-	for idx, tc := range testCases {
-		t.Run(fmt.Sprintf("test_%d", idx), func(t *testing.T) {
-			db.Wipe()
-			client := db.Client()
-
-			store := NewDataStoreMongoWithClient(client)
-
-			ctx := context.Background()
-
-			if tc.InputDeployment != nil {
-				for _, d := range tc.InputDeployment {
-					collDep := client.Database(ctxstore.
-						DbFromContext(ctx,
-							DatabaseName)).
-						Collection(CollectionDeployments)
-					_, err := collDep.InsertOne(ctx, d)
-					assert.NoError(t, err)
-				}
-			}
-
-			for _, d := range tc.InputDeployment {
-				err := store.Finish(ctx, *d.Id, time.Now().UTC())
-				assert.NoError(t, err)
-			}
-
-			deps, err := store.Find(ctx, *tc.InputQuery)
-			assert.NoError(t, err)
-			assert.Len(t, deps, tc.returnsResult)
-		})
-	}
-}
-
 func TestDeviceDeploymentCounting(t *testing.T) {
 	testCases := []struct {
 		InputDeploymentID     string
@@ -1806,6 +1572,80 @@ func TestDeviceDeploymentCounting(t *testing.T) {
 			actualCount, err := store.DeviceCountByDeployment(ctx, tc.InputDeploymentID)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.DeviceCount, actualCount)
+		})
+	}
+}
+
+func TestDeploymentSetStatus(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestDeploymentSetStatus in short mode.")
+	}
+
+	id := "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"
+	deployment := &model.Deployment{
+		Id: StringToPointer(id),
+	}
+
+	now := time.Now().UTC()
+	testCases := map[string]struct {
+		tenant string
+
+		status string
+	}{
+		"pending": {
+			status: model.DeploymentStatusPending,
+		},
+		"inprogress": {
+			status: model.DeploymentStatusInProgress,
+		},
+		"finished, mt": {
+			status: model.DeploymentStatusInProgress,
+			tenant: "foo",
+		},
+		"finished": {
+			status: model.DeploymentStatusFinished,
+		},
+	}
+	for testCaseName, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
+
+			db.Wipe()
+
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+			if tc.tenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.tenant,
+				})
+			}
+
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
+
+			_, err := collDep.InsertOne(ctx, deployment)
+			assert.NoError(t, err)
+
+			err = store.SetDeploymentStatus(ctx, id, tc.status, now)
+
+			var deployment *model.Deployment
+			err = collDep.FindOne(ctx,
+				bson.M{"_id": id}).
+				Decode(&deployment)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.status, deployment.Status)
+			if tc.status == model.DeploymentStatusFinished {
+				// mongo trims time, no true equality
+				assert.WithinDuration(t, now, *deployment.Finished, time.Second)
+			}
+
+			if tc.tenant != "" {
+				err := store.SetDeploymentStatus(context.Background(), id, tc.status, now)
+				assert.EqualError(t, err, ErrStorageInvalidID.Error())
+			}
 		})
 	}
 }

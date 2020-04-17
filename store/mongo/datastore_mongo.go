@@ -61,6 +61,9 @@ var (
 	IndexArtifactNameDependsName = "artifactNameDepends"
 	IndexNameAndDeviceTypeName   = "artifactNameAndDeviceTypeIndex"
 
+	// Indexes (version: 1.2.4)
+	IndexDeploymentStatus = "deploymentStatus"
+
 	_false         = false
 	_true          = true
 	StorageIndexes = mongo.IndexModel{
@@ -89,6 +92,16 @@ var (
 		Options: &mopts.IndexOptions{
 			Background: &_false,
 			Name:       &IndexDeploymentDeviceStatusesName,
+		},
+	}
+	DeploymentStatusIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyDeviceDeploymentStatus,
+				Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentStatus,
 		},
 	}
 	DeviceIDStatusIndexes = mongo.IndexModel{
@@ -266,6 +279,7 @@ const (
 	StorageKeyDeploymentName         = "deploymentconstructor.name"
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
 	StorageKeyDeploymentStats        = "stats"
+	StorageKeyDeploymentStatus       = "status"
 	StorageKeyDeploymentStatsCreated = "created"
 	StorageKeyDeploymentFinished     = "finished"
 	StorageKeyDeploymentArtifacts    = "artifacts"
@@ -1276,6 +1290,28 @@ func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 	return nil
 }
 
+func (db *DataStoreMongo) GetDeviceDeployment(ctx context.Context,
+	deploymentID string, deviceID string) (*model.DeviceDeployment, error) {
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
+
+	filter := bson.M{
+		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+	}
+
+	var dd model.DeviceDeployment
+	if err := collDevs.FindOne(ctx, filter).Decode(&dd); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrStorageNotFound
+		}
+		return nil, err
+	}
+
+	return &dd, nil
+}
+
 // deployments
 
 func (db *DataStoreMongo) EnsureIndexes(dbName string, collName string,
@@ -1437,7 +1473,7 @@ func (db *DataStoreMongo) DeviceCountByDeployment(ctx context.Context,
 	return int(deviceCount), nil
 }
 
-func (db *DataStoreMongo) UpdateStatsAndFinishDeployment(ctx context.Context,
+func (db *DataStoreMongo) UpdateStats(ctx context.Context,
 	id string, stats model.Stats) error {
 
 	if govalidator.IsNull(id) {
@@ -1478,7 +1514,7 @@ func (db *DataStoreMongo) UpdateStatsAndFinishDeployment(ctx context.Context,
 	return err
 }
 
-func (db *DataStoreMongo) UpdateStats(ctx context.Context, id string,
+func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 	state_from, state_to string) error {
 
 	if govalidator.IsNull(id) {
@@ -1704,7 +1740,9 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 	return deployment, nil
 }
 
-func (db *DataStoreMongo) Finish(ctx context.Context, id string, when time.Time) error {
+// SetDeploymentStatus simply sets the status field
+// optionally sets 'finished time' if deployment is indeed finished
+func (db *DataStoreMongo) SetDeploymentStatus(ctx context.Context, id, status string, now time.Time) error {
 	if govalidator.IsNull(id) {
 		return ErrStorageInvalidID
 	}
@@ -1712,11 +1750,20 @@ func (db *DataStoreMongo) Finish(ctx context.Context, id string, when time.Time)
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDpl := database.Collection(CollectionDeployments)
 
-	// note dot notation on embedded document
-	update := bson.M{
-		"$set": bson.M{
-			StorageKeyDeploymentFinished: &when,
-		},
+	var update bson.M
+	if status == model.DeploymentStatusFinished {
+		update = bson.M{
+			"$set": bson.M{
+				StorageKeyDeploymentStatus:   status,
+				StorageKeyDeploymentFinished: &now,
+			},
+		}
+	} else {
+		update = bson.M{
+			"$set": bson.M{
+				StorageKeyDeploymentStatus: status,
+			},
+		}
 	}
 
 	res, err := collDpl.UpdateOne(ctx, bson.M{"_id": id}, update)

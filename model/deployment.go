@@ -28,6 +28,12 @@ var (
 	ErrInvalidDeviceID = errors.New("Invalid device ID")
 )
 
+const (
+	DeploymentStatusFinished   = "finished"
+	DeploymentStatusInProgress = "inprogress"
+	DeploymentStatusPending    = "pending"
+)
+
 // DeploymentConstructor represent input data needed for creating new Deployment (they differ in fields)
 type DeploymentConstructor struct {
 	// Deployment name, required
@@ -76,6 +82,9 @@ type Deployment struct {
 	// Initialized with the "pending" counter set to total device count for deployment.
 	// Individual counter incremented/decremented according to device status updates.
 	Stats map[string]int `json:"-"`
+
+	// Status is the overall deployment status
+	Status string `json:"status" bson:"status"`
 
 	// Total number of devices targeted
 	DeviceCount int `json:"device_count" bson:"-"`
@@ -201,11 +210,11 @@ func (d *Deployment) IsPending() bool {
 
 func (d *Deployment) GetStatus() string {
 	if d.IsPending() {
-		return "pending"
+		return DeploymentStatusPending
 	} else if d.IsFinished() {
-		return "finished"
+		return DeploymentStatusFinished
 	} else {
-		return "inprogress"
+		return DeploymentStatusInProgress
 	}
 }
 
