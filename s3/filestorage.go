@@ -228,7 +228,7 @@ func fillBuffer(b []byte, r io.Reader) (int, error) {
 func (s *SimpleStorageService) uploadMultipart(
 	ctx context.Context,
 	buf []byte,
-	objectID string,
+	objectPath string,
 	artifact io.Reader,
 	contentType string,
 ) error {
@@ -247,11 +247,10 @@ func (s *SimpleStorageService) uploadMultipart(
 		req.ExpireTime = exp
 	}
 
-	objectID = getArtifactByTenant(ctx, objectID)
 	// Initiate Multipart upload
 	createParams := &s3.CreateMultipartUploadInput{
 		Bucket:      &s.bucket,
-		Key:         &objectID,
+		Key:         &objectPath,
 		ContentType: &contentType,
 		Expires:     &expiresAt,
 	}
@@ -263,7 +262,7 @@ func (s *SimpleStorageService) uploadMultipart(
 	}
 	uploadParams := &s3.UploadPartInput{
 		Bucket:     &s.bucket,
-		Key:        &objectID,
+		Key:        &objectPath,
 		UploadId:   rspCreate.UploadId,
 		PartNumber: &partNum,
 	}
@@ -327,7 +326,7 @@ func (s *SimpleStorageService) uploadMultipart(
 		// Complete upload
 		uploadParams := &s3.CompleteMultipartUploadInput{
 			Bucket:   &s.bucket,
-			Key:      &objectID,
+			Key:      &objectPath,
 			UploadId: rspCreate.UploadId,
 			MultipartUpload: &s3.CompletedMultipartUpload{
 				Parts: completedParts,
@@ -342,7 +341,7 @@ func (s *SimpleStorageService) uploadMultipart(
 		// Abort multipart upload!
 		uploadParams := &s3.AbortMultipartUploadInput{
 			Bucket:   &s.bucket,
-			Key:      &objectID,
+			Key:      &objectPath,
 			UploadId: rspCreate.UploadId,
 		}
 		_, err = s.client.AbortMultipartUploadWithContext(
