@@ -24,6 +24,8 @@ import (
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/mendersoftware/deployments/model"
 )
 
 type migration_1_2_3 struct {
@@ -37,7 +39,6 @@ type migration_1_2_3 struct {
 func (m *migration_1_2_3) Up(from migrate.Version) error {
 	ctx := context.Background()
 	c := m.client.Database(m.db).Collection(CollectionImages)
-	storage := NewDataStoreMongoWithClient(m.client)
 
 	// drop old device type + name index
 	_, err := c.Indexes().DropOne(ctx, IndexUniqueNameAndDeviceTypeName)
@@ -50,8 +51,12 @@ func (m *migration_1_2_3) Up(from migrate.Version) error {
 	}
 
 	// transform existing device_types_compatible in v1 and v2 artifacts into 'depends.device_type'
-	artifacts, err := storage.FindAll(ctx)
+	cursor, err := c.Find(ctx, bson.M{})
 	if err != nil {
+		return err
+	}
+	var artifacts []*model.Image
+	if cursor.All(ctx, &artifacts); err != nil {
 		return err
 	}
 
@@ -90,6 +95,7 @@ func (m *migration_1_2_3) Up(from migrate.Version) error {
 	}
 
 	// create new artifact depends + name index
+	storage := NewDataStoreMongoWithClient(m.client)
 	err = storage.EnsureIndexes(m.db,
 		CollectionImages,
 		IndexArtifactNameDepends)
