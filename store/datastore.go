@@ -55,11 +55,14 @@ type DataStore interface {
 		deviceID, deploymentID string) (*model.DeploymentLog, error)
 
 	// device deployments
+	InsertDeviceDeployment(ctx context.Context, deviceDeployment *model.DeviceDeployment) error
 	InsertMany(ctx context.Context,
 		deployment ...*model.DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(ctx context.Context,
 		id string, statuses ...string) (bool, error)
 	FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
+		deviceID string, statuses ...string) (*model.DeviceDeployment, error)
+	FindLatestDeploymentForDeviceIDWithStatuses(ctx context.Context,
 		deviceID string, statuses ...string) (*model.DeviceDeployment, error)
 	FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
 		deviceID string, statuses ...string) ([]model.DeviceDeployment, error)
@@ -94,6 +97,8 @@ type DataStore interface {
 	Find(ctx context.Context,
 		query model.Query) ([]*model.Deployment, error)
 	SetDeploymentStatus(ctx context.Context, id, status string, now time.Time) error
+	FindNewerActiveDeployments(ctx context.Context,
+		createdAfter *time.Time, skip, limit int) ([]*model.Deployment, error)
 	ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error)
 	ExistByArtifactId(ctx context.Context, id string) (bool, error)
 	DeviceCountByDeployment(ctx context.Context, id string) (int, error)

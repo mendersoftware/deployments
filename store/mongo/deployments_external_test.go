@@ -232,7 +232,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		t.Skip("skipping TestDeploymentStorageFindByID in short mode.")
 	}
 
-	testCases := []struct {
+	testCases := map[string]struct {
 		InputID                    string
 		InputDeploymentsCollection bson.A
 		InputTenant                string
@@ -240,16 +240,16 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		OutputError      error
 		OutputDeployment *model.Deployment
 	}{
-		{
+		"invalid ID": {
 			InputID:     "",
 			OutputError: ErrStorageInvalidID,
 		},
-		{
+		"no deployments": {
 			InputID:          "b532b01a-9313-404f-8d19-e7fcbe5cc347",
 			OutputError:      nil,
 			OutputDeployment: nil,
 		},
-		{
+		"not found": {
 			InputID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
 			InputDeploymentsCollection: bson.A{
 				&model.Deployment{
@@ -272,7 +272,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 			OutputError:      nil,
 			OutputDeployment: nil,
 		},
-		{
+		"ok": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeploymentsCollection: bson.A{
 				&model.Deployment{
@@ -335,7 +335,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 				},
 			},
 		},
-		{
+		"ok with tenant": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeploymentsCollection: bson.A{
 				&model.Deployment{
@@ -362,8 +362,8 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 		},
 	}
 
-	for testCaseNumber, testCase := range testCases {
-		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
+	for testCaseName, testCase := range testCases {
+		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
 
 			// Make sure we start test with empty database
 			db.Wipe()
