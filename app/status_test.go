@@ -47,6 +47,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			Devices:      []string{"baz"},
 		},
 	)
+	fakeDeployment.MaxDevices = 1
 	assert.NoError(t, err)
 
 	fakeDeviceDeployment, err := model.NewDeviceDeployment(

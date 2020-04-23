@@ -152,33 +152,16 @@ func (d *Deployment) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&slim)
 }
 
-func (d *Deployment) IsInProgress() bool {
-	active := []string{
-		DeviceDeploymentStatusRebooting,
-		DeviceDeploymentStatusInstalling,
-		DeviceDeploymentStatusDownloading,
-	}
+func (d *Deployment) IsNotPending() bool {
+	if d.Stats[DeviceDeploymentStatusDownloading] > 0 ||
+		d.Stats[DeviceDeploymentStatusInstalling] > 0 ||
+		d.Stats[DeviceDeploymentStatusRebooting] > 0 ||
+		d.Stats[DeviceDeploymentStatusSuccess] > 0 ||
+		d.Stats[DeviceDeploymentStatusAlreadyInst] > 0 ||
+		d.Stats[DeviceDeploymentStatusFailure] > 0 ||
+		d.Stats[DeviceDeploymentStatusAborted] > 0 ||
+		d.Stats[DeviceDeploymentStatusNoArtifact] > 0 {
 
-	var acount int
-	for _, s := range active {
-		acount += d.Stats[s]
-	}
-
-	if acount != 0 ||
-		(d.Stats[DeviceDeploymentStatusPending] > 0 &&
-			(d.Stats[DeviceDeploymentStatusAlreadyInst] > 0 ||
-				d.Stats[DeviceDeploymentStatusSuccess] > 0 ||
-				d.Stats[DeviceDeploymentStatusFailure] > 0 ||
-				d.Stats[DeviceDeploymentStatusNoArtifact] > 0 ||
-				d.Stats[DeviceDeploymentStatusAborted] > 0)) {
-		return true
-	}
-	return false
-}
-
-func (d *Deployment) IsAborted() bool {
-	// check if there are pending devices
-	if d.Stats[DeviceDeploymentStatusAborted] != 0 {
 		return true
 	}
 
@@ -186,27 +169,12 @@ func (d *Deployment) IsAborted() bool {
 }
 
 func (d *Deployment) IsFinished() bool {
-	if d.Stats[DeviceDeploymentStatusPending] == 0 &&
-		d.Stats[DeviceDeploymentStatusDownloading] == 0 &&
-		d.Stats[DeviceDeploymentStatusInstalling] == 0 &&
-		d.Stats[DeviceDeploymentStatusRebooting] == 0 {
-		return true
-	}
-
-	return false
-}
-
-func (d *Deployment) IsPending() bool {
-	//pending > 0, evt else == 0
-	if d.Stats[DeviceDeploymentStatusPending] > 0 &&
-		d.Stats[DeviceDeploymentStatusDownloading] == 0 &&
-		d.Stats[DeviceDeploymentStatusInstalling] == 0 &&
-		d.Stats[DeviceDeploymentStatusRebooting] == 0 &&
-		d.Stats[DeviceDeploymentStatusSuccess] == 0 &&
-		d.Stats[DeviceDeploymentStatusAlreadyInst] == 0 &&
-		d.Stats[DeviceDeploymentStatusFailure] == 0 &&
-		d.Stats[DeviceDeploymentStatusNoArtifact] == 0 {
-
+	if d.MaxDevices <= 0 || ((d.Stats[DeviceDeploymentStatusAlreadyInst] +
+		d.Stats[DeviceDeploymentStatusSuccess] +
+		d.Stats[DeviceDeploymentStatusFailure] +
+		d.Stats[DeviceDeploymentStatusNoArtifact] +
+		d.Stats[DeviceDeploymentStatusDecommissioned] +
+		d.Stats[DeviceDeploymentStatusAborted]) >= d.MaxDevices) {
 		return true
 	}
 
@@ -214,12 +182,12 @@ func (d *Deployment) IsPending() bool {
 }
 
 func (d *Deployment) GetStatus() string {
-	if d.IsPending() {
-		return DeploymentStatusPending
-	} else if d.IsFinished() {
+	if d.IsFinished() {
 		return DeploymentStatusFinished
-	} else {
+	} else if d.IsNotPending() {
 		return DeploymentStatusInProgress
+	} else {
+		return DeploymentStatusPending
 	}
 }
 

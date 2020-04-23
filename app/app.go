@@ -628,35 +628,11 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 	}
 
 	deployment.Artifacts = getArtifactIDs(artifacts)
-
-	// Generate deployment for each specified device.
-	// Do not assign artifacts to the particular device deployment.
-	// Artifacts will be assigned on device update request handling, based on
-	// information provided by the device in the update request.
-	deviceDeployments := make([]*model.DeviceDeployment, 0, len(constructor.Devices))
-	for _, id := range constructor.Devices {
-		deviceDeployment, err := model.NewDeviceDeployment(id, *deployment.Id)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to create device deployment")
-		}
-
-		deviceDeployment.Created = deployment.Created
-		deviceDeployments = append(deviceDeployments, deviceDeployment)
-	}
-
-	// Set initial statistics cache values
-	deployment.Stats[model.DeviceDeploymentStatusPending] = len(constructor.Devices)
+	deployment.DeviceList = constructor.Devices
+	deployment.MaxDevices = len(constructor.Devices)
 
 	if err := d.db.InsertDeployment(ctx, deployment); err != nil {
 		return "", errors.Wrap(err, "Storing deployment data")
-	}
-
-	if err := d.db.InsertMany(ctx, deviceDeployments...); err != nil {
-		if errCleanup := d.db.DeleteDeployment(ctx, *deployment.Id); errCleanup != nil {
-			err = errors.Wrap(err, errCleanup.Error())
-		}
-
-		return "", errors.Wrap(err, "Storing assigned deployments to devices")
 	}
 
 	return *deployment.Id, nil
