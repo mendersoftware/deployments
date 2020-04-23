@@ -426,6 +426,8 @@ func TestMigration_1_2_4(t *testing.T) {
 
 		assert.Equal(t, tc.outstatus, out.Status)
 
+		assert.Equal(t, len(tc.devices), out.MaxDevices)
+
 		// verify index exists
 		indexes := collDeps.Indexes()
 		cursor, _ := indexes.List(ctx)
