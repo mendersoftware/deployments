@@ -86,8 +86,14 @@ type Deployment struct {
 	// Status is the overall deployment status
 	Status string `json:"status" bson:"status"`
 
-	// Total number of devices targeted
+	// Number of devices being part of the deployment
 	DeviceCount int `json:"device_count" bson:"-"`
+
+	// Total number of devices targeted
+	MaxDevices int `json:"max_devices,omitempty" bson:"max_devices"`
+
+	// list of devices
+	DeviceList []string `json:"-" bson:"device_list"`
 }
 
 // NewDeployment creates new deployment object, sets create data by default.
