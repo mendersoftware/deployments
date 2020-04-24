@@ -39,9 +39,9 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 
 	coll := m.client.Database(m.db).Collection(CollectionDeployments)
 
-	// we'll be iterating and modifying - ensure every doc is handled exactly once
+	// we'll be iterating and modifying - sort by _id to ensure every doc is handled exactly once
 	fopts := options.FindOptions{}
-	fopts.SetSnapshot(true)
+	fopts.SetSort(bson.M{"_id": 1})
 
 	cur, err := coll.Find(context.Background(), bson.D{}, &fopts)
 	if err != nil {
