@@ -203,13 +203,10 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 func TestDeploymentIs(t *testing.T) {
 	d, err := NewDeployment()
 	assert.NoError(t, err)
+	d.MaxDevices = 1
 
-	// should not be in progress, no downloading/installing/rebooting
-	assert.False(t, d.IsInProgress())
-	// no pending devices either
-	assert.False(t, d.IsPending())
-	// in fact it's finished
-	assert.True(t, d.IsFinished())
+	assert.False(t, d.IsNotPending())
+	assert.False(t, d.IsFinished())
 
 	// check all active statuses
 	active := []string{
@@ -221,9 +218,8 @@ func TestDeploymentIs(t *testing.T) {
 		t.Logf("checking in-progress deployment stat %s", as)
 		d.Stats = NewDeviceDeploymentStats()
 		d.Stats[as] = 1
-		assert.True(t, d.IsInProgress())
+		assert.True(t, d.IsNotPending())
 		assert.False(t, d.IsFinished())
-		assert.False(t, d.IsPending())
 	}
 
 	finished := []string{
@@ -238,8 +234,7 @@ func TestDeploymentIs(t *testing.T) {
 		d.Stats = NewDeviceDeploymentStats()
 		d.Stats[as] = 1
 		assert.True(t, d.IsFinished())
-		assert.False(t, d.IsInProgress())
-		assert.False(t, d.IsPending())
+		assert.True(t, d.IsNotPending())
 	}
 
 	pending := []string{
@@ -250,8 +245,7 @@ func TestDeploymentIs(t *testing.T) {
 		d.Stats = NewDeviceDeploymentStats()
 		d.Stats[as] = 1
 		assert.False(t, d.IsFinished())
-		assert.False(t, d.IsInProgress())
-		assert.True(t, d.IsPending())
+		assert.False(t, d.IsNotPending())
 	}
 }
 
@@ -357,6 +351,9 @@ func TestDeploymentGetStatus(t *testing.T) {
 		assert.NoError(t, err)
 
 		dep.Stats = test.Stats
+		for _, n := range dep.Stats {
+			dep.MaxDevices += n
+		}
 
 		assert.Equal(t, test.OutputStatus, dep.GetStatus())
 	}

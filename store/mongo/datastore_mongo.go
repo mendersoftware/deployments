@@ -280,9 +280,11 @@ const (
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
 	StorageKeyDeploymentStats        = "stats"
 	StorageKeyDeploymentStatus       = "status"
+	StorageKeyDeploymentCreated      = "created"
 	StorageKeyDeploymentStatsCreated = "created"
 	StorageKeyDeploymentFinished     = "finished"
 	StorageKeyDeploymentArtifacts    = "artifacts"
+	StorageKeyDeploymentMaxDevices   = "max_devices"
 
 	ArtifactDependsDeviceType = "device_type"
 )
@@ -831,6 +833,17 @@ func (db *DataStoreMongo) GetDeviceDeploymentLog(ctx context.Context,
 
 // device deployments
 
+// Insert persists device deployment object
+func (db *DataStoreMongo) InsertDeviceDeployment(ctx context.Context, deviceDeployment *model.DeviceDeployment) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	c := database.Collection(CollectionDevices)
+
+	if _, err := c.InsertOne(ctx, deviceDeployment); err != nil {
+		return err
+	}
+	return nil
+}
+
 // InsertMany stores multiple device deployment objects.
 // TODO: Handle error cleanup, multi insert is not atomic, loop into two-phase commits
 func (db *DataStoreMongo) InsertMany(ctx context.Context,
@@ -923,6 +936,44 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 	findOptions.SetSort(bson.M{"created": 1})
 
 	// Select only the oldest one that have not been finished yet.
+	var deployment *model.DeviceDeployment
+	if err := collDevs.FindOne(ctx, query, findOptions).
+		Decode(&deployment); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return deployment, nil
+}
+
+// FindLatestDeploymentForDeviceIDWithStatuses finds latest deployment
+// matching device id and one of specified statuses.
+func (db *DataStoreMongo) FindLatestDeploymentForDeviceIDWithStatuses(ctx context.Context,
+	deviceID string, statuses ...string) (*model.DeviceDeployment, error) {
+
+	// Verify ID formatting
+	if govalidator.IsNull(deviceID) {
+		return nil, ErrStorageInvalidID
+	}
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
+
+	query := bson.D{
+		{Key: StorageKeyDeviceDeploymentDeviceId,
+			Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentStatus,
+			Value: bson.M{"$in": statuses}},
+	}
+
+	// Find the latest one by sorting by the creation timestamp
+	// in ascending order.
+	findOptions := mopts.FindOne()
+	findOptions.SetSort(bson.M{"created": -1})
+
+	// Select only the latest one that have not been finished yet.
 	var deployment *model.DeviceDeployment
 	if err := collDevs.FindOne(ctx, query, findOptions).
 		Decode(&deployment); err != nil {
@@ -1145,7 +1196,7 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 func (db *DataStoreMongo) GetDeviceStatusesForDeployment(ctx context.Context,
 	deploymentID string) ([]model.DeviceDeployment, error) {
 
-	var statuses []model.DeviceDeployment
+	statuses := []model.DeviceDeployment{}
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDevs := database.Collection(CollectionDevices)
 
@@ -1636,6 +1687,44 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 	}
 	if err := cursor.All(ctx, &deployments); err != nil {
 		return nil, err
+	}
+
+	return deployments, nil
+}
+
+// FindNewerActiveDeployments finds active deployments which were created
+// after createdAfter
+func (db *DataStoreMongo) FindNewerActiveDeployments(ctx context.Context,
+	createdAfter *time.Time, skip, limit int) ([]*model.Deployment, error) {
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	c := database.Collection(CollectionDeployments)
+
+	queryFilters := make([]bson.M, 0)
+	queryFilters = append(queryFilters,
+		bson.M{StorageKeyDeploymentStatus: bson.M{"$ne": model.DeploymentStatusFinished}})
+	queryFilters = append(queryFilters,
+		bson.M{StorageKeyDeploymentCreated: bson.M{"$gt": createdAfter}})
+	findQuery := bson.M{}
+	findQuery["$and"] = queryFilters
+
+	findOptions := &mopts.FindOptions{}
+	findOptions.SetSkip(int64(skip))
+	findOptions.SetLimit(int64(limit))
+
+	sort := bson.M{}
+	sort[StorageKeyDeploymentCreated] = 1
+	findOptions.SetSort(sort)
+	cursor, err := c.Find(ctx, findQuery, findOptions)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get deployments")
+	}
+	defer cursor.Close(ctx)
+
+	var deployments []*model.Deployment
+
+	if err = cursor.All(ctx, &deployments); err != nil {
+		return nil, errors.Wrap(err, "failed to get deployments")
 	}
 
 	return deployments, nil

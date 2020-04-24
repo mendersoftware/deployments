@@ -17,12 +17,17 @@ package mongo
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/go-lib-micro/identity"
+	ctxstore "github.com/mendersoftware/go-lib-micro/store"
+
+	"github.com/mendersoftware/deployments/utils/pointers"
 )
 
 func TestGetReleases(t *testing.T) {
@@ -175,6 +180,169 @@ func TestGetReleases(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tc.releases, releases)
+		})
+	}
+}
+
+func TestFindNewerActiveDeployments(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("skipping TestFindNewerActiveDeployments in short mode.")
+	}
+	now := time.Now()
+
+	testCases := map[string]struct {
+		InputDeploymentsCollection []interface{}
+		InputTenant                string
+		InputCreatedAfter          *time.Time
+		InputSkip                  int
+		InputLimit                 int
+
+		OutputError       error
+		OutputDeployments []*model.Deployment
+	}{
+		"empty database": {
+			InputCreatedAfter: &now,
+			InputSkip:         0,
+			InputLimit:        1,
+
+			OutputError:       nil,
+			OutputDeployments: nil,
+		},
+		"no newer deployments": {
+			InputDeploymentsCollection: []interface{}{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						Name:         pointers.StringToPointer("NYC Production"),
+						ArtifactName: pointers.StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      pointers.StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Created: &now,
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						Name:         pointers.StringToPointer("NYC Production"),
+						ArtifactName: pointers.StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      pointers.StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Created: &now,
+				},
+			},
+			InputSkip:         0,
+			InputLimit:        1,
+			InputCreatedAfter: TimePtr(now.Add(time.Hour * 24)),
+
+			OutputError:       nil,
+			OutputDeployments: nil,
+		},
+		"one newer deployments": {
+			InputDeploymentsCollection: []interface{}{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						Name:         pointers.StringToPointer("NYC Production"),
+						ArtifactName: pointers.StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      pointers.StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Created: &now,
+				},
+			},
+			InputSkip:         0,
+			InputLimit:        5,
+			InputCreatedAfter: TimePtr(now.Add(-time.Hour * 24)),
+
+			OutputError: nil,
+			OutputDeployments: []*model.Deployment{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						Name:         pointers.StringToPointer("NYC Production"),
+						ArtifactName: pointers.StringToPointer("App 123"),
+					},
+					Id: pointers.StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				},
+			},
+		},
+		"one older deployment and one newer deployments": {
+			InputDeploymentsCollection: []interface{}{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						Name:         pointers.StringToPointer("NYC Production"),
+						ArtifactName: pointers.StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      pointers.StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Created: TimePtr(now.Add(-time.Hour * 24)),
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						Name:         pointers.StringToPointer("NYC Production"),
+						ArtifactName: pointers.StringToPointer("App 123"),
+						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+					},
+					Id:      pointers.StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Created: TimePtr(now.Add(time.Hour * 24)),
+				},
+			},
+			InputSkip:         0,
+			InputLimit:        5,
+			InputCreatedAfter: &now,
+
+			OutputError: nil,
+			OutputDeployments: []*model.Deployment{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						Name:         pointers.StringToPointer("NYC Production"),
+						ArtifactName: pointers.StringToPointer("App 123"),
+					},
+					Id: pointers.StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+				},
+			},
+		},
+	}
+
+	for testCaseName, testCase := range testCases {
+		t.Run(testCaseName, func(t *testing.T) {
+
+			// Make sure we start test with empty database
+			db.Wipe()
+
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			} else {
+				ctx = context.Background()
+			}
+
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
+
+			if testCase.InputDeploymentsCollection != nil {
+				_, err := collDep.InsertMany(
+					ctx, testCase.InputDeploymentsCollection)
+				assert.NoError(t, err)
+			}
+
+			deployments, err := store.FindNewerActiveDeployments(ctx,
+				testCase.InputCreatedAfter, testCase.InputSkip, testCase.InputLimit)
+
+			for i, _ := range deployments {
+				deployments[i].Created = nil
+			}
+
+			if testCase.OutputError != nil {
+				assert.EqualError(t, err, testCase.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, testCase.OutputDeployments, deployments)
+			}
 		})
 	}
 }

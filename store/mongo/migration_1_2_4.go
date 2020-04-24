@@ -66,13 +66,18 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 
 		// substitute stats to recalc status with deployment.GetStatus
 		dep.Stats = newstats
-		status := dep.GetStatus()
+		status := m.getStatus(&dep)
+		deviceCount, err := m.deviceCountByDeployment(ctx, *dep.Id)
+		if err != nil {
+			return errors.Wrapf(err, "failed to count device deployments for deployment %s", *dep.Id)
+		}
 
 		res, err := coll.UpdateOne(ctx, bson.M{"_id": *dep.Id},
 			bson.M{
 				"$set": bson.M{
-					StorageKeyDeploymentStats:  newstats,
-					StorageKeyDeploymentStatus: status,
+					StorageKeyDeploymentStats:      newstats,
+					StorageKeyDeploymentStatus:     status,
+					StorageKeyDeploymentMaxDevices: deviceCount,
 				},
 			})
 
@@ -101,6 +106,44 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 	}
 
 	return nil
+}
+
+func isFinished(d *model.Deployment) bool {
+	if d.Stats[model.DeviceDeploymentStatusPending] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusDownloading] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusInstalling] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusRebooting] == 0 {
+		return true
+	}
+
+	return false
+}
+
+func isPending(d *model.Deployment) bool {
+	//pending > 0, evt else == 0
+	if d.Stats[model.DeviceDeploymentStatusPending] > 0 &&
+		d.Stats[model.DeviceDeploymentStatusDownloading] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusInstalling] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusRebooting] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusSuccess] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusAlreadyInst] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusFailure] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusNoArtifact] == 0 {
+
+		return true
+	}
+
+	return false
+}
+
+func (m *migration_1_2_4) getStatus(deployment *model.Deployment) string {
+	if isPending(deployment) {
+		return model.DeploymentStatusPending
+	} else if isFinished(deployment) {
+		return model.DeploymentStatusFinished
+	} else {
+		return model.DeploymentStatusInProgress
+	}
 }
 
 // aggregateDeviceStatuses calculates:
@@ -153,6 +196,21 @@ func (m *migration_1_2_4) aggregateDeviceStatuses(ctx context.Context, depId str
 		raw[res.Name] = res.Count
 	}
 	return raw, nil
+}
+
+func (m *migration_1_2_4) deviceCountByDeployment(ctx context.Context, id string) (int, error) {
+	collDevs := m.client.Database(m.db).Collection(CollectionDevices)
+
+	filter := bson.M{
+		"deploymentid": id,
+	}
+
+	deviceCount, err := collDevs.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(deviceCount), nil
 }
 
 func (m *migration_1_2_4) Version() migrate.Version {

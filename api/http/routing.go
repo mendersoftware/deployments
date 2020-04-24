@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ const (
 	ApiUrlManagementDeploymentsDevices    = ApiUrlManagement + "/deployments/:id/devices"
 	ApiUrlManagementDeploymentsLog        = ApiUrlManagement + "/deployments/:id/devices/:devid/log"
 	ApiUrlManagementDeploymentsDeviceId   = ApiUrlManagement + "/deployments/devices/:id"
+	ApiUrlManagementDeploymentsDeviceList = ApiUrlManagement + "/deployments/:id/device_list"
 
 	ApiUrlManagementReleases = ApiUrlManagement + "/deployments/releases"
 
@@ -150,6 +151,8 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 			controller.GetDeploymentLogForDevice),
 		rest.Delete(ApiUrlManagementDeploymentsDeviceId,
 			controller.DecommissionDevice),
+		rest.Get(ApiUrlManagementDeploymentsDeviceList,
+			controller.GetDeploymentDeviceList),
 
 		// Devices
 		rest.Get(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
