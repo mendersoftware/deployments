@@ -42,6 +42,7 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 	// we'll be iterating and modifying - sort by _id to ensure every doc is handled exactly once
 	fopts := options.FindOptions{}
 	fopts.SetSort(bson.M{"_id": 1})
+	fopts.SetNoCursorTimeout(true)
 
 	cur, err := coll.Find(context.Background(), bson.D{}, &fopts)
 	if err != nil {
