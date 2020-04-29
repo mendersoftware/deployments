@@ -42,12 +42,18 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 	// we'll be iterating and modifying - sort by _id to ensure every doc is handled exactly once
 	fopts := options.FindOptions{}
 	fopts.SetSort(bson.M{"_id": 1})
+	fopts.SetNoCursorTimeout(true)
 
 	cur, err := coll.Find(context.Background(), bson.D{}, &fopts)
 	if err != nil {
 		return errors.Wrap(err, "failed to get deployments")
 	}
 	defer cur.Close(ctx)
+
+	allstats, err := m.aggregateDeviceStatuses(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get aggregated device statuses")
+	}
 
 	for cur.Next(ctx) {
 		var dep model.Deployment
@@ -57,7 +63,13 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 		}
 		l.Infof("processing deployment %s with stats %v", *dep.Id, dep.Stats)
 
-		newstats, err := m.aggregateDeviceStatuses(ctx, *dep.Id)
+		var stats model.Stats
+		if allstats[*dep.Id] != nil {
+			stats = *allstats[*dep.Id]
+		} else {
+			stats = model.NewDeviceDeploymentStats()
+		}
+		newstats := stats
 		l.Infof("computed stats: %v", dep.Stats)
 
 		if !reflect.DeepEqual(newstats, dep.Stats) {
@@ -154,28 +166,30 @@ func (m *migration_1_2_4) getStatus(deployment *model.Deployment) string {
 // it's implementation in case it changes/is removed
 // note that device statuses are the best bet as a single source of
 // truth on deployment status (used for all GETs at the time of writing this migration)
-func (m *migration_1_2_4) aggregateDeviceStatuses(ctx context.Context, depId string) (model.Stats, error) {
+func (m *migration_1_2_4) aggregateDeviceStatuses(ctx context.Context) (map[string]*model.Stats, error) {
 	deviceDeployments := m.client.Database(m.db).Collection(CollectionDevices)
 
-	match := bson.D{
-		{Key: "$match", Value: bson.M{
-			StorageKeyDeviceDeploymentDeploymentID: depId}},
-	}
 	group := bson.D{
 		{Key: "$group", Value: bson.D{
 			{Key: "_id",
-				Value: "$" + StorageKeyDeviceDeploymentStatus},
+				Value: bson.D{
+					{Key: "deploymentid", Value: "$" + StorageKeyDeviceDeploymentDeploymentID},
+					{Key: "status", Value: "$" + StorageKeyDeviceDeploymentStatus},
+				},
+			},
 			{Key: "count",
 				Value: bson.M{"$sum": 1}}},
 		},
 	}
 	pipeline := []bson.D{
-		match,
 		group,
 	}
 
 	var results []struct {
-		Name  string `bson:"_id"`
+		ID struct {
+			DeploymentID string `bson:"deploymentid"`
+			Status       string `bson:"status"`
+		} `bson:"_id"`
 		Count int
 	}
 
@@ -191,11 +205,15 @@ func (m *migration_1_2_4) aggregateDeviceStatuses(ctx context.Context, depId str
 		return nil, err
 	}
 
-	raw := model.NewDeviceDeploymentStats()
+	stats := make(map[string]*model.Stats)
 	for _, res := range results {
-		raw[res.Name] = res.Count
+		if stats[res.ID.DeploymentID] == nil {
+			raw := model.NewDeviceDeploymentStats()
+			stats[res.ID.DeploymentID] = &raw
+		}
+		(*stats[res.ID.DeploymentID])[res.ID.Status] = res.Count
 	}
-	return raw, nil
+	return stats, nil
 }
 
 func (m *migration_1_2_4) deviceCountByDeployment(ctx context.Context, id string) (int, error) {
