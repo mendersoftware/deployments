@@ -282,7 +282,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
 					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-					Stats: map[string]int{
+					Stats: model.Stats{
 						model.DeviceDeploymentStatusDownloading: 0,
 						model.DeviceDeploymentStatusInstalling:  0,
 						model.DeviceDeploymentStatusRebooting:   0,
@@ -301,7 +301,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
 					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
-					Stats: map[string]int{
+					Stats: model.Stats{
 						model.DeviceDeploymentStatusDownloading: 0,
 						model.DeviceDeploymentStatusInstalling:  0,
 						model.DeviceDeploymentStatusRebooting:   0,
@@ -322,7 +322,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 					//Devices is not kept around!
 				},
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Stats: map[string]int{
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 0,
 					model.DeviceDeploymentStatusInstalling:  0,
 					model.DeviceDeploymentStatusRebooting:   0,
@@ -345,7 +345,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
 					Id:    StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-					Stats: map[string]int{},
+					Stats: model.Stats{},
 				},
 			},
 			InputTenant: "acme",
@@ -357,7 +357,7 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 					//Devices is not kept around!
 				},
 				Id:    StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Stats: map[string]int{},
+				Stats: model.Stats{},
 			},
 		},
 	}
@@ -469,7 +469,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
 					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-					Stats: map[string]int{
+					Stats: model.Stats{
 						model.DeviceDeploymentStatusDownloading: 0,
 						model.DeviceDeploymentStatusInstalling:  0,
 						model.DeviceDeploymentStatusRebooting:   0,
@@ -488,7 +488,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
 					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
-					Stats: map[string]int{
+					Stats: model.Stats{
 						model.DeviceDeploymentStatusDownloading: 0,
 						model.DeviceDeploymentStatusInstalling:  0,
 						model.DeviceDeploymentStatusRebooting:   0,
@@ -509,7 +509,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 					//Devices is not kept around!
 				},
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Stats: map[string]int{
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 0,
 					model.DeviceDeploymentStatusInstalling:  0,
 					model.DeviceDeploymentStatusRebooting:   0,
@@ -556,7 +556,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
 					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-					Stats: map[string]int{
+					Stats: model.Stats{
 						model.DeviceDeploymentStatusPending: 10,
 						model.DeviceDeploymentStatusSuccess: 15,
 						model.DeviceDeploymentStatusFailure: 1,
@@ -572,7 +572,7 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 					//Devices is not kept around!
 				},
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Stats: map[string]int{
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending: 10,
 					model.DeviceDeploymentStatusSuccess: 15,
 					model.DeviceDeploymentStatusFailure: 1,
@@ -646,13 +646,13 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 		InputStateTo   string
 
 		OutputError error
-		OutputStats map[string]int
+		OutputStats model.Stats
 	}{
 		"pending -> finished": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeployment: &model.Deployment{
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Stats: map[string]int{
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
 					model.DeviceDeploymentStatusRebooting:   3,
@@ -668,7 +668,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 			InputStateTo:   model.DeviceDeploymentStatusSuccess,
 
 			OutputError: nil,
-			OutputStats: map[string]int{
+			OutputStats: model.Stats{
 				model.DeviceDeploymentStatusDownloading: 1,
 				model.DeviceDeploymentStatusInstalling:  2,
 				model.DeviceDeploymentStatusRebooting:   3,
@@ -684,7 +684,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeployment: &model.Deployment{
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Stats: map[string]int{
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
 					model.DeviceDeploymentStatusRebooting:   3,
@@ -700,7 +700,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 			InputStateTo:   model.DeviceDeploymentStatusFailure,
 
 			OutputError: nil,
-			OutputStats: map[string]int{
+			OutputStats: model.Stats{
 				model.DeviceDeploymentStatusDownloading: 1,
 				model.DeviceDeploymentStatusInstalling:  2,
 				model.DeviceDeploymentStatusRebooting:   2,
@@ -734,7 +734,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeployment: &model.Deployment{
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Stats: map[string]int{
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
 					model.DeviceDeploymentStatusRebooting:   3,
@@ -756,7 +756,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeployment: &model.Deployment{
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Stats: map[string]int{
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
 					model.DeviceDeploymentStatusRebooting:   3,
@@ -772,7 +772,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 			InputStateTo:   model.DeviceDeploymentStatusInstalling,
 
 			OutputError: nil,
-			OutputStats: map[string]int{
+			OutputStats: model.Stats{
 				model.DeviceDeploymentStatusDownloading: 1,
 				model.DeviceDeploymentStatusInstalling:  2,
 				model.DeviceDeploymentStatusRebooting:   3,
@@ -788,7 +788,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeployment: &model.Deployment{
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Stats: map[string]int{
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
 					model.DeviceDeploymentStatusRebooting:   3,
@@ -806,7 +806,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 			InputStateTo:   model.DeviceDeploymentStatusSuccess,
 
 			OutputError: nil,
-			OutputStats: map[string]int{
+			OutputStats: model.Stats{
 				model.DeviceDeploymentStatusDownloading: 1,
 				model.DeviceDeploymentStatusInstalling:  2,
 				model.DeviceDeploymentStatusRebooting:   3,
@@ -902,7 +902,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 	testCases := map[string]struct {
 		id     string
 		dep    *model.Deployment
-		stats  map[string]int
+		stats  model.Stats
 		tenant string
 
 		err error
@@ -911,7 +911,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 			id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			dep: &model.Deployment{
 				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
-				Stats: map[string]int{
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
 					model.DeviceDeploymentStatusRebooting:   3,
@@ -923,7 +923,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 					model.DeviceDeploymentStatusAborted:     5,
 				},
 			},
-			stats: map[string]int{
+			stats: model.Stats{
 				model.DeviceDeploymentStatusDownloading: 1,
 				model.DeviceDeploymentStatusInstalling:  2,
 				model.DeviceDeploymentStatusRebooting:   3,
