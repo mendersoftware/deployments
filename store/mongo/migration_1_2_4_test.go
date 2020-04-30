@@ -17,6 +17,7 @@ package mongo
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +32,7 @@ func TestMigration_1_2_4(t *testing.T) {
 		t.Skip("skipping TestMigration_1_2_4 in short mode.")
 	}
 	ctx := context.Background()
+	now := time.Now()
 
 	testCases := map[string]struct {
 		db         string
@@ -38,8 +40,9 @@ func TestMigration_1_2_4(t *testing.T) {
 		deployment interface{}
 		devices    []interface{}
 
-		outstatus string
-		outerr    error
+		outstatus        string
+		outerr           error
+		ignoreMaxDevices bool
 	}{
 		"pending 1": {
 			db: "deployments_service",
@@ -367,6 +370,35 @@ func TestMigration_1_2_4(t *testing.T) {
 			},
 			outstatus: "finished",
 		},
+		"finished (because of timestamp)": {
+			db: "deployments_service",
+			id: "finished-4",
+			deployment: model.Deployment{
+				Id:       strp("finished-4"),
+				Finished: &now,
+				Stats: map[string]int{
+					model.DeviceDeploymentStatusPending:        0,
+					model.DeviceDeploymentStatusDownloading:    0,
+					model.DeviceDeploymentStatusInstalling:     0,
+					model.DeviceDeploymentStatusRebooting:      0,
+					model.DeviceDeploymentStatusSuccess:        1,
+					model.DeviceDeploymentStatusAlreadyInst:    0,
+					model.DeviceDeploymentStatusFailure:        0,
+					model.DeviceDeploymentStatusNoArtifact:     0,
+					model.DeviceDeploymentStatusAborted:        0,
+					model.DeviceDeploymentStatusDecommissioned: 0,
+				},
+			},
+			devices: []interface{}{
+				model.DeviceDeployment{
+					Id:           strp("3"),
+					DeploymentId: strp("dep-inprog-3"),
+					Status:       strp("success"),
+				},
+			},
+			outstatus:        "finished",
+			ignoreMaxDevices: true,
+		},
 	}
 
 	for name, tc := range testCases {
@@ -426,7 +458,9 @@ func TestMigration_1_2_4(t *testing.T) {
 
 		assert.Equal(t, tc.outstatus, out.Status)
 
-		assert.Equal(t, len(tc.devices), out.MaxDevices)
+		if !tc.ignoreMaxDevices {
+			assert.Equal(t, len(tc.devices), out.MaxDevices)
+		}
 
 		// verify index exists
 		indexes := collDeps.Indexes()

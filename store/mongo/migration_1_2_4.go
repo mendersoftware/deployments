@@ -34,17 +34,33 @@ type migration_1_2_4 struct {
 }
 
 func (m *migration_1_2_4) Up(from migrate.Version) error {
-	ctx := context.TODO()
+	ctx := context.Background()
 	l := log.FromContext(ctx)
 
 	coll := m.client.Database(m.db).Collection(CollectionDeployments)
 
+	// update all deployments with finished timestamp to status "finished"
+	coll.UpdateMany(ctx, bson.M{
+		StorageKeyDeploymentFinished: bson.M{
+			"$ne": nil,
+		},
+	}, bson.M{
+		"$set": bson.M{
+			StorageKeyDeploymentStatus: model.DeploymentStatusFinished,
+		},
+	})
+
+	// recalculate stats for all the non-finished deployments
 	// we'll be iterating and modifying - sort by _id to ensure every doc is handled exactly once
 	fopts := options.FindOptions{}
 	fopts.SetSort(bson.M{"_id": 1})
 	fopts.SetNoCursorTimeout(true)
 
-	cur, err := coll.Find(context.Background(), bson.D{}, &fopts)
+	cur, err := coll.Find(ctx, bson.M{
+		StorageKeyDeploymentFinished: bson.M{
+			"$eq": nil,
+		},
+	}, &fopts)
 	if err != nil {
 		return errors.Wrap(err, "failed to get deployments")
 	}
@@ -72,10 +88,6 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 		newstats := stats
 		l.Infof("computed stats: %v", dep.Stats)
 
-		if !reflect.DeepEqual(newstats, dep.Stats) {
-			l.Warnf("stats don't match, will overwrite")
-		}
-
 		// substitute stats to recalc status with deployment.GetStatus
 		dep.Stats = newstats
 		status := m.getStatus(&dep)
@@ -84,15 +96,16 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 			return errors.Wrapf(err, "failed to count device deployments for deployment %s", *dep.Id)
 		}
 
-		res, err := coll.UpdateOne(ctx, bson.M{"_id": *dep.Id},
-			bson.M{
-				"$set": bson.M{
-					StorageKeyDeploymentStats:      newstats,
-					StorageKeyDeploymentStatus:     status,
-					StorageKeyDeploymentMaxDevices: deviceCount,
-				},
-			})
+		sets := bson.M{
+			StorageKeyDeploymentStatus:     status,
+			StorageKeyDeploymentMaxDevices: deviceCount,
+		}
 
+		if !reflect.DeepEqual(newstats, dep.Stats) {
+			sets[StorageKeyDeploymentStats] = newstats
+		}
+
+		res, err := coll.UpdateOne(ctx, bson.M{"_id": *dep.Id}, bson.M{"$set": sets})
 		if err != nil {
 			return errors.Wrapf(err, "failed to update deployment %s", *dep.Id)
 		}
