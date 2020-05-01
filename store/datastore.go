@@ -95,7 +95,7 @@ type DataStore interface {
 	UpdateStats(ctx context.Context,
 		id string, stats model.Stats) error
 	Find(ctx context.Context,
-		query model.Query) ([]*model.Deployment, error)
+		query model.Query) ([]*model.Deployment, int64, error)
 	SetDeploymentStatus(ctx context.Context, id, status string, now time.Time) error
 	FindNewerActiveDeployments(ctx context.Context,
 		createdAfter *time.Time, skip, limit int) ([]*model.Deployment, error)

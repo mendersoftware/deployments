@@ -1611,7 +1611,7 @@ func buildStatusKey(status string) string {
 }
 
 func (db *DataStoreMongo) Find(ctx context.Context,
-	match model.Query) ([]*model.Deployment, error) {
+	match model.Query) ([]*model.Deployment, int64, error) {
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDpl := database.Collection(CollectionDeployments)
@@ -1622,7 +1622,7 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 	if match.SearchText != "" {
 		// we must have indexing for text search
 		if !db.hasIndexing(ctx, db.client) {
-			return nil, ErrDeploymentStorageCannotExecQuery
+			return nil, 0, ErrDeploymentStorageCannotExecQuery
 		}
 
 		tq := bson.M{
@@ -1680,16 +1680,20 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 		options.SetLimit(int64(match.Limit))
 	}
 
+	count, err := collDpl.CountDocuments(ctx, query)
+	if err != nil {
+		return nil, 0, err
+	}
 	var deployments []*model.Deployment
 	cursor, err := collDpl.Find(ctx, query, options)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if err := cursor.All(ctx, &deployments); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return deployments, nil
+	return deployments, count, nil
 }
 
 // FindNewerActiveDeployments finds active deployments which were created
