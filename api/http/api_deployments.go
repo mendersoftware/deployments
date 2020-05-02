@@ -44,6 +44,7 @@ const (
 	DefaultDownloadLinkExpire = 15 * time.Minute
 
 	DefaultMaxMetaSize = 1024 * 1024 * 10
+	hdrTotalCount      = "X-Total-Count"
 )
 
 // storage keys
@@ -903,11 +904,12 @@ func (d *DeploymentsApiHandlers) LookupDeployment(w rest.ResponseWriter, r *rest
 	query.Skip = int((page - 1) * perPage)
 	query.Limit = int(perPage + 1)
 
-	deps, err := d.app.LookupDeployment(ctx, query)
+	deps, totalCount, err := d.app.LookupDeployment(ctx, query)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
+	w.Header().Add(hdrTotalCount, strconv.FormatInt(totalCount, 10))
 
 	len := len(deps)
 	hasNext := false
@@ -1042,9 +1044,10 @@ func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWrit
 	ident := &identity.Identity{Tenant: tenantID}
 	ctx := identity.WithContext(r.Context(), ident)
 
-	if deps, err := d.app.LookupDeployment(ctx, query); err != nil {
+	if deps, totalCount, err := d.app.LookupDeployment(ctx, query); err != nil {
 		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
 	} else {
+		w.Header().Add(hdrTotalCount, strconv.FormatInt(totalCount, 10))
 		w.WriteJson(deps)
 	}
 }

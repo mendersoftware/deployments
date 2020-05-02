@@ -224,7 +224,7 @@ func (_m *DataStore) Exists(ctx context.Context, id string) (bool, error) {
 }
 
 // Find provides a mock function with given fields: ctx, query
-func (_m *DataStore) Find(ctx context.Context, query model.Query) ([]*model.Deployment, error) {
+func (_m *DataStore) Find(ctx context.Context, query model.Query) ([]*model.Deployment, int64, error) {
 	ret := _m.Called(ctx, query)
 
 	var r0 []*model.Deployment
@@ -236,14 +236,23 @@ func (_m *DataStore) Find(ctx context.Context, query model.Query) ([]*model.Depl
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, model.Query) error); ok {
+	var r1 int64
+	if rf, ok := ret.Get(1).(func(context.Context, model.Query) int64); ok {
 		r1 = rf(ctx, query)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(int64)
+		}
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, model.Query) error); ok {
+		r2 = rf(ctx, query)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // FindAll provides a mock function with given fields: ctx

@@ -111,7 +111,7 @@ type App interface {
 	GetDeviceStatusesForDeployment(ctx context.Context,
 		deploymentID string) ([]model.DeviceDeployment, error)
 	LookupDeployment(ctx context.Context,
-		query model.Query) ([]*model.Deployment, error)
+		query model.Query) ([]*model.Deployment, int64, error)
 	SaveDeviceDeploymentLog(ctx context.Context, deviceID string,
 		deploymentID string, logs []model.LogMessage) error
 	GetDeviceDeploymentLog(ctx context.Context,
@@ -1048,27 +1048,27 @@ func (d *Deployments) GetDeviceStatusesForDeployment(ctx context.Context,
 }
 
 func (d *Deployments) LookupDeployment(ctx context.Context,
-	query model.Query) ([]*model.Deployment, error) {
-	list, err := d.db.Find(ctx, query)
+	query model.Query) ([]*model.Deployment, int64, error) {
+	list, totalCount, err := d.db.Find(ctx, query)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "searching for deployments")
+		return nil, 0, errors.Wrap(err, "searching for deployments")
 	}
 
 	if list == nil {
-		return make([]*model.Deployment, 0), nil
+		return make([]*model.Deployment, 0), 0, nil
 	}
 
 	for _, deployment := range list {
 		if deviceCount, err := d.db.DeviceCountByDeployment(ctx,
 			*deployment.Id); err != nil {
-			return nil, errors.Wrap(err, "counting device deployments")
+			return nil, 0, errors.Wrap(err, "counting device deployments")
 		} else {
 			deployment.DeviceCount = deviceCount
 		}
 	}
 
-	return list, nil
+	return list, totalCount, nil
 }
 
 // SaveDeviceDeploymentLog will save the deployment log for device of
