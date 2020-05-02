@@ -117,6 +117,7 @@ func cmdServer(args *cli.Context) error {
 
 	err = RunServer(config.Config)
 	if err != nil {
+		l.Errorf("Deployments Service failed to RunServer: %v; exit code:4", err)
 		return cli.NewExitError(err.Error(), 4)
 	}
 

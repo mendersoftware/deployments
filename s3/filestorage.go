@@ -104,11 +104,11 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
-				l.Errorf("deployments service fatal: awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou err:%v",err)
+				l.Errorf("deployments service fatal: awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou err:%v", err)
 				return nil, err
 			}
 		} else {
-			l.Errorf("deployments service fatal:  err:%v",err)
+			l.Errorf("deployments service fatal:  err:%v", err)
 			return nil, err
 		}
 	}
