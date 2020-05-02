@@ -96,6 +96,7 @@ type App interface {
 		constructorData *model.ImageMeta) (bool, error)
 
 	// deployments
+	Health(ctx context.Context) (string, error)
 	CreateDeployment(ctx context.Context,
 		constructor *model.DeploymentConstructor) (string, error)
 	GetDeployment(ctx context.Context, deploymentID string) (*model.Deployment, error)
@@ -596,6 +597,17 @@ func getArtifactIDs(artifacts []*model.Image) []string {
 }
 
 // deployments
+
+// Health check, called from GET ApiUrlInternalHealth
+func (d *Deployments) Health(ctx context.Context) (string, error) {
+	l := log.FromContext(ctx)
+	_, err := d.fileStorage.GetBucketRegion()
+	if err != nil {
+		l.Errorf("Health check failed: %s.", err.Error())
+		return "not healthy", err
+	}
+	return "healthy", nil
+}
 
 // CreateDeployment precomputes new deployment and schedules it for devices.
 func (d *Deployments) CreateDeployment(ctx context.Context,

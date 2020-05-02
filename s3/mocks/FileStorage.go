@@ -163,3 +163,23 @@ func (_m *FileStorage) UploadArtifact(ctx context.Context, objectId string, arti
 
 	return r0
 }
+
+func (_m *FileStorage) GetBucketRegion() (string, error) {
+	ret := _m.Called()
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func() string); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}

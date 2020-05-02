@@ -533,6 +533,20 @@ func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(r *rest.Request) (*
 
 // deployments
 
+//Health check GET ApiUrlInternalHealth
+func (d *DeploymentsApiHandlers) Health(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	health, err := d.app.Health(ctx)
+	if err != nil {
+		d.view.RenderError(w, r, err, http.StatusServiceUnavailable, l)
+		return
+	}
+
+	d.view.RenderSuccessGet(w, health)
+}
+
 func (d *DeploymentsApiHandlers) PostDeployment(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)

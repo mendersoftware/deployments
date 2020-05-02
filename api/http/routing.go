@@ -35,6 +35,7 @@ const (
 	ApiUrlManagement = "/api/management/v1/deployments"
 	ApiUrlDevices    = "/api/devices/v1/deployments"
 
+	ApiUrlInternalHealth                = ApiUrlInternal + "/health"
 	ApiUrlManagementArtifacts           = ApiUrlManagement + "/artifacts"
 	ApiUrlManagementArtifactsGenerate   = ApiUrlManagement + "/artifacts/generate"
 	ApiUrlManagementArtifactsId         = ApiUrlManagement + "/artifacts/:id"
@@ -139,6 +140,8 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 
 	return []*rest.Route{
 
+		//health check
+		rest.Get(ApiUrlInternalHealth, controller.Health),
 		// Deployments
 		rest.Post(ApiUrlManagementDeployments, controller.PostDeployment),
 		rest.Get(ApiUrlManagementDeployments, controller.LookupDeployment),

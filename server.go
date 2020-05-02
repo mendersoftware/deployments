@@ -21,6 +21,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/mendersoftware/go-lib-micro/config"
+	"github.com/mendersoftware/go-lib-micro/log"
 
 	api_http "github.com/mendersoftware/deployments/api/http"
 	dconfig "github.com/mendersoftware/deployments/config"
@@ -55,5 +56,7 @@ func RunServer(c config.Reader) error {
 		return http.ListenAndServeTLS(listen, cert, key, api.MakeHandler())
 	}
 
+	l := log.FromContext(ctx)
+	l.Printf("listening on %s", listen)
 	return http.ListenAndServe(listen, api.MakeHandler())
 }

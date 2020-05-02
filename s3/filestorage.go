@@ -32,6 +32,7 @@ import (
 
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/go-lib-micro/identity"
+	"github.com/mendersoftware/go-lib-micro/log"
 )
 
 const (
@@ -47,6 +48,7 @@ var (
 
 // FileStorage allows to store and manage large files
 type FileStorage interface {
+	GetBucketRegion() (string, error)
 	Delete(ctx context.Context, objectId string) error
 	Exists(ctx context.Context, objectId string) (bool, error)
 	LastModified(ctx context.Context, objectId string) (time.Time, error)
@@ -522,4 +524,18 @@ func (s *SimpleStorageService) LastModified(ctx context.Context, objectID string
 	}
 
 	return *resp.Contents[0].LastModified, nil
+}
+
+//gets the region of the bucket as string. as of the moment of writing
+//used for health checks
+func (s *SimpleStorageService) GetBucketRegion() (string, error) {
+	input := s3.GetBucketLocationInput{
+		Bucket: aws.String(s.bucket),
+	}
+
+	location, err := s.client.GetBucketLocation(&input)
+	if err != nil {
+		return "", err
+	}
+	return location.String(), nil
 }
