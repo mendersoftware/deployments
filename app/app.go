@@ -44,6 +44,7 @@ const (
 )
 
 // maximum image size is 10G
+// NOTE: If this size increase, the buffer size in s3 client must be increased.
 const MaxImageSize = 1024 * 1024 * 1024 * 10
 
 // Errors expected from App interface
