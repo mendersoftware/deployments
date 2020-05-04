@@ -233,7 +233,7 @@ func (s *SimpleStorageService) uploadMultipart(
 	contentType string,
 ) error {
 	const maxPartNum = 10000
-	var partNum int64
+	var partNum int64 = 1
 	var rspUpload *s3.UploadPartOutput
 
 	// Pre-allocate 100 completed part (generous guesstimate)
@@ -290,7 +290,7 @@ func (s *SimpleStorageService) uploadMultipart(
 
 	// The following is loop is very similar to io.Copy except the
 	// destination is the s3 bucket.
-	for partNum = 1; partNum < maxPartNum; partNum++ {
+	for partNum++; partNum < maxPartNum; partNum++ {
 		// Read next chunk from stream (fill the whole buffer)
 		offset, eRead := fillBuffer(buf, artifact)
 		if offset > 0 {
@@ -364,6 +364,8 @@ func (s *SimpleStorageService) UploadArtifact(
 	artifact io.Reader,
 	contentType string,
 ) error {
+	// NOTE: This size along with the 10000 part limit sets the ultimate
+	//       limit on the upload size. (currently at ~97.5GiB)
 	const multipartSize = 10 * 1024 * 1024 // 10MiB (must be at least 5MiB)
 
 	objectID = getArtifactByTenant(ctx, objectID)
