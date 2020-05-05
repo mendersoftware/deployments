@@ -67,7 +67,7 @@ paths:
           default: 1
         - name: per_page
           in: query
-          description: Number of results per page
+          description: Maximum number of results per page.
           required: false
           type: number
           format: integer
