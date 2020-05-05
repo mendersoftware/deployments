@@ -1297,10 +1297,8 @@ func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 		},
 	}
 
-	if res, err := collDevs.UpdateMany(ctx, selector, update); err != nil {
+	if _, err := collDevs.UpdateMany(ctx, selector, update); err != nil {
 		return err
-	} else if res.MatchedCount == 0 {
-		return ErrStorageInvalidID
 	}
 
 	return nil
