@@ -98,6 +98,28 @@ aws:
     
     bucket: mender-artifact-storage
 
+    # Force S3 URI style to path
+    #
+    # AWS S3 supports two diffrent URI styles:
+    # - virtual-hosted (https://bucket-name.s3.Region.amazonaws.com/key)
+    # - path-style (https://s3.Region.amazonaws.com/bucket-name/key)
+    #
+    # Buckets created after September 30, 2020, will support only virtual
+    # hosted-style requests. Path-style requests will continue to be supported
+    # for buckets created on or before this date.
+    #
+    # For more information, see Amazon S3 Path Deprecation Plan:
+    # https://aws.amazon.com/blogs/aws/amazon-s3-path-deprecation-plan-the-rest-of-the-story/
+    #
+    # When minio (or alternative S3 implementations) is in use, path
+    # style URI are used.
+    #
+    # Defaults to: true (path-style), set false to enable virtual-hosted style
+    # Overwrite with environment variable: DEPLOYMENTS_AWS_FORCE_PATH_STYLE
+
+    # force_path_style: true
+
+
     # S3 URI
     # Defaults to: none (s3.amazonaws.com)
     # Overwrite with environment variable: DEPLOYMENTS_AWS_URI
