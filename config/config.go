@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -31,14 +31,16 @@ const (
 	SettingListen        = "listen"
 	SettingListenDefault = ":8080"
 
-	SettingsAws                   = "aws"
-	SettingAwsS3Region            = SettingsAws + ".region"
-	SettingAwsS3RegionDefault     = "us-east-1"
-	SettingAwsS3Bucket            = SettingsAws + ".bucket"
-	SettingAwsS3BucketDefault     = "mender-artifact-storage"
-	SettingAwsURI                 = SettingsAws + ".uri"
-	SettingsAwsTagArtifact        = SettingsAws + ".tag_artifact"
-	SettingsAwsTagArtifactDefault = false
+	SettingsAws                       = "aws"
+	SettingAwsS3Region                = SettingsAws + ".region"
+	SettingAwsS3RegionDefault         = "us-east-1"
+	SettingAwsS3Bucket                = SettingsAws + ".bucket"
+	SettingAwsS3BucketDefault         = "mender-artifact-storage"
+	SettingAwsS3ForcePathStyle        = SettingsAws + ".force_path_style"
+	SettingAwsS3ForcePathStyleDefault = true
+	SettingAwsURI                     = SettingsAws + ".uri"
+	SettingsAwsTagArtifact            = SettingsAws + ".tag_artifact"
+	SettingsAwsTagArtifactDefault     = false
 
 	SettingsAwsAuth      = SettingsAws + ".auth"
 	SettingAwsAuthKeyId  = SettingsAwsAuth + ".key"
@@ -121,6 +123,7 @@ var (
 		{Key: SettingListen, Value: SettingListenDefault},
 		{Key: SettingAwsS3Region, Value: SettingAwsS3RegionDefault},
 		{Key: SettingAwsS3Bucket, Value: SettingAwsS3BucketDefault},
+		{Key: SettingAwsS3ForcePathStyle, Value: SettingAwsS3ForcePathStyleDefault},
 		{Key: SettingMongo, Value: SettingMongoDefault},
 		{Key: SettingDbSSL, Value: SettingDbSSLDefault},
 		{Key: SettingDbSSLSkipVerify, Value: SettingDbSSLSkipVerifyDefault},

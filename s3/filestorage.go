@@ -71,7 +71,7 @@ type SimpleStorageService struct {
 
 // NewSimpleStorageServiceStatic create new S3 client model.
 // AWS authentication keys are automatically reloaded from env variables.
-func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string, tag_artifact bool) (*SimpleStorageService, error) {
+func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string, tag_artifact, forcePathStyle bool) (*SimpleStorageService, error) {
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
 
@@ -80,7 +80,11 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 		config = config.WithDisableSSL(sslDisabled).WithEndpoint(uri)
 	}
 
-	config.S3ForcePathStyle = aws.Bool(true)
+	// Amazon S3 will no longer support path-style API requests starting September 30th, 2020
+	// S3 buckets created after September 30, 2020 will support only virtual-hosted style requests
+	// Setting S3ForcePathStyle to false forces virtual-hosted style.
+	config.S3ForcePathStyle = aws.Bool(forcePathStyle)
+
 	sess := session.New(config)
 
 	client := s3.New(sess)
