@@ -2,12 +2,40 @@
 
 set -e
 
-case "$1" in
-    -h|--help)
-        echo "usage: $(basename $0) <git-range>"
-        exit 1
-        ;;
-esac
+while [[ $# -gt 0 ]]
+do
+    case "$1" in
+        -h|--help)
+            echo "usage: $(basename $0) [OPTIONS] <git-range>"
+            echo
+            echo "    --signoffs    Enable checking of signoffs"
+            echo "    --changelogs  Enable checking of changelogs"
+            echo
+            echo "NOTE: In the case that none of the above flags are set"
+            echo "      then they are both enabled by default."
+            exit 1
+            ;;
+        -s|--signoffs)
+            CHECK_SIGNOFFS=TRUE
+            shift
+            continue
+            ;;
+        -c|--changelogs)
+            CHECK_CHANGELOGS=TRUE
+            shift
+            continue
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+# Special case, no Signoff or Changelog flags set -> Do both
+if [ -z $CHECK_SIGNOFFS ] && [ -z $CHECK_CHANGELOGS ]; then
+    CHECK_SIGNOFFS=TRUE
+    CHECK_CHANGELOGS=TRUE
+fi
 
 if [ -z "$COMMIT_RANGE" ] && [ -n "$CI_COMMIT_REF_NAME" ]
 then
@@ -62,21 +90,25 @@ do
         continue
     fi
 
-    # Check that Signed-off-by tags are present.
-    if ! echo "$COMMIT_MSG" | grep -F "Signed-off-by: ${COMMIT_USER_EMAIL}" >/dev/null; then
-        echo >&2 "Commit ${i} is not signed off! Use --signoff with your commit."
-        notvalid="$notvalid $i"
+    if [ ! -z $CHECK_SIGNOFFS ]; then
+        # Check that Signed-off-by tags are present.
+        if ! echo "$COMMIT_MSG" | grep -F "Signed-off-by: ${COMMIT_USER_EMAIL}" >/dev/null; then
+            echo >&2 "Commit ${i} is not signed off! Use --signoff with your commit."
+            notvalid="$notvalid $i"
+        fi
     fi
 
-    # Check that Changelog tags are present.
-    if ! echo "$COMMIT_MSG" | grep -i "^ *Changelog:" >/dev/null; then
-        echo >&2 "Commit ${i} doesn't have a changelog tag! Make a changelog entry for your commit (https://github.com/mendersoftware/mender/blob/master/CONTRIBUTING.md#changelog-tags)."
-        notvalid="$notvalid $i"
-    # Less than three words probably means something was misspelled, except for
-    # None, Title and Commit.
-    elif ! echo "$COMMIT_MSG" | egrep -i "^ *Changelog: *(None|Title|Commit|\S+(\s+\S+){2,}) *$" >/dev/null; then
-        echo >&2 "Commit ${i} has less than three words in its changelog tag! Typo? (https://github.com/mendersoftware/mender/blob/master/CONTRIBUTING.md#changelog-tags)."
-        notvalid="$notvalid $i"
+    if [ ! -z $CHECK_CHANGELOGS ]; then
+        # Check that Changelog tags are present.
+        if ! echo "$COMMIT_MSG" | grep -i "^ *Changelog:" >/dev/null; then
+            echo >&2 "Commit ${i} doesn't have a changelog tag! Make a changelog entry for your commit (https://github.com/mendersoftware/mender/blob/master/CONTRIBUTING.md#changelog-tags)."
+            notvalid="$notvalid $i"
+        # Less than three words probably means something was misspelled, except for
+        # None, Title and Commit.
+        elif ! echo "$COMMIT_MSG" | egrep -i "^ *Changelog: *(None|Title|Commit|\S+(\s+\S+){2,}) *$" >/dev/null; then
+            echo >&2 "Commit ${i} has less than three words in its changelog tag! Typo? (https://github.com/mendersoftware/mender/blob/master/CONTRIBUTING.md#changelog-tags)."
+            notvalid="$notvalid $i"
+        fi
     fi
 done
 
