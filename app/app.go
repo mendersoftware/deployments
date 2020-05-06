@@ -1133,14 +1133,13 @@ func (d *Deployments) AbortDeployment(ctx context.Context, deploymentID string) 
 		return errors.Wrap(err, "failed to update deployment stats")
 	}
 
-	// get deployment and recalc deployment status
-	deployment, err := d.db.FindDeploymentByID(ctx, deploymentID)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to get deployment with id: %s", deploymentID)
-	}
-
-	err = d.recalcDeploymentStatus(ctx, deployment)
-	if err != nil {
+	// when aborting the deployment we need to set status directly instead of
+	// using recalcDeploymentStatus method;
+	// it is possible that the deployment does not have any device deployments yet;
+	// in that case, all statistics are 0 and calculating status based on statistics
+	// will not work - the calculated status will be "pending"
+	if err := d.db.SetDeploymentStatus(ctx,
+		deploymentID, model.DeploymentStatusFinished, time.Now()); err != nil {
 		return errors.Wrap(err, "failed to update deployment status")
 	}
 

@@ -200,9 +200,6 @@ func TestAbortDeployment(t *testing.T) {
 
 	db.On("UpdateStats", ctx, depId, stats).Return(nil)
 
-	db.On("FindDeploymentByID", ctx, *fakeDeployment.Id).Return(
-		fakeDeployment, nil)
-
 	db.On("SetDeploymentStatus", ctx,
 		depId,
 		"finished",
