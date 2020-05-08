@@ -87,7 +87,7 @@ type Deployment struct {
 	Status string `json:"status" bson:"status"`
 
 	// Number of devices being part of the deployment
-	DeviceCount int `json:"device_count" bson:"-"`
+	DeviceCount *int `json:"device_count" bson:"device_count"`
 
 	// Total number of devices targeted
 	MaxDevices int `json:"max_devices,omitempty" bson:"max_devices"`
@@ -125,6 +125,9 @@ func NewDeploymentFromConstructor(constructor *DeploymentConstructor) (*Deployme
 
 	deployment.DeploymentConstructor = constructor
 	deployment.Status = DeploymentStatusPending
+
+	deviceCount := 0
+	deployment.DeviceCount = &deviceCount
 
 	return deployment, nil
 }

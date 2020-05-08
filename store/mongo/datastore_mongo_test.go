@@ -185,7 +185,6 @@ func TestGetReleases(t *testing.T) {
 }
 
 func TestFindNewerActiveDeployments(t *testing.T) {
-
 	if testing.Short() {
 		t.Skip("skipping TestFindNewerActiveDeployments in short mode.")
 	}
@@ -345,4 +344,86 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 			}
 		})
 	}
+}
+
+func strToPtr(value string) *string {
+	return &value
+}
+
+func TestSetDeploymentDeviceCount(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestSetDeploymentDeviceCount in short mode.")
+	}
+
+	zero := 0
+	one := 1
+	now := time.Now()
+
+	testCases := map[string]struct {
+		deployment *model.Deployment
+		count      int
+		expected   int
+	}{
+		"device_count doesn't exist": {
+			deployment: &model.Deployment{
+				Id:      strToPtr("d50eda0d-2cea-4de1-8d42-9cd3e7e86701"),
+				Created: &now,
+				DeploymentConstructor: &model.DeploymentConstructor{
+					Name:         strToPtr("name"),
+					ArtifactName: strToPtr("artifact"),
+					Devices:      []string{"device-1"},
+				},
+			},
+			count:    10,
+			expected: 10,
+		},
+		"device_count is zero": {
+			deployment: &model.Deployment{
+				Id:          strToPtr("d50eda0d-2cea-4de1-8d42-9cd3e7e86702"),
+				DeviceCount: &zero,
+				Created:     &now,
+				DeploymentConstructor: &model.DeploymentConstructor{
+					Name:         strToPtr("name"),
+					ArtifactName: strToPtr("artifact"),
+					Devices:      []string{"device-1"},
+				},
+			},
+			count:    10,
+			expected: zero,
+		},
+		"device_count is one": {
+			deployment: &model.Deployment{
+				Id:          strToPtr("d50eda0d-2cea-4de1-8d42-9cd3e7e86703"),
+				DeviceCount: &one,
+				Created:     &now,
+				DeploymentConstructor: &model.DeploymentConstructor{
+					Name:         strToPtr("name"),
+					ArtifactName: strToPtr("artifact"),
+					Devices:      []string{"device-1"},
+				},
+			},
+			count:    10,
+			expected: one,
+		},
+	}
+
+	ctx := context.Background()
+	ds := NewDataStoreMongoWithClient(db.Client())
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			err := ds.InsertDeployment(ctx, tc.deployment)
+			assert.Nil(t, err)
+
+			err = ds.SetDeploymentDeviceCount(ctx, *tc.deployment.Id, tc.count)
+			assert.Nil(t, err)
+
+			deployment, err := ds.FindDeploymentByID(ctx, *tc.deployment.Id)
+			assert.Nil(t, err)
+			assert.NotNil(t, deployment)
+			assert.NotNil(t, deployment.DeviceCount)
+			assert.Equal(t, *deployment.DeviceCount, tc.expected)
+		})
+	}
+
 }

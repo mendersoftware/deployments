@@ -661,6 +661,10 @@ func (d *Deployments) GetDeployment(ctx context.Context,
 		return nil, errors.Wrap(err, "Searching for deployment by ID")
 	}
 
+	if err := d.setDeploymentDeviceCountIfUnset(ctx, deployment); err != nil {
+		return nil, err
+	}
+
 	return deployment, nil
 }
 
@@ -863,6 +867,10 @@ func (d *Deployments) createDeviceDeployment(ctx context.Context, deviceID strin
 
 	deviceDeployment.Created = deployment.Created
 
+	if err := d.setDeploymentDeviceCountIfUnset(ctx, deployment); err != nil {
+		return nil, err
+	}
+
 	if err := d.db.InsertDeviceDeployment(ctx, deviceDeployment); err != nil {
 		return nil, err
 	}
@@ -1048,6 +1056,22 @@ func (d *Deployments) GetDeviceStatusesForDeployment(ctx context.Context,
 	return statuses, nil
 }
 
+func (d *Deployments) setDeploymentDeviceCountIfUnset(ctx context.Context, deployment *model.Deployment) error {
+	if deployment.DeviceCount == nil {
+		deviceCount, err := d.db.DeviceCountByDeployment(ctx, *deployment.Id)
+		if err != nil {
+			return errors.Wrap(err, "counting device deployments")
+		}
+		err = d.db.SetDeploymentDeviceCount(ctx, *deployment.Id, deviceCount)
+		if err != nil {
+			return errors.Wrap(err, "setting the device count for the deployment")
+		}
+		deployment.DeviceCount = &deviceCount
+	}
+
+	return nil
+}
+
 func (d *Deployments) LookupDeployment(ctx context.Context,
 	query model.Query) ([]*model.Deployment, int64, error) {
 	list, totalCount, err := d.db.Find(ctx, query)
@@ -1061,11 +1085,8 @@ func (d *Deployments) LookupDeployment(ctx context.Context,
 	}
 
 	for _, deployment := range list {
-		if deviceCount, err := d.db.DeviceCountByDeployment(ctx,
-			*deployment.Id); err != nil {
-			return nil, 0, errors.Wrap(err, "counting device deployments")
-		} else {
-			deployment.DeviceCount = deviceCount
+		if err := d.setDeploymentDeviceCountIfUnset(ctx, deployment); err != nil {
+			return nil, 0, err
 		}
 	}
 

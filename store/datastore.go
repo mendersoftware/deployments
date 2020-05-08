@@ -101,5 +101,7 @@ type DataStore interface {
 		createdAfter *time.Time, skip, limit int) ([]*model.Deployment, error)
 	ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error)
 	ExistByArtifactId(ctx context.Context, id string) (bool, error)
+	SetDeploymentDeviceCount(ctx context.Context, deploymentID string, count int) error
+	IncrementDeploymentDeviceCount(ctx context.Context, deploymentID string, increment int) error
 	DeviceCountByDeployment(ctx context.Context, id string) (int, error)
 }

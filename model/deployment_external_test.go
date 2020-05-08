@@ -180,7 +180,8 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 	dep.ArtifactName = StringToPointer("App 123")
 	dep.Devices = []string{"Device 123"}
 	dep.Id = StringToPointer("14ddec54-30be-49bf-aa6b-97ce271d71f5")
-	dep.DeviceCount = 1337
+	deviceCount := 1337
+	dep.DeviceCount = &deviceCount
 	dep.Status = DeploymentStatusInProgress
 
 	j, err := dep.MarshalJSON()
