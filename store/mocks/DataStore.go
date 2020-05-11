@@ -123,10 +123,10 @@ func (_m *DataStore) SetDeploymentDeviceCount(ctx context.Context, deploymentID 
 	ret := _m.Called(ctx, deploymentID, count)
 
 	var r0 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, int) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, int) error); ok {
 		r0 = rf(ctx, deploymentID, count)
 	} else {
-		r0 = ret.Error(1)
+		r0 = ret.Error(0)
 	}
 
 	return r0
@@ -137,10 +137,10 @@ func (_m *DataStore) IncrementDeploymentDeviceCount(ctx context.Context, deploym
 	ret := _m.Called(ctx, deploymentID, increment)
 
 	var r0 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, int) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, int) error); ok {
 		r0 = rf(ctx, deploymentID, increment)
 	} else {
-		r0 = ret.Error(1)
+		r0 = ret.Error(0)
 	}
 
 	return r0
