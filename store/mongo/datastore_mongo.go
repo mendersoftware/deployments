@@ -284,6 +284,7 @@ const (
 	StorageKeyDeploymentStatsCreated = "created"
 	StorageKeyDeploymentFinished     = "finished"
 	StorageKeyDeploymentArtifacts    = "artifacts"
+	StorageKeyDeploymentDeviceCount  = "device_count"
 	StorageKeyDeploymentMaxDevices   = "max_devices"
 
 	ArtifactDependsDeviceType = "device_type"
@@ -841,6 +842,12 @@ func (db *DataStoreMongo) InsertDeviceDeployment(ctx context.Context, deviceDepl
 	if _, err := c.InsertOne(ctx, deviceDeployment); err != nil {
 		return err
 	}
+
+	err := db.IncrementDeploymentDeviceCount(ctx, *deviceDeployment.DeploymentId, 1)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -852,6 +859,8 @@ func (db *DataStoreMongo) InsertMany(ctx context.Context,
 	if len(deployments) == 0 {
 		return nil
 	}
+
+	deviceCountIncrements := make(map[string]int)
 
 	// Writing to another interface list addresses golang gatcha interface{} == []interface{}
 	var list []interface{}
@@ -866,6 +875,7 @@ func (db *DataStoreMongo) InsertMany(ctx context.Context,
 		}
 
 		list = append(list, deployment)
+		deviceCountIncrements[*deployment.DeploymentId]++
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -873,6 +883,13 @@ func (db *DataStoreMongo) InsertMany(ctx context.Context,
 
 	if _, err := collDevs.InsertMany(ctx, list); err != nil {
 		return err
+	}
+
+	for deploymentID := range deviceCountIncrements {
+		err := db.IncrementDeploymentDeviceCount(ctx, deploymentID, deviceCountIncrements[deploymentID])
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -1502,6 +1519,48 @@ func (db *DataStoreMongo) FindUnfinishedByID(ctx context.Context,
 	}
 
 	return deployment, nil
+}
+
+func (db *DataStoreMongo) IncrementDeploymentDeviceCount(ctx context.Context, deploymentID string, increment int) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collection := database.Collection(CollectionDeployments)
+
+	filter := bson.M{
+		"_id": deploymentID,
+		StorageKeyDeploymentDeviceCount: bson.M{
+			"$ne": nil,
+		},
+	}
+
+	update := bson.M{
+		"$inc": bson.M{
+			StorageKeyDeploymentDeviceCount: increment,
+		},
+	}
+
+	_, err := collection.UpdateOne(ctx, filter, update)
+	return err
+}
+
+func (db *DataStoreMongo) SetDeploymentDeviceCount(ctx context.Context, deploymentID string, count int) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collection := database.Collection(CollectionDeployments)
+
+	filter := bson.M{
+		"_id": deploymentID,
+		StorageKeyDeploymentDeviceCount: bson.M{
+			"$eq": nil,
+		},
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeploymentDeviceCount: count,
+		},
+	}
+
+	_, err := collection.UpdateOne(ctx, filter, update)
+	return err
 }
 
 func (db *DataStoreMongo) DeviceCountByDeployment(ctx context.Context,

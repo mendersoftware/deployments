@@ -118,6 +118,34 @@ func (_m *DataStore) DeleteImage(ctx context.Context, id string) error {
 	return r0
 }
 
+// SetDeploymentDeviceCount provides a mock function with given fields: ctx, deploymentID, count
+func (_m *DataStore) SetDeploymentDeviceCount(ctx context.Context, deploymentID string, count int) error {
+	ret := _m.Called(ctx, deploymentID, count)
+
+	var r0 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, int) error); ok {
+		r0 = rf(ctx, deploymentID, count)
+	} else {
+		r0 = ret.Error(1)
+	}
+
+	return r0
+}
+
+// IncrementDeploymentDeviceCount provides a mock function with given fields: ctx, deploymentID, increment
+func (_m *DataStore) IncrementDeploymentDeviceCount(ctx context.Context, deploymentID string, increment int) error {
+	ret := _m.Called(ctx, deploymentID, increment)
+
+	var r0 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, int) error); ok {
+		r0 = rf(ctx, deploymentID, increment)
+	} else {
+		r0 = ret.Error(1)
+	}
+
+	return r0
+}
+
 // DeviceCountByDeployment provides a mock function with given fields: ctx, id
 func (_m *DataStore) DeviceCountByDeployment(ctx context.Context, id string) (int, error) {
 	ret := _m.Called(ctx, id)
