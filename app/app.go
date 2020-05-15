@@ -848,7 +848,8 @@ func (d *Deployments) getNewDeploymentForDevice(ctx context.Context,
 			return nil, nil, err
 		}
 		if ok {
-			deviceDeployment, err := d.createDeviceDeployment(ctx, deviceID, deployments[0])
+			deviceDeployment, err := d.createDeviceDeploymentWithStatus(ctx,
+				deviceID, deployments[0], model.DeviceDeploymentStatusPending)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -859,12 +860,14 @@ func (d *Deployments) getNewDeploymentForDevice(ctx context.Context,
 	return nil, nil, nil
 }
 
-func (d *Deployments) createDeviceDeployment(ctx context.Context, deviceID string, deployment *model.Deployment) (*model.DeviceDeployment, error) {
+func (d *Deployments) createDeviceDeploymentWithStatus(ctx context.Context,
+	deviceID string, deployment *model.Deployment, status string) (*model.DeviceDeployment, error) {
 	deviceDeployment, err := model.NewDeviceDeployment(deviceID, *deployment.Id)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create device deployment")
 	}
 
+	deviceDeployment.Status = &status
 	deviceDeployment.Created = deployment.Created
 
 	if err := d.setDeploymentDeviceCountIfUnset(ctx, deployment); err != nil {
@@ -873,6 +876,16 @@ func (d *Deployments) createDeviceDeployment(ctx context.Context, deviceID strin
 
 	if err := d.db.InsertDeviceDeployment(ctx, deviceDeployment); err != nil {
 		return nil, err
+	}
+
+	// after inserting new device deployment update deployment stats and status
+	if err = d.db.UpdateStatsInc(ctx, *deployment.Id, "", status); err != nil {
+		return nil, err
+	}
+
+	err = d.recalcDeploymentStatus(ctx, deployment)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update deployment status")
 	}
 
 	return deviceDeployment, nil
