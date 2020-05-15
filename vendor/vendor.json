@@ -3,12 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "Pk9qOP8CrOYG2l3RJUXXZVdWrSQ=",
-			"path": "github.com/Sirupsen/logrus",
-			"revision": "a67f783a3814b8729bd2dac5780b5f78f8dbd64d",
-			"revisionTime": "2018-09-25T19:35:18Z"
-		},
-		{
 			"checksumSHA1": "KMTpIQS+cdSCzMN5TC6GfNLTv0o=",
 			"path": "github.com/ant0ine/go-json-rest/rest",
 			"revision": "ebb33769ae013bd5f518a8bac348c310dea768b8",
