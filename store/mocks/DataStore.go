@@ -377,14 +377,7 @@ func (_m *DataStore) FindImageByID(ctx context.Context, id string) (*model.Image
 
 // FindLatestDeploymentForDeviceIDWithStatuses provides a mock function with given fields: ctx, deviceID, statuses
 func (_m *DataStore) FindLatestDeploymentForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...string) (*model.DeviceDeployment, error) {
-	_va := make([]interface{}, len(statuses))
-	for _i := range statuses {
-		_va[_i] = statuses[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, deviceID)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
+	ret := _m.Called(ctx, deviceID, statuses)
 
 	var r0 *model.DeviceDeployment
 	if rf, ok := ret.Get(0).(func(context.Context, string, ...string) *model.DeviceDeployment); ok {

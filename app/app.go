@@ -1182,43 +1182,61 @@ func (d *Deployments) AbortDeployment(ctx context.Context, deploymentID string) 
 
 func (d *Deployments) DecommissionDevice(ctx context.Context, deviceId string) error {
 
-	if err := d.db.DecommissionDeviceDeployments(ctx,
-		deviceId); err != nil {
-
-		return err
-	}
-
-	//get all affected deployments and update its stats
-	deviceDeployments, err := d.db.FindAllDeploymentsForDeviceIDWithStatuses(
+	var lastDeployment *time.Time
+	// Retrieve active device deployment for the device
+	deviceDeployment, err := d.db.FindOldestDeploymentForDeviceIDWithStatuses(
 		ctx,
-		deviceId, model.DeviceDeploymentStatusDecommissioned)
-
+		deviceId,
+		model.ActiveDeploymentStatuses()...)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Searching for active deployment for the device")
+	} else if deviceDeployment != nil {
+		now := time.Now()
+		ddStatus := model.DeviceDeploymentStatus{
+			Status:     model.DeviceDeploymentStatusDecommissioned,
+			FinishTime: &now,
+		}
+		if err := d.UpdateDeviceDeploymentStatus(ctx, *deviceDeployment.DeploymentId,
+			deviceId, ddStatus); err != nil {
+			return errors.Wrap(err, "updating device deployment status")
+		}
+		lastDeployment = deviceDeployment.Created
+	} else {
+		//get latest device deployment for the device;
+		deviceDeployment, err := d.db.FindLatestDeploymentForDeviceIDWithStatuses(
+			ctx,
+			deviceId,
+			model.InactiveDeploymentStatuses()...)
+		if err != nil {
+			return errors.Wrap(err, "Searching for latest active deployment for the device")
+		} else if deviceDeployment == nil {
+			lastDeployment = &time.Time{}
+		} else {
+			lastDeployment = deviceDeployment.Created
+		}
 	}
 
-	for _, deviceDeployment := range deviceDeployments {
-
-		stats, err := d.db.AggregateDeviceDeploymentByStatus(
-			ctx, *deviceDeployment.DeploymentId)
+	// get deployments newer then last device deployment
+	// iterate over deployments and check if the device is part of the deployment or not
+	// if the device is part of the deployment create new, decommisioned device deployment
+	for skip := 0; true; skip++ {
+		deployments, err := d.db.FindNewerActiveDeployments(ctx, lastDeployment, skip, 1)
+		if err != nil {
+			return errors.Wrap(err, "Failed to search for newer active deployments")
+		}
+		if len(deployments) == 0 {
+			break
+		}
+		ok, err := d.isDevicePartOfDeployment(ctx, deviceId, deployments[0])
 		if err != nil {
 			return err
 		}
-
-		// update statistics
-		if err := d.db.UpdateStats(ctx, *deviceDeployment.DeploymentId, stats); err != nil {
-			return errors.Wrap(err, "failed to update deployment stats")
-		}
-
-		// get deployment and recalc deployment status
-		deployment, err := d.db.FindDeploymentByID(ctx, *deviceDeployment.DeploymentId)
-		if err != nil {
-			return errors.Wrapf(err, "Failed to get deployment with id: %s", *deviceDeployment.DeploymentId)
-		}
-
-		err = d.recalcDeploymentStatus(ctx, deployment)
-		if err != nil {
-			return errors.Wrap(err, "failed to update deployment status")
+		if ok {
+			_, err := d.createDeviceDeploymentWithStatus(ctx,
+				deviceId, deployments[0], model.DeviceDeploymentStatusDecommissioned)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
