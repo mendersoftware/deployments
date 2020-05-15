@@ -1045,7 +1045,7 @@ func (d *Deployments) GetDeploymentStats(ctx context.Context,
 		return nil, nil
 	}
 
-	return d.db.AggregateDeviceDeploymentByStatus(ctx, deploymentID)
+	return deployment.Stats, nil
 }
 
 //GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
