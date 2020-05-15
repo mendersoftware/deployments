@@ -3,10 +3,11 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "Pk9qOP8CrOYG2l3RJUXXZVdWrSQ=",
-			"path": "github.com/Sirupsen/logrus",
-			"revision": "a67f783a3814b8729bd2dac5780b5f78f8dbd64d",
-			"revisionTime": "2018-09-25T19:35:18Z"
+			"checksumSHA1": "BYvROBsiyAXK4sq6yhDe8RgT4LM=",
+			"comment": "v0.10.0",
+			"path": "github.com/sirupsen/logrus",
+			"revision": "89742aefa4b206dcf400792f3bd35b542998eb3b",
+			"revisionTime": "2017-08-22T13:27:46Z"
 		},
 		{
 			"checksumSHA1": "KMTpIQS+cdSCzMN5TC6GfNLTv0o=",
@@ -429,94 +430,101 @@
 			"revision": ""
 		},
 		{
-			"checksumSHA1": "gAyeRiXtnGam91Bj6Ll+NfHpPl4=",
+			"checksumSHA1": "Ja+uwBkGSxw7vXtkmbCcRXSszmk=",
 			"path": "github.com/mendersoftware/go-lib-micro/accesslog",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "ZJ/mBXOvixbQxVBoSvq6QCLLkwQ=",
 			"path": "github.com/mendersoftware/go-lib-micro/config",
-			"revision": "cb210e0b60d95a11ae26fb4e5f3df97bfc88292e",
-			"revisionTime": "2019-03-08T21:32:50Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "Jfc8ahIou9KAgtZPcofhbbg8WZM=",
 			"path": "github.com/mendersoftware/go-lib-micro/customheader",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
-			"checksumSHA1": "RbBUfLkMBNeI77o9Fma7i93WfEk=",
+			"checksumSHA1": "rkWqyG+c4ayeAo8QQQe4/5RSR4Y=",
 			"path": "github.com/mendersoftware/go-lib-micro/identity",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
-			"checksumSHA1": "DGNSZHQnvuFsEgYPYu4Zos8IE/A=",
+			"checksumSHA1": "DkDRxsYdWnwLrpJ657Kh9Krkyak=",
 			"path": "github.com/mendersoftware/go-lib-micro/log",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "1+jIjx1TOHJjNfKUV3RSFvJxZo0=",
 			"path": "github.com/mendersoftware/go-lib-micro/log/testing",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "qr1mql4xHwl9qxWL6ra+tGxbTkM=",
 			"path": "github.com/mendersoftware/go-lib-micro/mongo/dbtest",
-			"revision": "7109d19865f758d6a397b38ab1dcd2f97b36331d",
-			"revisionTime": "2019-11-12T15:12:32Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
+		},
+		{
+			"checksumSHA1": "JsLJdVlfa8EibZk5QH00rgP3e4I=",
+			"origin": "github.com/mendersoftware/deployments/vendor/github.com/mendersoftware/go-lib-micro/mongo/doc",
+			"path": "github.com/mendersoftware/go-lib-micro/mongo/doc",
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "pfW7/RejepvORJbZNwWTS9yZPoc=",
 			"path": "github.com/mendersoftware/go-lib-micro/mongo/migrate",
-			"revision": "7109d19865f758d6a397b38ab1dcd2f97b36331d",
-			"revisionTime": "2019-11-12T15:12:32Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "sieXjK4uGibGjwVjk174Fas3jW8=",
 			"path": "github.com/mendersoftware/go-lib-micro/mongo/testing",
-			"revision": "7109d19865f758d6a397b38ab1dcd2f97b36331d",
-			"revisionTime": "2019-11-12T15:12:32Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "GOcwzKtxOTwK2sJ9fCST2/qR4fU=",
 			"path": "github.com/mendersoftware/go-lib-micro/requestid",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
-			"checksumSHA1": "k++rSxrggWDDbWCjGItpgDydCF8=",
+			"checksumSHA1": "dkWPMA+DEi7MMk05sj3clzC2mXw=",
 			"path": "github.com/mendersoftware/go-lib-micro/requestlog",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
-			"checksumSHA1": "NslSWtVTllkkrrz6E8s+FzqINnE=",
+			"checksumSHA1": "Dt88y4efN/yr8dV2/Qzd6qhdpzc=",
 			"path": "github.com/mendersoftware/go-lib-micro/rest_utils",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "G7IbmowVpYr7khLoPExsmq1NNJQ=",
 			"path": "github.com/mendersoftware/go-lib-micro/store",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "VebsSM79FSZUA5HrdCdsUB5qAiE=",
 			"path": "github.com/mendersoftware/go-lib-micro/strings",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "8CsIiNVHuIx/5EmrJHYrXGGpqVM=",
 			"path": "github.com/mendersoftware/go-lib-micro/testing",
-			"revision": "9eb34c0b295cc9b34304a99b5013915120ec7e22",
-			"revisionTime": "2018-09-26T09:45:58Z"
+			"revision": "6829ff01e034e52dcc1d76b29b30818a8364ee32",
+			"revisionTime": "2020-05-07T15:24:41Z"
 		},
 		{
 			"checksumSHA1": "AxwyQUwhMdSc8lLQNFDxaUy9lsk=",

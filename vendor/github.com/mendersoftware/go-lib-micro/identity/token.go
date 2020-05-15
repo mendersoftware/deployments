@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ const (
 	tenantClaim  = "mender.tenant"
 	deviceClaim  = "mender.device"
 	userClaim    = "mender.user"
+	planClaim    = "mender.plan"
 )
 
 type Identity struct {
@@ -35,6 +36,7 @@ type Identity struct {
 	Tenant   string
 	IsUser   bool
 	IsDevice bool
+	Plan     string
 }
 
 type rawClaims map[string]interface{}
@@ -66,46 +68,6 @@ func decodeClaims(token string) (rawClaims, error) {
 	return claims, nil
 }
 
-func getTenant(claims rawClaims) (string, error) {
-	rawTenant, ok := claims[tenantClaim]
-	if !ok {
-		return "", nil
-	}
-
-	tenant, ok := rawTenant.(string)
-	if !ok {
-		return "", errors.Errorf("invalid tenant ID format")
-	}
-	return tenant, nil
-}
-
-func getSubject(claims rawClaims) (string, error) {
-	rawsub, ok := claims[subjectClaim]
-	if !ok {
-		return "", errors.Errorf("subject claim not found")
-	}
-
-	sub, ok := rawsub.(string)
-	if !ok {
-		return "", errors.Errorf("invalid subject format")
-	}
-	return sub, nil
-}
-
-func getBoolField(claims rawClaims, name string) (bool, error) {
-	rawval, ok := claims[name]
-	if !ok {
-		return false, errors.Errorf("field %s not found", name)
-	}
-
-	val, ok := rawval.(bool)
-	if !ok {
-		return false, errors.Errorf("field %v has incorrect value %v", name, rawval)
-	}
-
-	return val, nil
-}
-
 // Generate identity information from given JWT by extracting subject and tenant claims.
 // Note that this function does not perform any form of token signature
 // verification.
@@ -115,22 +77,30 @@ func ExtractIdentity(token string) (Identity, error) {
 		return Identity{}, err
 	}
 
-	sub, err := getSubject(claims)
+	sub, err := getStringClaim(claims, subjectClaim)
+	if err != nil {
+		return Identity{}, err
+	}
+	if sub == "" {
+		return Identity{}, errors.Errorf("subject claim not found")
+	}
+
+	tenant, err := getStringClaim(claims, tenantClaim)
 	if err != nil {
 		return Identity{}, err
 	}
 
-	tenant, err := getTenant(claims)
+	plan, err := getStringClaim(claims, planClaim)
 	if err != nil {
 		return Identity{}, err
 	}
 
-	identity := Identity{Subject: sub, Tenant: tenant}
-	if isUser, err := getBoolField(claims, userClaim); err == nil {
+	identity := Identity{Subject: sub, Tenant: tenant, Plan: plan}
+	if isUser, err := getBoolClaim(claims, userClaim); err == nil {
 		identity.IsUser = isUser
 	}
 
-	if isDevice, err := getBoolField(claims, deviceClaim); err == nil {
+	if isDevice, err := getBoolClaim(claims, deviceClaim); err == nil {
 		identity.IsDevice = isDevice
 	}
 
@@ -151,4 +121,33 @@ func ExtractIdentityFromHeaders(headers http.Header) (Identity, error) {
 	}
 
 	return ExtractIdentity(auth[1])
+}
+
+// extracts claim from JWT claims and converts it to a string
+func getStringClaim(claims rawClaims, claim string) (string, error) {
+	raw, ok := claims[claim]
+	if !ok {
+		return "", nil
+	}
+
+	claimString, ok := raw.(string)
+	if !ok {
+		return "", errors.Errorf("invalid %s format", claim)
+	}
+	return claimString, nil
+}
+
+// extracts claim from JWT claims and converts it to a boolean
+func getBoolClaim(claims rawClaims, name string) (bool, error) {
+	rawval, ok := claims[name]
+	if !ok {
+		return false, errors.Errorf("field %s not found", name)
+	}
+
+	val, ok := rawval.(bool)
+	if !ok {
+		return false, errors.Errorf("field %v has incorrect value %v", name, rawval)
+	}
+
+	return val, nil
 }

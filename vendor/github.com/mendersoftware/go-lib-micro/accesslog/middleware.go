@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/sirupsen/logrus"
 
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 )
@@ -32,6 +33,8 @@ type AccessLogFormat string
 const (
 	DefaultLogFormat = "%t %S\033[0m \033[36;1m%Dμs\033[0m \"%r\" \033[1;30m%u \"%{User-Agent}i\"\033[0m"
 	SimpleLogFormat  = "%s %Dμs %r %u %{User-Agent}i"
+
+	TypeHTTP = "http"
 )
 
 // AccesLogMiddleware is a customized version of the AccessLogApacheMiddleware.
@@ -56,8 +59,16 @@ func (mw *AccessLogMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFu
 
 		logger := requestlog.GetRequestLogger(r)
 		util := &accessLogUtil{w, r}
-
-		logger.Print(mw.executeTextTemplate(util))
+		logger.WithFields(logrus.Fields{
+			"type":         TypeHTTP,
+			"ts":           util.StartTime().Round(0),
+			"status":       util.StatusCode(),
+			"responsetime": util.ResponseTime().Seconds(),
+			"byteswritten": util.BytesWritten(),
+			"method":       r.Method,
+			"path":         r.URL.Path,
+			"qs":           r.URL.RawQuery,
+		}).Print(mw.executeTextTemplate(util))
 	}
 }
 
