@@ -881,10 +881,13 @@ func (d *Deployments) createDeviceDeploymentWithStatus(ctx context.Context,
 		return nil, err
 	}
 
-	// after inserting new device deployment update deployment stats and status
+	// after inserting new device deployment update deployment stats
+	// in the database and locally, and update deployment status
 	if err = d.db.UpdateStatsInc(ctx, *deployment.Id, "", status); err != nil {
 		return nil, err
 	}
+
+	deployment.Stats[status]++
 
 	err = d.recalcDeploymentStatus(ctx, deployment)
 	if err != nil {
