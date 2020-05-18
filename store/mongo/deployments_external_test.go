@@ -747,10 +747,19 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 				},
 			},
 			InputStateFrom: "",
-			InputStateTo:   model.DeviceDeploymentStatusFailure,
+			InputStateTo:   model.DeviceDeploymentStatusPending,
 
-			OutputError: ErrStorageInvalidInput,
-			OutputStats: nil,
+			OutputStats: model.Stats{
+				model.DeviceDeploymentStatusDownloading: 1,
+				model.DeviceDeploymentStatusInstalling:  2,
+				model.DeviceDeploymentStatusRebooting:   3,
+				model.DeviceDeploymentStatusPending:     11,
+				model.DeviceDeploymentStatusSuccess:     15,
+				model.DeviceDeploymentStatusFailure:     4,
+				model.DeviceDeploymentStatusNoArtifact:  5,
+				model.DeviceDeploymentStatusAlreadyInst: 0,
+				model.DeviceDeploymentStatusAborted:     0,
+			},
 		},
 		"install install": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
