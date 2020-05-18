@@ -272,7 +272,9 @@ func TestDecommission(t *testing.T) {
 			},
 			updateDeviceDeploymentStatusStatus: model.DeviceDeploymentStatusDownloading,
 			findDeploymentByIDDeployment: &model.Deployment{
-				Id: strPtr("bar"),
+				Id:         strPtr("bar"),
+				MaxDevices: 1,
+				Stats:      model.Stats{"decommissioned": 1},
 			},
 		},
 		"ok 1": {
@@ -298,6 +300,22 @@ func TestDecommission(t *testing.T) {
 					Id:          strPtr("foo"),
 					Created:     timePtr(time.Now()),
 					DeviceCount: intPtr(0),
+					MaxDevices:  1,
+					Stats:       model.Stats{},
+				},
+			},
+		},
+		"ok, pending": {
+			inputDeviceId:     "foo",
+			inputDeploymentId: "pending",
+			findNewerActiveDeploymentsDeployments: []*model.Deployment{
+				&model.Deployment{
+					DeviceList:  []string{"foo"},
+					Id:          strPtr("pending"),
+					Created:     timePtr(time.Now()),
+					DeviceCount: intPtr(0),
+					MaxDevices:  2,
+					Stats:       model.Stats{},
 				},
 			},
 		},
@@ -351,6 +369,10 @@ func TestDecommission(t *testing.T) {
 			db.On("SetDeploymentStatus", ctx,
 				tc.inputDeploymentId,
 				"finished",
+				mock.AnythingOfType("time.Time")).Return(tc.setDeploymentStatusError)
+			db.On("SetDeploymentStatus", ctx,
+				"pending",
+				"pending",
 				mock.AnythingOfType("time.Time")).Return(tc.setDeploymentStatusError)
 
 			ds := NewDeployments(&db, nil, "")
