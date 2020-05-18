@@ -834,8 +834,8 @@ func (d *Deployments) getNewDeploymentForDevice(ctx context.Context,
 
 	//get deployments newer then last device deployment
 	//iterate over deployments and check if the device is part of the deployment or not
-	for skip := 0; true; skip++ {
-		deployments, err := d.db.FindNewerActiveDeployments(ctx, lastDeployment, skip, 1)
+	for skip := 0; true; skip += 100 {
+		deployments, err := d.db.FindNewerActiveDeployments(ctx, lastDeployment, skip, 100)
 		if err != nil {
 			return nil, nil, errors.Wrap(err,
 				"Failed to search for newer active deployments")
@@ -843,17 +843,20 @@ func (d *Deployments) getNewDeploymentForDevice(ctx context.Context,
 		if len(deployments) == 0 {
 			return nil, nil, nil
 		}
-		ok, err := d.isDevicePartOfDeployment(ctx, deviceID, deployments[0])
-		if err != nil {
-			return nil, nil, err
-		}
-		if ok {
-			deviceDeployment, err := d.createDeviceDeploymentWithStatus(ctx,
-				deviceID, deployments[0], model.DeviceDeploymentStatusPending)
+
+		for _, deployment := range deployments {
+			ok, err := d.isDevicePartOfDeployment(ctx, deviceID, deployment)
 			if err != nil {
 				return nil, nil, err
 			}
-			return deployments[0], deviceDeployment, nil
+			if ok {
+				deviceDeployment, err := d.createDeviceDeploymentWithStatus(ctx,
+					deviceID, deployment, model.DeviceDeploymentStatusPending)
+				if err != nil {
+					return nil, nil, err
+				}
+				return deployment, deviceDeployment, nil
+			}
 		}
 	}
 
@@ -1219,23 +1222,25 @@ func (d *Deployments) DecommissionDevice(ctx context.Context, deviceId string) e
 	// get deployments newer then last device deployment
 	// iterate over deployments and check if the device is part of the deployment or not
 	// if the device is part of the deployment create new, decommisioned device deployment
-	for skip := 0; true; skip++ {
-		deployments, err := d.db.FindNewerActiveDeployments(ctx, lastDeployment, skip, 1)
+	for skip := 0; true; skip += 100 {
+		deployments, err := d.db.FindNewerActiveDeployments(ctx, lastDeployment, skip, 100)
 		if err != nil {
 			return errors.Wrap(err, "Failed to search for newer active deployments")
 		}
 		if len(deployments) == 0 {
 			break
 		}
-		ok, err := d.isDevicePartOfDeployment(ctx, deviceId, deployments[0])
-		if err != nil {
-			return err
-		}
-		if ok {
-			_, err := d.createDeviceDeploymentWithStatus(ctx,
-				deviceId, deployments[0], model.DeviceDeploymentStatusDecommissioned)
+		for _, deployment := range deployments {
+			ok, err := d.isDevicePartOfDeployment(ctx, deviceId, deployment)
 			if err != nil {
 				return err
+			}
+			if ok {
+				_, err := d.createDeviceDeploymentWithStatus(ctx,
+					deviceId, deployment, model.DeviceDeploymentStatusDecommissioned)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

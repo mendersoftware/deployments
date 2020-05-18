@@ -334,10 +334,10 @@ func TestDecommission(t *testing.T) {
 				tc.findLatestDeploymentForDeviceIDWithStatusesDeployment, tc.findLatestDeploymentForDeviceIDWithStatusesError)
 
 			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
-				0, 1).Return(
+				0, 100).Return(
 				tc.findNewerActiveDeploymentsDeployments, tc.findNewerActiveDeploymentsError)
 			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
-				1, 1).Return(nil, nil)
+				100, 100).Return(nil, nil)
 			db.On("InsertDeviceDeployment", ctx, mock.AnythingOfType("*model.DeviceDeployment")).Return(
 				tc.insertDeviceDeploymentError)
 
