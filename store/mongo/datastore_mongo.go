@@ -1629,10 +1629,6 @@ func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 		return ErrStorageInvalidID
 	}
 
-	if govalidator.IsNull(state_from) {
-		return ErrStorageInvalidInput
-	}
-
 	if govalidator.IsNull(state_to) {
 		return ErrStorageInvalidInput
 	}
@@ -1646,17 +1642,28 @@ func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDpl := database.Collection(CollectionDeployments)
 
-	// note dot notation on embedded document
-	update := bson.M{
-		"$inc": bson.M{
-			"stats." + state_from: -1,
-			"stats." + state_to:   1,
-		},
+	update := bson.M{}
+
+	if len(state_from) == 0 {
+		// note dot notation on embedded document
+		update = bson.M{
+			"$inc": bson.M{
+				"stats." + state_to: 1,
+			},
+		}
+	} else {
+		// note dot notation on embedded document
+		update = bson.M{
+			"$inc": bson.M{
+				"stats." + state_from: -1,
+				"stats." + state_to:   1,
+			},
+		}
 	}
 
 	res, err := collDpl.UpdateOne(ctx, bson.M{"_id": id}, update)
 
-	if res.MatchedCount == 0 {
+	if res != nil && res.MatchedCount == 0 {
 		return ErrStorageInvalidID
 	}
 
