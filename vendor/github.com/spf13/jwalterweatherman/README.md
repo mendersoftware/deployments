@@ -133,7 +133,7 @@ JWW can log to any `io.Writer`:
 
 ```go
 
-    jww.SetLogOutput(customWriter)
+    jww.SetLogOutput(customWriter) 
 
 ```
 
