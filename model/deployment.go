@@ -25,7 +25,8 @@ import (
 
 // Errors
 var (
-	ErrInvalidDeviceID = errors.New("Invalid device ID")
+	ErrInvalidDeviceID             = errors.New("Invalid device ID")
+	ErrInvalidDeploymentDefinition = errors.New("Invalid deployments definition")
 )
 
 const (
@@ -48,7 +49,14 @@ type DeploymentConstructor struct {
 
 // Validate checks structure according to valid tags
 // TODO: Add custom validator to check devices array content (such us UUID formatting)
-func (c *DeploymentConstructor) Validate() error {
+func (c *DeploymentConstructor) Validate(groupDeployment string) error {
+	if len(groupDeployment) > 0 {
+		if c.Name == nil || len(*c.Name) < 1 {
+			return ErrInvalidDeploymentDefinition
+		}
+		return nil
+	}
+
 	if _, err := govalidator.ValidateStruct(c); err != nil {
 		return err
 	}

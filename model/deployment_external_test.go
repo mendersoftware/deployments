@@ -91,7 +91,7 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 		dep.ArtifactName = test.InputArtifactName
 		dep.Devices = test.InputDevices
 
-		err := dep.Validate()
+		err := dep.Validate("")
 
 		if !test.IsValid {
 			assert.Error(t, err)
