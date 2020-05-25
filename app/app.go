@@ -29,6 +29,7 @@ import (
 	"github.com/mendersoftware/mender-artifact/artifact"
 	"github.com/mendersoftware/mender-artifact/handlers"
 
+	"github.com/mendersoftware/deployments/client/inventory"
 	"github.com/mendersoftware/deployments/client/workflows"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/s3"
@@ -125,6 +126,7 @@ type Deployments struct {
 	fileStorage      s3.FileStorage
 	imageContentType string
 	workflowsClient  workflows.Client
+	inventoryClient  inventory.Client
 }
 
 func NewDeployments(storage store.DataStore, fileStorage s3.FileStorage, imageContentType string) *Deployments {
@@ -133,11 +135,16 @@ func NewDeployments(storage store.DataStore, fileStorage s3.FileStorage, imageCo
 		fileStorage:      fileStorage,
 		imageContentType: imageContentType,
 		workflowsClient:  workflows.NewClient(),
+		inventoryClient:  inventory.NewClient(),
 	}
 }
 
 func (d *Deployments) SetWorkflowsClient(workflowsClient workflows.Client) {
 	d.workflowsClient = workflowsClient
+}
+
+func (d *Deployments) SetInventoryClient(inventoryClient inventory.Client) {
+	d.inventoryClient = inventoryClient
 }
 
 func (d *Deployments) GetLimit(ctx context.Context, name string) (*model.Limit, error) {

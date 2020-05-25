@@ -67,6 +67,12 @@ const (
 
 	SettingMiddleware        = "middleware"
 	SettingMiddlewareDefault = EnvProd
+
+	SettingInventoryAddr        = "inventory_addr"
+	SettingInventoryAddrDefault = "http://mender-inventory:8080"
+
+	SettingInventoryTimeout        = "inventory_timeout"
+	SettingInventoryTimeoutDefault = 10
 )
 
 // ValidateAwsAuth validates configuration of SettingsAwsAuth section if provided.
