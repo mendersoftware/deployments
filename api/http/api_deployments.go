@@ -37,6 +37,7 @@ import (
 	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/store"
+	"github.com/mendersoftware/deployments/utils/pointers"
 )
 
 const (
@@ -562,7 +563,10 @@ func (d *DeploymentsApiHandlers) getDeploymentConstructorFromBody(r *rest.Reques
 		return nil, err
 	}
 
-	if err := constructor.Validate(); err != nil {
+	if len(r.PathParam("name")) > 0 {
+		constructor.Name = pointers.StringToPointer(r.PathParam("name"))
+	}
+	if err := constructor.Validate(r.PathParam("name")); err != nil {
 		return nil, err
 	}
 

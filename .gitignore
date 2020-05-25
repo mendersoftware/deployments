@@ -30,6 +30,7 @@ gover.coverprofile
 profile.coverprofile
 
 debug
+__debug_bin
 
 .vscode
 
