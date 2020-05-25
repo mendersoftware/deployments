@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -36,10 +36,10 @@ func init() {
 
 	flag.BoolVar(&runAcceptanceTests, "acceptance-tests", false, "set flag when running acceptance tests")
 	flag.StringVar(&cliArgsRaw, "cli-args", "", "for passing urfave/cli args (single string) when golang flags are specified (avoids conflict)")
-	flag.Parse()
 }
 
 func TestRunMain(t *testing.T) {
+	flag.Parse()
 	if !runAcceptanceTests {
 		t.Skip()
 	}
