@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -16,15 +17,17 @@ const (
 	tagFieldComment = "comment"
 	tagCommented    = "commented"
 	tagMultiline    = "multiline"
+	tagDefault      = "default"
 )
 
 type tomlOpts struct {
-	name      string
-	comment   string
-	commented bool
-	multiline bool
-	include   bool
-	omitempty bool
+	name         string
+	comment      string
+	commented    bool
+	multiline    bool
+	include      bool
+	omitempty    bool
+	defaultValue string
 }
 
 type encOpts struct {
@@ -37,23 +40,36 @@ var encOptsDefaults = encOpts{
 }
 
 type annotation struct {
-	tag       string
-	comment   string
-	commented string
-	multiline string
+	tag          string
+	comment      string
+	commented    string
+	multiline    string
+	defaultValue string
 }
 
 var annotationDefault = annotation{
-	tag:       tagFieldName,
-	comment:   tagFieldComment,
-	commented: tagCommented,
-	multiline: tagMultiline,
+	tag:          tagFieldName,
+	comment:      tagFieldComment,
+	commented:    tagCommented,
+	multiline:    tagMultiline,
+	defaultValue: tagDefault,
 }
+
+type marshalOrder int
+
+// Orders the Encoder can write the fields to the output stream.
+const (
+	// Sort fields alphabetically.
+	OrderAlphabetical marshalOrder = iota + 1
+	// Preserve the order the fields are encountered. For example, the order of fields in
+	// a struct.
+	OrderPreserve
+)
 
 var timeType = reflect.TypeOf(time.Time{})
 var marshalerType = reflect.TypeOf(new(Marshaler)).Elem()
 
-// Check if the given marshall type maps to a Tree primitive
+// Check if the given marshal type maps to a Tree primitive
 func isPrimitive(mtype reflect.Type) bool {
 	switch mtype.Kind() {
 	case reflect.Ptr:
@@ -75,7 +91,7 @@ func isPrimitive(mtype reflect.Type) bool {
 	}
 }
 
-// Check if the given marshall type maps to a Tree slice
+// Check if the given marshal type maps to a Tree slice
 func isTreeSlice(mtype reflect.Type) bool {
 	switch mtype.Kind() {
 	case reflect.Slice:
@@ -85,7 +101,7 @@ func isTreeSlice(mtype reflect.Type) bool {
 	}
 }
 
-// Check if the given marshall type maps to a non-Tree slice
+// Check if the given marshal type maps to a non-Tree slice
 func isOtherSlice(mtype reflect.Type) bool {
 	switch mtype.Kind() {
 	case reflect.Ptr:
@@ -97,7 +113,7 @@ func isOtherSlice(mtype reflect.Type) bool {
 	}
 }
 
-// Check if the given marshall type maps to a Tree
+// Check if the given marshal type maps to a Tree
 func isTree(mtype reflect.Type) bool {
 	switch mtype.Kind() {
 	case reflect.Map:
@@ -155,6 +171,8 @@ Tree primitive types and corresponding marshal types:
   string     string, pointers to same
   bool       bool, pointers to same
   time.Time  time.Time{}, pointers to same
+
+For additional flexibility, use the Encoder API.
 */
 func Marshal(v interface{}) ([]byte, error) {
 	return NewEncoder(nil).marshal(v)
@@ -165,6 +183,9 @@ type Encoder struct {
 	w io.Writer
 	encOpts
 	annotation
+	line  int
+	col   int
+	order marshalOrder
 }
 
 // NewEncoder returns a new encoder that writes to w.
@@ -173,6 +194,9 @@ func NewEncoder(w io.Writer) *Encoder {
 		w:          w,
 		encOpts:    encOptsDefaults,
 		annotation: annotationDefault,
+		line:       0,
+		col:        1,
+		order:      OrderAlphabetical,
 	}
 }
 
@@ -218,6 +242,12 @@ func (e *Encoder) ArraysWithOneElementPerLine(v bool) *Encoder {
 	return e
 }
 
+// Order allows to change in which order fields will be written to the output stream.
+func (e *Encoder) Order(ord marshalOrder) *Encoder {
+	e.order = ord
+	return e
+}
+
 // SetTagName allows changing default tag "toml"
 func (e *Encoder) SetTagName(v string) *Encoder {
 	e.tag = v
@@ -244,9 +274,17 @@ func (e *Encoder) SetTagMultiline(v string) *Encoder {
 
 func (e *Encoder) marshal(v interface{}) ([]byte, error) {
 	mtype := reflect.TypeOf(v)
-	if mtype.Kind() != reflect.Struct {
-		return []byte{}, errors.New("Only a struct can be marshaled to TOML")
+
+	switch mtype.Kind() {
+	case reflect.Struct, reflect.Map:
+	case reflect.Ptr:
+		if mtype.Elem().Kind() != reflect.Struct {
+			return []byte{}, errors.New("Only pointer to struct can be marshaled to TOML")
+		}
+	default:
+		return []byte{}, errors.New("Only a struct or map can be marshaled to TOML")
 	}
+
 	sval := reflect.ValueOf(v)
 	if isCustomMarshaler(mtype) {
 		return callCustomMarshaler(sval)
@@ -257,9 +295,14 @@ func (e *Encoder) marshal(v interface{}) ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	_, err = t.writeTo(&buf, "", "", 0, e.arraysOneElementPerLine)
+	_, err = t.writeToOrdered(&buf, "", "", 0, e.arraysOneElementPerLine, e.order)
 
 	return buf.Bytes(), err
+}
+
+// Create next tree with a position based on Encoder.line
+func (e *Encoder) nextTree() *Tree {
+	return newTreeWithPosition(Position{Line: e.line, Col: 1})
 }
 
 // Convert given marshal struct or map value to toml tree
@@ -267,7 +310,7 @@ func (e *Encoder) valueToTree(mtype reflect.Type, mval reflect.Value) (*Tree, er
 	if mtype.Kind() == reflect.Ptr {
 		return e.valueToTree(mtype.Elem(), mval.Elem())
 	}
-	tval := newTree()
+	tval := e.nextTree()
 	switch mtype.Kind() {
 	case reflect.Struct:
 		for i := 0; i < mtype.NumField(); i++ {
@@ -287,7 +330,26 @@ func (e *Encoder) valueToTree(mtype reflect.Type, mval reflect.Value) (*Tree, er
 			}
 		}
 	case reflect.Map:
-		for _, key := range mval.MapKeys() {
+		keys := mval.MapKeys()
+		if e.order == OrderPreserve && len(keys) > 0 {
+			// Sorting []reflect.Value is not straight forward.
+			//
+			// OrderPreserve will support deterministic results when string is used
+			// as the key to maps.
+			typ := keys[0].Type()
+			kind := keys[0].Kind()
+			if kind == reflect.String {
+				ikeys := make([]string, len(keys))
+				for i := range keys {
+					ikeys[i] = keys[i].Interface().(string)
+				}
+				sort.Strings(ikeys)
+				for i := range ikeys {
+					keys[i] = reflect.ValueOf(ikeys[i]).Convert(typ)
+				}
+			}
+		}
+		for _, key := range keys {
 			mvalf := mval.MapIndex(key)
 			val, err := e.valueToToml(mtype.Elem(), mvalf)
 			if err != nil {
@@ -335,6 +397,7 @@ func (e *Encoder) valueToOtherSlice(mtype reflect.Type, mval reflect.Value) (int
 
 // Convert given marshal value to toml value
 func (e *Encoder) valueToToml(mtype reflect.Type, mval reflect.Value) (interface{}, error) {
+	e.line++
 	if mtype.Kind() == reflect.Ptr {
 		return e.valueToToml(mtype.Elem(), mval.Elem())
 	}
@@ -352,6 +415,9 @@ func (e *Encoder) valueToToml(mtype reflect.Type, mval reflect.Value) (interface
 		case reflect.Bool:
 			return mval.Bool(), nil
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if mtype.Kind() == reflect.Int64 && mtype == reflect.TypeOf(time.Duration(1)) {
+				return fmt.Sprint(mval), nil
+			}
 			return mval.Int(), nil
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			return mval.Uint(), nil
@@ -392,6 +458,14 @@ func (t *Tree) Marshal() ([]byte, error) {
 // The following struct annotations are supported:
 //
 //   toml:"Field" Overrides the field's name to map to.
+//   default:"foo" Provides a default value.
+//
+// For default values, only fields of the following types are supported:
+//   * string
+//   * bool
+//   * int
+//   * int64
+//   * float64
 //
 // See Marshal() documentation for types mapping table.
 func Unmarshal(data []byte, v interface{}) error {
@@ -440,11 +514,19 @@ func (d *Decoder) SetTagName(v string) *Decoder {
 
 func (d *Decoder) unmarshal(v interface{}) error {
 	mtype := reflect.TypeOf(v)
-	if mtype.Kind() != reflect.Ptr || mtype.Elem().Kind() != reflect.Struct {
-		return errors.New("Only a pointer to struct can be unmarshaled from TOML")
+	if mtype.Kind() != reflect.Ptr {
+		return errors.New("only a pointer to struct or map can be unmarshaled from TOML")
 	}
 
-	sval, err := d.valueFromTree(mtype.Elem(), d.tval)
+	elem := mtype.Elem()
+
+	switch elem.Kind() {
+	case reflect.Struct, reflect.Map:
+	default:
+		return errors.New("only a pointer to struct or map can be unmarshaled from TOML")
+	}
+
+	sval, err := d.valueFromTree(elem, d.tval)
 	if err != nil {
 		return err
 	}
@@ -467,7 +549,14 @@ func (d *Decoder) valueFromTree(mtype reflect.Type, tval *Tree) (reflect.Value, 
 			opts := tomlOptions(mtypef, an)
 			if opts.include {
 				baseKey := opts.name
-				keysToTry := []string{baseKey, strings.ToLower(baseKey), strings.ToTitle(baseKey)}
+				keysToTry := []string{
+					baseKey,
+					strings.ToLower(baseKey),
+					strings.ToTitle(baseKey),
+					strings.ToLower(string(baseKey[0])) + baseKey[1:],
+				}
+
+				found := false
 				for _, key := range keysToTry {
 					exists := tval.Has(key)
 					if !exists {
@@ -479,7 +568,41 @@ func (d *Decoder) valueFromTree(mtype reflect.Type, tval *Tree) (reflect.Value, 
 						return mval, formatError(err, tval.GetPosition(key))
 					}
 					mval.Field(i).Set(mvalf)
+					found = true
 					break
+				}
+
+				if !found && opts.defaultValue != "" {
+					mvalf := mval.Field(i)
+					var val interface{}
+					var err error
+					switch mvalf.Kind() {
+					case reflect.Bool:
+						val, err = strconv.ParseBool(opts.defaultValue)
+						if err != nil {
+							return mval.Field(i), err
+						}
+					case reflect.Int:
+						val, err = strconv.Atoi(opts.defaultValue)
+						if err != nil {
+							return mval.Field(i), err
+						}
+					case reflect.String:
+						val = opts.defaultValue
+					case reflect.Int64:
+						val, err = strconv.ParseInt(opts.defaultValue, 10, 64)
+						if err != nil {
+							return mval.Field(i), err
+						}
+					case reflect.Float64:
+						val, err = strconv.ParseFloat(opts.defaultValue, 64)
+						if err != nil {
+							return mval.Field(i), err
+						}
+					default:
+						return mval.Field(i), fmt.Errorf("unsuported field type for default option")
+					}
+					mval.Field(i).Set(reflect.ValueOf(val))
 				}
 			}
 		}
@@ -492,7 +615,7 @@ func (d *Decoder) valueFromTree(mtype reflect.Type, tval *Tree) (reflect.Value, 
 			if err != nil {
 				return mval, formatError(err, tval.GetPosition(key))
 			}
-			mval.SetMapIndex(reflect.ValueOf(key), mvalf)
+			mval.SetMapIndex(reflect.ValueOf(key).Convert(mtype.Key()), mvalf)
 		}
 	}
 	return mval, nil
@@ -530,20 +653,20 @@ func (d *Decoder) valueFromToml(mtype reflect.Type, tval interface{}) (reflect.V
 		return d.unwrapPointer(mtype, tval)
 	}
 
-	switch tval.(type) {
+	switch t := tval.(type) {
 	case *Tree:
 		if isTree(mtype) {
-			return d.valueFromTree(mtype, tval.(*Tree))
+			return d.valueFromTree(mtype, t)
 		}
 		return reflect.ValueOf(nil), fmt.Errorf("Can't convert %v(%T) to a tree", tval, tval)
 	case []*Tree:
 		if isTreeSlice(mtype) {
-			return d.valueFromTreeSlice(mtype, tval.([]*Tree))
+			return d.valueFromTreeSlice(mtype, t)
 		}
 		return reflect.ValueOf(nil), fmt.Errorf("Can't convert %v(%T) to trees", tval, tval)
 	case []interface{}:
 		if isOtherSlice(mtype) {
-			return d.valueFromOtherSlice(mtype, tval.([]interface{}))
+			return d.valueFromOtherSlice(mtype, t)
 		}
 		return reflect.ValueOf(nil), fmt.Errorf("Can't convert %v(%T) to a slice", tval, tval)
 	default:
@@ -566,6 +689,13 @@ func (d *Decoder) valueFromToml(mtype reflect.Type, tval interface{}) (reflect.V
 			return val.Convert(mtype), nil
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			val := reflect.ValueOf(tval)
+			if mtype.Kind() == reflect.Int64 && mtype == reflect.TypeOf(time.Duration(1)) && val.Kind() == reflect.String {
+				d, err := time.ParseDuration(val.String())
+				if err != nil {
+					return reflect.ValueOf(nil), fmt.Errorf("Can't convert %v(%T) to %v. %s", tval, tval, mtype.String(), err)
+				}
+				return reflect.ValueOf(d), nil
+			}
 			if !val.Type().ConvertibleTo(mtype) {
 				return reflect.ValueOf(nil), fmt.Errorf("Can't convert %v(%T) to %v", tval, tval, mtype.String())
 			}
@@ -623,7 +753,16 @@ func tomlOptions(vf reflect.StructField, an annotation) tomlOpts {
 	}
 	commented, _ := strconv.ParseBool(vf.Tag.Get(an.commented))
 	multiline, _ := strconv.ParseBool(vf.Tag.Get(an.multiline))
-	result := tomlOpts{name: vf.Name, comment: comment, commented: commented, multiline: multiline, include: true, omitempty: false}
+	defaultValue := vf.Tag.Get(tagDefault)
+	result := tomlOpts{
+		name:         vf.Name,
+		comment:      comment,
+		commented:    commented,
+		multiline:    multiline,
+		include:      true,
+		omitempty:    false,
+		defaultValue: defaultValue,
+	}
 	if parse[0] != "" {
 		if parse[0] == "-" && len(parse) == 1 {
 			result.include = false
