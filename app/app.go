@@ -42,6 +42,9 @@ const (
 
 	DefaultUpdateDownloadLinkExpire  = 24 * time.Hour
 	DefaultImageGenerationLinkExpire = 7 * 24 * time.Hour
+	PerPageInventoryDevices          = 512
+	InventoryGroupScope              = "system"
+	InventoryGroupAttributeName      = "group"
 )
 
 // maximum image size is 10G
@@ -605,15 +608,41 @@ func getArtifactIDs(artifacts []*model.Image) []string {
 
 // deployments
 
+func isGroupConstructor(constructor *model.DeploymentConstructor) bool {
+	if constructor == nil {
+		return false
+	}
+	if len(constructor.Devices) < 1 && constructor.Name != nil {
+		return true
+	}
+
+	return false
+}
+
+func inventoryDevicesToDevicesIds(devices []model.InvDevice) []string {
+	ids := make([]string, len(devices))
+	for i, d := range devices {
+		ids[i] = d.ID
+	}
+
+	return ids
+}
+
 // CreateDeployment precomputes new deployment and schedules it for devices.
 func (d *Deployments) CreateDeployment(ctx context.Context,
 	constructor *model.DeploymentConstructor) (string, error) {
+	l := log.FromContext(ctx)
 
 	if constructor == nil {
 		return "", ErrModelMissingInput
 	}
 
-	if err := constructor.Validate(); err != nil {
+	group := ""
+	if isGroupConstructor(constructor) {
+		group = *constructor.Name
+	}
+
+	if err := constructor.Validate(group); err != nil {
 		return "", errors.Wrap(err, "Validating deployment")
 	}
 
@@ -634,6 +663,41 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 		return "", ErrNoArtifact
 	}
 
+	if len(group) > 1 {
+		id := identity.FromContext(ctx)
+		if id == nil || len(id.Tenant) <= 0 {
+			l.Error("tenant ID not present in the context")
+			return "", ErrModelInternal
+		}
+		searchParams := model.SearchParams{
+			Page:    1,
+			PerPage: PerPageInventoryDevices,
+			Filters: []model.FilterPredicate{
+				{
+					Scope:     InventoryGroupScope,
+					Attribute: InventoryGroupAttributeName,
+					Type:      "$eq",
+					Value:     group,
+				},
+			},
+		}
+		for {
+			devices, count, err := d.inventoryClient.Search(ctx, id.Tenant, searchParams)
+			if err != nil {
+				l.Errorf("error searching for devices in group %s", group)
+				return "", ErrModelInternal
+			}
+			if count < 1 {
+				l.Errorf("no devices found devices in group %s", group)
+				return "", ErrModelInternal
+			}
+			if len(devices) < 1 {
+				break
+			}
+			constructor.Devices = append(constructor.Devices, inventoryDevicesToDevicesIds(devices)...)
+			searchParams.Page++
+		}
+	}
 	deployment.Artifacts = getArtifactIDs(artifacts)
 	deployment.DeviceList = constructor.Devices
 	deployment.MaxDevices = len(constructor.Devices)
