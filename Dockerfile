@@ -1,16 +1,14 @@
-FROM golang:1.13.8-alpine3.11 as builder
-RUN apk update && apk upgrade && \
-     apk add \
+FROM golang:1.14-alpine3.12 as builder
+RUN apk add --no-cache \
      xz-dev \
      musl-dev \
      gcc
-RUN mkdir -p /go/src/github.com/mendersoftware/deployments
-COPY . /go/src/github.com/mendersoftware/deployments
-RUN cd /go/src/github.com/mendersoftware/deployments && env CGO_ENABLED=1 go build
+WORKDIR /go/src/github.com/mendersoftware/deployments
+COPY ./ .
+RUN env CGO_ENABLED=1 go build
 
-FROM alpine:3.6
-RUN apk update && apk upgrade && \
-     apk add --no-cache ca-certificates xz
+FROM alpine:3.12
+RUN apk add --no-cache ca-certificates xz
 RUN mkdir -p /etc/deployments
 EXPOSE 8080
 COPY ./config.yaml /etc/deployments

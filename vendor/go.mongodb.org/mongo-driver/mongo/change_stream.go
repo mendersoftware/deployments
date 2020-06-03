@@ -69,6 +69,7 @@ type changeStreamConfig struct {
 	streamType     StreamType
 	collectionName string
 	databaseName   string
+	crypt          *driver.Crypt
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
@@ -100,8 +101,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	cs.aggregate = operation.NewAggregate(nil).
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
-		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone)
+		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
+		Crypt(config.crypt)
 
+	if config.crypt != nil {
+		cs.cursorOptions.Crypt = config.crypt
+	}
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
 	}
@@ -204,7 +209,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		cs.err = original
 		switch tt := original.(type) {
 		case driver.Error:
-			if !tt.RetryableRead() {
+			if !tt.Retryable() {
 				break
 			}
 
