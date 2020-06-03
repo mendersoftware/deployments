@@ -12,6 +12,9 @@ cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  vendor/github.
 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b  vendor/github.com/xdg/scram/LICENSE
 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b  vendor/github.com/xdg/stringprep/LICENSE
 c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4  vendor/go.mongodb.org/mongo-driver/LICENSE
+d18f6323b71b0b768bb5e9616e36da390fbd39369a81807cca352de4e4e6aa0b  vendor/gopkg.in/yaml.v3/LICENSE
+f6918bd93ffe07f4b2c61b8287c32cb3122e08aed0be50f1c7d0eddc87877a8f  vendor/gopkg.in/ini.v1/LICENSE
+cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  vendor/github.com/minio/sha256-simd/LICENSE
 #
 # BSD-2-Clause
 e45788cee53174eee4d7938484bedca0e66dcac6e92bec354b410273bdb5f6e7  vendor/github.com/magiconair/properties/LICENSE
@@ -42,7 +45,7 @@ feb6d17a0e7a64e5ab0f7e2b0e0ee3e69c1a6396626fd554dc0cddaa06851b44  vendor/github.
 409777def58db7e220011d266bb963259b5d45fc490e58a0d97acad2b591609a  vendor/github.com/ant0ine/go-json-rest/LICENSE
 22adc4abdece712a737573672f082fd61ac2b21df878efb87ffcff4354a07f26  vendor/github.com/mitchellh/mapstructure/LICENSE
 92a328e1d5f3269b42e2ce32b4494eafdb3132f204a911c5c95cf3d8465490e4  vendor/github.com/satori/go.uuid/LICENSE
-dad2b0b2cc2dbdbf95ad5d800ef7588956e74dc2479014829d42be295125c25d  vendor/github.com/stretchr/testify/LICENSE
+f8e536c1c7b695810427095dc85f5f80d44ff7c10535e8a9486cf393e2599189  vendor/github.com/stretchr/testify/LICENSE
 1b93a317849ee09d3d7e4f1d20c2b78ddb230b4becb12d7c224c927b9d470251  vendor/github.com/davecgh/go-spew/LICENSE
 012d0f6caf604aedba723982c0d8a28f664ecd957de5131bc22c87a0d36b7115  vendor/github.com/asaskevich/govalidator/LICENSE
 b2663894033a05fd80261176cd8da1d72546e25842d5c1abcc852ca23b6b61b0  vendor/github.com/stretchr/objx/LICENSE
@@ -53,6 +56,9 @@ da277af11b85227490377fbcac6afccc68be560c4fff36ac05ca62de55345fd7  vendor/github.
 f566a9f97bacdaf00d9f21dd991e81dc11201c4e016c86b470799429a1c9a79c  vendor/github.com/klauspost/compress/zstd/internal/xxhash/LICENSE.txt
 c8024e31c1de453fea90f22a221968835cc7af9d520274a2576c9ec9976055b0  vendor/github.com/shurcooL/sanitized_anchor_name/LICENSE
 a55959c4e3e8917bfa857359bb641115336276a6cc97408fd8197e079fb18470  vendor/github.com/cpuguy83/go-md2man/v2/LICENSE.md
+d18f6323b71b0b768bb5e9616e36da390fbd39369a81807cca352de4e4e6aa0b  vendor/gopkg.in/yaml.v3/LICENSE
+7709cc030f078b17809884f92f33a2016944e1180312dc3f1371b02313d313ed  vendor/github.com/klauspost/pgzip/LICENSE
+1fd29c692f599736d92f7c02b7826836c0d2ccc838689b21822f4ce0253c39df  vendor/github.com/subosito/gotenv/LICENSE
 #
 # LGPL3 with static linking exception.
 b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1  vendor/gopkg.in/yaml.v2/LICENSE

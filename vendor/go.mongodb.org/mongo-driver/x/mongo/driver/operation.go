@@ -307,6 +307,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 	batching := op.Batches.Valid()
+	currIndex := 0
 	for {
 		if batching {
 			targetBatchSize := desc.MaxDocumentSize
@@ -397,15 +398,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if e := err.(WriteCommandError); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
 			}
-
-			connDesc := conn.Description()
-			retryableErr := tt.Retryable(connDesc.WireVersion)
-			// Add a RetryableWriteError label for retryable errors from pre-4.4 servers
-			if retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9 {
-				tt.Labels = append(tt.Labels, RetryableWriteError)
-			}
-
-			if retryable && retryableErr && retries != 0 {
+			if retryable && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -428,6 +421,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				continue
 			}
+
+			if batching && len(tt.WriteErrors) > 0 && currIndex > 0 {
+				for i := range tt.WriteErrors {
+					tt.WriteErrors[i].Index += int64(currIndex)
+				}
+			}
+
 			// If batching is enabled and either ordered is the default (which is true) or
 			// explicitly set to true and we have write errors, return the errors.
 			if batching && (op.Batches.Ordered == nil || *op.Batches.Ordered == true) && len(tt.WriteErrors) > 0 {
@@ -439,21 +439,16 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					Name:    tt.WriteConcernError.Name,
 					Code:    int32(tt.WriteConcernError.Code),
 					Message: tt.WriteConcernError.Message,
-					Labels:  tt.Labels,
 				}
 				// The UnknownTransactionCommitResult label is added to all writeConcernErrors besides unknownReplWriteConcernCode
 				// and unsatisfiableWriteConcernCode
 				if err.Code != unknownReplWriteConcernCode && err.Code != unsatisfiableWriteConcernCode {
 					err.Labels = append(err.Labels, UnknownTransactionCommitResult)
 				}
-				if retryableErr {
-					err.Labels = append(err.Labels, RetryableWriteError)
-				}
 				return err
 			}
 			operationErr.WriteConcernError = tt.WriteConcernError
 			operationErr.WriteErrors = append(operationErr.WriteErrors, tt.WriteErrors...)
-			operationErr.Labels = tt.Labels
 		case Error:
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				op.Client.ClearPinnedServer()
@@ -461,20 +456,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if e := err.(Error); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
 			}
-
-			connDesc := conn.Description()
-			var retryableErr bool
-			if op.Type == Write {
-				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
-				// Add a RetryableWriteError label for network errors and retryable errors from pre-4.4 servers
-				if tt.HasErrorLabel(NetworkError) || (retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9) {
-					tt.Labels = append(tt.Labels, RetryableWriteError)
-				}
-			} else {
-				retryableErr = tt.RetryableRead()
-			}
-
-			if retryable && retryableErr && retries != 0 {
+			if retryable && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -497,8 +479,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				continue
 			}
-
-			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
+			if op.Client != nil && op.Client.Committing && (tt.Retryable() || tt.Code == 50) {
 				// If we got a retryable error or MaxTimeMSExpired error, we add UnknownTransactionCommitResult.
 				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
 			}
@@ -523,6 +504,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					retries = 1
 				}
 			}
+			currIndex += len(op.Batches.Current)
 			op.Batches.ClearBatch()
 			continue
 		}
