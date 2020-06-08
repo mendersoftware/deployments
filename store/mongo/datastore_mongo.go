@@ -48,6 +48,7 @@ var (
 	IndexDeploymentArtifactName               = "deploymentArtifactNameIndex"
 	IndexDeploymentDeviceStatusesName         = "deviceIdWithStatusByCreated"
 	IndexDeploymentDeviceIdStatusName         = "devicesIdWithStatus"
+	IndexDeploymentDeviceCreatedStatusName    = "devicesIdWithCreatedStatus"
 	IndexDeploymentDeviceDeploymentIdName     = "devicesDeploymentId"
 	IndexDeploymentStatusFinishedName         = "deploymentStatusFinished"
 	IndexDeploymentStatusPendingName          = "deploymentStatusPending"
@@ -106,17 +107,29 @@ var (
 	}
 	DeviceIDStatusIndexes = mongo.IndexModel{
 		Keys: bson.D{
-			{Key: "deviceID", Value: 1},
-			{Key: "status", Value: 1},
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+			{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
 		},
 		Options: &mopts.IndexOptions{
 			Background: &_false,
 			Name:       &IndexDeploymentDeviceIdStatusName,
 		},
 	}
+	DeviceIDCreatedStatusIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+			{Key: StorageKeyDeploymentStatsCreated, Value: 1},
+			{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentDeviceCreatedStatusName,
+		},
+	}
 	DeploymentIdIndexes = mongo.IndexModel{
 		Keys: bson.D{
-			{Key: "deploymentid", Value: 1},
+			{Key: StorageKeyDeviceDeploymentDeploymentID, Value: 1},
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
 		},
 		Options: &mopts.IndexOptions{
 			Background: &_false,
