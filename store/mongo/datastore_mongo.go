@@ -26,8 +26,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
@@ -340,16 +338,6 @@ func NewMongoClient(ctx context.Context, c config.Reader) (*mongo.Client, error)
 		tlsConfig := &tls.Config{}
 		tlsConfig.InsecureSkipVerify = c.GetBool(dconfig.SettingDbSSLSkipVerify)
 		clientOptions.SetTLSConfig(tlsConfig)
-	}
-
-	// Set writeconcern to acknowlage after write has propagated to the
-	// mongod instance and commited to the file system journal.
-	var wc *writeconcern.WriteConcern
-	wc.WithOptions(writeconcern.W(1), writeconcern.J(true))
-	clientOptions.SetWriteConcern(wc)
-
-	if clientOptions.ReplicaSet != nil {
-		clientOptions.SetReadConcern(readconcern.Linearizable())
 	}
 
 	// Set 10s timeout
