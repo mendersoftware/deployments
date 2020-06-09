@@ -551,7 +551,7 @@ func getMetaFromArchive(r *io.Reader) (*model.ArtifactMeta, error) {
 	}
 
 	err := aReader.ReadArtifact()
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, errors.Wrap(err, "reading artifact error")
 	}
 
