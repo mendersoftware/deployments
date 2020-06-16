@@ -61,8 +61,8 @@ func (_m *FileStorage) Exists(ctx context.Context, objectId string) (bool, error
 }
 
 // GetRequest provides a mock function with given fields: ctx, objectId, duration, responseContentType
-func (_m *FileStorage) GetRequest(ctx context.Context, objectId string, duration time.Duration, responseContentType string) (*model.Link, error) {
-	ret := _m.Called(ctx, objectId, duration, responseContentType)
+func (_m *FileStorage) GetRequest(ctx context.Context, objectId string, duration time.Duration, responseContentType, fileName string) (*model.Link, error) {
+	ret := _m.Called(ctx, objectId, duration, responseContentType, fileName)
 
 	var r0 *model.Link
 	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration, string) *model.Link); ok {

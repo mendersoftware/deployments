@@ -318,7 +318,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 		multipartGenerateImageMsg.TenantID = id.Tenant
 	}
 
-	link, err := d.fileStorage.GetRequest(ctx, imgID, DefaultImageGenerationLinkExpire, ArtifactContentType)
+	link, err := d.fileStorage.GetRequest(ctx, imgID, DefaultImageGenerationLinkExpire, ArtifactContentType, "")
 	if err != nil {
 		return "", err
 	}
@@ -491,16 +491,16 @@ func (d *Deployments) EditImage(ctx context.Context, imageID string,
 func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 	expire time.Duration) (*model.Link, error) {
 
-	found, err := d.db.Exists(ctx, imageID)
+	image, err := d.GetImage(ctx, imageID)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image with specified ID")
 	}
 
-	if !found {
+	if image == nil {
 		return nil, nil
 	}
 
-	found, err = d.fileStorage.Exists(ctx, imageID)
+	found, err := d.fileStorage.Exists(ctx, imageID)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image file")
 	}
@@ -509,8 +509,9 @@ func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 		return nil, nil
 	}
 
+	fileName := image.Name + ".mender"
 	link, err := d.fileStorage.GetRequest(ctx, imageID,
-		expire, ArtifactContentType)
+		expire, ArtifactContentType, fileName)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
 	}
@@ -1017,7 +1018,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	}
 
 	link, err := d.fileStorage.GetRequest(ctx, deviceDeployment.Image.Id,
-		DefaultUpdateDownloadLinkExpire, d.imageContentType)
+		DefaultUpdateDownloadLinkExpire, d.imageContentType, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}
