@@ -53,7 +53,7 @@ type FileStorage interface {
 	PutRequest(ctx context.Context, objectId string,
 		duration time.Duration) (*model.Link, error)
 	GetRequest(ctx context.Context, objectId string,
-		duration time.Duration, responseContentType string) (*model.Link, error)
+		duration time.Duration, responseContentType string, fileName string) (*model.Link, error)
 	DeleteRequest(ctx context.Context, objectId string,
 		duration time.Duration) (*model.Link, error)
 	UploadArtifact(ctx context.Context, objectId string,
@@ -428,7 +428,7 @@ func (s *SimpleStorageService) PutRequest(ctx context.Context, objectID string,
 
 // GetRequest duration is limited to 7 days (AWS limitation)
 func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
-	duration time.Duration, responseContentType string) (*model.Link, error) {
+	duration time.Duration, responseContentType, fileName string) (*model.Link, error) {
 
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
@@ -443,6 +443,11 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
 
 	if responseContentType != "" {
 		params.ResponseContentType = &responseContentType
+	}
+
+	if fileName != "" {
+		contentDisposition := fmt.Sprintf("attachment; filename=\"%s\"", fileName)
+		params.ResponseContentDisposition = &contentDisposition
 	}
 
 	// Ignore out object
