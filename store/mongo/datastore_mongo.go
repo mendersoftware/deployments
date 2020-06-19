@@ -26,8 +26,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
@@ -48,6 +46,7 @@ var (
 	IndexDeploymentArtifactName               = "deploymentArtifactNameIndex"
 	IndexDeploymentDeviceStatusesName         = "deviceIdWithStatusByCreated"
 	IndexDeploymentDeviceIdStatusName         = "devicesIdWithStatus"
+	IndexDeploymentDeviceCreatedStatusName    = "devicesIdWithCreatedStatus"
 	IndexDeploymentDeviceDeploymentIdName     = "devicesDeploymentId"
 	IndexDeploymentStatusFinishedName         = "deploymentStatusFinished"
 	IndexDeploymentStatusPendingName          = "deploymentStatusPending"
@@ -106,17 +105,29 @@ var (
 	}
 	DeviceIDStatusIndexes = mongo.IndexModel{
 		Keys: bson.D{
-			{Key: "deviceID", Value: 1},
-			{Key: "status", Value: 1},
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+			{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
 		},
 		Options: &mopts.IndexOptions{
 			Background: &_false,
 			Name:       &IndexDeploymentDeviceIdStatusName,
 		},
 	}
+	DeviceIDCreatedStatusIndex = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+			{Key: StorageKeyDeploymentStatsCreated, Value: 1},
+			{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentDeviceCreatedStatusName,
+		},
+	}
 	DeploymentIdIndexes = mongo.IndexModel{
 		Keys: bson.D{
-			{Key: "deploymentid", Value: 1},
+			{Key: StorageKeyDeviceDeploymentDeploymentID, Value: 1},
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
 		},
 		Options: &mopts.IndexOptions{
 			Background: &_false,
@@ -327,16 +338,6 @@ func NewMongoClient(ctx context.Context, c config.Reader) (*mongo.Client, error)
 		tlsConfig := &tls.Config{}
 		tlsConfig.InsecureSkipVerify = c.GetBool(dconfig.SettingDbSSLSkipVerify)
 		clientOptions.SetTLSConfig(tlsConfig)
-	}
-
-	// Set writeconcern to acknowlage after write has propagated to the
-	// mongod instance and commited to the file system journal.
-	var wc *writeconcern.WriteConcern
-	wc.WithOptions(writeconcern.W(1), writeconcern.J(true))
-	clientOptions.SetWriteConcern(wc)
-
-	if clientOptions.ReplicaSet != nil {
-		clientOptions.SetReadConcern(readconcern.Linearizable())
 	}
 
 	// Set 10s timeout
