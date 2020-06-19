@@ -7,7 +7,7 @@ info:
 
     Devices can get new updates and send information about current deployment status.
 
-host: 'docker.mender.io'
+host: 'hosted.mender.io'
 basePath: '/api/devices/v1/deployments'
 schemes:
   - https
