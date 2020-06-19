@@ -8,7 +8,7 @@ info:
 host: 'docker.mender.io'
 basePath: '/api/internal/v1/deployments'
 schemes:
-  - https
+  - http
 
 responses:
   NotFoundError: # 404
