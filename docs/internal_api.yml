@@ -5,7 +5,7 @@ info:
   description: |
     Internal API of deployments service
 
-host: 'docker.mender.io'
+host: 'mender-deployments:8080'
 basePath: '/api/internal/v1/deployments'
 schemes:
   - http
