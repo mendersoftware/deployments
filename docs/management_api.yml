@@ -572,7 +572,7 @@ paths:
       summary: Upload raw data to generate a new artifact
       description: |
         Generate a new Mender artifact from raw data and meta data. Multipart request with meta and raw file.
-        Supports generating single-file updates only, using the single file upload module. [https://hub.mender.io/t/single-file/486]: 
+        Supports generating single-file updates only, using the Single File Update Module (https://hub.mender.io/t/single-file).
       consumes:
         - multipart/form-data
       parameters:
@@ -595,6 +595,7 @@ paths:
         - name: device_types_compatible
           in: formData
           description: An array of compatible device types.
+          required: true
           type: array
           collectionFormat: csv
           items:
