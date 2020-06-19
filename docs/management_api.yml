@@ -6,7 +6,7 @@ info:
     An API for deployments and artifacts management.
     Intended for use by the web GUI.
 
-host: 'docker.mender.io'
+host: 'hosted.mender.io'
 basePath: '/api/management/v1/deployments'
 schemes:
   - https
