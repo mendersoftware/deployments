@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/ant0ine/go-json-rest v3.3.3-0.20170913041208-ebb33769ae01+incompatible
 	github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf
-	github.com/aws/aws-sdk-go v1.31.9
+	github.com/aws/aws-sdk-go v1.32.11
 	github.com/mendersoftware/go-lib-micro v0.0.0-20200515040228-6829ff01e034
 	github.com/mendersoftware/inventory v0.0.0-20200522065057-a25956b1ec7b // indirect
 	github.com/mendersoftware/mender-artifact v0.0.0-20200602094549-b2c230e73b0e
