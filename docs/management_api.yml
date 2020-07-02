@@ -11,6 +11,20 @@ basePath: '/api/management/v1/deployments'
 schemes:
   - https
 
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  ManagementJWT:
+    type: apiKey
+    in: header
+    name: Authorization
+    description: |
+      API token issued by User Authentication service.
+      Format: 'Bearer [JWT]'
+
 responses:
   NotFoundError: # 404
     description: Not Found.
@@ -32,18 +46,17 @@ responses:
 paths:
   /deployments:
     get:
+      operationId: List Deployments
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Find all deployments
       description: |
         Returns a filtered collection of deployments in the system,
         including active and historical. If both 'status' and 'query' are
         not specified, all devices are listed.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: status
           in: query
           description: Deployment status filter.
@@ -90,15 +103,6 @@ paths:
       responses:
         200:
           description: Successful response.
-          examples:
-            application/json:
-              - created: 2016-02-11T13:03:17.063493443Z
-                status: finished
-                name: production
-                artifact_name: Application 0.0.1
-                id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-                finished: 2016-03-11T13:03:17.063493443Z
-                device_count: 10
           schema:
             type: array
             items:
@@ -113,6 +117,11 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     post:
+      operationId: Create Deployment
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Create a deployment
       description: |
         Deploy software to specified devices. Artifact is auto assigned to the
@@ -123,12 +132,6 @@ paths:
         and the 422 Unprocessable Entity status code will be returned.
 
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: deployment
           in: body
           description: New deployment that needs to be created.
@@ -153,16 +156,15 @@ paths:
 
   /deployments/{id}:
     get:
+      operationId: Show Deployment
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Get the details of a selected deployment
       description: |
         Returns the details of a particular deployment.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Deployment identifier.
@@ -173,13 +175,6 @@ paths:
       responses:
         200:
           description: Successful response.
-          examples:
-            application/json:
-              created: 2016-02-11T13:03:17.063493443Z
-              name: production
-              artifact_name: Application 0.0.1
-              id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-              finished: 2016-03-11T13:03:17.063493443Z
           schema:
             $ref: "#/definitions/Deployment"
         404:
@@ -189,19 +184,22 @@ paths:
 
   /deployments/{deployment_id}/status:
     put:
+      operationId: Abort Deployment
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Abort the deployment
       description: |
-        Aborts the deployment that is pending or in progress. For devices included in this deployment it means that:
+        Abort an ongoing deployment. For devices included in this deployment it means that:
+
         - Devices that have completed the deployment (i.e. reported final status) are not affected by the abort, and their original status is kept in the deployment report.
+
         - Devices that do not yet know about the deployment at time of abort will not start the deployment.
+
         - Devices that are in the middle of the deployment at time of abort will finish its deployment normally, but they will not be able to change its deployment status so they will perform rollback.
+
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: deployment_id
           in: path
           description: Deployment identifier.
@@ -236,16 +234,14 @@ paths:
 
   /deployments/{deployment_id}/statistics:
     get:
-      summary: Get the statistics of a selected deployment
-      description: |
-        Returns the statistics of a selected deployment statuses.
+      operationId: Deployment Status Statistics
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: |
+        Get status count for all devices in a deployment.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: deployment_id
           in: path
           description: Deployment identifier
@@ -276,16 +272,15 @@ paths:
 
   /deployments/{deployment_id}/devices:
     get:
-      summary: List devices of a deployment
-      description: |
-        Returns a collection of a selected deployment's status for each assigned device.
+      operationId: List Devices in Deployment
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: |
+        Get list of all devices and their respective status for the deployment
+        with the given ID.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: deployment_id
           in: path
           description: Deployment identifier.
@@ -296,13 +291,6 @@ paths:
       responses:
         200:
           description: OK
-          examples:
-            application/json:
-              - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-                finished: 2016-03-11T13:03:17.063493443Z
-                status: pending
-                created: 2016-02-11T13:03:17.063493443Z
-                device_type: Raspberry Pi 3
           schema:
             type: array
             items:
@@ -314,16 +302,13 @@ paths:
 
   /deployments/{id}/device_list:
     get:
-      summary: Get the list of device IDs being part of static deployment.
-      description: |
-        Returns the list of device IDs for which the static deployment has been created.
+      operationId: List Device IDs in Deployment
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: Get the list of device IDs being part of the deployment.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Deployment identifier.
@@ -352,16 +337,13 @@ paths:
 
   /deployments/{deployment_id}/devices/{device_id}/log:
     get:
+      operationId: Get Deployment Log for Device
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Get the log of a selected device's deployment
-      description: |
-        Returns the log of a selected device, collected during a particular deployment.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: deployment_id
           in: path
           description: Deployment identifier.
@@ -384,6 +366,11 @@ paths:
 
   /deployments/devices/{id}:
     delete:
+      operationId: Remove Device from Deployments
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Remove device from all deployments
       description: Set 'decommissioned' status to all pending device deployments for a given device
       parameters:
@@ -392,12 +379,6 @@ paths:
           description: System wide device identifier
           required: true
           type: string
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
       responses:
         204:
           description: Device was removed
@@ -408,16 +389,15 @@ paths:
 
   /deployments/releases:
     get:
+      operationId: List Releases
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: List releases
       description: |
         Returns a collection of releases, allows filtering by release name.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: name
           in: query
           description: Release name filter.
@@ -480,14 +460,17 @@ paths:
                         date: 2016-03-11T13:03:17.063+0000
                     metadata: {}
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/Release'
+            $ref: '#/definitions/Releases'
         500:
           $ref: "#/responses/InternalServerError"
 
   /artifacts:
     get:
+      operationId: List Artifacts
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: List known artifacts
       description: |
         Returns a collection of all artifacts.
@@ -522,6 +505,11 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     post:
+      operationId: Upload Artifact
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Upload mender artifact
       description: |
         Upload mender artifact. Multipart request with meta and artifact.
@@ -530,12 +518,6 @@ paths:
       consumes:
         - multipart/form-data
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: size
           in: formData
           description: |
@@ -569,6 +551,11 @@ paths:
 
   /artifacts/generate:
     post:
+      operationId: Generate Artifact
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Upload raw data to generate a new artifact
       description: |
         Generate a new Mender artifact from raw data and meta data. Multipart request with meta and raw file.
@@ -576,12 +563,6 @@ paths:
       consumes:
         - multipart/form-data
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: name
           in: formData
           description: Name of the artifact to generate.
@@ -632,16 +613,15 @@ paths:
 
   /artifacts/{id}:
     get:
+      operationId: Show Artifact
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Get the details of a selected artifact
       description: |
         Returns the details of a selected artifact.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Artifact identifier.
@@ -679,17 +659,16 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     put:
+      operationId: Update Artifact Info
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Update description of a selected artifact
       description: |
         Edit description. Artifact is not allowed to be edited if it was used
         in any deployment.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Artifact identifier.
@@ -714,6 +693,11 @@ paths:
           $ref: "#/responses/InternalServerError"
 
     delete:
+      operationId: Delete Artifact
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Delete the artifact
       description: |
         Deletes the artifact from file and artifacts storage.
@@ -722,12 +706,6 @@ paths:
       produces:
         - application/json
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Artifact identifier.
@@ -747,6 +725,11 @@ paths:
 
   /artifacts/{id}/download:
     get:
+      operationId: Download Artifact
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Get the download link of a selected artifact
       description: |
         Generates signed URL for downloading artifact file. URI can be used only
@@ -754,12 +737,6 @@ paths:
         'If-Modified-Since', 'If-Unmodified-Since' It is valid for specified
         period of time.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
         - name: id
           in: path
           description: Artifact identifier.
@@ -780,17 +757,15 @@ paths:
           $ref: "#/responses/InternalServerError"
   /limits/storage:
     get:
+      operationId: Get Storage Usage
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
       summary: Get storage limit and current storage usage
       description: |
         Get storage limit and current storage usage for currently logged in user.
         If the limit value is 0 it means there is no limit for storage for logged in user.
-      parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the User Administration and Authentication Service.
       produces:
         - application/json
       responses:
@@ -813,9 +788,8 @@ definitions:
         description: Request ID (same as in X-MEN-RequestID header).
         type: string
     example:
-      application/json:
-          error: "failed to decode device group data: JSON payload is empty"
-          request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+      error: "failed to decode request body: JSON payload is empty"
+      request_id: "f7881e82-0492-49fb-b459-795654e7188a"
   NewDeployment:
     type: object
     properties:
@@ -833,11 +807,10 @@ definitions:
       - artifact_name
       - devices
     example:
-      application/json:
-        - name: production
-          artifact_name: Application 0.0.1
-          devices:
-            - 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+      name: production
+      artifact_name: Application 0.0.1
+      devices:
+        - 00a0c91e6-7dec-11d0-a765-f81d4faebf6
   Deployment:
     type: object
     properties:
@@ -874,13 +847,13 @@ definitions:
       - status
       - device_count
     example:
-      application/json:
-        created: 2016-02-11T13:03:17.063493443Z
-        status: finished
-        name: production
-        artifact_name: Application 0.0.1
-        id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-        finished: 2016-03-11T13:03:17.063493443Z
+      created: 2016-02-11T13:03:17.063493443Z
+      status: finished
+      name: production
+      artifact_name: Application 0.0.1
+      id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+      finished: 2016-03-11T13:03:17.063493443Z
+      device_count: 100
   DeploymentStatistics:
     type: object
     properties:
@@ -922,16 +895,15 @@ definitions:
       - already-installed
       - aborted
     example:
-      application/json:
-        success: 3
-        pending: 1
-        failure: 0
-        downloading: 1
-        installing: 2
-        rebooting: 3
-        noartifact: 0
-        already-installed: 0
-        aborted: 0
+      success: 3
+      pending: 1
+      failure: 0
+      downloading: 1
+      installing: 2
+      rebooting: 3
+      noartifact: 0
+      already-installed: 0
+      aborted: 0
   Device:
     type: object
     properties:
@@ -973,15 +945,14 @@ definitions:
       - status
       - log
     example:
-      application/json:
-        - id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
-          finished: 2016-03-11T13:03:17.063493443Z
-          status: inprogress
-          created: 2016-02-11T13:03:17.063493443Z
-          device_type: Raspberry Pi 3
-          log: false
-          state: installing
-          substate: installing.enter;script:foo-bar
+      id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+      finished: 2016-03-11T13:03:17.063493443Z
+      status: installing
+      created: 2016-02-11T13:03:17.063493443Z
+      device_type: Raspberry Pi 3
+      log: false
+      state: installing
+      substate: installing.enter;script:foo-bar
   ArtifactUpdate:
     description: Artifact information update.
     type: object
@@ -1076,23 +1047,22 @@ definitions:
       - id
       - modified
     example:
-      application/json:
-        name: Application 1.0.0
-        size: 36891648
-        description: Johns Monday test build
-        device_types_compatible: [Beagle Bone]
-        id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-        signed: false
-        modified: "2016-03-11T13:03:17.063493443Z"
-        info:
-            type_info:
-                type: rootfs
-        files:
-          - name: rootfs-image-1
-            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-            size: 123
-            date: 2016-03-11T13:03:17.063+0000
-        metadata: {}
+      name: Application 1.0.0
+      size: 36891648
+      description: Johns Monday test build
+      device_types_compatible: [Beagle Bone]
+      id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+      signed: false
+      modified: "2016-03-11T13:03:17.063493443Z"
+      info:
+          type_info:
+              type: rootfs
+      files:
+        - name: rootfs-image-1
+          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+          size: 123
+          date: 2016-03-11T13:03:17.063+0000
+      metadata: {}
   ArtifactLink:
     description: URL for artifact file download.
     type: object
@@ -1106,9 +1076,8 @@ definitions:
       - uri
       - expire
     example:
-      application/json:
-        uri: http://mender.io/artifact.tar.gz.mender
-        expire: 2016-10-29T10:45:34Z
+      uri: http://mender.io/artifact.tar.gz.mender
+      expire: 2016-10-29T10:45:34Z
   StorageLimit:
     description: Tenant account storage limit and storage usage.
     type: object
@@ -1125,9 +1094,13 @@ definitions:
       - limit
       - usage
     example:
-      application/json:
-        limit: 1073741824
-        usage: 536870912
+      limit: 1073741824
+      usage: 536870912
+  Releases:
+    description: List of releases
+    type: array
+    items:
+      $ref: "#/definitions/Release"
   Release:
     description: Groups artifacts with the same release name into a single resource.
     type: object
@@ -1143,36 +1116,35 @@ definitions:
         description: |
             list of artifacts for this release.
     example:
-      application/json:
-        name: my-app-v1.0.1
-        artifacts:
-          - name: my-app-v1.0.1
-            description: Application v1.0.1
-            device_types_compatible: [Beagle Bone]
-            id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-            signed: false
-            modified: "2016-03-11T13:03:17.063493443Z"
-            info:
-              type_info:
-                type: rootfs
-            files:
-              - name: rootfs-image-1
-                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                size: 23421351
-                date: 2016-03-11T13:03:17.063+0000
-            metadata: {}
-          - name: my-app-v1.0.1
-            description: Application v1.0.1
-            device_types_compatible: [Raspberry Pi]
-            id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-            signed: false
-            modified: "2016-03-11T13:03:17.063493443Z"
-            info:
-              type_info:
-                type: rootfs
-            files:
-              - name: rootfs-image-1
-                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                size: 23421351
-                date: 2016-03-11T13:03:17.063+0000
-            metadata: {}
+      name: my-app-v1.0.1
+      artifacts:
+        - name: my-app-v1.0.1
+          description: Application v1.0.1
+          device_types_compatible: [Beagle Bone]
+          id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+          signed: false
+          modified: "2016-03-11T13:03:17.063493443Z"
+          info:
+            type_info:
+              type: rootfs
+          files:
+            - name: rootfs-image-1
+              checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+              size: 23421351
+              date: 2016-03-11T13:03:17.063+0000
+          metadata: {}
+        - name: my-app-v1.0.1
+          description: Application v1.0.1
+          device_types_compatible: [Raspberry Pi]
+          id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+          signed: false
+          modified: "2016-03-11T13:03:17.063493443Z"
+          info:
+            type_info:
+              type: rootfs
+          files:
+            - name: rootfs-image-1
+              checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+              size: 23421351
+              date: 2016-03-11T13:03:17.063+0000
+          metadata: {}
