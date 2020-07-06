@@ -41,12 +41,12 @@ class TestDeployment(DeploymentsClient):
         )
 
     def test_deployments_get(self):
-        res = self.client.deployments.get_deployments(Authorization="foo").result()
+        res = self.client.Management_API.List_Deployments(Authorization="foo").result()
         self.log.debug("result: %s", res)
 
         # try with bogus image ID
         try:
-            res = self.client.deployments.get_deployments_id(
+            res = self.client.Management_API.Show_Deployment(
                 Authorization="foo", id="foo"
             ).result()
         except bravado.exception.HTTPError as e:
@@ -81,7 +81,7 @@ class TestDeployment(DeploymentsClient):
         for newdep in baddeps:
             # try bogus image data
             try:
-                res = self.client.deployments.post_deployments(
+                res = self.client.Management_API.Create_Deployment(
                     Authorization="foo", deployment=newdep
                 ).result()
             except bravado.exception.HTTPError as e:
@@ -131,7 +131,7 @@ class TestDeployment(DeploymentsClient):
                 device_type=dev.device_type,
             )
 
-            dep = self.client.deployments.get_deployments_id(
+            dep = self.client.Management_API.Show_Deployment(
                 Authorization="foo", id=depid
             ).result()[0]
             assert dep.artifact_name == artifact_name
@@ -139,7 +139,7 @@ class TestDeployment(DeploymentsClient):
             assert dep.status == "pending"
 
             # fetch device status
-            depdevs = self.client.deployments.get_deployments_deployment_id_devices(
+            depdevs = self.client.Management_API.List_Devices_in_Deployment(
                 Authorization="foo", deployment_id=depid
             ).result()[0]
             assert len(depdevs) == 1
@@ -154,7 +154,7 @@ class TestDeployment(DeploymentsClient):
             self.abort_deployment(depid)
 
             # that it's 'finished' now
-            aborted_dep = self.client.deployments.get_deployments_id(
+            aborted_dep = self.client.Management_API.Show_Deployment(
                 Authorization="foo", id=depid
             ).result()[0]
             self.log.debug("deployment dep: %s", aborted_dep)
@@ -164,7 +164,7 @@ class TestDeployment(DeploymentsClient):
             self.verify_deployment_stats(depid, expected={"aborted": 1})
 
             # fetch device status
-            depdevs = self.client.deployments.get_deployments_deployment_id_devices(
+            depdevs = self.client.Management_API.List_Devices_in_Deployment(
                 Authorization="foo", deployment_id=depid
             ).result()[0]
             self.log.debug("deployment devices: %s", depdevs)
@@ -366,7 +366,7 @@ class TestDeployment(DeploymentsClient):
                     assert againdep.id == nextdep.id
 
                     # deployment should be marked as inprogress
-                    dep = self.client.deployments.get_deployments_id(
+                    dep = self.client.Management_API.Show_Deployment(
                         Authorization="foo", id=depid
                     ).result()[0]
                     assert dep.status == "inprogress"
@@ -377,7 +377,7 @@ class TestDeployment(DeploymentsClient):
                     )
                     self.verify_deployment_stats(depid, expected={"success": 1})
 
-                    dep = self.client.deployments.get_deployments_id(
+                    dep = self.client.Management_API.Show_Deployment(
                         Authorization="foo", id=depid
                     ).result()[0]
                     assert dep.status == "finished"
@@ -402,7 +402,7 @@ class TestDeployment(DeploymentsClient):
                     )
                     self.verify_deployment_stats(depid, expected={"rebooting": 1})
                     # deployment is in progress again
-                    dep = self.client.deployments.get_deployments_id(
+                    dep = self.client.Management_API.Show_Deployment(
                         Authorization="foo", id=depid
                     ).result()[0]
                     assert dep.status == "inprogress"
@@ -459,11 +459,9 @@ class TestDeployment(DeploymentsClient):
                         dev.fake_token, nextdep.id, logs=["foo bar baz", "lorem ipsum"]
                     )
 
-                    rsp = self.client.deployments.get_deployments_deployment_id_devices_device_id_log(
+                    rsp = self.client.Management_API.Get_Deployment_Log_for_Device(
                         Authorization="foo", deployment_id=depid, device_id=dev.devid
-                    ).result()[
-                        1
-                    ]
+                    ).result()[1]
                     logs = rsp.text
                     self.log.info("device logs\n%s", logs)
 

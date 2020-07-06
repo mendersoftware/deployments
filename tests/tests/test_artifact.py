@@ -40,14 +40,14 @@ class TestArtifact(ArtifactsClient):
         self.setup_swagger()
 
     def test_artifacts_all(self):
-        res = self.client.artifacts.get_artifacts().result()
+        res = self.client.Management_API.List_Artifacts().result()
         self.log.debug("result: %s", res)
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_new_bogus_empty(self):
         # try bogus image data
         try:
-            res = self.client.artifacts.post_artifacts(
+            res = self.client.Management_API.Upload_Artifact(
                 Authorization="foo", size=100, artifact="".encode(), description="bar",
             ).result()
         except bravado.exception.HTTPError as e:
@@ -88,11 +88,11 @@ class TestArtifact(ArtifactsClient):
             artid = self.add_artifact(description, art.size, art)
 
             # artifacts listing should not be empty now
-            res = self.client.artifacts.get_artifacts().result()
+            res = self.client.Management_API.List_Artifacts().result()
             self.log.debug("result: %s", res)
             assert len(res[0]) > 0
 
-            res = self.client.artifacts.get_artifacts_id(
+            res = self.client.Management_API.Show_Artifact(
                 Authorization="foo", id=artid
             ).result()[0]
             self.log.info("artifact: %s", res)
@@ -113,7 +113,7 @@ class TestArtifact(ArtifactsClient):
             # assert uf.signature
 
             # try to fetch the update
-            res = self.client.artifacts.get_artifacts_id_download(
+            res = self.client.Management_API.Download_Artifact(
                 Authorization="foo", id=artid
             ).result()[0]
             self.log.info("download result %s", res)
@@ -143,7 +143,7 @@ class TestArtifact(ArtifactsClient):
 
             # should be unavailable now
             try:
-                res = self.client.artifacts.get_artifacts_id(
+                res = self.client.Management_API.Show_Artifact(
                     Authorization="foo", id=artid
                 ).result()
             except bravado.exception.HTTPError as e:
@@ -169,11 +169,11 @@ class TestArtifact(ArtifactsClient):
             artid = self.add_artifact(description, art.size, art)
 
             # artifacts listing should not be empty now
-            res = self.client.artifacts.get_artifacts().result()
+            res = self.client.Management_API.List_Artifacts().result()
             self.log.debug("result: %s", res)
             assert len(res[0]) > 0
 
-            res = self.client.artifacts.get_artifacts_id(
+            res = self.client.Management_API.Show_Artifact(
                 Authorization="foo", id=artid
             ).result()[0]
             self.log.info("artifact: %s", res)
@@ -194,7 +194,7 @@ class TestArtifact(ArtifactsClient):
     def test_single_artifact(self):
         # try with bogus image ID
         try:
-            res = self.client.artifacts.get_artifacts_id(
+            res = self.client.Management_API.Show_Artifact(
                 Authorization="foo", id="foo"
             ).result()
         except bravado.exception.HTTPError as e:
@@ -204,7 +204,7 @@ class TestArtifact(ArtifactsClient):
 
         # try with nonexistent image ID
         try:
-            res = self.client.artifacts.get_artifacts_id(
+            res = self.client.Management_API.Show_Artifact(
                 Authorization="foo", id=uuid4()
             ).result()
         except bravado.exception.HTTPError as e:
