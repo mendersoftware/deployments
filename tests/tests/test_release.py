@@ -35,9 +35,7 @@ class TestRelease(DeploymentsClient):
         self.setup_swagger()
 
     def test_releases_no_artifacts(self):
-        rsp = self.client.deployments.get_deployments_releases(
-            Authorization="foo"
-        ).result()
+        rsp = self.client.Management_API.List_Releases(Authorization="foo").result()
         assert len(rsp[0]) == 0
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
@@ -49,9 +47,7 @@ class TestRelease(DeploymentsClient):
                 ("bar", "device-type-2"),
             ]
         ):
-            rsp = self.client.deployments.get_deployments_releases(
-                Authorization="foo"
-            ).result()
+            rsp = self.client.Management_API.List_Releases(Authorization="foo").result()
             res = rsp[0]
             assert len(res) == 2
             release1 = res[0]
@@ -81,7 +77,7 @@ class TestRelease(DeploymentsClient):
                 ("bar", "device-type-2"),
             ]
         ):
-            rsp = self.client.deployments.get_deployments_releases(
+            rsp = self.client.Management_API.List_Releases(
                 Authorization="foo", name="bar"
             ).result()
             res = rsp[0]
@@ -102,7 +98,7 @@ class TestRelease(DeploymentsClient):
                 ("bar", "device-type-2"),
             ]
         ):
-            rsp = self.client.deployments.get_deployments_releases(
+            rsp = self.client.Management_API.List_Releases(
                 Authorization="foo", name="baz"
             ).result()
             res = rsp[0]

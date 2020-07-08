@@ -12,6 +12,20 @@ basePath: '/api/devices/v1/deployments'
 schemes:
   - https
 
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  DeviceJWT:
+    type: apiKey
+    in: header
+    name: Authorization
+    description: |
+      API token issued by Device Authentication service.
+      Format: 'Authorization: Bearer [JWT]'
+
 responses:
   NotFoundError: # 404
     description: Not Found.
@@ -29,16 +43,16 @@ responses:
 paths:
   /device/deployments/next:
     get:
-      summary: Get a next update
+      operationId: Check Update
+      tags:
+        - Device API
+      security:
+        - DeviceJWT: []
+      summary: Get next update
       description: |
-        Returns a next update to be installed on the device.
+        On success, either an empty response or a DeploymentInstructions object
+        is returned depending on whether there are any pending updates.
       parameters:
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the Device Authentication Service.
         - name: artifact_name
           in: query
           required: true
@@ -49,8 +63,6 @@ paths:
           required: true
           type: string
           description: Device type of device
-      produces:
-        - application/json
       responses:
         200:
           description: Successful response.
@@ -79,6 +91,11 @@ paths:
 
   /device/deployments/{id}/status:
     put:
+      operationId: Update Deployment Status
+      tags:
+        - Device API
+      security:
+        - DeviceJWT: []
       summary: Update the device deployment status
       description: |
         Updates the status of a deployment on a particular device. Final status
@@ -92,35 +109,12 @@ paths:
           description: Deployment identifier.
           required: true
           type: string
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the Device Authentication Service.
         - name: Status
           in: body
           description: Deployment status.
           required: true
           schema:
-            type: object
-            properties:
-              status:
-                type: string
-                enum:
-                  - installing
-                  - downloading
-                  - rebooting
-                  - success
-                  - failure
-                  - already-installed
-              substate:
-                type: string
-                description: Additional state information
-            required:
-              - status
-      produces:
-        - application/json
+            $ref: "#/definitions/DeploymentStatus"
       responses:
         204:
           description: Status updated successfully.
@@ -135,6 +129,11 @@ paths:
 
   /device/deployments/{id}/log:
     put:
+      operationId: Report Deployment Log
+      tags:
+        - Device API
+      security:
+        - DeviceJWT: []
       summary: Upload the device deployment log
       description: |
         Set the log of a selected deployment. Messages are split by line in the payload.
@@ -144,20 +143,12 @@ paths:
           description: Deployment identifier.
           required: true
           type: string
-        - name: Authorization
-          in: header
-          required: true
-          type: string
-          format: Bearer [token]
-          description: Contains the JWT token issued by the Device Authentication Service.
         - name: Log
           in: body
           description: Deployment log
           required: true
           schema:
             $ref: "#/definitions/DeploymentLog"
-      produces:
-        - application/json
       responses:
         204:
           description: The deployment log uploaded successfully.
@@ -180,9 +171,27 @@ definitions:
         description: Request ID (same as in X-MEN-RequestID header).
         type: string
     example:
-      application/json:
-          error: "failed to decode device group data: JSON payload is empty"
-          request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+      error: "failed to decode device group data: JSON payload is empty"
+      request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+  DeploymentStatus:
+    type: object
+    properties:
+      status:
+        type: string
+        enum:
+          - installing
+          - downloading
+          - rebooting
+          - success
+          - failure
+          - already-installed
+      substate:
+        type: string
+        description: Additional state information
+    required:
+      - status
+    example:
+      status: "success"
   DeploymentInstructions:
     type: object
     properties:
@@ -218,17 +227,16 @@ definitions:
       - id
       - artifact
     example:
-      application/json:
-        id: w81s4fae-7dec-11d0-a765-00a0c91e6bf6
-        artifact:
-          artifact_name: my-app-0.1
-          source:
-            uri: 'https://aws.my_update_bucket.com/image_123'
-            expire: 2016-03-11T13:03:17.063493443Z
-          device_types_compatible:
-            - rspi
-            - rspi2
-            - rspi0
+      id: w81s4fae-7dec-11d0-a765-00a0c91e6bf6
+      artifact:
+        artifact_name: my-app-0.1
+        source:
+          uri: 'https://aws.my_update_bucket.com/image_123'
+          expire: 2016-03-11T13:03:17.063493443Z
+        device_types_compatible:
+          - rspi
+          - rspi2
+          - rspi0
   DeploymentLog:
     type: object
     properties:
@@ -251,11 +259,10 @@ definitions:
     required:
       - messages
     example:
-      application/json:
-        messages:
-          - timestamp: 2016-03-11T13:03:17.063493443Z
-            level: INFO
-            message: OK
-          - timestamp: 2016-03-11T13:03:18.023765782Z
-            level: DEBUG
-            message: successfully updated.
+      messages:
+        - timestamp: 2016-03-11T13:03:17.063493443Z
+          level: INFO
+          message: OK
+        - timestamp: 2016-03-11T13:03:18.023765782Z
+          level: DEBUG
+          message: successfully updated.

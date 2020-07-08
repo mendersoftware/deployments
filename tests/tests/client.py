@@ -33,9 +33,7 @@ DEPLOYMENTS_BASE_URL = "http://{}/api/{}/v1/deployments"
 
 
 class BaseApiClient:
-    api_url = DEPLOYMENTS_BASE_URL.format(
-        pytest.config.getoption("host"), "management"
-    )
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
 
     def make_api_url(self, path=None):
         if path is not None:
@@ -85,9 +83,7 @@ class ArtifactsClientError(Exception):
 
 
 class ArtifactsClient(SwaggerApiClient):
-    api_url = DEPLOYMENTS_BASE_URL.format(
-        pytest.config.getoption("host"), "management"
-    )
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
 
     @staticmethod
     def make_upload_meta(meta):
@@ -114,9 +110,7 @@ class ArtifactsClient(SwaggerApiClient):
                 "artifact": ("firmware", data, "application/octet-stream", {}),
             }
         )
-        rsp = requests.post(
-            self.make_api_url("/artifacts"), files=files, verify=False
-        )
+        rsp = requests.post(self.make_api_url("/artifacts"), files=files, verify=False)
         # should have be created
         try:
             assert rsp.status_code == 201
@@ -202,9 +196,7 @@ class ArtifactsClient(SwaggerApiClient):
     def with_added_artifact(self, description="", size=0, data=None):
         """Acts as a context manager, adds artifact and yields artifact ID and deletes
         it upon completion"""
-        artid = self.add_artifact(
-            description=description, size=size, data=data
-        )
+        artid = self.add_artifact(description=description, size=size, data=data)
         yield artid
         self.delete_artifact(artid)
 
@@ -217,9 +209,7 @@ class SimpleArtifactsClient(ArtifactsClient):
 
 
 class DeploymentsClient(SwaggerApiClient):
-    api_url = DEPLOYMENTS_BASE_URL.format(
-        pytest.config.getoption("host"), "management"
-    )
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
 
     def make_new_deployment(self, *args, **kwargs):
         NewDeployment = self.client.get_model("NewDeployment")
@@ -227,7 +217,7 @@ class DeploymentsClient(SwaggerApiClient):
 
     def add_deployment(self, dep):
         """Posts new deployment `dep`"""
-        res = self.client.deployments.post_deployments(
+        res = self.client.Management_API.Create_Deployment(
             Authorization="foo", deployment=dep
         ).result()
         adapter = res[1]
@@ -239,10 +229,8 @@ class DeploymentsClient(SwaggerApiClient):
 
     def abort_deployment(self, depid):
         """Abort deployment with `ID `depid`"""
-        self.client.deployments.put_deployments_deployment_id_status(
-            Authorization="foo",
-            deployment_id=depid,
-            Status={"status": "aborted"},
+        self.client.Management_API.Abort_Deployment(
+            Authorization="foo", deployment_id=depid, Status={"status": "aborted"},
         ).result()
 
     @contextmanager
@@ -257,11 +245,9 @@ class DeploymentsClient(SwaggerApiClient):
             self.log.warning("deployment: %s already finished", depid)
 
     def verify_deployment_stats(self, depid, expected):
-        stats = self.client.deployments.get_deployments_deployment_id_statistics(
+        stats = self.client.Management_API.Deployment_Status_Statistics(
             Authorization="foo", deployment_id=depid
-        ).result()[
-            0
-        ]
+        ).result()[0]
         stat_names = [
             "success",
             "pending",
@@ -284,24 +270,20 @@ class DeviceClient(SwaggerApiClient):
 
     spec_option = "device_spec"
     logger_tag = "client.DeviceClient"
-    api_url = DEPLOYMENTS_BASE_URL.format(
-        pytest.config.getoption("host"), "devices"
-    )
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "devices")
 
     def get_next_deployment(self, token="", artifact_name="", device_type=""):
         """Obtain next deployment"""
         auth = "Bearer " + token
-        res = self.client.device.get_device_deployments_next(
-            Authorization=auth,
-            artifact_name=artifact_name,
-            device_type=device_type,
+        res = self.client.Device_API.Check_Update(
+            Authorization=auth, artifact_name=artifact_name, device_type=device_type,
         ).result()[0]
         return res
 
     def report_status(self, token="", devdepid=None, status=None):
         """Report device deployment status"""
         auth = "Bearer " + token
-        res = self.client.device.put_device_deployments_id_status(
+        res = self.client.Device_API.Update_Deployment_Status(
             Authorization=auth, id=devdepid, Status={"status": status}
         ).result()
         return res
@@ -320,7 +302,7 @@ class DeviceClient(SwaggerApiClient):
                 for l in logs
             ]
         )
-        res = self.client.device.put_device_deployments_id_log(
+        res = self.client.Device_API.Report_Deployment_Log(
             Authorization=auth, id=devdepid, Log=dl
         ).result()
         return res
@@ -339,9 +321,7 @@ class InventoryClientError(Exception):
 
 class InventoryClient(BaseApiClient, RequestsApiClient):
 
-    api_url = "http://%s/api/0.1.0/" % (
-        pytest.config.getoption("inventory_host")
-    )
+    api_url = "http://%s/api/0.1.0/" % (pytest.config.getoption("inventory_host"))
 
     def report_attributes(self, devtoken, attributes):
         """Send device attributes to inventory service. Device is identified using
@@ -376,15 +356,13 @@ class CliClient:
 class InternalApiClient(SwaggerApiClient):
     spec_option = "internal_spec"
     logger_tag = "client.InternalApiClient"
-    api_url = DEPLOYMENTS_BASE_URL.format(
-        pytest.config.getoption("host"), "internal"
-    )
+    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "internal")
 
     def __init__(self):
         self.setup_swagger()
 
     def create_tenant(self, tenant_id):
-        return self.client.tenants.post_tenants(
+        return self.client.tenants.Create_Tenant(
             tenant={"tenant_id": tenant_id}
         ).result()
 
