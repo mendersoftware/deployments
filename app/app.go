@@ -664,7 +664,7 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 		return "", ErrNoArtifact
 	}
 
-	if len(group) > 1 {
+	if len(group) > 0 {
 		id := identity.FromContext(ctx)
 		if id == nil || len(id.Tenant) <= 0 {
 			l.Error("tenant ID not present in the context")
