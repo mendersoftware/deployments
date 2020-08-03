@@ -82,6 +82,7 @@ var (
 //deployments
 
 type App interface {
+	HealthCheck(ctx context.Context) error
 	// limits
 	GetLimit(ctx context.Context, name string) (*model.Limit, error)
 	ProvisionTenant(ctx context.Context, tenant_id string) error
@@ -148,6 +149,32 @@ func (d *Deployments) SetWorkflowsClient(workflowsClient workflows.Client) {
 
 func (d *Deployments) SetInventoryClient(inventoryClient inventory.Client) {
 	d.inventoryClient = inventoryClient
+}
+
+func (d *Deployments) HealthCheck(ctx context.Context) error {
+	err := d.db.Ping(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error reaching MongoDB")
+	}
+
+	_, err = d.fileStorage.ListBuckets(ctx)
+	if err != nil {
+		return errors.Wrap(
+			err,
+			"error reaching artifact storage service",
+		)
+	}
+
+	err = d.workflowsClient.CheckHealth(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Workflows service unhealthy")
+	}
+
+	err = d.inventoryClient.CheckHealth(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Inventory service unhealthy")
+	}
+	return nil
 }
 
 func (d *Deployments) GetLimit(ctx context.Context, name string) (*model.Limit, error) {

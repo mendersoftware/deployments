@@ -356,6 +356,11 @@ func NewMongoClient(ctx context.Context, c config.Reader) (*mongo.Client, error)
 	return client, nil
 }
 
+func (db *DataStoreMongo) Ping(ctx context.Context) error {
+	res := db.client.Database(DbName).RunCommand(ctx, bson.M{"ping": 1})
+	return res.Err()
+}
+
 func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error) {
 	var pipe []bson.D
 

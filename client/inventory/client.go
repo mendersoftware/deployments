@@ -24,6 +24,7 @@ import (
 
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
 
 	dconfig "github.com/mendersoftware/deployments/config"
@@ -31,9 +32,10 @@ import (
 )
 
 const (
+	healthURL      = "/api/internal/v1/inventory/health"
 	searchURL      = "/api/internal/v2/inventory/tenants/:tenantId/filters/search"
 	areInGroupURL  = "/api/internal/v1/inventory/devices/:tenantId/ingroup/:name"
-	defaultTimeout = 10
+	defaultTimeout = 5 * time.Second
 )
 
 // Errors
@@ -48,29 +50,66 @@ type HTTPClient interface {
 
 // Client is the inventory client
 type Client interface {
+	CheckHealth(ctx context.Context) error
 	Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error)
 	AreDevicesInGroup(ctx context.Context, devices []string, group string, tenantId string) bool
 }
 
 // NewClient returns a new inventory client
 func NewClient() Client {
+	var timeout time.Duration
 	baseURL := config.Config.GetString(dconfig.SettingInventoryAddr)
-	timeout := config.Config.GetString(dconfig.SettingInventoryTimeout)
+	timeoutStr := config.Config.GetString(dconfig.SettingInventoryTimeout)
 
-	t, err := strconv.Atoi(timeout)
+	t, err := strconv.Atoi(timeoutStr)
 	if err != nil {
-		t = defaultTimeout
+		timeout = defaultTimeout
+	} else {
+		timeout = time.Duration(t) * time.Second
 	}
 
 	return &client{
 		baseURL:    baseURL,
-		httpClient: &http.Client{Timeout: time.Duration(t) * time.Second},
+		httpClient: &http.Client{Timeout: timeout},
 	}
 }
 
 type client struct {
 	baseURL    string
 	httpClient HTTPClient
+}
+
+func (c *client) CheckHealth(ctx context.Context) error {
+	var (
+		apiErr rest_utils.ApiError
+		client http.Client
+	)
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
+		defer cancel()
+	}
+	req, _ := http.NewRequestWithContext(
+		ctx, "GET", c.baseURL+healthURL, nil,
+	)
+
+	rsp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if rsp.StatusCode >= http.StatusOK && rsp.StatusCode < 300 {
+		return nil
+	}
+	decoder := json.NewDecoder(rsp.Body)
+	err = decoder.Decode(&apiErr)
+	if err != nil {
+		return errors.Errorf("health check HTTP error: %s", rsp.Status)
+	}
+	return &apiErr
 }
 
 func (c *client) Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error) {

@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import (
 
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
 
 	dconfig "github.com/mendersoftware/deployments/config"
@@ -31,8 +32,9 @@ import (
 )
 
 const (
+	healthURL           = "/api/v1/workflow/health"
 	generateArtifactURL = "/api/v1/workflow/generate_artifact"
-	workflowTimeout     = 5 * time.Second
+	defaultTimeout      = 5 * time.Second
 )
 
 // HTTPClient is the HTTP client used to send requests to the workflows server
@@ -42,6 +44,7 @@ type HTTPClient interface {
 
 // Client is the workflows client
 type Client interface {
+	CheckHealth(ctx context.Context) error
 	SetHTTPClient(httpClient HTTPClient)
 	StartGenerateArtifact(ctx context.Context, multipartGenerateImageMsg *model.MultipartGenerateImageMsg) error
 }
@@ -51,13 +54,46 @@ func NewClient() Client {
 	workflowsBaseURL := config.Config.GetString(dconfig.SettingWorkflows)
 	return &client{
 		baseURL:    workflowsBaseURL,
-		httpClient: &http.Client{Timeout: workflowTimeout},
+		httpClient: &http.Client{Timeout: defaultTimeout},
 	}
 }
 
 type client struct {
 	baseURL    string
 	httpClient HTTPClient
+}
+
+func (c *client) CheckHealth(ctx context.Context) error {
+	var (
+		apiErr rest_utils.ApiError
+		client http.Client
+	)
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
+		defer cancel()
+	}
+	req, _ := http.NewRequestWithContext(
+		ctx, "GET", c.baseURL+healthURL, nil,
+	)
+
+	rsp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if rsp.StatusCode >= http.StatusOK && rsp.StatusCode < 300 {
+		return nil
+	}
+	decoder := json.NewDecoder(rsp.Body)
+	err = decoder.Decode(&apiErr)
+	if err != nil {
+		return errors.Errorf("health check HTTP error: %s", rsp.Status)
+	}
+	return &apiErr
 }
 
 func (c *client) SetHTTPClient(httpClient HTTPClient) {

@@ -58,6 +58,8 @@ const (
 	ApiUrlDevicesDeploymentStatus = ApiUrlDevices + "/device/deployments/:id/status"
 	ApiUrlDevicesDeploymentsLog   = ApiUrlDevices + "/device/deployments/:id/log"
 
+	ApiUrlInternalAlive             = ApiUrlInternal + "/alive"
+	ApiUrlInternalHealth            = ApiUrlInternal + "/health"
 	ApiUrlInternalTenants           = ApiUrlInternal + "/tenants"
 	ApiUrlInternalTenantDeployments = ApiUrlInternal + "/tenants/:tenant/deployments"
 	ApiUrlInternalTenantArtifacts   = ApiUrlInternal + "/tenants/:tenant/artifacts"
@@ -163,6 +165,10 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 			controller.PutDeploymentStatusForDevice),
 		rest.Put(ApiUrlDevicesDeploymentsLog,
 			controller.PutDeploymentLogForDevice),
+
+		// Health Check
+		rest.Get(ApiUrlInternalAlive, controller.AliveHandler),
+		rest.Get(ApiUrlInternalHealth, controller.HealthHandler),
 	}
 }
 

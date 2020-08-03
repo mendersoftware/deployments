@@ -22,6 +22,7 @@ import (
 )
 
 type DataStore interface {
+	Ping(ctx context.Context) error
 	//releases
 	GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error)
 
