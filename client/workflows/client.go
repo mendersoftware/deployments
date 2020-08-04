@@ -37,15 +37,10 @@ const (
 	defaultTimeout      = 5 * time.Second
 )
 
-// HTTPClient is the HTTP client used to send requests to the workflows server
-type HTTPClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
 // Client is the workflows client
+//go:generate ../../utils/mockgen.sh
 type Client interface {
 	CheckHealth(ctx context.Context) error
-	SetHTTPClient(httpClient HTTPClient)
 	StartGenerateArtifact(ctx context.Context, multipartGenerateImageMsg *model.MultipartGenerateImageMsg) error
 }
 
@@ -60,7 +55,7 @@ func NewClient() Client {
 
 type client struct {
 	baseURL    string
-	httpClient HTTPClient
+	httpClient *http.Client
 }
 
 func (c *client) CheckHealth(ctx context.Context) error {
@@ -94,10 +89,6 @@ func (c *client) CheckHealth(ctx context.Context) error {
 		return errors.Errorf("health check HTTP error: %s", rsp.Status)
 	}
 	return &apiErr
-}
-
-func (c *client) SetHTTPClient(httpClient HTTPClient) {
-	c.httpClient = httpClient
 }
 
 func (c *client) StartGenerateArtifact(ctx context.Context, multipartGenerateImageMsg *model.MultipartGenerateImageMsg) error {

@@ -81,6 +81,7 @@ var (
 
 //deployments
 
+//go:generate ../utils/mockgen.sh
 type App interface {
 	HealthCheck(ctx context.Context) error
 	// limits

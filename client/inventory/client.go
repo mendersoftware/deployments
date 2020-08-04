@@ -43,12 +43,8 @@ var (
 	ErrFilterNotFound = errors.New("Filter with given ID not found in the inventory.")
 )
 
-// HTTPClient is the HTTP client used to send requests to the inventory service
-type HTTPClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
 // Client is the inventory client
+//go:generate ../../utils/mockgen.sh
 type Client interface {
 	CheckHealth(ctx context.Context) error
 	Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error)
@@ -76,7 +72,7 @@ func NewClient() Client {
 
 type client struct {
 	baseURL    string
-	httpClient HTTPClient
+	httpClient *http.Client
 }
 
 func (c *client) CheckHealth(ctx context.Context) error {

@@ -46,6 +46,7 @@ var (
 )
 
 // FileStorage allows to store and manage large files
+//go:generate ../utils/mockgen.sh
 type FileStorage interface {
 	ListBuckets(ctx context.Context) ([]string, error)
 	Delete(ctx context.Context, objectId string) error
