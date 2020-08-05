@@ -31,7 +31,7 @@ func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 		t.Skip("skipping TestDeploymentStorageImageByNameAndDeviceType in short mode.")
 	}
 	newID := func() string {
-		return uuid.Must(uuid.NewV4()).String()
+		return uuid.NewV4().String()
 	}
 
 	//image dataset - common for all cases
@@ -188,7 +188,7 @@ func TestIsArtifactUnique(t *testing.T) {
 		t.Skip("skipping TestIsArtifactUnique in short mode.")
 	}
 	newID := func() string {
-		return uuid.Must(uuid.NewV4()).String()
+		return uuid.NewV4().String()
 	}
 
 	//image dataset - common for all cases

@@ -239,10 +239,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 
 	uid, err := uuid.FromString(multipartUploadMsg.ArtifactID)
 	if err != nil {
-		uid, err = uuid.NewV4()
-		if err != nil {
-			return "", errors.New("failed to generate new uuid")
-		}
+		uid = uuid.NewV4()
 	}
 	artifactID := uid.String()
 
@@ -375,11 +372,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 func (d *Deployments) handleRawFile(ctx context.Context,
 	multipartGenerateImageMsg *model.MultipartGenerateImageMsg) (string, error) {
 
-	uid, err := uuid.NewV4()
-	if err != nil {
-		return "", errors.New("failed to generate new uuid")
-	}
-
+	uid := uuid.NewV4()
 	artifactID := uid.String()
 
 	// check if artifact is unique

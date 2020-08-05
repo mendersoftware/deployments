@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -115,11 +115,6 @@ func ParseQueryParmStr(r *rest.Request, name string, required bool, allowed []st
 		if allowed != nil && !micro_strings.ContainsString(val, allowed) {
 			return "", errors.New(MsgQueryParmOneOf(name, allowed))
 		}
-	}
-
-	val, err := url.QueryUnescape(val)
-	if err != nil {
-		return "", errors.New(MsgQueryParmInvalid(name))
 	}
 
 	return val, nil

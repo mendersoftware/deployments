@@ -87,7 +87,7 @@ github.com/klauspost/pgzip
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
-# github.com/mendersoftware/go-lib-micro v0.0.0-20200515040228-6829ff01e034
+# github.com/mendersoftware/go-lib-micro v0.0.0-20200731125022-f9ec108d29b7
 ## explicit
 github.com/mendersoftware/go-lib-micro/accesslog
 github.com/mendersoftware/go-lib-micro/config
@@ -105,8 +105,6 @@ github.com/mendersoftware/go-lib-micro/rest_utils
 github.com/mendersoftware/go-lib-micro/store
 github.com/mendersoftware/go-lib-micro/strings
 github.com/mendersoftware/go-lib-micro/testing
-# github.com/mendersoftware/inventory v0.0.0-20200522065057-a25956b1ec7b
-## explicit
 # github.com/mendersoftware/mender-artifact v0.0.0-20200602094549-b2c230e73b0e
 ## explicit
 github.com/mendersoftware/mender-artifact/areader
@@ -131,7 +129,7 @@ github.com/pmezard/go-difflib/difflib
 github.com/remyoudompheng/go-liblzma
 # github.com/russross/blackfriday/v2 v2.0.1
 github.com/russross/blackfriday/v2
-# github.com/satori/go.uuid v1.2.1-0.20180103174451-36e9d2ebbde5
+# github.com/satori/go.uuid v1.2.0
 ## explicit
 github.com/satori/go.uuid
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
@@ -149,7 +147,6 @@ github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
 # github.com/spf13/viper v1.7.0
-## explicit
 github.com/spf13/viper
 # github.com/stretchr/objx v0.1.1
 github.com/stretchr/objx
@@ -213,10 +210,8 @@ golang.org/x/text/unicode/norm
 # gopkg.in/ini.v1 v1.51.0
 gopkg.in/ini.v1
 # gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
-## explicit
 gopkg.in/tomb.v2
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
-# gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
-## explicit
+# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 gopkg.in/yaml.v3

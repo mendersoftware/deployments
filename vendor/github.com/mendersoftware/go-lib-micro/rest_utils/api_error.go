@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import (
 // ApiError wraps errors returned by our APIs
 type ApiError struct {
 	Err   string `json:"error"`
-	ReqId string `json:"request_id"`
+	ReqId string `json:"request_id,omitempty"`
 }
 
 func (ae *ApiError) Error() string {

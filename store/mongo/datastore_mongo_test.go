@@ -46,7 +46,7 @@ func TestGetReleases(t *testing.T) {
 		t.Skip("skipping TestGetReleases in short mode.")
 	}
 	newID := func() string {
-		return uuid.Must(uuid.NewV4()).String()
+		return uuid.NewV4().String()
 	}
 
 	inputImgs := []*model.Image{
