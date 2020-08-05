@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,28 +18,115 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
-	"strings"
+	"net/http/httptest"
 	"testing"
+	"time"
 
-	workflow_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/go-lib-micro/rest_utils"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-func TestGenerateArtifactFails(t *testing.T) {
-	mockHTTPClient := &workflow_mocks.HTTPClientMock{}
-	mockHTTPClient.On("Do",
-		mock.AnythingOfType("*http.Request"),
-	).Return(&http.Response{
-		StatusCode: http.StatusBadRequest,
-		Body:       ioutil.NopCloser(strings.NewReader("")),
-	}, nil)
+func TestCheckHealth(t *testing.T) {
+	t.Parallel()
 
-	workflowsClient := NewClient()
-	workflowsClient.SetHTTPClient(mockHTTPClient)
+	expiredCtx, cancel := context.WithDeadline(
+		context.TODO(), time.Now().Add(-1*time.Second))
+	defer cancel()
+	defaultCtx, cancel := context.WithTimeout(context.TODO(), time.Second*10)
+	defer cancel()
+
+	testCases := []struct {
+		Name string
+
+		Ctx context.Context
+
+		// Workflows response
+		ResponseCode int
+		ResponseBody interface{}
+
+		Error error
+	}{{
+		Name: "ok",
+
+		Ctx:          defaultCtx,
+		ResponseCode: http.StatusOK,
+	}, {
+		Name: "error, expired deadline",
+
+		Ctx:   expiredCtx,
+		Error: errors.New(context.DeadlineExceeded.Error()),
+	}, {
+		Name: "error, workflows unhealthy",
+
+		ResponseCode: http.StatusServiceUnavailable,
+		ResponseBody: rest_utils.ApiError{
+			Err:   "internal error",
+			ReqId: "test",
+		},
+
+		Error: errors.New("internal error"),
+	}, {
+		Name: "error, bad response",
+
+		Ctx: context.TODO(),
+
+		ResponseCode: http.StatusServiceUnavailable,
+		ResponseBody: "foobar",
+
+		Error: errors.New("health check HTTP error: 503 Service Unavailable"),
+	}}
+
+	responses := make(chan http.Response, 1)
+	serveHTTP := func(w http.ResponseWriter, r *http.Request) {
+		rsp := <-responses
+		w.WriteHeader(rsp.StatusCode)
+		if rsp.Body != nil {
+			_, _ = io.Copy(w, rsp.Body)
+		}
+	}
+	srv := httptest.NewServer(http.HandlerFunc(serveHTTP))
+	client := NewClient().(*client)
+	client.baseURL = srv.URL
+	defer srv.Close()
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+
+			if tc.ResponseCode > 0 {
+				rsp := http.Response{
+					StatusCode: tc.ResponseCode,
+				}
+				if tc.ResponseBody != nil {
+					b, _ := json.Marshal(tc.ResponseBody)
+					rsp.Body = ioutil.NopCloser(bytes.NewReader(b))
+				}
+				responses <- rsp
+			}
+
+			err := client.CheckHealth(tc.Ctx)
+
+			if tc.Error != nil {
+				assert.Contains(t, err.Error(), tc.Error.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestGenerateArtifactFails(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(handler))
+
+	workflowsClient := NewClient().(*client)
+	workflowsClient.baseURL = srv.URL
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
 		Name:                  "name",
@@ -57,41 +144,33 @@ func TestGenerateArtifactFails(t *testing.T) {
 	err := workflowsClient.StartGenerateArtifact(ctx, multipartGenerateImage)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "failed to start workflow: generate_artifact")
-
-	mockHTTPClient.AssertExpectations(t)
 }
 
 func TestGenerateArtifactSuccessful(t *testing.T) {
-	mockHTTPClient := &workflow_mocks.HTTPClientMock{}
-	mockHTTPClient.On("Do",
-		mock.MatchedBy(func(req *http.Request) bool {
-			b, err := ioutil.ReadAll(req.Body)
-			if err != nil {
-				return false
-			}
-			multipartGenerateImage := &model.MultipartGenerateImageMsg{}
-			err = json.Unmarshal(b, &multipartGenerateImage)
-			if err != nil {
-				return false
-			}
-			assert.Equal(t, "name", multipartGenerateImage.Name)
-			assert.Equal(t, "description", multipartGenerateImage.Description)
-			assert.Equal(t, int64(10), multipartGenerateImage.Size)
-			assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
-			assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
-			assert.Equal(t, "single_file", multipartGenerateImage.Type)
-			assert.Equal(t, "args", multipartGenerateImage.Args)
-			assert.Equal(t, "tenant_id", multipartGenerateImage.TenantID)
-			assert.Equal(t, "artifact_id", multipartGenerateImage.ArtifactID)
-			return true
-		}),
-	).Return(&http.Response{
-		StatusCode: http.StatusCreated,
-		Body:       ioutil.NopCloser(strings.NewReader("")),
-	}, nil)
+	reqChan := make(chan *model.MultipartGenerateImageMsg, 1)
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		var multipartGenerateImage model.MultipartGenerateImageMsg
+		defer w.WriteHeader(http.StatusCreated)
+		b, err := ioutil.ReadAll(r.Body)
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
 
-	workflowsClient := NewClient()
-	workflowsClient.SetHTTPClient(mockHTTPClient)
+		err = json.Unmarshal(b, &multipartGenerateImage)
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
+
+		select {
+		case reqChan <- &multipartGenerateImage:
+		default:
+			t.FailNow()
+		}
+	}
+	srv := httptest.NewServer(http.HandlerFunc(handler))
+
+	workflowsClient := NewClient().(*client)
+	workflowsClient.baseURL = srv.URL
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
 		Name:                  "name",
@@ -108,6 +187,20 @@ func TestGenerateArtifactSuccessful(t *testing.T) {
 	ctx := context.Background()
 	err := workflowsClient.StartGenerateArtifact(ctx, multipartGenerateImage)
 	assert.Nil(t, err)
+	select {
+	case multipartGenerateImage = <-reqChan:
 
-	mockHTTPClient.AssertExpectations(t)
+	default:
+		panic("[PROG ERR] Did not receive any response from httptest handler")
+	}
+	assert.NoError(t, err)
+	assert.Equal(t, "name", multipartGenerateImage.Name)
+	assert.Equal(t, "description", multipartGenerateImage.Description)
+	assert.Equal(t, int64(10), multipartGenerateImage.Size)
+	assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
+	assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
+	assert.Equal(t, "single_file", multipartGenerateImage.Type)
+	assert.Equal(t, "args", multipartGenerateImage.Args)
+	assert.Equal(t, "tenant_id", multipartGenerateImage.TenantID)
+	assert.Equal(t, "artifact_id", multipartGenerateImage.ArtifactID)
 }

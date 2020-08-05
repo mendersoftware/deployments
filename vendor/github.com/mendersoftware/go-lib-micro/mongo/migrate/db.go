@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	mopts "go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // this is a small internal data layer for the migration utils, may be shared by diff migrators
@@ -35,36 +35,27 @@ type MigrationEntry struct {
 }
 
 // GetMigrationInfo retrieves a list of migrations applied to the db.
+// On success the function returns the MigrationEntries present in the db
+// sorted by the version in decending order.
 func GetMigrationInfo(ctx context.Context, sess *mongo.Client, db string) ([]MigrationEntry, error) {
-	l := log.FromContext(ctx)
-
 	c := sess.Database(db).Collection(DbMigrationsColl)
+	findOpts := mopts.Find()
+	findOpts.SetSort(bson.M{
+		"version.major": -1,
+		"version.minor": -1,
+		"version.patch": -1,
+	})
 
-	cursor, err := c.Find(ctx, bson.M{})
+	cursor, err := c.Find(ctx, bson.M{
+		"version": bson.M{"$exists": true},
+	})
 	if cursor == nil || err != nil {
 		return nil, errors.Wrap(err, "db: failed to get migration info")
 	}
 
 	var infoArray []MigrationEntry
-
-	for cursor.Next(ctx) {
-		var info MigrationEntry
-		element := bson.D{}
-		err := cursor.Decode(&element)
-		if err != nil {
-			return nil, errors.Wrap(err, "db: failed to decode migration info")
-		}
-		bsonBytes, e := bson.Marshal(element) // .(bson.M))
-		if e != nil {
-			return nil, errors.Wrap(err, "failed to get bson bytes")
-		}
-
-		bson.Unmarshal(bsonBytes, &info)
-		l.Infof("got info: '%v'", info)
-		infoArray = append(infoArray, info)
-	}
-
-	return infoArray, nil
+	err = cursor.All(ctx, &infoArray)
+	return infoArray, err
 }
 
 // UpdateMigrationInfo inserts a migration entry in the migration info collection.

@@ -121,7 +121,7 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 	fakeDeployment.MaxDevices = 1
 	assert.NoError(t, err)
 
-	fakeDeviceDeployment, err := model.NewDeviceDeployment(
+	fakeDeviceDeployment, _ := model.NewDeviceDeployment(
 		devId, *fakeDeployment.Id)
 	status := model.DeviceDeploymentStatusPending
 	fakeDeviceDeployment.Status = &status
@@ -129,9 +129,12 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 	fs := &fs_mocks.FileStorage{}
 	db := mocks.DataStore{}
 
-	db.On("FindOldestDeploymentForDeviceIDWithStatuses", ctx, devId,
-		model.ActiveDeploymentStatuses()).Return(
+	call := db.On("FindOldestDeploymentForDeviceIDWithStatuses", ctx, devId).Return(
 		fakeDeviceDeployment, nil)
+	// Add variadic arguments
+	for _, status := range model.ActiveDeploymentStatuses() {
+		call.Arguments = append(call.Arguments, interface{}(status))
+	}
 
 	db.On("FindDeploymentByID", ctx, *fakeDeployment.Id).Return(
 		fakeDeployment, nil).Once()
@@ -288,14 +291,14 @@ func TestDecommission(t *testing.T) {
 		"ok 2": {},
 		"ok 3": {
 			findNewerActiveDeploymentsDeployments: []*model.Deployment{
-				&model.Deployment{},
+				{},
 			},
 		},
 		"ok 4": {
 			inputDeviceId:     "foo",
 			inputDeploymentId: "foo",
 			findNewerActiveDeploymentsDeployments: []*model.Deployment{
-				&model.Deployment{
+				{
 					DeviceList:  []string{"foo"},
 					Id:          strPtr("foo"),
 					Created:     timePtr(time.Now()),
@@ -309,7 +312,7 @@ func TestDecommission(t *testing.T) {
 			inputDeviceId:     "foo",
 			inputDeploymentId: "pending",
 			findNewerActiveDeploymentsDeployments: []*model.Deployment{
-				&model.Deployment{
+				{
 					DeviceList:  []string{"foo"},
 					Id:          strPtr("pending"),
 					Created:     timePtr(time.Now()),
@@ -335,9 +338,16 @@ func TestDecommission(t *testing.T) {
 			ctx := context.TODO()
 			db := mocks.DataStore{}
 
-			db.On("FindOldestDeploymentForDeviceIDWithStatuses", ctx, tc.inputDeviceId,
-				model.ActiveDeploymentStatuses()).Return(
-				tc.findOldestDeploymentForDeviceIDWithStatusesDeployment, tc.findOldestDeploymentForDeviceIDWithStatusesError)
+			call := db.On("FindOldestDeploymentForDeviceIDWithStatuses",
+				ctx, tc.inputDeviceId).
+				Return(
+					tc.findOldestDeploymentForDeviceIDWithStatusesDeployment,
+					tc.findOldestDeploymentForDeviceIDWithStatusesError,
+				)
+			// Add variadic arguments
+			for _, status := range model.ActiveDeploymentStatuses() {
+				call.Arguments = append(call.Arguments, status)
+			}
 
 			db.On("GetDeviceDeployment", ctx, tc.inputDeploymentId,
 				tc.inputDeviceId).Return(
@@ -347,9 +357,16 @@ func TestDecommission(t *testing.T) {
 				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentStatus")).Return(
 				tc.updateDeviceDeploymentStatusStatus, tc.updateDeviceDeploymentStatusError)
 
-			db.On("FindLatestDeploymentForDeviceIDWithStatuses", ctx, tc.inputDeviceId,
-				model.InactiveDeploymentStatuses()).Return(
-				tc.findLatestDeploymentForDeviceIDWithStatusesDeployment, tc.findLatestDeploymentForDeviceIDWithStatusesError)
+			call = db.On("FindLatestDeploymentForDeviceIDWithStatuses",
+				ctx, tc.inputDeviceId,
+			).Return(
+				tc.findLatestDeploymentForDeviceIDWithStatusesDeployment,
+				tc.findLatestDeploymentForDeviceIDWithStatusesError,
+			)
+			// Add variadic arguments
+			for _, status := range model.InactiveDeploymentStatuses() {
+				call.Arguments = append(call.Arguments, status)
+			}
 
 			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
 				0, 100).Return(

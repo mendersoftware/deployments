@@ -81,7 +81,9 @@ var (
 
 //deployments
 
+//go:generate ../utils/mockgen.sh
 type App interface {
+	HealthCheck(ctx context.Context) error
 	// limits
 	GetLimit(ctx context.Context, name string) (*model.Limit, error)
 	ProvisionTenant(ctx context.Context, tenant_id string) error
@@ -150,6 +152,32 @@ func (d *Deployments) SetInventoryClient(inventoryClient inventory.Client) {
 	d.inventoryClient = inventoryClient
 }
 
+func (d *Deployments) HealthCheck(ctx context.Context) error {
+	err := d.db.Ping(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error reaching MongoDB")
+	}
+
+	_, err = d.fileStorage.ListBuckets(ctx)
+	if err != nil {
+		return errors.Wrap(
+			err,
+			"error reaching artifact storage service",
+		)
+	}
+
+	err = d.workflowsClient.CheckHealth(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Workflows service unhealthy")
+	}
+
+	err = d.inventoryClient.CheckHealth(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Inventory service unhealthy")
+	}
+	return nil
+}
+
 func (d *Deployments) GetLimit(ctx context.Context, name string) (*model.Limit, error) {
 	limit, err := d.db.GetLimit(ctx, name)
 	if err == mongo.ErrLimitNotFound {
@@ -211,10 +239,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 
 	uid, err := uuid.FromString(multipartUploadMsg.ArtifactID)
 	if err != nil {
-		uid, err = uuid.NewV4()
-		if err != nil {
-			return "", errors.New("failed to generate new uuid")
-		}
+		uid = uuid.NewV4()
 	}
 	artifactID := uid.String()
 
@@ -347,11 +372,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 func (d *Deployments) handleRawFile(ctx context.Context,
 	multipartGenerateImageMsg *model.MultipartGenerateImageMsg) (string, error) {
 
-	uid, err := uuid.NewV4()
-	if err != nil {
-		return "", errors.New("failed to generate new uuid")
-	}
-
+	uid := uuid.NewV4()
 	artifactID := uid.String()
 
 	// check if artifact is unique

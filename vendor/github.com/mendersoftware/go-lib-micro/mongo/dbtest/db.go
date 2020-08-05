@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -110,9 +110,6 @@ func (dbs *DBServer) start() {
 		"--dbpath", dbs.dbpath,
 		"--bind_ip", "127.0.0.1",
 		"--port", strconv.Itoa(addr.Port),
-		"--nssize", "1",
-		"--noprealloc",
-		"--smallfiles",
 		"--nojournal",
 	}
 	dbs.tomb = tomb.Tomb{}

@@ -31,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/go-lib-micro/identity"
+	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 
@@ -58,6 +59,10 @@ const (
 const (
 	HTTPHeaderAuthorization       = "Authorization"
 	HTTPHeaderAuthorizationBearer = "Bearer"
+)
+
+const (
+	defaultTimeout = time.Second * 10
 )
 
 // Errors
@@ -89,6 +94,24 @@ func NewDeploymentsApiHandlers(store store.DataStore, view RESTView, app app.App
 		view:  view,
 		app:   app,
 	}
+}
+
+func (u *DeploymentsApiHandlers) AliveHandler(w rest.ResponseWriter, r *rest.Request) {
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (u *DeploymentsApiHandlers) HealthHandler(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := log.FromContext(ctx)
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
+
+	err := u.app.HealthCheck(ctx)
+	if err != nil {
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusServiceUnavailable)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (d *DeploymentsApiHandlers) GetReleases(w rest.ResponseWriter, r *rest.Request) {

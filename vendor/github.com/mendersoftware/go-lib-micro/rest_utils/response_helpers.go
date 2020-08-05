@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -92,9 +92,9 @@ func restErrWithLogMsg(w rest.ResponseWriter, r *rest.Request, l *log.Logger,
 	}
 
 	w.WriteHeader(code)
-	err := w.WriteJson(map[string]string{
-		rest.ErrorFieldName: msg,
-		"request_id":        requestid.GetReqId(r),
+	err := w.WriteJson(ApiError{
+		Err:   msg,
+		ReqId: requestid.GetReqId(r),
 	})
 	if err != nil {
 		panic(err)

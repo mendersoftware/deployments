@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
 
@@ -84,11 +83,7 @@ func NewDeviceDeployment(deviceId, deploymentId string) (*DeviceDeployment, erro
 	now := time.Now()
 	initStatus := DeviceDeploymentStatusPending
 
-	uid, err := uuid.NewV4()
-	if err != nil {
-		return nil, errors.New("failed to generate uuid")
-	}
-
+	uid := uuid.NewV4()
 	id := uid.String()
 
 	return &DeviceDeployment{

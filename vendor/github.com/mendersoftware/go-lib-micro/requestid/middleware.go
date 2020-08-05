@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -34,11 +34,7 @@ func (mw *RequestIdMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFu
 
 		reqId := r.Header.Get(RequestIdHeader)
 		if reqId == "" {
-			uid, err := uuid.NewV4()
-			if err != nil && logger != nil {
-				logger.Errorf("failed to assign request_id: %v", err)
-				return
-			}
+			uid := uuid.NewV4()
 			reqId = uid.String()
 		}
 

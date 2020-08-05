@@ -17,15 +17,10 @@ package app
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
 	"testing"
 
-	"github.com/mendersoftware/deployments/client/workflows"
 	workflows_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
 	"github.com/mendersoftware/deployments/model"
 	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
@@ -274,17 +269,10 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 }
 
 func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
+	generateErr := errors.New("failed to start workflow: generate_artifact")
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
-
-	mockHTTPClient := &workflows_mocks.HTTPClientMock{}
-	mockHTTPClient.On("Do",
-		mock.AnythingOfType("*http.Request"),
-	).Return(&http.Response{
-		StatusCode: http.StatusBadRequest,
-		Body:       ioutil.NopCloser(strings.NewReader("")),
-	}, nil)
 
 	fs.On("GetRequest",
 		h.ContextMatcher(),
@@ -305,8 +293,11 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 		Uri: "DELETE",
 	}, nil)
 
-	workflowsClient := workflows.NewClient()
-	workflowsClient.SetHTTPClient(mockHTTPClient)
+	workflowsClient := &workflows_mocks.Client{}
+	workflowsClient.On("StartGenerateArtifact",
+		h.ContextMatcher(),
+		mock.AnythingOfType("*model.MultipartGenerateImageMsg"),
+	).Return(generateErr)
 	d.SetWorkflowsClient(workflowsClient)
 
 	fs.On("UploadArtifact",
@@ -342,11 +333,11 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 
 	assert.Equal(t, artifactID, "")
 	assert.Error(t, err)
-	assert.EqualError(t, err, "failed to start workflow: generate_artifact")
+	assert.EqualError(t, err, generateErr.Error())
 
 	db.AssertExpectations(t)
 	fs.AssertExpectations(t)
-	mockHTTPClient.AssertExpectations(t)
+	workflowsClient.AssertExpectations(t)
 }
 
 func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testing.T) {
@@ -354,17 +345,13 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 
-	mockHTTPClient := &workflows_mocks.HTTPClientMock{}
-	mockHTTPClient.On("Do",
-		mock.AnythingOfType("*http.Request"),
-	).Return(&http.Response{
-		StatusCode: http.StatusBadRequest,
-		Body:       ioutil.NopCloser(strings.NewReader("")),
-	}, nil)
-
-	workflowsClient := workflows.NewClient()
-	workflowsClient.SetHTTPClient(mockHTTPClient)
+	workflowsClient := &workflows_mocks.Client{}
 	d.SetWorkflowsClient(workflowsClient)
+
+	workflowsClient.On("StartGenerateArtifact",
+		h.ContextMatcher(),
+		mock.AnythingOfType("*model.MultipartGenerateImageMsg"),
+	).Return(errors.New("failed to start workflow: generate_artifact"))
 
 	fs.On("GetRequest",
 		h.ContextMatcher(),
@@ -422,47 +409,32 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 
 	db.AssertExpectations(t)
 	fs.AssertExpectations(t)
-	mockHTTPClient.AssertExpectations(t)
+	workflowsClient.AssertExpectations(t)
 }
 
 func TestGenerateImageSuccessful(t *testing.T) {
+	ctx := context.Background()
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 
-	mockHTTPClient := &workflows_mocks.HTTPClientMock{}
-	mockHTTPClient.On("Do",
-		mock.MatchedBy(func(req *http.Request) bool {
-			b, err := ioutil.ReadAll(req.Body)
-			if err != nil {
-				return false
-			}
-			multipartGenerateImage := &model.MultipartGenerateImageMsg{}
-			err = json.Unmarshal(b, &multipartGenerateImage)
-			if err != nil {
-				return false
-			}
-			assert.Equal(t, "name", multipartGenerateImage.Name)
-			assert.Equal(t, "description", multipartGenerateImage.Description)
-			assert.Equal(t, int64(10), multipartGenerateImage.Size)
-			assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
-			assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
-			assert.Equal(t, "single_file", multipartGenerateImage.Type)
-			assert.Equal(t, "args", multipartGenerateImage.Args)
-			assert.Empty(t, multipartGenerateImage.TenantID)
-			assert.NotEmpty(t, multipartGenerateImage.ArtifactID)
-			assert.Equal(t, "GET", multipartGenerateImage.GetArtifactURI)
-			assert.Equal(t, "DELETE", multipartGenerateImage.DeleteArtifactURI)
-			return true
-		}),
-	).Return(&http.Response{
-		StatusCode: http.StatusCreated,
-		Body:       ioutil.NopCloser(strings.NewReader("")),
-	}, nil)
+	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+		Name:                  "name",
+		Description:           "description",
+		DeviceTypesCompatible: []string{"Beagle Bone"},
+		Type:                  "single_file",
+		Args:                  "args",
+		Size:                  10,
+		FileReader:            bytes.NewReader([]byte("123456790")),
+	}
 
-	workflowsClient := workflows.NewClient()
-	workflowsClient.SetHTTPClient(mockHTTPClient)
+	workflowsClient := &workflows_mocks.Client{}
 	d.SetWorkflowsClient(workflowsClient)
+
+	workflowsClient.On("StartGenerateArtifact",
+		h.ContextMatcher(),
+		multipartGenerateImage,
+	).Return(nil)
 
 	fs.On("GetRequest",
 		h.ContextMatcher(),
@@ -496,17 +468,6 @@ func TestGenerateImageSuccessful(t *testing.T) {
 		mock.AnythingOfType("[]string"),
 	).Return(true, nil)
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
-		Name:                  "name",
-		Description:           "description",
-		DeviceTypesCompatible: []string{"Beagle Bone"},
-		Type:                  "single_file",
-		Args:                  "args",
-		Size:                  10,
-		FileReader:            bytes.NewReader([]byte("123456790")),
-	}
-
-	ctx := context.Background()
 	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
 
 	assert.NotEqual(t, artifactID, "")
@@ -514,47 +475,30 @@ func TestGenerateImageSuccessful(t *testing.T) {
 
 	db.AssertExpectations(t)
 	fs.AssertExpectations(t)
-	mockHTTPClient.AssertExpectations(t)
+	workflowsClient.AssertExpectations(t)
 }
 
 func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
+	ctx := context.Background()
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 
-	mockHTTPClient := &workflows_mocks.HTTPClientMock{}
-	mockHTTPClient.On("Do",
-		mock.MatchedBy(func(req *http.Request) bool {
-			b, err := ioutil.ReadAll(req.Body)
-			if err != nil {
-				return false
-			}
-			multipartGenerateImage := &model.MultipartGenerateImageMsg{}
-			err = json.Unmarshal(b, &multipartGenerateImage)
-			if err != nil {
-				return false
-			}
-			assert.Equal(t, "name", multipartGenerateImage.Name)
-			assert.Equal(t, "description", multipartGenerateImage.Description)
-			assert.Equal(t, int64(10), multipartGenerateImage.Size)
-			assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
-			assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
-			assert.Equal(t, "single_file", multipartGenerateImage.Type)
-			assert.Equal(t, "args", multipartGenerateImage.Args)
-			assert.Equal(t, "tenant_id", multipartGenerateImage.TenantID)
-			assert.NotEmpty(t, multipartGenerateImage.ArtifactID)
-			assert.Equal(t, "GET", multipartGenerateImage.GetArtifactURI)
-			assert.Equal(t, "DELETE", multipartGenerateImage.DeleteArtifactURI)
-			return true
-		}),
-	).Return(&http.Response{
-		StatusCode: http.StatusCreated,
-		Body:       ioutil.NopCloser(strings.NewReader("")),
-	}, nil)
+	multipartGenerateImage := &model.MultipartGenerateImageMsg{
+		Name:                  "name",
+		Description:           "description",
+		DeviceTypesCompatible: []string{"Beagle Bone"},
+		Type:                  "single_file",
+		Args:                  "args",
+		Size:                  10,
+		FileReader:            bytes.NewReader([]byte("123456790")),
+	}
 
-	workflowsClient := workflows.NewClient()
-	workflowsClient.SetHTTPClient(mockHTTPClient)
+	workflowsClient := &workflows_mocks.Client{}
 	d.SetWorkflowsClient(workflowsClient)
+	workflowsClient.On("StartGenerateArtifact",
+		h.ContextMatcher(), multipartGenerateImage,
+	).Return(nil)
 
 	fs.On("GetRequest",
 		h.ContextMatcher(),
@@ -588,17 +532,6 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 		mock.AnythingOfType("[]string"),
 	).Return(true, nil)
 
-	multipartGenerateImage := &model.MultipartGenerateImageMsg{
-		Name:                  "name",
-		Description:           "description",
-		DeviceTypesCompatible: []string{"Beagle Bone"},
-		Type:                  "single_file",
-		Args:                  "args",
-		Size:                  10,
-		FileReader:            bytes.NewReader([]byte("123456790")),
-	}
-
-	ctx := context.Background()
 	identityObject := &identity.Identity{Tenant: "tenant_id"}
 	ctxWithIdentity := identity.WithContext(ctx, identityObject)
 	artifactID, err := d.GenerateImage(ctxWithIdentity, multipartGenerateImage)
@@ -608,5 +541,5 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 
 	db.AssertExpectations(t)
 	fs.AssertExpectations(t)
-	mockHTTPClient.AssertExpectations(t)
+	workflowsClient.AssertExpectations(t)
 }

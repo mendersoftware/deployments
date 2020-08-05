@@ -46,7 +46,9 @@ var (
 )
 
 // FileStorage allows to store and manage large files
+//go:generate ../utils/mockgen.sh
 type FileStorage interface {
+	ListBuckets(ctx context.Context) ([]string, error)
 	Delete(ctx context.Context, objectId string) error
 	Exists(ctx context.Context, objectId string) (bool, error)
 	LastModified(ctx context.Context, objectId string) (time.Time, error)
@@ -162,6 +164,24 @@ func getArtifactByTenant(ctx context.Context, objectID string) string {
 	}
 
 	return objectID
+}
+
+func (s *SimpleStorageService) ListBuckets(ctx context.Context) ([]string, error) {
+	var ret []string
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	bucketList, err := s.client.ListBucketsWithContext(ctx, &s3.ListBucketsInput{})
+	if err != nil {
+		return nil, err
+	}
+	ret = make([]string, len(bucketList.Buckets))
+	for i, bucket := range bucketList.Buckets {
+		if bucket != nil && bucket.Name != nil {
+			ret[i] = *bucket.Name
+		}
+	}
+	return ret, nil
 }
 
 // Delete removes deleted file from storage.
