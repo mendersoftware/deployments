@@ -34,6 +34,53 @@ responses:
       $ref: "#/definitions/Error"
 
 paths:
+  /health:
+    get:
+      operationId: Check Health
+      tags:
+        - Internal API
+      summary: Check the health of the service
+      responses:
+        204:
+          description: >
+              Service is healthy and all dependencies are up and running.
+        500:
+          description: >
+              Unexpected internal error
+          schema:
+            $ref: '#/definitions/Error'
+          examples:
+            application/json:
+              error: "internal error"
+              request_id: "ffd712be-d697-4cb7-814b-88ff1e2eb5f6"
+        503:
+          description: >
+              Service unhealthy / not ready to accept traffic. At least one
+              dependency is not running.
+          schema:
+            $ref: '#/definitions/Error'
+          examples:
+            application/json:
+              error: "error reaching MongoDB: context deadline exceeded"
+              request_id: "ffd712be-d697-4cb7-814b-88ff1e2eb5f6"
+
+  /alive:
+    get:
+      operationId: Check Liveliness
+      tags:
+        - Internal API
+      summary: >
+          Trivial endpoint that unconditionally returns an empty 200 response
+          whenever the API handler is running correctly.
+      responses:
+        204:
+          description: Service is up and running.
+        500:
+          description: >
+              Internal API error
+          schema:
+            $ref: '#/definitions/Error'
+
   /tenants/{id}/limits/storage:
     get:
       operationId: Get Storage Usage
