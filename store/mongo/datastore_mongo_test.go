@@ -30,6 +30,17 @@ import (
 	"github.com/mendersoftware/deployments/utils/pointers"
 )
 
+func TestPing(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestPing in short mode.")
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*10)
+	defer cancel()
+	ds := NewDataStoreMongoWithClient(db.Client())
+	err := ds.Ping(ctx)
+	assert.NoError(t, err)
+}
+
 func TestGetReleases(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestGetReleases in short mode.")
@@ -39,7 +50,7 @@ func TestGetReleases(t *testing.T) {
 	}
 
 	inputImgs := []*model.Image{
-		&model.Image{
+		{
 			Id: newID(),
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
@@ -51,7 +62,7 @@ func TestGetReleases(t *testing.T) {
 				Updates:               []model.Update{},
 			},
 		},
-		&model.Image{
+		{
 			Id: newID(),
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
@@ -63,7 +74,7 @@ func TestGetReleases(t *testing.T) {
 				Updates:               []model.Update{},
 			},
 		},
-		&model.Image{
+		{
 			Id: newID(),
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
@@ -75,7 +86,7 @@ func TestGetReleases(t *testing.T) {
 				Updates:               []model.Update{},
 			},
 		},
-		&model.Image{
+		{
 			Id: newID(),
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
@@ -87,7 +98,7 @@ func TestGetReleases(t *testing.T) {
 				Updates:               []model.Update{},
 			},
 		},
-		&model.Image{
+		{
 			Id: newID(),
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
@@ -130,14 +141,14 @@ func TestGetReleases(t *testing.T) {
 	}{
 		"ok, all": {
 			releases: []model.Release{
-				model.Release{
+				{
 					Name: "App2 v0.1",
 					Artifacts: []model.Image{
 						*inputImgs[1],
 						*inputImgs[4],
 					},
 				},
-				model.Release{
+				{
 					Name: "App1 v1.0",
 					Artifacts: []model.Image{
 						*inputImgs[0],
@@ -152,7 +163,7 @@ func TestGetReleases(t *testing.T) {
 				Name: "App2 v0.1",
 			},
 			releases: []model.Release{
-				model.Release{
+				{
 					Name: "App2 v0.1",
 					Artifacts: []model.Image{
 						*inputImgs[1],
@@ -254,7 +265,7 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 
 			OutputError: nil,
 			OutputDeployments: []*model.Deployment{
-				&model.Deployment{
+				{
 					DeploymentConstructor: &model.DeploymentConstructor{
 						Name:         pointers.StringToPointer("NYC Production"),
 						ArtifactName: pointers.StringToPointer("App 123"),
@@ -290,7 +301,7 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 
 			OutputError: nil,
 			OutputDeployments: []*model.Deployment{
-				&model.Deployment{
+				{
 					DeploymentConstructor: &model.DeploymentConstructor{
 						Name:         pointers.StringToPointer("NYC Production"),
 						ArtifactName: pointers.StringToPointer("App 123"),
@@ -332,7 +343,7 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 			deployments, err := store.FindNewerActiveDeployments(ctx,
 				testCase.InputCreatedAfter, testCase.InputSkip, testCase.InputLimit)
 
-			for i, _ := range deployments {
+			for i := range deployments {
 				deployments[i].Created = nil
 			}
 

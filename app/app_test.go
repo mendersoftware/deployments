@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	inventory_mocks "github.com/mendersoftware/deployments/client/inventory/mocks"
+	workflows_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
 	"github.com/mendersoftware/deployments/model"
 	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
@@ -35,6 +36,94 @@ const (
 	validUUIDv4  = "d50eda0d-2cea-4de1-8d42-9cd3e7e8670d"
 	artifactSize = 10000
 )
+
+func TestHealthCheck(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		Name string
+
+		DataStoreError error
+		FileStoreError error
+		WorkflowsError error
+		InventoryError error
+	}{{
+		Name: "ok",
+	}, {
+		Name:           "error: datastore",
+		DataStoreError: errors.New("connection error"),
+	}, {
+		Name:           "error: filestore",
+		FileStoreError: errors.New("connection error"),
+	}, {
+		Name:           "error: workflows",
+		WorkflowsError: errors.New("connection error"),
+	}, {
+		Name:           "error: inventory",
+		InventoryError: errors.New("connection error"),
+	}}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			ctx := context.TODO()
+			mDStore := &mocks.DataStore{}
+			mFStore := &fs_mocks.FileStorage{}
+			mWorkflows := &workflows_mocks.Client{}
+			mInventory := &inventory_mocks.Client{}
+			dep := &Deployments{
+				db:              mDStore,
+				fileStorage:     mFStore,
+				workflowsClient: mWorkflows,
+				inventoryClient: mInventory,
+			}
+			switch {
+			default:
+				mInventory.On("CheckHealth", ctx).
+					Return(tc.InventoryError)
+				fallthrough
+			case tc.WorkflowsError != nil:
+				mWorkflows.On("CheckHealth", ctx).
+					Return(tc.WorkflowsError)
+				fallthrough
+			case tc.FileStoreError != nil:
+				mFStore.On("ListBuckets", ctx).
+					Return(nil, tc.FileStoreError)
+				fallthrough
+			case tc.DataStoreError != nil:
+				mDStore.On("Ping", ctx).
+					Return(tc.DataStoreError)
+			}
+			err := dep.HealthCheck(ctx)
+			switch {
+			case tc.DataStoreError != nil:
+				assert.EqualError(t, err,
+					"error reaching MongoDB: "+
+						tc.DataStoreError.Error(),
+				)
+
+			case tc.FileStoreError != nil:
+				assert.EqualError(t, err,
+					"error reaching artifact storage service: "+
+						tc.FileStoreError.Error(),
+				)
+
+			case tc.WorkflowsError != nil:
+				assert.EqualError(t, err,
+					"Workflows service unhealthy: "+
+						tc.WorkflowsError.Error(),
+				)
+
+			case tc.InventoryError != nil:
+				assert.EqualError(t, err,
+					"Inventory service unhealthy: "+
+						tc.InventoryError.Error(),
+				)
+			default:
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
 
 func TestDeploymentModelCreateDeployment(t *testing.T) {
 

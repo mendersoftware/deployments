@@ -18,14 +18,106 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/go-lib-micro/rest_utils"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCheckHealth(t *testing.T) {
+	t.Parallel()
+
+	expiredCtx, cancel := context.WithDeadline(
+		context.TODO(), time.Now().Add(-1*time.Second))
+	defer cancel()
+	defaultCtx, cancel := context.WithTimeout(context.TODO(), time.Second*10)
+	defer cancel()
+
+	testCases := []struct {
+		Name string
+
+		Ctx context.Context
+
+		// Workflows response
+		ResponseCode int
+		ResponseBody interface{}
+
+		Error error
+	}{{
+		Name: "ok",
+
+		Ctx:          defaultCtx,
+		ResponseCode: http.StatusOK,
+	}, {
+		Name: "error, expired deadline",
+
+		Ctx:   expiredCtx,
+		Error: errors.New(context.DeadlineExceeded.Error()),
+	}, {
+		Name: "error, workflows unhealthy",
+
+		ResponseCode: http.StatusServiceUnavailable,
+		ResponseBody: rest_utils.ApiError{
+			Err:   "internal error",
+			ReqId: "test",
+		},
+
+		Error: errors.New("internal error"),
+	}, {
+		Name: "error, bad response",
+
+		Ctx: context.TODO(),
+
+		ResponseCode: http.StatusServiceUnavailable,
+		ResponseBody: "foobar",
+
+		Error: errors.New("health check HTTP error: 503 Service Unavailable"),
+	}}
+
+	responses := make(chan http.Response, 1)
+	serveHTTP := func(w http.ResponseWriter, r *http.Request) {
+		rsp := <-responses
+		w.WriteHeader(rsp.StatusCode)
+		if rsp.Body != nil {
+			_, _ = io.Copy(w, rsp.Body)
+		}
+	}
+	srv := httptest.NewServer(http.HandlerFunc(serveHTTP))
+	client := NewClient().(*client)
+	client.baseURL = srv.URL
+	defer srv.Close()
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+
+			if tc.ResponseCode > 0 {
+				rsp := http.Response{
+					StatusCode: tc.ResponseCode,
+				}
+				if tc.ResponseBody != nil {
+					b, _ := json.Marshal(tc.ResponseBody)
+					rsp.Body = ioutil.NopCloser(bytes.NewReader(b))
+				}
+				responses <- rsp
+			}
+
+			err := client.CheckHealth(tc.Ctx)
+
+			if tc.Error != nil {
+				assert.Contains(t, err.Error(), tc.Error.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
 
 func TestGenerateArtifactFails(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
