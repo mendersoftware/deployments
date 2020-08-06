@@ -136,5 +136,7 @@ var (
 		{Key: SettingGateway, Value: SettingGatewayDefault},
 		{Key: SettingWorkflows, Value: SettingWorkflowsDefault},
 		{Key: SettingsAwsTagArtifact, Value: SettingsAwsTagArtifactDefault},
+		{Key: SettingInventoryAddr, Value: SettingInventoryAddrDefault},
+		{Key: SettingInventoryTimeout, Value: SettingInventoryTimeoutDefault},
 	}
 )
