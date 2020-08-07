@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	healthURL           = "/api/v1/workflow/health"
+	healthURL           = "/api/v1/health"
 	generateArtifactURL = "/api/v1/workflow/generate_artifact"
 	defaultTimeout      = 5 * time.Second
 )
