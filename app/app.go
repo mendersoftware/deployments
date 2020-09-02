@@ -44,7 +44,10 @@ const (
 	DefaultImageGenerationLinkExpire = 7 * 24 * time.Hour
 	PerPageInventoryDevices          = 512
 	InventoryGroupScope              = "system"
+	InventoryIdentityScope           = "identity"
 	InventoryGroupAttributeName      = "group"
+	InventoryStatusAttributeName     = "status"
+	InventoryStatusAccepted          = "accepted"
 )
 
 // maximum image size is 10G
@@ -700,6 +703,12 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 					Attribute: InventoryGroupAttributeName,
 					Type:      "$eq",
 					Value:     group,
+				},
+				{
+					Scope:     InventoryIdentityScope,
+					Attribute: InventoryStatusAttributeName,
+					Type:      "$eq",
+					Value:     InventoryStatusAccepted,
 				},
 			},
 		}
