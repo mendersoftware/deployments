@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
@@ -44,7 +44,10 @@ const (
 	DefaultImageGenerationLinkExpire = 7 * 24 * time.Hour
 	PerPageInventoryDevices          = 512
 	InventoryGroupScope              = "system"
+	InventoryIdentityScope           = "identity"
 	InventoryGroupAttributeName      = "group"
+	InventoryStatusAttributeName     = "status"
+	InventoryStatusAccepted          = "accepted"
 )
 
 // maximum image size is 10G
@@ -701,6 +704,12 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 					Type:      "$eq",
 					Value:     group,
 				},
+				{
+					Scope:     InventoryIdentityScope,
+					Attribute: InventoryStatusAttributeName,
+					Type:      "$eq",
+					Value:     InventoryStatusAccepted,
+				},
 			},
 		}
 		for {
@@ -717,6 +726,9 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 				break
 			}
 			constructor.Devices = append(constructor.Devices, inventoryDevicesToDevicesIds(devices)...)
+			if len(constructor.Devices) == count {
+				break
+			}
 			searchParams.Page++
 		}
 	}
