@@ -135,10 +135,11 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		InputDeploymentStorageInsertError error
 		InputImagesByNameError            error
 
-		InvDevices     []model.InvDevice
-		TotalCount     int
-		SearchError    error
-		GetFilterError error
+		InvDevices        []model.InvDevice
+		InvDevicesPageTwo []model.InvDevice
+		TotalCount        int
+		SearchError       error
+		GetFilterError    error
 
 		OutputError error
 		OutputBody  bool
@@ -164,6 +165,58 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			},
 
 			OutputBody: true,
+		},
+		"ok with group": {
+			InputConstructor: &model.DeploymentConstructor{
+				Name:         pointers.StringToPointer("group"),
+				ArtifactName: pointers.StringToPointer("App 123"),
+			},
+
+			InvDevices: []model.InvDevice{
+				{
+					ID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
+				},
+			},
+			TotalCount: 1,
+
+			OutputBody: true,
+		},
+		"ok with group, two pages": {
+			InputConstructor: &model.DeploymentConstructor{
+				Name:         pointers.StringToPointer("group"),
+				ArtifactName: pointers.StringToPointer("App 123"),
+			},
+
+			InvDevices: []model.InvDevice{
+				{
+					ID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
+				},
+			},
+			InvDevicesPageTwo: []model.InvDevice{
+				{
+					ID: "b532b01a-9313-404f-8d19-e7fcbe5cc348",
+				},
+			},
+			TotalCount: 2,
+
+			OutputBody: true,
+		},
+		"ko, with group, no device found": {
+			InputConstructor: &model.DeploymentConstructor{
+				Name:         pointers.StringToPointer("group"),
+				ArtifactName: pointers.StringToPointer("App 123"),
+			},
+
+			OutputError: ErrModelInternal,
+		},
+		"ko, with group, error while searching": {
+			InputConstructor: &model.DeploymentConstructor{
+				Name:         pointers.StringToPointer("group"),
+				ArtifactName: pointers.StringToPointer("App 123"),
+			},
+
+			SearchError: errors.New("error searching inventory"),
+			OutputError: ErrModelInternal,
 		},
 	}
 
@@ -200,10 +253,53 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			ds := NewDeployments(&db, fs, "")
 
 			mockInventoryClient := &inventory_mocks.Client{}
-			mockInventoryClient.On("Search", ctx,
-				"tenant_id",
-				mock.AnythingOfType("model.SearchParams"),
-			).Return(testCase.InvDevices, testCase.TotalCount, testCase.SearchError)
+			if testCase.InputConstructor != nil && testCase.InputConstructor.Name != nil && len(testCase.InputConstructor.Devices) == 0 {
+				mockInventoryClient.On("Search", ctx,
+					"tenant_id",
+					model.SearchParams{
+						Page:    1,
+						PerPage: PerPageInventoryDevices,
+						Filters: []model.FilterPredicate{
+							{
+								Scope:     InventoryGroupScope,
+								Attribute: InventoryGroupAttributeName,
+								Type:      "$eq",
+								Value:     *testCase.InputConstructor.Name,
+							},
+							{
+								Scope:     InventoryIdentityScope,
+								Attribute: InventoryStatusAttributeName,
+								Type:      "$eq",
+								Value:     InventoryStatusAccepted,
+							},
+						},
+					},
+				).Return(testCase.InvDevices, testCase.TotalCount, testCase.SearchError)
+
+				if testCase.TotalCount > len(testCase.InvDevices) {
+					mockInventoryClient.On("Search", ctx,
+						"tenant_id",
+						model.SearchParams{
+							Page:    2,
+							PerPage: PerPageInventoryDevices,
+							Filters: []model.FilterPredicate{
+								{
+									Scope:     InventoryGroupScope,
+									Attribute: InventoryGroupAttributeName,
+									Type:      "$eq",
+									Value:     *testCase.InputConstructor.Name,
+								},
+								{
+									Scope:     InventoryIdentityScope,
+									Attribute: InventoryStatusAttributeName,
+									Type:      "$eq",
+									Value:     InventoryStatusAccepted,
+								},
+							},
+						},
+					).Return(testCase.InvDevicesPageTwo, testCase.TotalCount, testCase.SearchError)
+				}
+			}
 
 			ds.SetInventoryClient(mockInventoryClient)
 
@@ -216,6 +312,8 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			if testCase.OutputBody {
 				assert.NotNil(t, out)
 			}
+
+			mockInventoryClient.AssertExpectations(t)
 		})
 	}
 
