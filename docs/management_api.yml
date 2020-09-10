@@ -154,6 +154,53 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /deployments/group/{name}:
+
+    post:
+      operationId: Create Deployment for a Group of Devices
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: Create a deployment for a group of devices
+      description: |
+        Deploy software to devices belonging to the specified group.
+
+        Artifact is auto assigned to the device from all available artifacts based
+        on artifact name and device type. Devices for which there are no compatible
+        artifacts to be installed are considered finished successfully as well as
+        receive status of `noartifact`. If there is no artifacts for the deployment,
+        deployment will not be created and the 422 Unprocessable Entity status code
+        will be returned.
+
+      parameters:
+        - name: name
+          in: path
+          description: Device group name.
+          required: true
+          type: string
+        - name: deployment
+          in: body
+          description: New deployment that needs to be created.
+          required: true
+          schema:
+            $ref: "#/definitions/NewDeploymentForGroup"
+      produces:
+        - application/json
+      responses:
+        201:
+          description: New deployment created.
+          headers:
+            Location:
+              description: URL of the newly created deployment.
+              type: string
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        422:
+            $ref: "#/responses/UnprocessableEntityError"
+        500:
+          $ref: "#/responses/InternalServerError"
+
   /deployments/{id}:
     get:
       operationId: Show Deployment
@@ -811,6 +858,19 @@ definitions:
       artifact_name: Application 0.0.1
       devices:
         - 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+  NewDeploymentForGroup:
+    type: object
+    properties:
+      name:
+        type: string
+      artifact_name:
+        type: string
+    required:
+      - name
+      - artifact_name
+    example:
+      name: production
+      artifact_name: Application 0.0.1
   Deployment:
     type: object
     properties:
