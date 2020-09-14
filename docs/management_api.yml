@@ -38,6 +38,10 @@ responses:
     description: Invalid Request.
     schema:
       $ref: "#/definitions/Error"
+  UnauthorizedError: # 401
+    description: Unauthorized.
+    schema:
+      $ref: "#/definitions/Error"
   UnprocessableEntityError: # 422
     description: Unprocessable Entity.
     schema:
@@ -113,6 +117,8 @@ paths:
               description: Standard header, we support 'first', 'next', and 'prev'.
         400:
           $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -149,8 +155,59 @@ paths:
               type: string
         400:
           $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         422:
-            $ref: "#/responses/UnprocessableEntityError"
+          $ref: "#/responses/UnprocessableEntityError"
+        500:
+          $ref: "#/responses/InternalServerError"
+
+  /deployments/group/{name}:
+
+    post:
+      operationId: Create Deployment for a Group of Devices
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: Create a deployment for a group of devices
+      description: |
+        Deploy software to devices belonging to the specified group.
+
+        Artifact is auto assigned to the device from all available artifacts based
+        on artifact name and device type. Devices for which there are no compatible
+        artifacts to be installed are considered finished successfully as well as
+        receive status of `noartifact`. If there is no artifacts for the deployment,
+        deployment will not be created and the 422 Unprocessable Entity status code
+        will be returned.
+
+      parameters:
+        - name: name
+          in: path
+          description: Device group name.
+          required: true
+          type: string
+        - name: deployment
+          in: body
+          description: New deployment that needs to be created.
+          required: true
+          schema:
+            $ref: "#/definitions/NewDeploymentForGroup"
+      produces:
+        - application/json
+      responses:
+        201:
+          description: New deployment created.
+          headers:
+            Location:
+              description: URL of the newly created deployment.
+              type: string
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
+        422:
+          $ref: "#/responses/UnprocessableEntityError"
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -177,6 +234,8 @@ paths:
           description: Successful response.
           schema:
             $ref: "#/definitions/Deployment"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         404:
           $ref: "#/responses/NotFoundError"
         500:
@@ -222,15 +281,17 @@ paths:
         - application/json
       responses:
         204:
-            description: Status updated successfully.
+          description: Status updated successfully.
         400:
-            $ref: "#/responses/InvalidRequestError"
+          $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         404:
-            $ref: "#/responses/NotFoundError"
+          $ref: "#/responses/NotFoundError"
         422:
-            $ref: "#/responses/UnprocessableEntityError"
+          $ref: "#/responses/UnprocessableEntityError"
         500:
-            $ref: "#/responses/InternalServerError"
+          $ref: "#/responses/InternalServerError"
 
   /deployments/{deployment_id}/statistics:
     get:
@@ -265,6 +326,8 @@ paths:
               aborted: 0
           schema:
             $ref: "#/definitions/DeploymentStatistics"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         404:
           $ref: "#/responses/NotFoundError"
         500:
@@ -295,6 +358,8 @@ paths:
             type: array
             items:
               $ref: "#/definitions/Device"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         404:
           $ref: "#/responses/NotFoundError"
         500:
@@ -329,7 +394,9 @@ paths:
             items:
               type: string
         400:
-            $ref: "#/responses/InvalidRequestError"
+          $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         404:
           $ref: "#/responses/NotFoundError"
         500:
@@ -359,6 +426,8 @@ paths:
       responses:
         200:
           description: Successful response.
+        401:
+          $ref: '#/responses/UnauthorizedError'
         404:
           $ref: "#/responses/NotFoundError"
         500:
@@ -382,6 +451,8 @@ paths:
       responses:
         204:
           description: Device was removed
+        401:
+          $ref: '#/responses/UnauthorizedError'
         500:
           description: Internal server error.
           schema:
@@ -461,6 +532,8 @@ paths:
                     metadata: {}
           schema:
             $ref: '#/definitions/Releases'
+        401:
+          $ref: '#/responses/UnauthorizedError'
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -500,7 +573,8 @@ paths:
             type: array
             items:
               $ref: "#/definitions/Artifact"
-
+        401:
+          $ref: '#/responses/UnauthorizedError'
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -546,6 +620,8 @@ paths:
               type: string
         400:
           $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -608,6 +684,8 @@ paths:
               type: string
         400:
           $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -653,6 +731,8 @@ paths:
             $ref: "#/definitions/Artifact"
         400:
           $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         404:
           $ref: "#/responses/NotFoundError"
         500:
@@ -685,6 +765,8 @@ paths:
           description: The artifact metadata updated successfully.
         400:
           $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         404:
           $ref: "#/responses/NotFoundError"
         422:
@@ -714,6 +796,8 @@ paths:
       responses:
         204:
           description: The artifact deleted successfully.
+        401:
+          $ref: '#/responses/UnauthorizedError'
         404:
           $ref: "#/responses/NotFoundError"
         409:
@@ -751,6 +835,8 @@ paths:
             $ref: "#/definitions/ArtifactLink"
         400:
           $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         404:
           $ref: "#/responses/NotFoundError"
         500:
@@ -773,6 +859,8 @@ paths:
           description: Successful response.
           schema:
             $ref: "#/definitions/StorageLimit"
+        401:
+          $ref: '#/responses/UnauthorizedError'
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -811,6 +899,19 @@ definitions:
       artifact_name: Application 0.0.1
       devices:
         - 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+  NewDeploymentForGroup:
+    type: object
+    properties:
+      name:
+        type: string
+      artifact_name:
+        type: string
+    required:
+      - name
+      - artifact_name
+    example:
+      name: production
+      artifact_name: Application 0.0.1
   Deployment:
     type: object
     properties:
