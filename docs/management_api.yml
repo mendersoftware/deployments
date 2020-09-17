@@ -884,8 +884,10 @@ definitions:
     properties:
       name:
         type: string
+        description: Name of the deployment
       artifact_name:
         type: string
+        description: Name of the artifact to deploy
       devices:
         type: array
         description: An array of devices' identifiers.
@@ -905,8 +907,10 @@ definitions:
     properties:
       name:
         type: string
+        description: Name of the deployment
       artifact_name:
         type: string
+        description: Name of the artifact to deploy
     required:
       - name
       - artifact_name
@@ -916,26 +920,33 @@ definitions:
   Deployment:
     type: object
     properties:
+      id:
+        type: string
+        description: Deployment identifier
+      name:
+        type: string
+        description: Name of the deployment
+      artifact_name:
+        type: string
+        description: Name of the artifact to deploy
       created:
         type: string
         format: date-time
-      name:
-        type: string
-      artifact_name:
-        type: string
-      id:
-        type: string
+        description: Deployment's creation date and time
       finished:
         type: string
         format: date-time
+        description: Deployment's completion date and time
       status:
         type: string
         enum:
           - inprogress
           - pending
           - finished
+        description: Status of the deployment
       device_count:
         type: integer
+        description: Number of devices the deployment acted upon
       artifacts:
         type: array
         description: An array of artifact's identifiers.
