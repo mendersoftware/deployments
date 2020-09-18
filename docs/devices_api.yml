@@ -242,6 +242,7 @@ definitions:
     properties:
       messages:
         type: array
+        description: Array of log entries of a deployment
         items:
           type: object
           properties:

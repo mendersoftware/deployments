@@ -349,9 +349,9 @@ definitions:
         type: integer
       artifacts:
         type: array
+        description: An array of artifact's identifiers.
         items:
           type: string
-          description: An array of artifact's identifiers.
     required:
       - created
       - name
