@@ -588,8 +588,7 @@ paths:
       summary: Upload mender artifact
       description: |
         Upload mender artifact. Multipart request with meta and artifact.
-
-        Supports artifact [versions v1, v2, 3](https://https://docs.mender.io/overview/artifact#versions).
+        Supports artifact [versions v1, v2, v3](https://docs.mender.io/overview/artifact#versions).
       consumes:
         - multipart/form-data
       parameters:
