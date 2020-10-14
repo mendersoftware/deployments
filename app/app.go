@@ -690,8 +690,8 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 
 	if len(group) > 0 {
 		id := identity.FromContext(ctx)
-		if id == nil || len(id.Tenant) <= 0 {
-			l.Error("tenant ID not present in the context")
+		if id == nil {
+			l.Error("identity not present in the context")
 			return "", ErrModelInternal
 		}
 		searchParams := model.SearchParams{
