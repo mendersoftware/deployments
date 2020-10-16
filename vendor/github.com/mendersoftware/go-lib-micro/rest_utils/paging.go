@@ -149,18 +149,16 @@ func MakePageLinkHdrs(r *rest.Request, page, per_page uint64, has_next bool) []s
 	return links
 }
 
+// MakeLink creates a relative URL for insertion in the link header URL field.
 func MakeLink(link_type string, r *rest.Request, page, per_page uint64) string {
-	url := r.URL
-	q := url.Query()
+	q := r.URL.Query()
 	q.Set(PageName, strconv.Itoa(int(page)))
 	q.Set(PerPageName, strconv.Itoa(int(per_page)))
-	url.RawQuery = q.Encode()
-
-	//url's Host and Scheme will mostly be empty -
-	//infer from Request or use defaults
-	url.Host = r.Host
-	if url.Scheme == "" {
-		url.Scheme = DefaultScheme
+	url := url.URL{
+		Path:     r.URL.Path,
+		RawPath:  r.URL.RawPath,
+		RawQuery: q.Encode(),
+		Fragment: r.URL.Fragment,
 	}
 
 	return fmt.Sprintf(LinkTmpl, url.String(), link_type)

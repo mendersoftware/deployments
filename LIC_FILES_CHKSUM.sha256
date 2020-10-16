@@ -52,12 +52,11 @@ b2663894033a05fd80261176cd8da1d72546e25842d5c1abcc852ca23b6b61b0  vendor/github.
 a2e6011b982212228008c4386616a4818eb5fdf9ea5805b7a90500e6ce895aaf  vendor/github.com/pelletier/go-toml/LICENSE
 da277af11b85227490377fbcac6afccc68be560c4fff36ac05ca62de55345fd7  vendor/github.com/urfave/cli/LICENSE
 9e203bd56d54ad11a8106e63e7a738363634f23ac91e14bddb2e35c5e7545a72  vendor/github.com/go-stack/stack/LICENSE.md
-95b8ef9c4137a8f75ddd3101ffdc4cfd594fa875b261697b68baddc16b0e537c  vendor/github.com/konsorten/go-windows-terminal-sequences/LICENSE
 f566a9f97bacdaf00d9f21dd991e81dc11201c4e016c86b470799429a1c9a79c  vendor/github.com/klauspost/compress/zstd/internal/xxhash/LICENSE.txt
 c8024e31c1de453fea90f22a221968835cc7af9d520274a2576c9ec9976055b0  vendor/github.com/shurcooL/sanitized_anchor_name/LICENSE
 a55959c4e3e8917bfa857359bb641115336276a6cc97408fd8197e079fb18470  vendor/github.com/cpuguy83/go-md2man/v2/LICENSE.md
 d18f6323b71b0b768bb5e9616e36da390fbd39369a81807cca352de4e4e6aa0b  vendor/gopkg.in/yaml.v3/LICENSE
-7709cc030f078b17809884f92f33a2016944e1180312dc3f1371b02313d313ed  vendor/github.com/klauspost/pgzip/LICENSE
+6d2de1cde19c4d2bd8bcd9aaa1d581f4cfa3db9cf71896140330eaa2f2687685  vendor/github.com/klauspost/pgzip/LICENSE
 1fd29c692f599736d92f7c02b7826836c0d2ccc838689b21822f4ce0253c39df  vendor/github.com/subosito/gotenv/LICENSE
 #
 # LGPL3 with static linking exception.
