@@ -37,14 +37,20 @@ type IdentityMiddleware struct {
 // MiddlewareFunc makes IdentityMiddleware implement the Middleware interface.
 func (mw *IdentityMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc {
 	return func(w rest.ResponseWriter, r *rest.Request) {
+		jwt, err := ExtractJWTFromHeader(r.Request)
+		if err != nil {
+			h(w, r)
+			return
+		}
 
 		ctx := r.Context()
-
 		l := log.FromContext(ctx)
 
-		identity, err := ExtractIdentityFromHeaders(r.Header)
+		identity, err := ExtractIdentity(jwt)
 		if err != nil {
-			l.Warnf("Failed to extract identity from header: %v", err)
+			l.Warnf("Failed to parse extracted JWT: %s",
+				err.Error(),
+			)
 		} else {
 			if mw.UpdateLogger {
 				logCtx := log.Ctx{}
