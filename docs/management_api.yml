@@ -507,6 +507,8 @@ paths:
                     artifact_depends:
                       device_type:
                         - "test"
+                    clears_artifact_provides:
+                      - "rootfs-image.*"
                     size: 36891648
                     modified: "2016-03-11T13:03:17.063493443Z"
                   - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
@@ -532,6 +534,8 @@ paths:
                     artifact_depends:
                       device_type:
                         - "test"
+                    clears_artifact_provides:
+                      - "rootfs-image.*"
                     size: 36891648
                     modified: "2016-03-11T13:03:17.063493443Z"
               - name: my-app-v2.0.0
@@ -559,6 +563,8 @@ paths:
                     artifact_depends:
                       device_type:
                         - "test"
+                    clears_artifact_provides:
+                      - "rootfs-image.*"
                     size: 36891648
                     modified: "2016-03-11T13:03:17.063493443Z"
           schema:
@@ -748,6 +754,8 @@ paths:
               artifact_depends:
                 device_type:
                   - "test"
+              clears_artifact_provides:
+                - "rootfs-image.*"
               size: 36891648
               modified: "2016-03-11T13:03:17.063493443Z"
           schema:
@@ -1183,6 +1191,11 @@ definitions:
           type: array
           items:
             type: string
+      clears_artifact_provides:
+        type: array
+        description: List of Clear Artifact provides.
+        items:
+          type: string
       size:
         type: number
         format: integer
@@ -1223,6 +1236,8 @@ definitions:
       artifact_depends:
         device_type:
           - "test"
+      clears_artifact_provides:
+        - "rootfs-image.*"
       size: 36891648
       modified: "2016-03-11T13:03:17.063493443Z"
   ArtifactLink:
@@ -1302,6 +1317,8 @@ definitions:
           artifact_depends:
             device_type:
               - "test"
+          clears_artifact_provides:
+            - "rootfs-image.*"
           size: 36891648
           modified: "2016-03-11T13:03:17.063493443Z"
         - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
@@ -1327,5 +1344,7 @@ definitions:
           artifact_depends:
             device_type:
               - "test"
+          clears_artifact_provides:
+            - "rootfs-image.*"
           size: 36891648
           modified: "2016-03-11T13:03:17.063493443Z"
