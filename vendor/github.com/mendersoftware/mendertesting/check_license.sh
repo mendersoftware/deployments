@@ -48,8 +48,27 @@ then
     cd "$1"
 fi
 
-# Known licenses must continue to match.
-shasum -a 256 -c $CHKSUM_FILE
+# Remove all newlines from the Checksum file as these are reported as formatting
+# errors by the shasum program
+TMP_CHKSUM_FILE=$(mktemp)
+trap cleanup EXIT
+cleanup()
+{
+  rm $TMP_CHKSUM_FILE
+}
+sed '/^$/d' $CHKSUM_FILE > $TMP_CHKSUM_FILE
+
+# Use the tmp-file for the rest of the script
+CHKSUM_FILE=$TMP_CHKSUM_FILE
+
+# Collect only stderr from the subcommand
+output="$(exec 3>&1; shasum --warn --algorithm 256 --check $CHKSUM_FILE >/dev/null 2>&3)"
+
+if echo "$output" | grep -q 'line is improperly formatted' -; then
+  echo >&2 "Some line(s) in the LIC_FILE_CHKSUM.sha256 file are misformed"
+  cat $CHKSUM_FILE
+  exit 1
+fi
 
 # Unlisted licenses not allowed.
 for file in $(find . -iname 'LICEN[SC]E' -o -iname 'LICEN[SC]E.*' -o -iname 'COPYING')

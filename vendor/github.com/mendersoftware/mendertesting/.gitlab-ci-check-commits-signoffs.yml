@@ -5,7 +5,7 @@ stages:
 test:check-commits:
   stage: test
   except:
-    - /^(master|[0-9]+\.[0-9]+\.x)$/
+    - /^(master|hosted|staging|production|[0-9]+\.[0-9]+\.x)$/
   image: alpine
   variables:
     GIT_DEPTH: 0
