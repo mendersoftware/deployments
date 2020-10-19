@@ -172,7 +172,8 @@ class Device:
         hdr = '{"typ": "JWT"}'
         signature = "fake-signature"
         return ".".join(
-            urlsafe_b64encode(p.encode()).decode() for p in [hdr, claims, signature]
+            urlsafe_b64encode(p.encode()).decode().strip("=")
+            for p in [hdr, claims, signature]
         )
 
 
