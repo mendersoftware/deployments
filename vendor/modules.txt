@@ -110,7 +110,7 @@ github.com/mendersoftware/mender-artifact/areader
 github.com/mendersoftware/mender-artifact/artifact
 github.com/mendersoftware/mender-artifact/handlers
 github.com/mendersoftware/mender-artifact/utils
-# github.com/mendersoftware/mendertesting v0.0.1
+# github.com/mendersoftware/mendertesting v0.0.2-0.20201017134033-a52f7a79af4f
 ## explicit
 github.com/mendersoftware/mendertesting
 # github.com/minio/sha256-simd v0.1.1

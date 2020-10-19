@@ -15,7 +15,7 @@ test:lint:
     - ./gitlab_ci_lint.py
 
 test:unit:
-  image: golang:1.13
+  image: golang:1.14
   stage: test
 
   before_script:
