@@ -76,6 +76,10 @@ type ArtifactMeta struct {
 	// Depends is a map[string]interface{} (JSON) of artifact_depends used
 	// for checking/validate against artifact (version 3) provides.
 	Depends map[string]interface{} `json:"artifact_depends,omitempty" bson:"depends" valid:"-"`
+
+	// ClearsProvides is a list of strings (JSON) of clears_artifact_provides used
+	// for clearing already-installed artifact (version 3) provides.
+	ClearsProvides []string `json:"clears_artifact_provides,omitempty" bson:"clears_provides,omitempty" valid:"-"`
 }
 
 // MarshalBSON transparently creates depends_idx field on bson.Marshal

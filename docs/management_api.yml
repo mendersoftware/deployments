@@ -484,53 +484,89 @@ paths:
             application/json:
               - name: my-app-v1.0.1
                 artifacts:
-                  - name: my-app-v1.0.1
-                    description: Application v1.0.1
+                  - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                    name: Application 1.0.0
+                    description: Johns Monday test build
                     device_types_compatible: [Beagle Bone]
-                    id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-                    signed: false
-                    modified: "2016-03-11T13:03:17.063493443Z"
                     info:
                       type_info:
                         type: rootfs
-                    files:
-                      - name: rootfs-image-1
-                        checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                        size: 23421351
-                        date: 2016-03-11T13:03:17.063+0000
-                    metadata: {}
-                  - name: my-app-v1.0.1
-                    description: Application v1.0.1
+                    signed: false
+                    updates:
+                      type_info: "rootfs-image"
+                      files:
+                        - name: rootfs-image-1
+                          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                          size: 123
+                          date: 2016-03-11T13:03:17.063+0000
+                      meta_data: {}
+                    artifact_provides:
+                      artifact_name: "test"
+                      rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+                      rootfs-image.version: "test"
+                    artifact_depends:
+                      device_type:
+                        - "test"
+                    clears_artifact_provides:
+                      - "rootfs-image.*"
+                    size: 36891648
+                    modified: "2016-03-11T13:03:17.063493443Z"
+                  - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                    name: Application 1.0.0
+                    description: Johns Monday test build
                     device_types_compatible: [Raspberry Pi]
-                    id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-                    signed: false
-                    modified: "2016-03-11T13:03:17.063493443Z"
                     info:
                       type_info:
                         type: rootfs
-                    files:
-                      - name: rootfs-image-1
-                        checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                        size: 23421351
-                        date: 2016-03-11T13:03:17.063+0000
-                    metadata: {}
+                    signed: false
+                    updates:
+                      type_info: "rootfs-image"
+                      files:
+                        - name: rootfs-image-1
+                          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                          size: 123
+                          date: 2016-03-11T13:03:17.063+0000
+                      meta_data: {}
+                    artifact_provides:
+                      artifact_name: "test"
+                      rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+                      rootfs-image.version: "test"
+                    artifact_depends:
+                      device_type:
+                        - "test"
+                    clears_artifact_provides:
+                      - "rootfs-image.*"
+                    size: 36891648
+                    modified: "2016-03-11T13:03:17.063493443Z"
               - name: my-app-v2.0.0
                 artifacts:
-                  - name: my-app-v2.0.0
-                    description: Application v2.0.0
+                  - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                    name: Application 2.0.0
+                    description: Johns Monday test build
                     device_types_compatible: [Beagle Bone]
-                    id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-                    signed: false
-                    modified: "2016-03-11T13:03:17.063493443Z"
                     info:
                       type_info:
                         type: rootfs
-                    files:
-                      - name: rootfs-image-1
-                        checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                        size: 23421351
-                        date: 2016-03-11T13:03:17.063+0000
-                    metadata: {}
+                    signed: false
+                    updates:
+                      type_info: "rootfs-image"
+                      files:
+                        - name: rootfs-image-1
+                          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                          size: 123
+                          date: 2016-03-11T13:03:17.063+0000
+                      meta_data: {}
+                    artifact_provides:
+                      artifact_name: "test"
+                      rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+                      rootfs-image.version: "test"
+                    artifact_depends:
+                      device_type:
+                        - "test"
+                    clears_artifact_provides:
+                      - "rootfs-image.*"
+                    size: 36891648
+                    modified: "2016-03-11T13:03:17.063493443Z"
           schema:
             $ref: '#/definitions/Releases'
         401:
@@ -553,23 +589,6 @@ paths:
       responses:
         200:
           description: OK
-          examples:
-            application/json:
-              - name: Application 1.0.0
-                description: Johns Monday test build
-                device_types_compatible: [Beagle Bone]
-                id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-                signed: false
-                modified: "2016-03-11T13:03:17.063493443Z"
-                info:
-                    type_info:
-                        type: rootfs
-                files:
-                  - name: rootfs-image-1
-                    checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                    size: 123
-                    date: 2016-03-11T13:03:17.063+0000
-                metadata: {}
           schema:
             type: array
             items:
@@ -712,21 +731,33 @@ paths:
           description: Successful response.
           examples:
             application/json:
+              id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
               name: Application 1.0.0
               description: Johns Monday test build
               device_types_compatible: [Beagle Bone]
-              id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-              signed: false
-              modified: "2016-03-11T13:03:17.063493443Z"
               info:
-                  type_info:
-                      type: rootfs
-              files:
-                - name: rootfs-image-1
-                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                  size: 123
-                  date: 2016-03-11T13:03:17.063+0000
-              metadata: {}
+                type_info:
+                  type: rootfs
+              signed: false
+              updates:
+                type_info: "rootfs-image"
+                files:
+                  - name: rootfs-image-1
+                    checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                    size: 123
+                    date: 2016-03-11T13:03:17.063+0000
+                meta_data: {}
+              artifact_provides:
+                artifact_name: "test"
+                rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+                rootfs-image.version: "test"
+              artifact_depends:
+                device_type:
+                  - "test"
+              clears_artifact_provides:
+                - "rootfs-image.*"
+              size: 36891648
+              modified: "2016-03-11T13:03:17.063493443Z"
           schema:
             $ref: "#/definitions/Artifact"
         400:
@@ -1122,6 +1153,8 @@ definitions:
     description: Detailed artifact.
     type: object
     properties:
+      id:
+        type: string
       name:
         type: string
       description:
@@ -1131,27 +1164,48 @@ definitions:
         description: An array of compatible device types.
         items:
           type: string
-      id:
-        type: string
+      info:
+        $ref: "#/definitions/ArtifactInfo"
       signed:
         type: boolean
         description: Idicates if artifact is signed or not.
-      modified:
-        type: string
-        format: date-time
+      updates:
+        type: array
+        items:
+          $ref: "#/definitions/Update"
+      artifact_provides:
+        type: object
         description: |
-            Represents creation / last edition of any of the artifact properties.
+          List of Artifact provides.
+
+          Map of key/value pairs, where both keys and values are strings.
+        additionalProperties:
+          type: string
+      artifact_depends:
+        type: object
+        description: |
+          List of Artifact depends.
+
+          Map of key/value pairs, where keys are strings and values are lists of strings.
+        additionalProperties:
+          type: array
+          items:
+            type: string
+      clears_artifact_provides:
+        type: array
+        description: List of Clear Artifact provides.
+        items:
+          type: string
       size:
         type: number
         format: integer
         description: |
             Artifact total size in bytes - the size of the actual file that will be transferred to the device (compressed).
-      info:
-        $ref: "#/definitions/ArtifactInfo"
-      updates:
-        type: array
-        items:
-          $ref: "#/definitions/Update"
+      modified:
+        type: string
+        format: date-time
+        description: |
+            Represents creation / last edition of any of the artifact properties.
     required:
       - name
       - description
@@ -1159,22 +1213,33 @@ definitions:
       - id
       - modified
     example:
+      id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
       name: Application 1.0.0
-      size: 36891648
       description: Johns Monday test build
       device_types_compatible: [Beagle Bone]
-      id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-      signed: false
-      modified: "2016-03-11T13:03:17.063493443Z"
       info:
-          type_info:
-              type: rootfs
-      files:
-        - name: rootfs-image-1
-          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-          size: 123
-          date: 2016-03-11T13:03:17.063+0000
-      metadata: {}
+        type_info:
+          type: rootfs
+      signed: false
+      updates:
+        type_info: "rootfs-image"
+        files:
+          - name: rootfs-image-1
+            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+            size: 123
+            date: 2016-03-11T13:03:17.063+0000
+        meta_data: {}
+      artifact_provides:
+        artifact_name: "test"
+        rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+        rootfs-image.version: "test"
+      artifact_depends:
+        device_type:
+          - "test"
+      clears_artifact_provides:
+        - "rootfs-image.*"
+      size: 36891648
+      modified: "2016-03-11T13:03:17.063493443Z"
   ArtifactLink:
     description: URL for artifact file download.
     type: object
@@ -1229,33 +1294,57 @@ definitions:
     example:
       name: my-app-v1.0.1
       artifacts:
-        - name: my-app-v1.0.1
-          description: Application v1.0.1
+        - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+          name: Application 1.0.0
+          description: Johns Monday test build
           device_types_compatible: [Beagle Bone]
-          id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-          signed: false
-          modified: "2016-03-11T13:03:17.063493443Z"
           info:
             type_info:
               type: rootfs
-          files:
-            - name: rootfs-image-1
-              checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-              size: 23421351
-              date: 2016-03-11T13:03:17.063+0000
-          metadata: {}
-        - name: my-app-v1.0.1
-          description: Application v1.0.1
+          signed: false
+          updates:
+            type_info: "rootfs-image"
+            files:
+              - name: rootfs-image-1
+                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                size: 123
+                date: 2016-03-11T13:03:17.063+0000
+            meta_data: {}
+          artifact_provides:
+            artifact_name: "test"
+            rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+            rootfs-image.version: "test"
+          artifact_depends:
+            device_type:
+              - "test"
+          clears_artifact_provides:
+            - "rootfs-image.*"
+          size: 36891648
+          modified: "2016-03-11T13:03:17.063493443Z"
+        - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+          name: Application 1.0.0
+          description: Johns Monday test build
           device_types_compatible: [Raspberry Pi]
-          id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
-          signed: false
-          modified: "2016-03-11T13:03:17.063493443Z"
           info:
             type_info:
               type: rootfs
-          files:
-            - name: rootfs-image-1
-              checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-              size: 23421351
-              date: 2016-03-11T13:03:17.063+0000
-          metadata: {}
+          signed: false
+          updates:
+            type_info: "rootfs-image"
+            files:
+              - name: rootfs-image-1
+                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                size: 123
+                date: 2016-03-11T13:03:17.063+0000
+            meta_data: {}
+          artifact_provides:
+            artifact_name: "test"
+            rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+            rootfs-image.version: "test"
+          artifact_depends:
+            device_type:
+              - "test"
+          clears_artifact_provides:
+            - "rootfs-image.*"
+          size: 36891648
+          modified: "2016-03-11T13:03:17.063493443Z"
