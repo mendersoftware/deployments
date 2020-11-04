@@ -30,6 +30,12 @@
 #     * SHA of git commit at which build ocurred
 #     * passed via: --build-arg GIT_COMMIT_TAG="${DOCKER_PUBLISH_COMMIT_TAG}"
 #
+# Saves in a dotenv file the published image digests. These env variables
+# can be used by later jobs that have publish:image or publish:image:mender
+# as dependencies:
+#   * PUBLISH_IMAGE_DIGEST
+#   * PUBLISH_IMAGE_MENDER_DIGEST
+#
 
 stages:
   - build
@@ -49,6 +55,8 @@ stages:
 
 build:docker:
   stage: build
+  except:
+    - /^saas-[a-zA-Z0-9.]+$/
   tags:
     - docker
   image: docker
@@ -71,10 +79,12 @@ build:docker:
 
 publish:image:
   stage: publish
+  except:
+    - /^saas-[a-zA-Z0-9.]+$/
   only:
     refs:
-      # NOTE: We can remove master and [0-9]+\.[0-9]+\.x from here after 2.3.x goes EOL
-      - /^(master|staging|[0-9]+\.[0-9]+\.x)$/
+      # NOTE: We can remove [0-9]+\.[0-9]+\.x from here after 2.3.x goes EOL
+      - /^(master|staging|production|feature-.+|[0-9]+\.[0-9]+\.x)$/
   tags:
     - docker
   image: docker
@@ -92,18 +102,10 @@ publish:image:
     - docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
     - docker push $DOCKER_REPOSITORY:$DOCKER_PUBLISH_TAG
     - docker push $DOCKER_REPOSITORY:$DOCKER_PUBLISH_COMMIT_TAG
-
-# Extra job for Enterprise repos, publish also to Docker Hub
-publish:image:dockerhub:
-  extends: publish:image
-  only:
-    variables:
-      - $DOCKER_REPOSITORY =~ /^registry\.mender\.io.\/*/
-  before_script:
-    # The trick here is to let SERVICE_NAME use the original DOCKER_REPOSITORY (i.e. registry.mender.io)
-    # while overriding it at the end for Docker Hub, so that the tag/push in script is done for the latter.
-    - *export_docker_vars
-    - export DOCKER_REPOSITORY=${DOCKER_REPOSITORY#registry.mender.io/}
+    - echo "PUBLISH_IMAGE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $DOCKER_REPOSITORY:$DOCKER_PUBLISH_TAG)" >> publish.env
+  artifacts:
+    reports:
+      dotenv: publish.env
 
 publish:image:mender:
   stage: publish
@@ -145,18 +147,10 @@ publish:image:mender:
     -   docker push $DOCKER_REPOSITORY:mender-${version}
     -   docker push $DOCKER_REPOSITORY:mender-${version}_${CI_COMMIT_SHA}
     - done
-
-# Extra job for Enterprise repos, publish also to Docker Hub
-publish:image:mender:dockerhub:
-  extends: publish:image:mender
-  only:
-    variables:
-      - $DOCKER_REPOSITORY =~ /^registry\.mender\.io.\/*/
-  before_script:
-    # The trick here is to let SERVICE_NAME use the original DOCKER_REPOSITORY (i.e. registry.mender.io)
-    # while overriding it at the end for Docker Hub, so that the tag/push in script is done for the latter.
-    - *export_docker_vars
-    - export DOCKER_REPOSITORY=${DOCKER_REPOSITORY#registry.mender.io/}
+    - echo "PUBLISH_IMAGE_MENDER_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $DOCKER_REPOSITORY:mender-${version})" >> publish.env
+  artifacts:
+    reports:
+      dotenv: publish.env
 
 trigger:saas:sync-staging-component:
   stage: .post
@@ -185,3 +179,25 @@ trigger:saas:sync-staging-component:
           -F variables[SYNC_IMAGE_TAG]=${DOCKER_PUBLISH_COMMIT_TAG}
           https://gitlab.com/api/v4/projects/17809112/trigger/pipeline
     - done
+
+# saas-specific job to retag docker images after saas-* tags are pushed to the repository
+publish:image:saas:
+  stage: publish
+  only:
+    refs:
+      - /^saas-[a-zA-Z0-9.]+$/
+  tags:
+    - docker
+  image: docker
+  services:
+    - docker:19.03.5-dind
+  before_script:
+    - export SOURCE_TAG=staging_${CI_COMMIT_SHA}
+    - export DOCKER_PUBLISH_TAG=${CI_COMMIT_REF_NAME}
+    - export SERVICE_IMAGE=${DOCKER_REPOSITORY}:${DOCKER_PUBLISH_TAG}
+  script:
+    - docker login -u $REGISTRY_MENDER_IO_USERNAME -p $REGISTRY_MENDER_IO_PASSWORD registry.mender.io
+    - docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+    - docker pull $DOCKER_REPOSITORY:$SOURCE_TAG
+    - docker tag $DOCKER_REPOSITORY:$SOURCE_TAG $SERVICE_IMAGE
+    - docker push $SERVICE_IMAGE
