@@ -33,7 +33,9 @@ DEPLOYMENTS_BASE_URL = "http://{}/api/{}/v1/deployments"
 
 
 class BaseApiClient:
-    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
+
+    def __init__(self, request):
+        self.api_url = DEPLOYMENTS_BASE_URL.format(request.config.getoption("host"), "management")
 
     def make_api_url(self, path=None):
         if path is not None:
@@ -51,7 +53,7 @@ class RequestsApiClient(requests.Session):
 
 
 class SwaggerApiClient(BaseApiClient):
-    """Class that it based on swagger spec. Swagger support is initialized on call
+    """Class that is based on swagger spec. Swagger support is initialized on call
     to setup_swagger(). Class has no constructor, hence can be used with Pytest"""
 
     config = {
@@ -65,13 +67,15 @@ class SwaggerApiClient(BaseApiClient):
     log = logging.getLogger("client.Client")
     spec_option = "spec"
 
+    def __init__(self, request):
+        self.spec = request.config.getoption(self.spec_option)
+
     def setup_swagger(self):
         self.http_client = RequestsClient()
         self.http_client.session.verify = False
 
-        spec = pytest.config.getoption(self.spec_option)
         self.client = SwaggerClient.from_spec(
-            load_file(spec), config=self.config, http_client=self.http_client
+            load_file(self.spec), config=self.config, http_client=self.http_client
         )
         self.client.swagger_spec.api_url = self.make_api_url()
 
@@ -83,7 +87,9 @@ class ArtifactsClientError(Exception):
 
 
 class ArtifactsClient(SwaggerApiClient):
-    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
+
+    def __init__(self, request):
+        self.api_url = DEPLOYMENTS_BASE_URL.format(request.config.getoption("host"), "management")
 
     @staticmethod
     def make_upload_meta(meta):
@@ -209,7 +215,10 @@ class SimpleArtifactsClient(ArtifactsClient):
 
 
 class DeploymentsClient(SwaggerApiClient):
-    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
+
+    def __init__(self, request):
+        self.api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
+
 
     def make_new_deployment(self, *args, **kwargs):
         NewDeployment = self.client.get_model("NewDeployment")
@@ -270,7 +279,10 @@ class DeviceClient(SwaggerApiClient):
 
     spec_option = "device_spec"
     logger_tag = "client.DeviceClient"
-    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "devices")
+
+    def __init__(self, request):
+        self.api_url = DEPLOYMENTS_BASE_URL.format(request.config.getoption("host"), "devices")
+
 
     def get_next_deployment(self, token="", artifact_name="", device_type=""):
         """Obtain next deployment"""
@@ -321,7 +333,9 @@ class InventoryClientError(Exception):
 
 class InventoryClient(BaseApiClient, RequestsApiClient):
 
-    api_url = "http://%s/api/0.1.0/" % (pytest.config.getoption("inventory_host"))
+
+    def __init__(self, request):
+        self.api_url = "http://%s/api/0.1.0/" % (pytest.config.getoption("inventory_host"))
 
     def report_attributes(self, devtoken, attributes):
         """Send device attributes to inventory service. Device is identified using
@@ -356,9 +370,10 @@ class CliClient:
 class InternalApiClient(SwaggerApiClient):
     spec_option = "internal_spec"
     logger_tag = "client.InternalApiClient"
-    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "internal")
 
-    def __init__(self):
+    def __init__(self, request):
+        self.api_url = DEPLOYMENTS_BASE_URL.format(request.config.getoption("host"), "internal")
+        self.spec = request.config.getoption("spec")
         self.setup_swagger()
 
     def create_tenant(self, tenant_id):
