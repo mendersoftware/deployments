@@ -210,8 +210,8 @@ def mongo_cleanup(mongo):
 
 
 @pytest.fixture(scope="session")
-def api_client_int():
-    return InternalApiClient()
+def api_client_int(request):
+    return InternalApiClient(request)
 
 
 def make_tenant_db(tenant_id):
