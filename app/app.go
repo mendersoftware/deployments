@@ -596,6 +596,8 @@ func getMetaFromArchive(r *io.Reader) (*model.ArtifactMeta, error) {
 			return nil, errors.Wrap(err,
 				"error parsing version 3 artifact")
 		}
+
+		metaArtifact.ClearsProvides = aReader.MergeArtifactClearsProvides()
 	}
 
 	for _, p := range aReader.GetHandlers() {
