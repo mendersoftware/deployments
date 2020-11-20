@@ -1750,10 +1750,6 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 		options.SetLimit(int64(match.Limit))
 	}
 
-	count, err := collDpl.CountDocuments(ctx, query)
-	if err != nil {
-		return nil, 0, err
-	}
 	var deployments []*model.Deployment
 	cursor, err := collDpl.Find(ctx, query, options)
 	if err != nil {
@@ -1761,6 +1757,17 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 	}
 	if err := cursor.All(ctx, &deployments); err != nil {
 		return nil, 0, err
+	}
+	// Count documents if we didn't find all already.
+	count := int64(len(deployments))
+	if count >= int64(match.Limit) {
+		count, err = collDpl.CountDocuments(ctx, query)
+		if err != nil {
+			return nil, 0, err
+		}
+	} else {
+		// Don't forget to add the skipped documents
+		count += int64(match.Skip)
 	}
 
 	return deployments, count, nil
