@@ -219,6 +219,10 @@ paths:
             type: array
             items:
               $ref: '#/definitions/Deployment'
+          headers:
+            X-Total-Count:
+              type: int
+              description: Total number of deployments matching query.
         400:
           $ref: "#/responses/InvalidRequestError"
 

@@ -115,6 +115,9 @@ paths:
             Link:
               type: string
               description: Standard header, we support 'first', 'next', and 'prev'.
+            X-Total-Count:
+              type: int
+              description: Total number of deployments matching query.
         400:
           $ref: "#/responses/InvalidRequestError"
         401:
