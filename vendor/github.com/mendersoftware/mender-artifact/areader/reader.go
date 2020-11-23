@@ -1113,11 +1113,3 @@ func (ar *Reader) MergeArtifactProvides() (map[string]string, error) {
 
 	return retMap, nil
 }
-
-func (ar *Reader) MergeArtifactClearsProvides() []string {
-	var list []string
-	for _, inst := range ar.installers {
-		list = append(list, inst.GetUpdateClearsProvides()...)
-	}
-	return list
-}
