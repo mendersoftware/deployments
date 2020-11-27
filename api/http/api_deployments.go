@@ -518,21 +518,21 @@ func (d *DeploymentsApiHandlers) ParseMultipart(r *multipart.Reader) (*model.Mul
 func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(r *rest.Request) (*model.MultipartGenerateImageMsg, error) {
 	multipartGenerateImageMsg := &model.MultipartGenerateImageMsg{}
 
-	multipartGenerateImageMsg.Name = r.FormValue("name")
+	multipartGenerateImageMsg.Name = r.Form.Get("name")
 	if multipartGenerateImageMsg.Name == "" {
 		return nil, ErrArtifactNameMissing
 	}
 
-	multipartGenerateImageMsg.Description = r.FormValue("description")
+	multipartGenerateImageMsg.Description = r.Form.Get("description")
 
-	multipartGenerateImageMsg.Type = r.FormValue("type")
+	multipartGenerateImageMsg.Type = r.Form.Get("type")
 	if multipartGenerateImageMsg.Type == "" {
 		return nil, ErrArtifactTypeMissing
 	}
 
-	multipartGenerateImageMsg.Args = r.FormValue("args")
+	multipartGenerateImageMsg.Args = r.Form.Get("args")
 
-	deviceTypesCompatible := r.FormValue("device_types_compatible")
+	deviceTypesCompatible := r.Form.Get("device_types_compatible")
 	if deviceTypesCompatible == "" {
 		return nil, ErrArtifactDeviceTypesCompatibleMissing
 	}

@@ -529,6 +529,45 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			requestBodyObject: []h.Part{
 				{
 					FieldName:  "name",
+					FieldValue: "name with spaces",
+				},
+				{
+					FieldName:  "description",
+					FieldValue: "description with spaces",
+				},
+				{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
+				{
+					FieldName:  "device_types_compatible",
+					FieldValue: "Beagle Bone",
+				},
+				{
+					FieldName:  "type",
+					FieldValue: "single_file",
+				},
+				{
+					FieldName:  "args",
+					FieldValue: "arg1 arg2 arg3",
+				},
+				{
+					FieldName:   "file",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			requestContentType:       "multipart/form-data",
+			responseCode:             http.StatusCreated,
+			responseBody:             "",
+			appGenerateImage:         true,
+			appGenerateImageResponse: "artifactID",
+			appGenerateImageError:    nil,
+		},
+		{
+			requestBodyObject: []h.Part{
+				{
+					FieldName:  "name",
 					FieldValue: "name",
 				},
 				{
