@@ -35,6 +35,7 @@ import (
 	"github.com/mendersoftware/deployments/s3"
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mongo"
+	"github.com/mendersoftware/deployments/utils"
 )
 
 const (
@@ -234,10 +235,11 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	pR, pW := io.Pipe()
 
 	// limit reader to the size provided with the upload message
-	lr := io.LimitReader(
-		multipartUploadMsg.ArtifactReader,
-		multipartUploadMsg.ArtifactSize+1,
-	).(*io.LimitedReader)
+	lr := &utils.LimitedReader{
+		R:          multipartUploadMsg.ArtifactReader,
+		N:          multipartUploadMsg.ArtifactSize + 1,
+		LimitError: ErrModelArtifactFileTooLarge,
+	}
 	tee := io.TeeReader(lr, pW)
 
 	uid, err := uuid.FromString(multipartUploadMsg.ArtifactID)
@@ -253,14 +255,16 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// and cannot be done in the same goroutine as writing to the pipe
 	//
 	// uploading and parsing artifact in the same process will cause in a deadlock!
-	go func() {
-		err := d.fileStorage.UploadArtifact(
+	//nolint:errcheck
+	go func() (err error) {
+		defer func() { ch <- err }()
+		err = d.fileStorage.UploadArtifact(
 			ctx, artifactID, pR, ArtifactContentType,
 		)
 		if err != nil {
 			pR.CloseWithError(err)
 		}
-		ch <- err
+		return err
 	}()
 
 	// parse artifact
@@ -280,12 +284,8 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		pW.CloseWithError(err)
 		<-ch
 		return artifactID, err
-	} else if lr.N <= 0 {
-		// LimitReader exhausted, artifact file too large.
-		pW.CloseWithError(ErrModelArtifactFileTooLarge)
-		<-ch
-		return "", ErrModelArtifactFileTooLarge
 	}
+
 	// close the pipe
 	pW.Close()
 
@@ -329,11 +329,8 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 func (d *Deployments) GenerateImage(ctx context.Context,
 	multipartGenerateImageMsg *model.MultipartGenerateImageMsg) (string, error) {
 
-	switch {
-	case multipartGenerateImageMsg == nil:
+	if multipartGenerateImageMsg == nil {
 		return "", ErrModelMultipartUploadMsgMalformed
-	case multipartGenerateImageMsg.Size > MaxImageSize:
-		return "", ErrModelArtifactFileTooLarge
 	}
 
 	imgID, err := d.handleRawFile(ctx, multipartGenerateImageMsg)
@@ -373,7 +370,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 // and starts the workflow to generate the artifact.
 // Returns image ID, artifact file ID and nil on success.
 func (d *Deployments) handleRawFile(ctx context.Context,
-	multipartGenerateImageMsg *model.MultipartGenerateImageMsg) (string, error) {
+	multipartMsg *model.MultipartGenerateImageMsg) (string, error) {
 
 	uid := uuid.NewV4()
 	artifactID := uid.String()
@@ -382,7 +379,9 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 	// artifact is considered to be unique if there is no artifact with the same name
 	// and supporting the same platform in the system
 	isArtifactUnique, err := d.db.IsArtifactUnique(ctx,
-		multipartGenerateImageMsg.Name, multipartGenerateImageMsg.DeviceTypesCompatible)
+		multipartMsg.Name,
+		multipartMsg.DeviceTypesCompatible,
+	)
 	if err != nil {
 		return "", errors.Wrap(err, "Fail to check if artifact is unique")
 	}
@@ -390,9 +389,14 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 		return "", ErrModelArtifactNotUnique
 	}
 
-	lr := io.LimitReader(multipartGenerateImageMsg.FileReader, multipartGenerateImageMsg.Size)
+	file := &utils.LimitedReader{
+		R:          multipartMsg.FileReader,
+		N:          MaxImageSize + 1,
+		LimitError: ErrModelArtifactFileTooLarge,
+	}
+
 	err = d.fileStorage.UploadArtifact(
-		ctx, artifactID, lr, ArtifactContentType,
+		ctx, artifactID, file, ArtifactContentType,
 	)
 	if err != nil {
 		return "", err
