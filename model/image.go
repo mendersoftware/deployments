@@ -20,6 +20,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/go-lib-micro/mongo/doc"
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
@@ -200,16 +201,26 @@ type MultipartUploadMsg struct {
 // MultipartGenerateImageMsg is a structure with fields extracted from the multipart/form-data
 // form sent in the artifact generation request
 type MultipartGenerateImageMsg struct {
-	Name                  string    `json:"name"`
-	Description           string    `json:"description"`
-	Size                  int64     `json:"size"`
-	DeviceTypesCompatible []string  `json:"device_types_compatible"`
-	Type                  string    `json:"type"`
-	Args                  string    `json:"args"`
-	ArtifactID            string    `json:"artifact_id"`
-	GetArtifactURI        string    `json:"get_artifact_uri"`
-	DeleteArtifactURI     string    `json:"delete_artifact_uri"`
-	TenantID              string    `json:"tenant_id"`
-	Token                 string    `json:"token"`
-	FileReader            io.Reader `json:"-"`
+	Name                  string    `json:"name" valid:"required"`
+	Description           string    `json:"description" valid:"-"`
+	DeviceTypesCompatible []string  `json:"device_types_compatible" valid:"required"`
+	Type                  string    `json:"type" valid:"required"`
+	Args                  string    `json:"args" valid:"-"`
+	ArtifactID            string    `json:"artifact_id" valid:"-"`
+	GetArtifactURI        string    `json:"get_artifact_uri" valid:"-"`
+	DeleteArtifactURI     string    `json:"delete_artifact_uri" valid:"-"`
+	TenantID              string    `json:"tenant_id" valid:"-"`
+	Token                 string    `json:"token" valid:"-"`
+	FileReader            io.Reader `json:"-" valid:"required"`
+}
+
+func (msg MultipartGenerateImageMsg) Validate() error {
+	_, err := govalidator.ValidateStruct(msg)
+	if err == nil {
+		// Somehow FileReader is not covered by "required" rule.
+		if msg.FileReader == nil {
+			return errors.New("missing 'file' section")
+		}
+	}
+	return err
 }

@@ -174,8 +174,6 @@ github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Ky
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/mendersoftware/go-lib-micro v0.0.0-20201013131806-cf1f6a851bcb h1:bRFZW2Q1Bz4OW4SOZrymlP2CtgfDKAlTu9X97Vm6bIQ=
 github.com/mendersoftware/go-lib-micro v0.0.0-20201013131806-cf1f6a851bcb/go.mod h1:ZjLBGCFWe67uSPXCLULel6j8Rf3KSZX1XjvWABIKAkE=
-github.com/mendersoftware/mender-artifact v0.0.0-20201014114809-a3fb141f8c09 h1:Q4O8xxcX19ytT9Z3KV7arQLx2RJYvtC0CClsvOS8PEw=
-github.com/mendersoftware/mender-artifact v0.0.0-20201014114809-a3fb141f8c09/go.mod h1:0WP2ZiHCDj6A88zCHjbSx4F6tKZ+RxUo+EHgnl+v6PM=
 github.com/mendersoftware/mender-artifact v0.0.0-20201119081602-3f57f208c23e h1:+C5P3I6Ul3rGvIc3t24K1t7z4hc9Xwq4xP4Q+F8NYQo=
 github.com/mendersoftware/mender-artifact v0.0.0-20201119081602-3f57f208c23e/go.mod h1:uu7kTE8/9KpCtuVI2wSpbbirWnScqXsw5kTDk1wYBXU=
 github.com/mendersoftware/mendertesting v0.0.1 h1:Uh3yPaHLEC+27y8ZBpDLtwE1LZaPclKuNBCH+A3oRI4=
