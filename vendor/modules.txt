@@ -86,6 +86,8 @@ github.com/klauspost/compress/zstd/internal/xxhash
 github.com/klauspost/pgzip
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
+# github.com/mattn/go-isatty v0.0.12
+github.com/mattn/go-isatty
 # github.com/mendersoftware/go-lib-micro v0.0.0-20201013131806-cf1f6a851bcb
 ## explicit
 github.com/mendersoftware/go-lib-micro/accesslog
@@ -104,7 +106,7 @@ github.com/mendersoftware/go-lib-micro/rest_utils
 github.com/mendersoftware/go-lib-micro/store
 github.com/mendersoftware/go-lib-micro/strings
 github.com/mendersoftware/go-lib-micro/testing
-# github.com/mendersoftware/mender-artifact v0.0.0-20201014114809-a3fb141f8c09
+# github.com/mendersoftware/mender-artifact v0.0.0-20201119081602-3f57f208c23e
 ## explicit
 github.com/mendersoftware/mender-artifact/areader
 github.com/mendersoftware/mender-artifact/artifact
@@ -113,6 +115,8 @@ github.com/mendersoftware/mender-artifact/utils
 # github.com/mendersoftware/mendertesting v0.0.2-0.20201017134033-a52f7a79af4f
 ## explicit
 github.com/mendersoftware/mendertesting
+# github.com/mendersoftware/progressbar v0.0.2
+github.com/mendersoftware/progressbar
 # github.com/minio/sha256-simd v0.1.1
 github.com/minio/sha256-simd
 # github.com/mitchellh/mapstructure v1.1.2
