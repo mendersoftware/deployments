@@ -36,6 +36,12 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+type BogusReader struct{}
+
+func (r *BogusReader) Read(b []byte) (int, error) {
+	return len(b), nil
+}
+
 func TestGenerateImageError(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.FileStorage{}
@@ -48,12 +54,6 @@ func TestGenerateImageError(t *testing.T) {
 		{
 			multipartGenerateImage: nil,
 			expectedError:          ErrModelMultipartUploadMsgMalformed,
-		},
-		{
-			multipartGenerateImage: &model.MultipartGenerateImageMsg{
-				Size: MaxImageSize + 1,
-			},
-			expectedError: ErrModelArtifactFileTooLarge,
 		},
 	}
 
@@ -87,7 +87,6 @@ func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "",
-		Size:                  10,
 		FileReader:            nil,
 	}
 
@@ -118,7 +117,6 @@ func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "",
-		Size:                  10,
 		FileReader:            nil,
 	}
 
@@ -140,7 +138,7 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*io.LimitedReader"),
+		mock.AnythingOfType("*utils.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(errors.New("error while uploading"))
 
@@ -156,7 +154,6 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "",
-		Size:                  10,
 		FileReader:            bytes.NewReader([]byte("123456790")),
 	}
 
@@ -179,7 +176,7 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*io.LimitedReader"),
+		mock.AnythingOfType("*utils.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
 
@@ -202,7 +199,6 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "",
-		Size:                  10,
 		FileReader:            bytes.NewReader([]byte("123456790")),
 	}
 
@@ -225,7 +221,7 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*io.LimitedReader"),
+		mock.AnythingOfType("*utils.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
 
@@ -256,7 +252,6 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "",
-		Size:                  10,
 		FileReader:            bytes.NewReader([]byte("123456790")),
 	}
 
@@ -309,7 +304,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*io.LimitedReader"),
+		mock.AnythingOfType("*utils.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
 
@@ -330,7 +325,6 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "",
-		Size:                  10,
 		FileReader:            bytes.NewReader([]byte("123456790")),
 	}
 
@@ -384,7 +378,7 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*io.LimitedReader"),
+		mock.AnythingOfType("*utils.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
 
@@ -405,7 +399,6 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "",
-		Size:                  10,
 		FileReader:            bytes.NewReader([]byte("123456790")),
 	}
 
@@ -440,7 +433,6 @@ func TestGenerateImageSuccessful(t *testing.T) {
 			}
 			assert.Equal(t, "name", multipartGenerateImage.Name)
 			assert.Equal(t, "description", multipartGenerateImage.Description)
-			assert.Equal(t, int64(10), multipartGenerateImage.Size)
 			assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
 			assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
 			assert.Equal(t, "single_file", multipartGenerateImage.Type)
@@ -481,7 +473,7 @@ func TestGenerateImageSuccessful(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*io.LimitedReader"),
+		mock.AnythingOfType("*utils.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
 
@@ -497,7 +489,6 @@ func TestGenerateImageSuccessful(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "args",
-		Size:                  10,
 		FileReader:            bytes.NewReader([]byte("123456790")),
 	}
 
@@ -531,7 +522,6 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 			}
 			assert.Equal(t, "name", multipartGenerateImage.Name)
 			assert.Equal(t, "description", multipartGenerateImage.Description)
-			assert.Equal(t, int64(10), multipartGenerateImage.Size)
 			assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
 			assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
 			assert.Equal(t, "single_file", multipartGenerateImage.Type)
@@ -572,7 +562,7 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 	fs.On("UploadArtifact",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*io.LimitedReader"),
+		mock.AnythingOfType("*utils.LimitedReader"),
 		mock.AnythingOfType("string"),
 	).Return(nil)
 
@@ -588,7 +578,6 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "args",
-		Size:                  10,
 		FileReader:            bytes.NewReader([]byte("123456790")),
 	}
 
