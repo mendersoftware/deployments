@@ -134,7 +134,6 @@ func TestGenerateArtifactFails(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "",
-		Size:                  10,
 		TenantID:              "tenant_id",
 		ArtifactID:            "artifact_id",
 		FileReader:            bytes.NewReader([]byte("123456790")),
@@ -178,7 +177,6 @@ func TestGenerateArtifactSuccessful(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "args",
-		Size:                  10,
 		TenantID:              "tenant_id",
 		ArtifactID:            "artifact_id",
 		FileReader:            bytes.NewReader([]byte("123456790")),
@@ -196,7 +194,6 @@ func TestGenerateArtifactSuccessful(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "name", multipartGenerateImage.Name)
 	assert.Equal(t, "description", multipartGenerateImage.Description)
-	assert.Equal(t, int64(10), multipartGenerateImage.Size)
 	assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
 	assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
 	assert.Equal(t, "single_file", multipartGenerateImage.Type)
