@@ -382,20 +382,25 @@ func formatArtifactUploadError(err error) error {
 func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
-	err := r.ParseMultipartForm(DefaultMaxMetaSize)
+	formReader, err := r.MultipartReader()
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
 	// parse multipart message
-	multipartGenerateImageMsg, err := d.ParseGenerateImageMultipart(r)
+	multipartMsg, err := d.ParseGenerateImageMultipart(formReader)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
 	}
 
-	imgID, err := d.app.GenerateImage(r.Context(), multipartGenerateImageMsg)
+	tokenFields := strings.Fields(r.Header.Get("Authorization"))
+	if len(tokenFields) == 2 && strings.EqualFold(tokenFields[0], "Bearer") {
+		multipartMsg.Token = tokenFields[1]
+	}
+
+	imgID, err := d.app.GenerateImage(r.Context(), multipartMsg)
 	cause := errors.Cause(err)
 	switch cause {
 	default:
@@ -414,8 +419,6 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 	}
-
-	return
 }
 
 // ParseMultipart parses multipart/form-data message.
@@ -491,44 +494,75 @@ func (d *DeploymentsApiHandlers) ParseMultipart(r *multipart.Reader) (*model.Mul
 }
 
 // ParseGenerateImageMultipart parses multipart/form-data message.
-func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(r *rest.Request) (*model.MultipartGenerateImageMsg, error) {
-	multipartGenerateImageMsg := &model.MultipartGenerateImageMsg{}
+func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(r *multipart.Reader) (*model.MultipartGenerateImageMsg, error) {
+	msg := &model.MultipartGenerateImageMsg{}
 
-	multipartGenerateImageMsg.Name = r.FormValue("name")
-	if multipartGenerateImageMsg.Name == "" {
-		return nil, ErrArtifactNameMissing
+ParseLoop:
+	for {
+		part, err := r.NextPart()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		switch strings.ToLower(part.FormName()) {
+		case "args":
+			b, err := ioutil.ReadAll(part)
+			if err != nil {
+				return nil, errors.Wrap(err,
+					"failed to read form value 'args'",
+				)
+			}
+			msg.Args = string(b)
+
+		case "description":
+			b, err := ioutil.ReadAll(part)
+			if err != nil {
+				return nil, errors.Wrap(err,
+					"failed to read form value 'description'",
+				)
+			}
+			msg.Description = string(b)
+
+		case "device_types_compatible":
+			b, err := ioutil.ReadAll(part)
+			if err != nil {
+				return nil, errors.Wrap(err,
+					"failed to read form value 'device_types_compatible'",
+				)
+			}
+			msg.DeviceTypesCompatible = strings.Split(string(b), ",")
+
+		case "file":
+			msg.FileReader = part
+			break ParseLoop
+
+		case "name":
+			b, err := ioutil.ReadAll(part)
+			if err != nil {
+				return nil, errors.Wrap(err,
+					"failed to read form value 'name'",
+				)
+			}
+			msg.Name = string(b)
+
+		case "type":
+			b, err := ioutil.ReadAll(part)
+			if err != nil {
+				return nil, errors.Wrap(err,
+					"failed to read form value 'type'",
+				)
+			}
+			msg.Type = string(b)
+
+		default:
+			// Ignore non-API sections.
+			continue
+		}
 	}
 
-	multipartGenerateImageMsg.Description = r.FormValue("description")
-
-	multipartGenerateImageMsg.Type = r.FormValue("type")
-	if multipartGenerateImageMsg.Type == "" {
-		return nil, ErrArtifactTypeMissing
-	}
-
-	multipartGenerateImageMsg.Args = r.FormValue("args")
-
-	deviceTypesCompatible := r.FormValue("device_types_compatible")
-	if deviceTypesCompatible == "" {
-		return nil, ErrArtifactDeviceTypesCompatibleMissing
-	}
-
-	multipartGenerateImageMsg.DeviceTypesCompatible = strings.Split(deviceTypesCompatible, ",")
-
-	file, fileHeader, err := r.FormFile("file")
-	if err != nil {
-		return nil, ErrArtifactFileMissing
-	}
-
-	multipartGenerateImageMsg.FileReader = file
-	multipartGenerateImageMsg.Size = fileHeader.Size
-
-	auth := strings.Split(r.Header.Get(HTTPHeaderAuthorization), " ")
-	if len(auth) == 2 && auth[0] == HTTPHeaderAuthorizationBearer {
-		multipartGenerateImageMsg.Token = auth[1]
-	}
-
-	return multipartGenerateImageMsg, nil
+	return msg, errors.Wrap(msg.Validate(), "api: invalid form parameters")
 }
 
 // deployments

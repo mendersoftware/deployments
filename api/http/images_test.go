@@ -413,7 +413,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			requestBodyObject:  []h.Part{},
 			requestContentType: "",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "mime: no media type",
+			responseBody:       "request Content-Type isn't multipart/form-data",
 		},
 		{
 			requestBodyObject:  []h.Part{},
@@ -425,7 +425,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			requestBodyObject:  []h.Part{},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "request does not contain the name of the artifact",
+			responseBody:       "api: invalid form parameters:",
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -445,7 +445,8 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "request does not contain the list of compatible device types",
+			responseBody: "api: invalid form parameters: " +
+				"device_types_compatible: non zero value required",
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -464,7 +465,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "request does not contain the artifact file",
+			responseBody:       "api: invalid form parameters: missing 'file' section",
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -484,7 +485,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "request does not contain the type of artifact",
+			responseBody:       "api: invalid form parameters: type: non zero value required",
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -511,6 +512,45 @@ func TestPostArtifactsGenerate(t *testing.T) {
 				{
 					FieldName:  "args",
 					FieldValue: "args",
+				},
+				{
+					FieldName:   "file",
+					ContentType: "application/octet-stream",
+					ImageData:   imageBody,
+				},
+			},
+			requestContentType:       "multipart/form-data",
+			responseCode:             http.StatusCreated,
+			responseBody:             "",
+			appGenerateImage:         true,
+			appGenerateImageResponse: "artifactID",
+			appGenerateImageError:    nil,
+		},
+		{
+			requestBodyObject: []h.Part{
+				{
+					FieldName:  "name",
+					FieldValue: "name with spaces",
+				},
+				{
+					FieldName:  "description",
+					FieldValue: "description with spaces",
+				},
+				{
+					FieldName:  "size",
+					FieldValue: strconv.Itoa(len(imageBody)),
+				},
+				{
+					FieldName:  "device_types_compatible",
+					FieldValue: "Beagle Bone",
+				},
+				{
+					FieldName:  "type",
+					FieldValue: "single_file",
+				},
+				{
+					FieldName:  "args",
+					FieldValue: "arg1 arg2 arg3",
 				},
 				{
 					FieldName:   "file",
@@ -696,11 +736,8 @@ func TestPostArtifactsGenerate(t *testing.T) {
 				app.On("GenerateImage",
 					h.ContextMatcher(),
 					mock.MatchedBy(func(msg *model.MultipartGenerateImageMsg) bool {
-						size, _ := strconv.Atoi(tc.requestBodyObject[2].FieldValue)
-
 						assert.Equal(t, msg.Name, tc.requestBodyObject[0].FieldValue)
 						assert.Equal(t, msg.Description, tc.requestBodyObject[1].FieldValue)
-						assert.Equal(t, msg.Size, int64(size))
 						assert.Equal(t, msg.DeviceTypesCompatible, []string{tc.requestBodyObject[3].FieldValue})
 						assert.Equal(t, msg.Type, tc.requestBodyObject[4].FieldValue)
 						assert.Equal(t, msg.Args, tc.requestBodyObject[5].FieldValue)

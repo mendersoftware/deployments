@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -47,7 +47,6 @@ func TestGenerateArtifactFails(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "",
-		Size:                  10,
 		TenantID:              "tenant_id",
 		ArtifactID:            "artifact_id",
 		FileReader:            bytes.NewReader([]byte("123456790")),
@@ -76,7 +75,6 @@ func TestGenerateArtifactSuccessful(t *testing.T) {
 			}
 			assert.Equal(t, "name", multipartGenerateImage.Name)
 			assert.Equal(t, "description", multipartGenerateImage.Description)
-			assert.Equal(t, int64(10), multipartGenerateImage.Size)
 			assert.Len(t, multipartGenerateImage.DeviceTypesCompatible, 1)
 			assert.Equal(t, "Beagle Bone", multipartGenerateImage.DeviceTypesCompatible[0])
 			assert.Equal(t, "single_file", multipartGenerateImage.Type)
@@ -99,7 +97,6 @@ func TestGenerateArtifactSuccessful(t *testing.T) {
 		DeviceTypesCompatible: []string{"Beagle Bone"},
 		Type:                  "single_file",
 		Args:                  "args",
-		Size:                  10,
 		TenantID:              "tenant_id",
 		ArtifactID:            "artifact_id",
 		FileReader:            bytes.NewReader([]byte("123456790")),
