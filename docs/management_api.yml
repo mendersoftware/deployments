@@ -926,10 +926,14 @@ definitions:
         description: An array of devices' identifiers.
         items:
           type: string
+      all_devices:
+        type: boolean
+        description: |
+            When set, the deployment will be created for all
+            currently accepted devices.
     required:
       - name
       - artifact_name
-      - devices
     example:
       name: production
       artifact_name: Application 0.0.1
