@@ -1093,14 +1093,23 @@ func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWrit
 	tenantID := r.PathParam("tenant")
 
 	if tenantID == "" {
-		rest_utils.RestErrWithLog(w, r, l, nil, http.StatusBadRequest)
+		rest_utils.RestErrWithLog(w, r, l, errors.New("missing tenant ID"), http.StatusBadRequest)
+		return
 	}
 
 	query, err := ParseLookupQuery(r.URL.Query())
-
 	if err != nil {
 		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
+		return
 	}
+
+	page, perPage, err := rest_utils.ParsePagination(r)
+	if err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+	query.Skip = int((page - 1) * perPage)
+	query.Limit = int(perPage + 1)
 
 	ident := &identity.Identity{Tenant: tenantID}
 	ctx := identity.WithContext(r.Context(), ident)
