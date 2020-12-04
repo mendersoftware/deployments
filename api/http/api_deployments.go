@@ -1087,37 +1087,16 @@ func (d *DeploymentsApiHandlers) ProvisionTenantsHandler(w rest.ResponseWriter, 
 }
 
 func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r)
-	defer r.Body.Close()
-
 	tenantID := r.PathParam("tenant")
-
 	if tenantID == "" {
+		l := requestlog.GetRequestLogger(r)
 		rest_utils.RestErrWithLog(w, r, l, errors.New("missing tenant ID"), http.StatusBadRequest)
 		return
 	}
 
-	query, err := ParseLookupQuery(r.URL.Query())
-	if err != nil {
-		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
-		return
-	}
-
-	page, perPage, err := rest_utils.ParsePagination(r)
-	if err != nil {
-		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
-		return
-	}
-	query.Skip = int((page - 1) * perPage)
-	query.Limit = int(perPage + 1)
-
-	ident := &identity.Identity{Tenant: tenantID}
-	ctx := identity.WithContext(r.Context(), ident)
-
-	if deps, totalCount, err := d.app.LookupDeployment(ctx, query); err != nil {
-		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
-	} else {
-		w.Header().Add(hdrTotalCount, strconv.FormatInt(totalCount, 10))
-		w.WriteJson(deps)
-	}
+	r.Request = r.WithContext(identity.WithContext(
+		r.Context(),
+		&identity.Identity{Tenant: tenantID},
+	))
+	d.LookupDeployment(w, r)
 }
