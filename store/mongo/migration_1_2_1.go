@@ -16,6 +16,7 @@ package mongo
 import (
 	"github.com/globalsign/mgo"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
+	"strings"
 )
 
 type migration_1_2_1 struct {
@@ -36,7 +37,7 @@ func (m *migration_1_2_1) Up(from migrate.Version) error {
 
 	// 'ns not found' simply means the idx doesn't exist
 	// DropIndex is just not idempotent, so force it
-	if err != nil && err.Error() != "ns not found" && err.Error() != "index not found with name" {
+	if err != nil && err.Error() != "ns not found" && !strings.HasPrefix(err.Error(), "index not found with name") {
 		return err
 	}
 
