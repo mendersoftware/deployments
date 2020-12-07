@@ -178,8 +178,6 @@ github.com/mendersoftware/mender-artifact v0.0.0-20201119081602-3f57f208c23e h1:
 github.com/mendersoftware/mender-artifact v0.0.0-20201119081602-3f57f208c23e/go.mod h1:uu7kTE8/9KpCtuVI2wSpbbirWnScqXsw5kTDk1wYBXU=
 github.com/mendersoftware/mendertesting v0.0.1 h1:Uh3yPaHLEC+27y8ZBpDLtwE1LZaPclKuNBCH+A3oRI4=
 github.com/mendersoftware/mendertesting v0.0.1/go.mod h1:WZyiX1zeljfyFaTjmbR84+wHjzmPDLDvOdRHZnnLM/0=
-github.com/mendersoftware/mendertesting v0.0.2-0.20201017134033-a52f7a79af4f h1:IwvpVNHXxCn0HfBgHFR4UktWoFmClqOdXdyyG/3vmsc=
-github.com/mendersoftware/mendertesting v0.0.2-0.20201017134033-a52f7a79af4f/go.mod h1:dE4yKtX64TQV1Z0hZtb1q0IZspCnB9q2qhcPeQONkUQ=
 github.com/mendersoftware/progressbar v0.0.2 h1:l2LZyCNmPekd/eZizs1C1fa4GCXueuXL15VsPlCZgWU=
 github.com/mendersoftware/progressbar v0.0.2/go.mod h1:NYaLNLhy3UXkRweGjhR3We3Q1ngmUmOWjC3+m8EzwjE=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=

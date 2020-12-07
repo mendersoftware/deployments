@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go v1.36.2
 	github.com/mendersoftware/go-lib-micro v0.0.0-20201013131806-cf1f6a851bcb
 	github.com/mendersoftware/mender-artifact v0.0.0-20201119081602-3f57f208c23e
-	github.com/mendersoftware/mendertesting v0.0.2-0.20201017134033-a52f7a79af4f
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.7.0
