@@ -16,6 +16,7 @@ package migrations
 import (
 	"github.com/globalsign/mgo"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
+	"strings"
 
 	deployments_mongo "github.com/mendersoftware/deployments/resources/deployments/mongo"
 )
@@ -38,7 +39,7 @@ func (m *migration_1_2_1) Up(from migrate.Version) error {
 
 	// 'ns not found' simply means the idx doesn't exist
 	// DropIndex is just not idempotent, so force it
-	if err != nil && err.Error() != "ns not found" && err.Error() != "index not found with name" {
+	if err != nil && !strings.Contains(err.Error(), "ns not found") && !strings.Contains(err.Error(), "index not found with name") {
 		return err
 	}
 
