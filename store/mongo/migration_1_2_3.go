@@ -17,7 +17,6 @@ package mongo
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/mongo/doc"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
@@ -44,10 +43,16 @@ func (m *migration_1_2_3) Up(from migrate.Version) error {
 	_, err := c.Indexes().DropOne(ctx, IndexUniqueNameAndDeviceTypeName)
 
 	// the index might not be there - was created only on image inserts (not upfront)
-	if err != nil &&
-		!strings.Contains(err.Error(), "index not found with name") &&
-		!strings.Contains(err.Error(), "ns not found") {
-		return err
+	if err != nil {
+		if except, ok := err.(mongo.CommandError); ok {
+			if except.Code != errorCodeNamespaceNotFound &&
+				except.Code != errorCodeIndexNotFound {
+				return err
+			}
+			// continue
+		} else {
+			return err
+		}
 	}
 
 	// transform existing device_types_compatible in v1 and v2 artifacts into 'depends.device_type'
