@@ -23,8 +23,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mendersoftware/deployments/app"
 	mapp "github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
+	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/stretchr/testify/assert"
@@ -212,6 +214,258 @@ func TestDeploymentsPerTenantHandler(t *testing.T) {
 			recorded.CodeIs(tc.responseCode)
 			if tc.responseBody != nil {
 				b, _ := json.Marshal(tc.responseBody)
+				assert.JSONEq(t, string(b), recorded.Recorder.Body.String())
+			} else {
+				recorded.BodyIs("")
+			}
+		})
+	}
+}
+
+func TestPostDeployment(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		Name      string
+		InputBody interface{}
+
+		AppError               error
+		ResponseCode           int
+		ResponseLocationHeader string
+		ResponseBody           interface{}
+	}{{
+		Name: "ok, device list",
+		InputBody: &model.DeploymentConstructor{
+			Name:         StringToPointer("foo"),
+			ArtifactName: StringToPointer("bar"),
+			Devices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
+		},
+		ResponseCode:           http.StatusCreated,
+		ResponseLocationHeader: "./management/v1/deployments/deployments/foo",
+	}, {
+		Name: "ok, all devices",
+		InputBody: &model.DeploymentConstructor{
+			Name:         StringToPointer("foo"),
+			ArtifactName: StringToPointer("bar"),
+			AllDevices:   true,
+		},
+		ResponseCode:           http.StatusCreated,
+		ResponseLocationHeader: "./management/v1/deployments/deployments/foo",
+	}, {
+		Name:         "error: empty payload",
+		ResponseCode: http.StatusBadRequest,
+		ResponseBody: rest_utils.ApiError{
+			Err:   "Validating request body: JSON payload is empty",
+			ReqId: "test",
+		},
+	}, {
+		Name: "error: app error",
+		InputBody: &model.DeploymentConstructor{
+			Name:         StringToPointer("foo"),
+			ArtifactName: StringToPointer("bar"),
+			AllDevices:   true,
+		},
+		AppError:     errors.New("some error"),
+		ResponseCode: http.StatusInternalServerError,
+		ResponseBody: rest_utils.ApiError{
+			Err:   "internal error",
+			ReqId: "test",
+		},
+	}, {
+		Name: "error: app error: no devices",
+		InputBody: &model.DeploymentConstructor{
+			Name:         StringToPointer("foo"),
+			ArtifactName: StringToPointer("bar"),
+			AllDevices:   true,
+		},
+		AppError:     app.ErrNoDevices,
+		ResponseCode: http.StatusBadRequest,
+		ResponseBody: rest_utils.ApiError{
+			Err:   app.ErrNoDevices.Error(),
+			ReqId: "test",
+		},
+	}, {
+		Name: "error: conflict",
+		InputBody: &model.DeploymentConstructor{
+			Name:         StringToPointer("foo"),
+			ArtifactName: StringToPointer("bar"),
+			Devices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
+			AllDevices:   true,
+		},
+		ResponseCode: http.StatusBadRequest,
+		ResponseBody: rest_utils.ApiError{
+			Err:   "Validating request body: Invalid deployments definition: list of devices provided togheter with all_devices flag",
+			ReqId: "test",
+		},
+	}, {
+		Name: "error: no devices",
+		InputBody: &model.DeploymentConstructor{
+			Name:         StringToPointer("foo"),
+			ArtifactName: StringToPointer("bar"),
+		},
+		ResponseCode: http.StatusBadRequest,
+		ResponseBody: rest_utils.ApiError{
+			Err:   "Validating request body: Invalid deployments definition: provide list of devices or set all_devices flag",
+			ReqId: "test",
+		},
+	}}
+	var constructor *model.DeploymentConstructor
+	for _, tc := range testCases {
+		if tc.InputBody != nil {
+			constructor = tc.InputBody.(*model.DeploymentConstructor)
+		} else {
+			constructor = nil
+		}
+		t.Run(tc.Name, func(t *testing.T) {
+			app := &mapp.App{}
+			app.On("CreateDeployment", mock.MatchedBy(
+				func(ctx interface{}) bool {
+					if _, ok := ctx.(context.Context); ok {
+						return true
+					}
+					return false
+				}),
+				constructor,
+			).Return("foo", tc.AppError)
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlManagementDeployments,
+				rest.Post,
+				d.PostDeployment,
+			)
+
+			req := test.MakeSimpleRequest(
+				"POST",
+				"http://localhost"+ApiUrlManagementDeployments,
+				tc.InputBody,
+			)
+			req.Header.Set("X-MEN-RequestID", "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.ResponseCode)
+			if tc.ResponseLocationHeader != "" {
+				recorded.HeaderIs("Location", tc.ResponseLocationHeader)
+			}
+			if tc.ResponseBody != nil {
+				b, _ := json.Marshal(tc.ResponseBody)
+				assert.JSONEq(t, string(b), recorded.Recorder.Body.String())
+			} else {
+				recorded.BodyIs("")
+			}
+		})
+	}
+}
+
+func TestPostDeploymentToGroup(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		Name       string
+		InputBody  interface{}
+		InputGroup string
+
+		AppError               error
+		ResponseCode           int
+		ResponseLocationHeader string
+		ResponseBody           interface{}
+	}{{
+		Name: "ok",
+		InputBody: &model.DeploymentConstructor{
+			Name:         StringToPointer("foo"),
+			ArtifactName: StringToPointer("bar"),
+		},
+		InputGroup:             "baz",
+		ResponseCode:           http.StatusCreated,
+		ResponseLocationHeader: "./management/v1/deployments/deployments/foo",
+	}, {
+		Name:         "error: empty payload",
+		InputGroup:   "baz",
+		ResponseCode: http.StatusBadRequest,
+		ResponseBody: rest_utils.ApiError{
+			Err:   "Validating request body: JSON payload is empty",
+			ReqId: "test",
+		},
+	}, {
+		Name: "error: conflict",
+		InputBody: &model.DeploymentConstructor{
+			Name:         StringToPointer("foo"),
+			ArtifactName: StringToPointer("bar"),
+			Devices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
+			AllDevices:   true,
+		},
+		InputGroup:   "baz",
+		ResponseCode: http.StatusBadRequest,
+		ResponseBody: rest_utils.ApiError{
+			Err:   "Validating request body: The deployment for group constructor should have neither list of devices nor all_devices flag set",
+			ReqId: "test",
+		},
+	}, {
+		Name: "error: app error",
+		InputBody: &model.DeploymentConstructor{
+			Name:         StringToPointer("foo"),
+			ArtifactName: StringToPointer("bar"),
+		},
+		InputGroup:   "baz",
+		AppError:     errors.New("some error"),
+		ResponseCode: http.StatusInternalServerError,
+		ResponseBody: rest_utils.ApiError{
+			Err:   "internal error",
+			ReqId: "test",
+		},
+	}, {
+		Name: "error: app error: no devices",
+		InputBody: &model.DeploymentConstructor{
+			Name:         StringToPointer("foo"),
+			ArtifactName: StringToPointer("bar"),
+		},
+		InputGroup:   "baz",
+		AppError:     app.ErrNoDevices,
+		ResponseCode: http.StatusBadRequest,
+		ResponseBody: rest_utils.ApiError{
+			Err:   app.ErrNoDevices.Error(),
+			ReqId: "test",
+		},
+	}}
+	var constructor *model.DeploymentConstructor
+	for _, tc := range testCases {
+		if tc.InputBody != nil {
+			constructor = tc.InputBody.(*model.DeploymentConstructor)
+			constructor.Group = tc.InputGroup
+		} else {
+			constructor = nil
+		}
+		t.Run(tc.Name, func(t *testing.T) {
+			app := &mapp.App{}
+			app.On("CreateDeployment", mock.MatchedBy(
+				func(ctx interface{}) bool {
+					if _, ok := ctx.(context.Context); ok {
+						return true
+					}
+					return false
+				}),
+				constructor,
+			).Return("foo", tc.AppError)
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlManagementDeploymentsGroup,
+				rest.Post,
+				d.DeployToGroup,
+			)
+
+			req := test.MakeSimpleRequest(
+				"POST",
+				"http://localhost"+ApiUrlManagementDeployments+"/group/"+tc.InputGroup,
+				tc.InputBody,
+			)
+			req.Header.Set("X-MEN-RequestID", "test")
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.ResponseCode)
+			if tc.ResponseLocationHeader != "" {
+				recorded.HeaderIs("Location", tc.ResponseLocationHeader)
+			}
+			if tc.ResponseBody != nil {
+				b, _ := json.Marshal(tc.ResponseBody)
 				assert.JSONEq(t, string(b), recorded.Recorder.Body.String())
 			} else {
 				recorded.BodyIs("")

@@ -145,7 +145,7 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 
 		// Deployments
 		rest.Post(ApiUrlManagementDeployments, controller.PostDeployment),
-		rest.Post(ApiUrlManagementDeploymentsGroup, controller.PostDeployment),
+		rest.Post(ApiUrlManagementDeploymentsGroup, controller.DeployToGroup),
 		rest.Get(ApiUrlManagementDeployments, controller.LookupDeployment),
 		rest.Get(ApiUrlManagementDeploymentsId, controller.GetDeployment),
 		rest.Get(ApiUrlManagementDeploymentsStatistics, controller.GetDeploymentStats),
