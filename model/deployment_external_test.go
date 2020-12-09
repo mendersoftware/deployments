@@ -32,6 +32,8 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 		InputName         *string
 		InputArtifactName *string
 		InputDevices      []string
+		InputAllDevices   bool
+		InputGroup        string
 		IsValid           bool
 	}{
 		{
@@ -82,6 +84,41 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 			InputDevices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
 			IsValid:           true,
 		},
+		{
+			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputDevices:      []string{},
+			InputGroup:        "foo",
+			IsValid:           true,
+		},
+		{
+			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputDevices:      []string{},
+			InputAllDevices:   true,
+			IsValid:           true,
+		},
+		{
+			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputDevices:      []string{"lala"},
+			InputAllDevices:   true,
+			IsValid:           false,
+		},
+		{
+			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputDevices:      []string{"lala"},
+			InputGroup:        "foo",
+			IsValid:           false,
+		},
+		{
+			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputDevices:      []string{"lala"},
+			InputAllDevices:   true,
+			IsValid:           false,
+		},
 	}
 
 	for _, test := range testCases {
@@ -90,8 +127,10 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 		dep.Name = test.InputName
 		dep.ArtifactName = test.InputArtifactName
 		dep.Devices = test.InputDevices
+		dep.Group = test.InputGroup
+		dep.AllDevices = test.InputAllDevices
 
-		err := dep.Validate("")
+		err := dep.Validate()
 
 		if !test.IsValid {
 			assert.Error(t, err)
@@ -145,7 +184,7 @@ func TestDeploymentValidate(t *testing.T) {
 			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
 			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
 			InputDevices:      []string{},
-			IsValid:           false,
+			IsValid:           true,
 		},
 	}
 

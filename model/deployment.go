@@ -25,8 +25,11 @@ import (
 
 // Errors
 var (
-	ErrInvalidDeviceID             = errors.New("Invalid device ID")
-	ErrInvalidDeploymentDefinition = errors.New("Invalid deployments definition")
+	ErrInvalidDeviceID                            = errors.New("Invalid device ID")
+	ErrInvalidDeploymentDefinition                = errors.New("Invalid deployments definition")
+	ErrInvalidDeploymentDefinitionNoDevices       = errors.New("Invalid deployments definition: provide list of devices or set all_devices flag")
+	ErrInvalidDeploymentDefinitionConflict        = errors.New("Invalid deployments definition: list of devices provided togheter with all_devices flag")
+	ErrInvalidDeploymentToGroupDefinitionConflict = errors.New("The deployment for group constructor should have neither list of devices nor all_devices flag set")
 )
 
 const (
@@ -44,19 +47,18 @@ type DeploymentConstructor struct {
 	ArtifactName *string `json:"artifact_name,omitempty" valid:"length(1|4096),required"`
 
 	// List of device id's targeted for deployments, required
-	Devices []string `json:"devices,omitempty" valid:"required" bson:"-"`
+	Devices []string `json:"devices,omitempty" bson:"-"`
+
+	// When set to true deployment will be created for all currently accepted devices
+	AllDevices bool `json:"all_devices,omitempty" bson:"-"`
+
+	// When set the deployment will be created for all accepted devices from a given group
+	Group string `json:"-" bson:"-"`
 }
 
 // Validate checks structure according to valid tags
 // TODO: Add custom validator to check devices array content (such us UUID formatting)
-func (c *DeploymentConstructor) Validate(groupDeployment string) error {
-	if len(groupDeployment) > 0 {
-		if c.Name == nil || len(*c.Name) < 1 {
-			return ErrInvalidDeploymentDefinition
-		}
-		return nil
-	}
-
+func (c *DeploymentConstructor) Validate() error {
 	if _, err := govalidator.ValidateStruct(c); err != nil {
 		return err
 	}
@@ -64,6 +66,19 @@ func (c *DeploymentConstructor) Validate(groupDeployment string) error {
 	for _, id := range c.Devices {
 		if govalidator.IsNull(id) {
 			return ErrInvalidDeviceID
+		}
+	}
+
+	if len(c.Group) == 0 {
+		if len(c.Devices) == 0 && !c.AllDevices {
+			return ErrInvalidDeploymentDefinitionNoDevices
+		}
+		if len(c.Devices) > 0 && c.AllDevices {
+			return ErrInvalidDeploymentDefinitionConflict
+		}
+	} else {
+		if len(c.Devices) > 0 || c.AllDevices {
+			return ErrInvalidDeploymentToGroupDefinitionConflict
 		}
 	}
 
