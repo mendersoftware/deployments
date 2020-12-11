@@ -170,6 +170,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			InputConstructor: &model.DeploymentConstructor{
 				Name:         pointers.StringToPointer("group"),
 				ArtifactName: pointers.StringToPointer("App 123"),
+				Group:        "group",
 			},
 
 			InvDevices: []model.InvDevice{
@@ -185,6 +186,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			InputConstructor: &model.DeploymentConstructor{
 				Name:         pointers.StringToPointer("group"),
 				ArtifactName: pointers.StringToPointer("App 123"),
+				Group:        "group",
 			},
 
 			InvDevices: []model.InvDevice{
@@ -205,14 +207,16 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			InputConstructor: &model.DeploymentConstructor{
 				Name:         pointers.StringToPointer("group"),
 				ArtifactName: pointers.StringToPointer("App 123"),
+				Group:        "group",
 			},
 
-			OutputError: ErrModelInternal,
+			OutputError: ErrNoDevices,
 		},
 		"ko, with group, error while searching": {
 			InputConstructor: &model.DeploymentConstructor{
 				Name:         pointers.StringToPointer("group"),
 				ArtifactName: pointers.StringToPointer("App 123"),
+				Group:        "group",
 			},
 
 			SearchError: errors.New("error searching inventory"),
@@ -253,7 +257,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			ds := NewDeployments(&db, fs, "")
 
 			mockInventoryClient := &inventory_mocks.Client{}
-			if testCase.InputConstructor != nil && testCase.InputConstructor.Name != nil && len(testCase.InputConstructor.Devices) == 0 {
+			if testCase.InputConstructor != nil && testCase.InputConstructor.Group != "" && len(testCase.InputConstructor.Devices) == 0 {
 				mockInventoryClient.On("Search", ctx,
 					"tenant_id",
 					model.SearchParams{
@@ -261,16 +265,16 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 						PerPage: PerPageInventoryDevices,
 						Filters: []model.FilterPredicate{
 							{
-								Scope:     InventoryGroupScope,
-								Attribute: InventoryGroupAttributeName,
-								Type:      "$eq",
-								Value:     *testCase.InputConstructor.Name,
-							},
-							{
 								Scope:     InventoryIdentityScope,
 								Attribute: InventoryStatusAttributeName,
 								Type:      "$eq",
 								Value:     InventoryStatusAccepted,
+							},
+							{
+								Scope:     InventoryGroupScope,
+								Attribute: InventoryGroupAttributeName,
+								Type:      "$eq",
+								Value:     testCase.InputConstructor.Group,
 							},
 						},
 					},
@@ -284,16 +288,16 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 							PerPage: PerPageInventoryDevices,
 							Filters: []model.FilterPredicate{
 								{
-									Scope:     InventoryGroupScope,
-									Attribute: InventoryGroupAttributeName,
-									Type:      "$eq",
-									Value:     *testCase.InputConstructor.Name,
-								},
-								{
 									Scope:     InventoryIdentityScope,
 									Attribute: InventoryStatusAttributeName,
 									Type:      "$eq",
 									Value:     InventoryStatusAccepted,
+								},
+								{
+									Scope:     InventoryGroupScope,
+									Attribute: InventoryGroupAttributeName,
+									Type:      "$eq",
+									Value:     testCase.InputConstructor.Group,
 								},
 							},
 						},

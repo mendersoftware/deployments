@@ -38,7 +38,6 @@ import (
 	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/store"
-	"github.com/mendersoftware/deployments/utils/pointers"
 )
 
 const (
@@ -80,6 +79,7 @@ var (
 	ErrUnexpectedDeploymentStatus = errors.New("Unexpected deployment status")
 	ErrMissingIdentity            = errors.New("Missing identity data")
 	ErrMissingSize                = errors.New("missing size form-data")
+	ErrMissingGroupName           = errors.New("Missing group name")
 )
 
 type DeploymentsApiHandlers struct {
@@ -590,40 +590,55 @@ ParseLoop:
 }
 
 // deployments
-
-func (d *DeploymentsApiHandlers) PostDeployment(w rest.ResponseWriter, r *rest.Request) {
-	ctx := r.Context()
-	l := requestlog.GetRequestLogger(r)
-
-	constructor, err := d.getDeploymentConstructorFromBody(r)
+func (d *DeploymentsApiHandlers) createDeployment(w rest.ResponseWriter, r *rest.Request, ctx context.Context, l *log.Logger, group string) {
+	constructor, err := d.getDeploymentConstructorFromBody(r, group)
 	if err != nil {
 		d.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
 		return
 	}
 
 	id, err := d.app.CreateDeployment(ctx, constructor)
-	if err != nil {
-		if err == app.ErrNoArtifact {
-			d.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
-		} else {
-			d.view.RenderInternalError(w, r, err, l)
-		}
-		return
+	switch err {
+	case nil:
+		// in case of deployment to group remove "/group/{name}" from path before creating location haeder
+		r.URL.Path = strings.TrimSuffix(r.URL.Path, "/group/"+constructor.Group)
+		d.view.RenderSuccessPost(w, r, id)
+	case app.ErrNoArtifact:
+		d.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
+	case app.ErrNoDevices:
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+	default:
+		d.view.RenderInternalError(w, r, err, l)
 	}
-
-	d.view.RenderSuccessPost(w, r, id)
 }
 
-func (d *DeploymentsApiHandlers) getDeploymentConstructorFromBody(r *rest.Request) (*model.DeploymentConstructor, error) {
+func (d *DeploymentsApiHandlers) PostDeployment(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	d.createDeployment(w, r, ctx, l, "")
+}
+
+func (d *DeploymentsApiHandlers) DeployToGroup(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	group := r.PathParam("name")
+	if len(group) < 1 {
+		d.view.RenderError(w, r, ErrMissingGroupName, http.StatusBadRequest, l)
+	}
+	d.createDeployment(w, r, ctx, l, group)
+}
+
+func (d *DeploymentsApiHandlers) getDeploymentConstructorFromBody(r *rest.Request, group string) (*model.DeploymentConstructor, error) {
 	var constructor *model.DeploymentConstructor
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err
 	}
 
-	if len(r.PathParam("name")) > 0 {
-		constructor.Name = pointers.StringToPointer(r.PathParam("name"))
-	}
-	if err := constructor.Validate(r.PathParam("name")); err != nil {
+	constructor.Group = group
+
+	if err := constructor.Validate(); err != nil {
 		return nil, err
 	}
 
