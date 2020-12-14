@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@ package mongo
 
 import (
 	"context"
-	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -38,9 +37,17 @@ func (m *migration_1_2_1) Up(from migrate.Version) error {
 	indexView := collDpl.Indexes()
 
 	_, err := indexView.DropOne(ctx, IndexDeploymentArtifactName_0_0_0)
-	// Supress NamespaceNotFound errors - index is missing
-	if err != nil && !strings.Contains(err.Error(), "NamespaceNotFound") {
-		return err
+	if err != nil {
+		// Supress NamespaceNotFound and IndexNotFound errors
+		// - index is missing
+		if except, ok := err.(mongo.CommandError); ok {
+			if except.Code != errorCodeNamespaceNotFound &&
+				except.Code != errorCodeIndexNotFound {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	// create the 'short' index

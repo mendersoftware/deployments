@@ -15,7 +15,6 @@ package mongo
 
 import (
 	"context"
-	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,13 +29,31 @@ func (m *migration_1_2_5) Up(from migrate.Version) error {
 	ctx := context.Background()
 	storage := NewDataStoreMongoWithClient(m.client)
 	coll := m.client.Database(m.db).Collection(CollectionDevices)
-	if _, err := coll.Indexes().DropOne(ctx, IndexDeploymentDeviceStatusesName); err != nil && !strings.Contains(err.Error(), "NamespaceNotFound") {
-		// Supress NamespaceNotFound errors - index is missing
-		return err
+	// Drop IndexDeploymentDeviceStatusesName and
+	// IndexDeploymentDeviceDeploymentIdName if they exist.
+	_, err := coll.Indexes().DropOne(ctx, IndexDeploymentDeviceStatusesName)
+	if err != nil {
+		if except, ok := err.(mongo.CommandError); ok {
+			if except.Code != errorCodeNamespaceNotFound &&
+				except.Code != errorCodeIndexNotFound {
+				return err
+			}
+			// continue
+		} else {
+			return err
+		}
 	}
-	if _, err := coll.Indexes().DropOne(ctx, IndexDeploymentDeviceDeploymentIdName); err != nil && !strings.Contains(err.Error(), "NamespaceNotFound") {
-		// Supress NamespaceNotFound errors - index is missing
-		return err
+	_, err = coll.Indexes().DropOne(ctx, IndexDeploymentDeviceDeploymentIdName)
+	if err != nil {
+		if except, ok := err.(mongo.CommandError); ok {
+			if except.Code != errorCodeNamespaceNotFound &&
+				except.Code != errorCodeIndexNotFound {
+				return err
+			}
+			// continue
+		} else {
+			return err
+		}
 	}
 	return storage.EnsureIndexes(m.db, CollectionDevices,
 		DeviceIDCreatedStatusIndex,

@@ -40,6 +40,13 @@ const (
 	CollectionDevices              = "devices"
 )
 
+// Internal status codes from
+// https://github.com/mongodb/mongo/blob/4.4/src/mongo/base/error_codes.yml
+const (
+	errorCodeNamespaceNotFound = 26
+	errorCodeIndexNotFound     = 27
+)
+
 var (
 	// Indexes (version: 1.2.2)
 	IndexUniqueNameAndDeviceTypeName          = "uniqueNameAndDeviceTypeIndex"
