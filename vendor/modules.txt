@@ -6,7 +6,7 @@ github.com/ant0ine/go-json-rest/rest/trie
 # github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf
 ## explicit
 github.com/asaskevich/govalidator
-# github.com/aws/aws-sdk-go v1.36.2
+# github.com/aws/aws-sdk-go v1.36.7
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
