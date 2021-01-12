@@ -64,7 +64,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		*fakeDeployment.Id, devId).Return(
 		fakeDeviceDeployment, nil)
 
-	db.On("UpdateDeviceDeploymentStatus", ctx,
+	db.On("UpdateDeviceDeploymentState", ctx,
 		devId,
 		*fakeDeployment.Id,
 		mock.MatchedBy(func(ddStatus model.DeviceDeploymentStatus) bool {
@@ -147,7 +147,7 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 	db.On("IncrementDeviceDeploymentAttempts", ctx,
 		*fakeDeviceDeployment.Id, uint(1)).Return(nil)
 
-	db.On("UpdateDeviceDeploymentStatus", ctx,
+	db.On("UpdateDeviceDeploymentState", ctx,
 		*fakeDeviceDeployment.DeviceId,
 		*fakeDeployment.Id,
 
@@ -353,8 +353,8 @@ func TestDecommission(t *testing.T) {
 				tc.inputDeviceId).Return(
 				tc.getDeviceDeploymentDeployment, tc.getDeviceDeploymentError)
 
-			db.On("UpdateDeviceDeploymentStatus", ctx, tc.inputDeviceId,
-				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentStatus")).Return(
+			db.On("UpdateDeviceDeploymentState", ctx, tc.inputDeviceId,
+				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentState")).Return(
 				tc.updateDeviceDeploymentStatusStatus, tc.updateDeviceDeploymentStatusError)
 
 			call = db.On("FindLatestDeploymentForDeviceIDWithStatuses",

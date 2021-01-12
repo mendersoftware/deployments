@@ -119,7 +119,7 @@ type App interface {
 	HasDeploymentForDevice(ctx context.Context, deploymentID string,
 		deviceID string) (bool, error)
 	UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
-		deviceID string, status model.DeviceDeploymentStatus) error
+		deviceID string, state model.DeviceDeploymentState) error
 	GetDeviceStatusesForDeployment(ctx context.Context,
 		deploymentID string) ([]model.DeviceDeployment, error)
 	LookupDeployment(ctx context.Context,
@@ -538,7 +538,7 @@ func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 		return nil, nil
 	}
 
-	fileName := image.Name + ".mender"
+	fileName := image.ArtifactMeta.Name + ".mender"
 	link, err := d.fileStorage.GetRequest(ctx, imageID,
 		expire, ArtifactContentType, fileName)
 	if err != nil {
@@ -733,7 +733,7 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 	// Assign artifacts to the deployment.
 	// Only artifacts present in the system at the moment of deployment creation
 	// will be part of this deployment.
-	artifacts, err := d.db.ImagesByName(ctx, *deployment.ArtifactName)
+	artifacts, err := d.db.ImagesByName(ctx, deployment.ArtifactName)
 	if err != nil {
 		return "", errors.Wrap(err, "Finding artifact with given name")
 	}
@@ -750,7 +750,7 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 		return "", errors.Wrap(err, "Storing deployment data")
 	}
 
-	return *deployment.Id, nil
+	return deployment.Id, nil
 }
 
 // IsDeploymentFinished checks if there is unfinished deployment with given ID
@@ -846,7 +846,7 @@ func (d *Deployments) assignArtifact(
 		return err
 	}
 
-	if deviceDeployment.DeploymentId == nil || deviceDeployment.DeviceId == nil {
+	if deviceDeployment.DeploymentId == "" || deviceDeployment.DeviceId == "" {
 		return ErrModelInternal
 	}
 
@@ -872,9 +872,9 @@ func (d *Deployments) assignArtifact(
 
 	// If not having appropriate image, set noartifact status
 	if artifact == nil {
-		if err := d.UpdateDeviceDeploymentStatus(ctx, *deviceDeployment.DeploymentId,
-			*deviceDeployment.DeviceId,
-			model.DeviceDeploymentStatus{
+		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId,
+			deviceDeployment.DeviceId,
+			model.DeviceDeploymentState{
 				Status: model.DeviceDeploymentStatusNoArtifact,
 			}); err != nil {
 			return errors.Wrap(err, "Failed to update deployment status")
@@ -883,12 +883,12 @@ func (d *Deployments) assignArtifact(
 	}
 
 	if err := d.db.AssignArtifact(
-		ctx, *deviceDeployment.DeviceId, *deviceDeployment.DeploymentId, artifact); err != nil {
+		ctx, deviceDeployment.DeviceId, deviceDeployment.DeploymentId, artifact); err != nil {
 		return errors.Wrap(err, "Assigning artifact to the device deployment")
 	}
 
 	deviceDeployment.Image = artifact
-	deviceDeployment.DeviceType = &installed.DeviceType
+	deviceDeployment.DeviceType = installed.DeviceType
 
 	return nil
 }
@@ -911,7 +911,7 @@ func (d *Deployments) getDeploymentForDevice(ctx context.Context,
 		return d.getNewDeploymentForDevice(ctx, deviceID)
 	}
 
-	deployment, err := d.db.FindDeploymentByID(ctx, *deviceDeployment.DeploymentId)
+	deployment, err := d.db.FindDeploymentByID(ctx, deviceDeployment.DeploymentId)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "checking deployment id")
 	}
@@ -978,14 +978,13 @@ func (d *Deployments) getNewDeploymentForDevice(ctx context.Context,
 	return nil, nil, nil
 }
 
-func (d *Deployments) createDeviceDeploymentWithStatus(ctx context.Context,
-	deviceID string, deployment *model.Deployment, status string) (*model.DeviceDeployment, error) {
-	deviceDeployment, err := model.NewDeviceDeployment(deviceID, *deployment.Id)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create device deployment")
-	}
+func (d *Deployments) createDeviceDeploymentWithStatus(
+	ctx context.Context, deviceID string,
+	deployment *model.Deployment, status model.DeviceDeploymentStatus,
+) (*model.DeviceDeployment, error) {
+	deviceDeployment := model.NewDeviceDeployment(deviceID, deployment.Id)
 
-	deviceDeployment.Status = &status
+	deviceDeployment.Status = status
 	deviceDeployment.Created = deployment.Created
 
 	if err := d.setDeploymentDeviceCountIfUnset(ctx, deployment); err != nil {
@@ -998,13 +997,16 @@ func (d *Deployments) createDeviceDeploymentWithStatus(ctx context.Context,
 
 	// after inserting new device deployment update deployment stats
 	// in the database and locally, and update deployment status
-	if err = d.db.UpdateStatsInc(ctx, *deployment.Id, "", status); err != nil {
+	if err := d.db.UpdateStatsInc(
+		ctx, deployment.Id,
+		model.DeviceDeploymentStatus(""), status,
+	); err != nil {
 		return nil, err
 	}
 
 	deployment.Stats[status]++
 
-	err = d.recalcDeploymentStatus(ctx, deployment)
+	err := d.recalcDeploymentStatus(ctx, deployment)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update deployment status")
 	}
@@ -1034,12 +1036,12 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		return nil, nil
 	}
 
-	if installed.ArtifactName != "" && *deployment.ArtifactName == installed.ArtifactName {
+	if installed.ArtifactName != "" && deployment.ArtifactName == installed.ArtifactName {
 		// pretend there is no deployment for this device, but update
 		// its status to already installed first
 
-		if err := d.UpdateDeviceDeploymentStatus(ctx, *deviceDeployment.DeploymentId, deviceID,
-			model.DeviceDeploymentStatus{
+		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
+			model.DeviceDeploymentState{
 				Status: model.DeviceDeploymentStatusAlreadyInst,
 			}); err != nil {
 
@@ -1050,7 +1052,10 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	}
 
 	// assign artifact only if the artifact was not assigned previously or the device type has changed
-	if deviceDeployment.Image == nil || deviceDeployment.DeviceType == nil || *deviceDeployment.DeviceType != installed.DeviceType {
+	if deviceDeployment.Image == nil ||
+		len(deviceDeployment.DeviceType) == 0 ||
+		deviceDeployment.DeviceType != installed.DeviceType {
+
 		if err := d.assignArtifact(ctx, deployment, deviceDeployment, installed); err != nil {
 			return nil, err
 		}
@@ -1067,11 +1072,13 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	}
 
 	instructions := &model.DeploymentInstructions{
-		ID: *deviceDeployment.DeploymentId,
+		ID: deviceDeployment.DeploymentId,
 		Artifact: model.ArtifactDeploymentInstructions{
-			ArtifactName:          deviceDeployment.Image.Name,
-			Source:                *link,
-			DeviceTypesCompatible: deviceDeployment.Image.DeviceTypesCompatible,
+			ArtifactName: deviceDeployment.Image.
+				ArtifactMeta.Name,
+			Source: *link,
+			DeviceTypesCompatible: deviceDeployment.Image.
+				ArtifactMeta.DeviceTypesCompatible,
 		},
 	}
 
@@ -1081,14 +1088,14 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 // UpdateDeviceDeploymentStatus will update the deployment status for device of
 // ID `deviceID`. Returns nil if update was successful.
 func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
-	deviceID string, ddStatus model.DeviceDeploymentStatus) error {
+	deviceID string, ddState model.DeviceDeploymentState) error {
 
 	l := log.FromContext(ctx)
 
-	l.Infof("New status: %s for device %s deployment: %v", ddStatus.Status, deviceID, deploymentID)
+	l.Infof("New status: %s for device %s deployment: %v", ddState.Status, deviceID, deploymentID)
 
 	var finishTime *time.Time = nil
-	if model.IsDeviceDeploymentStatusFinished(ddStatus.Status) {
+	if model.IsDeviceDeploymentStatusFinished(ddState.Status) {
 		now := time.Now()
 		finishTime = &now
 	}
@@ -1098,7 +1105,7 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 		return err
 	}
 
-	currentStatus := *dd.Status
+	currentStatus := dd.Status
 
 	if currentStatus == model.DeviceDeploymentStatusAborted {
 		return ErrDeploymentAborted
@@ -1109,20 +1116,20 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 	}
 
 	// nothing to do
-	if ddStatus.Status == currentStatus {
+	if ddState.Status == currentStatus {
 		return nil
 	}
 
 	// update finish time
-	ddStatus.FinishTime = finishTime
+	ddState.FinishTime = finishTime
 
 	old, err := d.db.UpdateDeviceDeploymentStatus(ctx,
-		deviceID, deploymentID, ddStatus)
+		deviceID, deploymentID, ddState)
 	if err != nil {
 		return err
 	}
 
-	if err = d.db.UpdateStatsInc(ctx, deploymentID, old, ddStatus.Status); err != nil {
+	if err = d.db.UpdateStatsInc(ctx, deploymentID, old, ddState.Status); err != nil {
 		return err
 	}
 
@@ -1146,7 +1153,7 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 func (d *Deployments) recalcDeploymentStatus(ctx context.Context, dep *model.Deployment) error {
 	status := dep.GetStatus()
 
-	if err := d.db.SetDeploymentStatus(ctx, *dep.Id, status, time.Now()); err != nil {
+	if err := d.db.SetDeploymentStatus(ctx, dep.Id, status, time.Now()); err != nil {
 		return err
 	}
 
@@ -1192,11 +1199,11 @@ func (d *Deployments) GetDeviceStatusesForDeployment(ctx context.Context,
 
 func (d *Deployments) setDeploymentDeviceCountIfUnset(ctx context.Context, deployment *model.Deployment) error {
 	if deployment.DeviceCount == nil {
-		deviceCount, err := d.db.DeviceCountByDeployment(ctx, *deployment.Id)
+		deviceCount, err := d.db.DeviceCountByDeployment(ctx, deployment.Id)
 		if err != nil {
 			return errors.Wrap(err, "counting device deployments")
 		}
-		err = d.db.SetDeploymentDeviceCount(ctx, *deployment.Id, deviceCount)
+		err = d.db.SetDeploymentDeviceCount(ctx, deployment.Id, deviceCount)
 		if err != nil {
 			return errors.Wrap(err, "setting the device count for the deployment")
 		}
@@ -1313,11 +1320,11 @@ func (d *Deployments) DecommissionDevice(ctx context.Context, deviceId string) e
 		return errors.Wrap(err, "Searching for active deployment for the device")
 	} else if deviceDeployment != nil {
 		now := time.Now()
-		ddStatus := model.DeviceDeploymentStatus{
+		ddStatus := model.DeviceDeploymentState{
 			Status:     model.DeviceDeploymentStatusDecommissioned,
 			FinishTime: &now,
 		}
-		if err := d.UpdateDeviceDeploymentStatus(ctx, *deviceDeployment.DeploymentId,
+		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId,
 			deviceId, ddStatus); err != nil {
 			return errors.Wrap(err, "updating device deployment status")
 		}

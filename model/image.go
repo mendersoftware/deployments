@@ -18,7 +18,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/asaskevich/govalidator"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/mendersoftware/go-lib-micro/mongo/doc"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -37,9 +38,10 @@ func NewImageMeta() *ImageMeta {
 }
 
 // Validate checks structure according to valid tags.
-func (s *ImageMeta) Validate() error {
-	_, err := govalidator.ValidateStruct(s)
-	return err
+func (s ImageMeta) Validate() error {
+	return validation.ValidateStruct(&s,
+		validation.Field(&s.Description, lengthLessThan4096),
+	)
 }
 
 // Structure with artifact version information
@@ -51,6 +53,13 @@ type ArtifactInfo struct {
 	// Mender artifact format version
 	//Version uint `json:"version" valid:"uint,equal(1),required"`
 	Version uint `json:"version" valid:"required"`
+}
+
+func (ai ArtifactInfo) Validate() error {
+	return validation.ValidateStruct(&ai,
+		validation.Field(&ai.Format, validation.Required),
+		validation.Field(&ai.Version, validation.In(uint(1), uint(2), uint(3))),
+	)
 }
 
 // Information provided by the Mender Artifact header
@@ -84,7 +93,7 @@ type ArtifactMeta struct {
 }
 
 // MarshalBSON transparently creates depends_idx field on bson.Marshal
-func (am *ArtifactMeta) MarshalBSON() ([]byte, error) {
+func (am ArtifactMeta) MarshalBSON() ([]byte, error) {
 	if err := am.Validate(); err != nil {
 		return nil, err
 	}
@@ -100,7 +109,7 @@ func (am *ArtifactMeta) MarshalBSON() ([]byte, error) {
 
 // MarshalBSONValue transparently creates depends_idx field on bson.MarshalValue
 // which is called if ArtifactMeta is marshaled as an embedded document.
-func (am *ArtifactMeta) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (am ArtifactMeta) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	if err := am.Validate(); err != nil {
 		return bsontype.Null, nil, err
 	}
@@ -120,8 +129,16 @@ func (am *ArtifactMeta) Validate() error {
 		am.Depends = make(map[string]interface{})
 	}
 	am.Depends["device_type"] = am.DeviceTypesCompatible
-	_, err := govalidator.ValidateStruct(am)
-	return err
+
+	return validation.ValidateStruct(am,
+		validation.Field(&am.Name, validation.Required, lengthIn1To4096),
+		validation.Field(&am.DeviceTypesCompatible,
+			validation.Required,
+			lengthIn0To200,
+			validation.Each(lengthIn1To4096),
+		),
+		validation.Field(&am.Info),
+	)
 }
 
 func NewArtifactMeta() *ArtifactMeta {
@@ -146,14 +163,21 @@ type Image struct {
 	Modified *time.Time `json:"modified" valid:"-"`
 }
 
-// MarshalBSON needs to be overridden so it doesn't inherit ImageMeta's function.
-func (img *Image) MarshalBSON() ([]byte, error) {
+func (img Image) MarshalBSON() (b []byte, err error) {
 	return bson.Marshal(doc.DocumentFromStruct(img))
 }
 
-// MarshalBSON needs to be overridden so it doesn't inherit ImageMeta's function.
-func (img *Image) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (img Image) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	return bson.MarshalValue(doc.DocumentFromStruct(img))
+}
+
+// Validate checks structure according to valid tags.
+func (s Image) Validate() error {
+	return validation.ValidateStruct(&s,
+		validation.Field(&s.Id, validation.Required, is.UUID),
+		validation.Field(&s.ImageMeta),
+		validation.Field(&s.ArtifactMeta),
+	)
 }
 
 // NewImage creates new software image object.
@@ -179,12 +203,6 @@ func (s *Image) SetModified(time time.Time) {
 	s.Modified = &time
 }
 
-// Validate checks structure according to valid tags.
-func (s *Image) Validate() error {
-	_, err := govalidator.ValidateStruct(s)
-	return err
-}
-
 // MultipartUploadMsg is a structure with fields extracted from the multipart/form-data form
 // send in the artifact upload request
 type MultipartUploadMsg struct {
@@ -201,26 +219,30 @@ type MultipartUploadMsg struct {
 // MultipartGenerateImageMsg is a structure with fields extracted from the multipart/form-data
 // form sent in the artifact generation request
 type MultipartGenerateImageMsg struct {
-	Name                  string    `json:"name" valid:"required"`
-	Description           string    `json:"description" valid:"-"`
-	DeviceTypesCompatible []string  `json:"device_types_compatible" valid:"required"`
-	Type                  string    `json:"type" valid:"required"`
-	Args                  string    `json:"args" valid:"-"`
-	ArtifactID            string    `json:"artifact_id" valid:"-"`
-	GetArtifactURI        string    `json:"get_artifact_uri" valid:"-"`
-	DeleteArtifactURI     string    `json:"delete_artifact_uri" valid:"-"`
-	TenantID              string    `json:"tenant_id" valid:"-"`
-	Token                 string    `json:"token" valid:"-"`
-	FileReader            io.Reader `json:"-" valid:"required"`
+	Name                  string    `json:"name"`
+	Description           string    `json:"description"`
+	DeviceTypesCompatible []string  `json:"device_types_compatible"`
+	Type                  string    `json:"type"`
+	Args                  string    `json:"args"`
+	ArtifactID            string    `json:"artifact_id"`
+	GetArtifactURI        string    `json:"get_artifact_uri"`
+	DeleteArtifactURI     string    `json:"delete_artifact_uri"`
+	TenantID              string    `json:"tenant_id"`
+	Token                 string    `json:"token"`
+	FileReader            io.Reader `json:"-"`
 }
 
 func (msg MultipartGenerateImageMsg) Validate() error {
-	_, err := govalidator.ValidateStruct(msg)
-	if err == nil {
-		// Somehow FileReader is not covered by "required" rule.
-		if msg.FileReader == nil {
-			return errors.New("missing 'file' section")
-		}
+	if err := validation.ValidateStruct(&msg,
+		validation.Field(&msg.Name, validation.Required),
+		validation.Field(&msg.DeviceTypesCompatible, validation.Required),
+		validation.Field(&msg.Type, validation.Required),
+	); err != nil {
+		return err
 	}
-	return err
+	// Somehow FileReader is not covered by "required" rule.
+	if msg.FileReader == nil {
+		return errors.New("missing 'file' section")
+	}
+	return nil
 }

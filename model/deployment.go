@@ -19,7 +19,8 @@ import (
 	"github.com/pkg/errors"
 	"time"
 
-	"github.com/asaskevich/govalidator"
+	"github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/satori/go.uuid"
 )
 
@@ -32,19 +33,29 @@ var (
 	ErrInvalidDeploymentToGroupDefinitionConflict = errors.New("The deployment for group constructor should have neither list of devices nor all_devices flag set")
 )
 
+type DeploymentStatus string
+
 const (
-	DeploymentStatusFinished   = "finished"
-	DeploymentStatusInProgress = "inprogress"
-	DeploymentStatusPending    = "pending"
+	DeploymentStatusFinished   DeploymentStatus = "finished"
+	DeploymentStatusInProgress DeploymentStatus = "inprogress"
+	DeploymentStatusPending    DeploymentStatus = "pending"
 )
+
+func (stat DeploymentStatus) Validate() error {
+	return validation.In(
+		DeploymentStatusFinished,
+		DeploymentStatusInProgress,
+		DeploymentStatusPending,
+	).Validate(stat)
+}
 
 // DeploymentConstructor represent input data needed for creating new Deployment (they differ in fields)
 type DeploymentConstructor struct {
 	// Deployment name, required
-	Name *string `json:"name,omitempty" valid:"length(1|4096),required"`
+	Name string `json:"name,omitempty"`
 
 	// Artifact name to be installed required, associated with image
-	ArtifactName *string `json:"artifact_name,omitempty" valid:"length(1|4096),required"`
+	ArtifactName string `json:"artifact_name,omitempty"`
 
 	// List of device id's targeted for deployments, required
 	Devices []string `json:"devices,omitempty" bson:"-"`
@@ -58,15 +69,13 @@ type DeploymentConstructor struct {
 
 // Validate checks structure according to valid tags
 // TODO: Add custom validator to check devices array content (such us UUID formatting)
-func (c *DeploymentConstructor) Validate() error {
-	if _, err := govalidator.ValidateStruct(c); err != nil {
+func (c DeploymentConstructor) Validate() error {
+	if err := validation.ValidateStruct(&c,
+		validation.Field(&c.Name, validation.Required, lengthIn1To4096),
+		validation.Field(&c.ArtifactName, validation.Required, lengthIn1To4096),
+		validation.Field(&c.Devices, validation.Each(validation.Required)),
+	); err != nil {
 		return err
-	}
-
-	for _, id := range c.Devices {
-		if govalidator.IsNull(id) {
-			return ErrInvalidDeviceID
-		}
 	}
 
 	if len(c.Group) == 0 {
@@ -87,16 +96,16 @@ func (c *DeploymentConstructor) Validate() error {
 
 type Deployment struct {
 	// User provided field set
-	*DeploymentConstructor `valid:"required"`
+	*DeploymentConstructor
 
 	// Auto set on create, required
-	Created *time.Time `json:"created" valid:"required"`
+	Created *time.Time `json:"created"`
 
 	// Finished deployment time
-	Finished *time.Time `json:"finished,omitempty" valid:"optional"`
+	Finished *time.Time `json:"finished,omitempty"`
 
 	// Deployment id, required
-	Id *string `json:"id" bson:"_id" valid:"uuidv4,required"`
+	Id string `json:"id" bson:"_id"`
 
 	// List of artifact id's targeted for deployments, optional
 	Artifacts []string `json:"artifacts,omitempty" bson:"artifacts"`
@@ -107,7 +116,7 @@ type Deployment struct {
 	Stats Stats `json:"-"`
 
 	// Status is the overall deployment status
-	Status string `json:"status" bson:"status"`
+	Status DeploymentStatus `json:"status" bson:"status"`
 
 	// Number of devices being part of the deployment
 	DeviceCount *int `json:"device_count" bson:"device_count"`
@@ -128,7 +137,7 @@ func NewDeployment() (*Deployment, error) {
 
 	return &Deployment{
 		Created:               &now,
-		Id:                    &id,
+		Id:                    id,
 		DeploymentConstructor: &DeploymentConstructor{},
 		Stats:                 NewDeviceDeploymentStats(),
 	}, nil
@@ -151,10 +160,15 @@ func NewDeploymentFromConstructor(constructor *DeploymentConstructor) (*Deployme
 	return deployment, nil
 }
 
-// Validate checks structure according to valid tags
-func (d *Deployment) Validate() error {
-	_, err := govalidator.ValidateStruct(d)
-	return err
+// Validate checks structure validation rules
+func (d Deployment) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.DeploymentConstructor, validation.Required),
+		validation.Field(&d.Created, validation.Required),
+		validation.Field(&d.Id, validation.Required, is.UUID),
+		validation.Field(&d.Artifacts, validation.Each(validation.Required)),
+		validation.Field(&d.DeviceList, validation.Each(validation.Required)),
+	)
 }
 
 // To be able to hide devices field, from API output provide custom marshaler
@@ -203,7 +217,7 @@ func (d *Deployment) IsFinished() bool {
 	return false
 }
 
-func (d *Deployment) GetStatus() string {
+func (d *Deployment) GetStatus() DeploymentStatus {
 	if d.IsFinished() {
 		return DeploymentStatusFinished
 	} else if d.IsNotPending() {

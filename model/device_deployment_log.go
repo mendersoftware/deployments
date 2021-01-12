@@ -19,8 +19,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asaskevich/govalidator"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/pkg/errors"
+)
+
+var (
+	ErrInvalidDeploymentLog = errors.New("invalid deployment log")
+	ErrInvalidLogMessage    = errors.New("invalid log message")
 )
 
 type LogMessage struct {
@@ -29,31 +35,19 @@ type LogMessage struct {
 	Message   string     `json:"message" valid:"required"`
 }
 
-type DeploymentLog struct {
-	// skip these 2 field when (un)marshaling to/from JSON
-	DeviceID     string `json:"-" valid:"required"`
-	DeploymentID string `json:"-" valid:"uuidv4,required"`
-
-	Messages []LogMessage `json:"messages" valid:"required"`
+func (l LogMessage) Validate() error {
+	return validation.ValidateStruct(&l,
+		validation.Field(&l.Timestamp, validation.Required),
+		validation.Field(&l.Level, validation.Required),
+		validation.Field(&l.Message, validation.Required),
+	)
 }
 
-var (
-	ErrInvalidDeploymentLog = errors.New("invalid deployment log")
-	ErrInvalidLogMessage    = errors.New("invalid log message")
-)
-
 func (l *LogMessage) UnmarshalJSON(raw []byte) error {
-	type AuxLogMessage LogMessage
-
-	var alm AuxLogMessage
-
-	if err := json.Unmarshal(raw, &alm); err != nil {
+	type logMessage LogMessage
+	if err := json.Unmarshal(raw, (*logMessage)(l)); err != nil {
 		return err
 	}
-
-	l.Timestamp = alm.Timestamp
-	l.Level = alm.Level
-	l.Message = alm.Message
 
 	if err := l.Validate(); err != nil {
 		return err
@@ -61,13 +55,16 @@ func (l *LogMessage) UnmarshalJSON(raw []byte) error {
 	return nil
 }
 
-func (l LogMessage) Validate() error {
-	_, err := govalidator.ValidateStruct(l)
-	return err
-}
-
 func (l LogMessage) String() string {
 	return fmt.Sprintf("%s %s: %s", l.Timestamp.UTC().String(), l.Level, l.Message)
+}
+
+type DeploymentLog struct {
+	// skip these 2 field when (un)marshaling to/from JSON
+	DeviceID     string `json:"-" valid:"required"`
+	DeploymentID string `json:"-" valid:"uuidv4,required"`
+
+	Messages []LogMessage `json:"messages" valid:"required"`
 }
 
 func (d *DeploymentLog) UnmarshalJSON(raw []byte) error {
@@ -88,6 +85,9 @@ func (d *DeploymentLog) UnmarshalJSON(raw []byte) error {
 }
 
 func (d DeploymentLog) Validate() error {
-	_, err := govalidator.ValidateStruct(d)
-	return err
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.DeviceID, validation.Required),
+		validation.Field(&d.DeploymentID, validation.Required, is.UUID),
+		validation.Field(&d.Messages, validation.Required),
+	)
 }

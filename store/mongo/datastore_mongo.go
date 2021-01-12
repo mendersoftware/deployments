@@ -19,7 +19,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/mendersoftware/go-lib-micro/config"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
@@ -483,7 +482,7 @@ func (db *DataStoreMongo) ensureIndexing(ctx context.Context, client *mongo.Clie
 func (db *DataStoreMongo) Exists(ctx context.Context, id string) (bool, error) {
 	var result interface{}
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return false, ErrImagesStorageInvalidID
 	}
 
@@ -529,11 +528,11 @@ func (db *DataStoreMongo) Update(ctx context.Context,
 func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 	name, deviceType string) (*model.Image, error) {
 
-	if govalidator.IsNull(name) {
+	if len(name) == 0 {
 		return nil, ErrImagesStorageInvalidArtifactName
 	}
 
-	if govalidator.IsNull(deviceType) {
+	if len(deviceType) == 0 {
 		return nil, ErrImagesStorageInvalidDeviceType
 	}
 
@@ -568,7 +567,7 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 	ids []string, deviceType string) (*model.Image, error) {
 
-	if govalidator.IsNull(deviceType) {
+	if len(deviceType) == 0 {
 		return nil, ErrImagesStorageInvalidDeviceType
 	}
 
@@ -607,7 +606,7 @@ func (db *DataStoreMongo) ImagesByName(
 
 	var images []*model.Image
 
-	if govalidator.IsNull(name) {
+	if len(name) == 0 {
 		return nil, ErrImagesStorageInvalidName
 	}
 
@@ -670,7 +669,7 @@ func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Image) e
 func (db *DataStoreMongo) FindImageByID(ctx context.Context,
 	id string) (*model.Image, error) {
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return nil, ErrImagesStorageInvalidID
 	}
 
@@ -697,7 +696,7 @@ func (db *DataStoreMongo) FindImageByID(ctx context.Context,
 func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 	artifactName string, deviceTypesCompatible []string) (bool, error) {
 
-	if govalidator.IsNull(artifactName) {
+	if len(artifactName) == 0 {
 		return false, ErrImagesStorageInvalidArtifactName
 	}
 
@@ -749,7 +748,7 @@ func (db *DataStoreMongo) IsArtifactUnique(ctx context.Context,
 // Noop on if not found.
 func (db *DataStoreMongo) DeleteImage(ctx context.Context, id string) error {
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return ErrImagesStorageInvalidID
 	}
 
@@ -856,7 +855,7 @@ func (db *DataStoreMongo) InsertDeviceDeployment(ctx context.Context, deviceDepl
 		return err
 	}
 
-	err := db.IncrementDeploymentDeviceCount(ctx, *deviceDeployment.DeploymentId, 1)
+	err := db.IncrementDeploymentDeviceCount(ctx, deviceDeployment.DeploymentId, 1)
 	if err != nil {
 		return err
 	}
@@ -888,7 +887,7 @@ func (db *DataStoreMongo) InsertMany(ctx context.Context,
 		}
 
 		list = append(list, deployment)
-		deviceCountIncrements[*deployment.DeploymentId]++
+		deviceCountIncrements[deployment.DeploymentId]++
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -910,10 +909,10 @@ func (db *DataStoreMongo) InsertMany(ctx context.Context,
 
 // ExistAssignedImageWithIDAndStatuses checks if image is used by deployment with specified status.
 func (db *DataStoreMongo) ExistAssignedImageWithIDAndStatuses(ctx context.Context,
-	imageID string, statuses ...string) (bool, error) {
+	imageID string, statuses ...model.DeviceDeploymentStatus) (bool, error) {
 
 	// Verify ID formatting
-	if govalidator.IsNull(imageID) {
+	if len(imageID) == 0 {
 		return false, ErrStorageInvalidID
 	}
 
@@ -942,10 +941,10 @@ func (db *DataStoreMongo) ExistAssignedImageWithIDAndStatuses(ctx context.Contex
 
 // FindOldestDeploymentForDeviceIDWithStatuses find oldest deployment matching device id and one of specified statuses.
 func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-	deviceID string, statuses ...string) (*model.DeviceDeployment, error) {
+	deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error) {
 
 	// Verify ID formatting
-	if govalidator.IsNull(deviceID) {
+	if len(deviceID) == 0 {
 		return nil, ErrStorageInvalidID
 	}
 
@@ -981,10 +980,10 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 // FindLatestDeploymentForDeviceIDWithStatuses finds latest deployment
 // matching device id and one of specified statuses.
 func (db *DataStoreMongo) FindLatestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-	deviceID string, statuses ...string) (*model.DeviceDeployment, error) {
+	deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error) {
 
 	// Verify ID formatting
-	if govalidator.IsNull(deviceID) {
+	if len(deviceID) == 0 {
 		return nil, ErrStorageInvalidID
 	}
 
@@ -1021,7 +1020,7 @@ func (db *DataStoreMongo) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.
 	deviceID string, statuses ...string) ([]model.DeviceDeployment, error) {
 
 	// Verify ID formatting
-	if govalidator.IsNull(deviceID) {
+	if len(deviceID) == 0 {
 		return nil, ErrStorageInvalidID
 	}
 
@@ -1053,15 +1052,15 @@ func (db *DataStoreMongo) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.
 }
 
 func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(ctx context.Context,
-	deviceID string, deploymentID string, ddStatus model.DeviceDeploymentStatus) (string, error) {
+	deviceID string, deploymentID string, ddState model.DeviceDeploymentState) (model.DeviceDeploymentStatus, error) {
 
 	// Verify ID formatting
-	if govalidator.IsNull(deviceID) ||
-		govalidator.IsNull(deploymentID) {
+	if len(deviceID) == 0 ||
+		len(deploymentID) == 0 {
 		return "", ErrStorageInvalidID
 	}
 
-	if ok, _ := govalidator.ValidateStruct(ddStatus); !ok {
+	if err := ddState.Validate(); err != nil {
 		return "", ErrStorageInvalidInput
 	}
 
@@ -1076,15 +1075,15 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(ctx context.Context,
 
 	// update status field
 	set := bson.M{
-		StorageKeyDeviceDeploymentStatus: ddStatus.Status,
+		StorageKeyDeviceDeploymentStatus: ddState.Status,
 	}
 	// and finish time if provided
-	if ddStatus.FinishTime != nil {
-		set[StorageKeyDeviceDeploymentFinished] = ddStatus.FinishTime
+	if ddState.FinishTime != nil {
+		set[StorageKeyDeviceDeploymentFinished] = ddState.FinishTime
 	}
 
-	if ddStatus.SubState != nil {
-		set[StorageKeyDeviceDeploymentSubState] = *ddStatus.SubState
+	if len(ddState.SubState) > 0 {
+		set[StorageKeyDeviceDeploymentSubState] = ddState.SubState
 	}
 
 	update := bson.D{
@@ -1102,15 +1101,15 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(ctx context.Context,
 
 	}
 
-	return *old.Status, nil
+	return old.Status, nil
 }
 
 func (db *DataStoreMongo) UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 	deviceID string, deploymentID string, log bool) error {
 
 	// Verify ID formatting
-	if govalidator.IsNull(deviceID) ||
-		govalidator.IsNull(deploymentID) {
+	if len(deviceID) == 0 ||
+		len(deploymentID) == 0 {
 		return ErrStorageInvalidID
 	}
 
@@ -1144,8 +1143,8 @@ func (db *DataStoreMongo) AssignArtifact(ctx context.Context,
 	deviceID string, deploymentID string, artifact *model.Image) error {
 
 	// Verify ID formatting
-	if govalidator.IsNull(deviceID) ||
-		govalidator.IsNull(deploymentID) {
+	if len(deviceID) == 0 ||
+		len(deploymentID) == 0 {
 		return ErrStorageInvalidID
 	}
 
@@ -1177,7 +1176,7 @@ func (db *DataStoreMongo) AssignArtifact(ctx context.Context,
 func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 	id string) (model.Stats, error) {
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return nil, ErrStorageInvalidID
 	}
 
@@ -1201,8 +1200,8 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 		group,
 	}
 	var results []struct {
-		Name  string `bson:"_id"`
-		Count int
+		Status model.DeviceDeploymentStatus `bson:"_id"`
+		Count  int
 	}
 	cursor, err := collDevs.Aggregate(ctx, pipeline)
 	if err != nil {
@@ -1217,7 +1216,7 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 
 	raw := model.NewDeviceDeploymentStats()
 	for _, res := range results {
-		raw[res.Name] = res.Count
+		raw[res.Status] = res.Count
 	}
 	return raw, nil
 }
@@ -1277,7 +1276,7 @@ func (db *DataStoreMongo) HasDeploymentForDevice(ctx context.Context,
 }
 
 func (db *DataStoreMongo) GetDeviceDeploymentStatus(ctx context.Context,
-	deploymentID string, deviceID string) (string, error) {
+	deploymentID string, deviceID string) (model.DeviceDeploymentStatus, error) {
 
 	var dep model.DeviceDeployment
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -1296,13 +1295,13 @@ func (db *DataStoreMongo) GetDeviceDeploymentStatus(ctx context.Context,
 		}
 	}
 
-	return *dep.Status, nil
+	return dep.Status, nil
 }
 
 func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 	deploymentId string) error {
 
-	if govalidator.IsNull(deploymentId) {
+	if len(deploymentId) == 0 {
 		return ErrStorageInvalidID
 	}
 
@@ -1337,7 +1336,7 @@ func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 	deviceId string) error {
 
-	if govalidator.IsNull(deviceId) {
+	if len(deviceId) == 0 {
 		return ErrStorageInvalidID
 	}
 
@@ -1473,7 +1472,7 @@ func (db *DataStoreMongo) InsertDeployment(ctx context.Context, deployment *mode
 // Noop on ID not found
 func (db *DataStoreMongo) DeleteDeployment(ctx context.Context, id string) error {
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return ErrStorageInvalidID
 	}
 
@@ -1489,7 +1488,7 @@ func (db *DataStoreMongo) DeleteDeployment(ctx context.Context, id string) error
 
 func (db *DataStoreMongo) FindDeploymentByID(ctx context.Context, id string) (*model.Deployment, error) {
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return nil, ErrStorageInvalidID
 	}
 
@@ -1511,7 +1510,7 @@ func (db *DataStoreMongo) FindDeploymentByID(ctx context.Context, id string) (*m
 func (db *DataStoreMongo) FindUnfinishedByID(ctx context.Context,
 	id string) (*model.Deployment, error) {
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return nil, ErrStorageInvalidID
 	}
 
@@ -1597,7 +1596,7 @@ func (db *DataStoreMongo) DeviceCountByDeployment(ctx context.Context,
 func (db *DataStoreMongo) UpdateStats(ctx context.Context,
 	id string, stats model.Stats) error {
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return ErrStorageInvalidID
 	}
 
@@ -1636,19 +1635,19 @@ func (db *DataStoreMongo) UpdateStats(ctx context.Context,
 }
 
 func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
-	state_from, state_to string) error {
+	stateFrom, stateTo model.DeviceDeploymentStatus) error {
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return ErrStorageInvalidID
 	}
 
-	if govalidator.IsNull(state_to) {
+	if err := stateTo.Validate(); err != nil {
 		return ErrStorageInvalidInput
 	}
 
 	// does not need any extra operations
 	// following query won't handle this case well and increase the state_to value
-	if state_from == state_to {
+	if stateFrom == stateTo {
 		return nil
 	}
 
@@ -1657,19 +1656,19 @@ func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 
 	update := bson.M{}
 
-	if len(state_from) == 0 {
+	if len(stateFrom) == 0 {
 		// note dot notation on embedded document
 		update = bson.M{
 			"$inc": bson.M{
-				"stats." + state_to: 1,
+				"stats." + string(stateTo): 1,
 			},
 		}
 	} else {
 		// note dot notation on embedded document
 		update = bson.M{
 			"$inc": bson.M{
-				"stats." + state_from: -1,
-				"stats." + state_to:   1,
+				"stats." + string(stateFrom): -1,
+				"stats." + string(stateTo):   1,
 			},
 		}
 	}
@@ -1713,7 +1712,7 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 
 	// build deployment by status part of the query
 	if match.Status != model.StatusQueryAny {
-		var status string
+		var status model.DeploymentStatus
 		if match.Status == model.StatusQueryPending {
 			status = model.DeploymentStatusPending
 		} else if match.Status == model.StatusQueryInProgress {
@@ -1820,8 +1819,8 @@ func (db *DataStoreMongo) FindNewerActiveDeployments(ctx context.Context,
 
 // SetDeploymentStatus simply sets the status field
 // optionally sets 'finished time' if deployment is indeed finished
-func (db *DataStoreMongo) SetDeploymentStatus(ctx context.Context, id, status string, now time.Time) error {
-	if govalidator.IsNull(id) {
+func (db *DataStoreMongo) SetDeploymentStatus(ctx context.Context, id string, status model.DeploymentStatus, now time.Time) error {
+	if len(id) == 0 {
 		return ErrStorageInvalidID
 	}
 
@@ -1858,7 +1857,7 @@ func (db *DataStoreMongo) SetDeploymentStatus(ctx context.Context, id, status st
 func (db *DataStoreMongo) ExistUnfinishedByArtifactId(ctx context.Context,
 	id string) (bool, error) {
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return false, ErrStorageInvalidID
 	}
 
@@ -1884,7 +1883,7 @@ func (db *DataStoreMongo) ExistUnfinishedByArtifactId(ctx context.Context,
 func (db *DataStoreMongo) ExistByArtifactId(ctx context.Context,
 	id string) (bool, error) {
 
-	if govalidator.IsNull(id) {
+	if len(id) == 0 {
 		return false, ErrStorageInvalidID
 	}
 

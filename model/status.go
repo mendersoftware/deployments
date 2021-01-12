@@ -17,7 +17,7 @@ package model
 import (
 	"encoding/json"
 
-	"github.com/asaskevich/govalidator"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/pkg/errors"
 )
 
@@ -26,8 +26,8 @@ var (
 )
 
 type StatusReport struct {
-	Status   string
-	SubState *string `json:"substate" valid:"length(0|200)"`
+	Status   DeviceDeploymentStatus `json:"status"`
+	SubState string                 `json:"substate"`
 }
 
 func containsString(what string, in []string) bool {
@@ -41,35 +41,30 @@ func containsString(what string, in []string) bool {
 	return found
 }
 
-func (s *StatusReport) UnmarshalJSON(raw []byte) error {
-	type auxStatusReport StatusReport
-	var temp auxStatusReport
+func (s StatusReport) Validate() error {
+	return validation.ValidateStruct(&s,
+		validation.Field(&s.SubState, lengthIn0To200),
+		validation.Field(&s.Status, validation.In(
+			DeviceDeploymentStatusDownloading,
+			DeviceDeploymentStatusInstalling,
+			DeviceDeploymentStatusRebooting,
+			DeviceDeploymentStatusSuccess,
+			DeviceDeploymentStatusFailure,
+			DeviceDeploymentStatusAlreadyInst,
+		)),
+	)
+}
 
-	err := json.Unmarshal(raw, &temp)
+func (s *StatusReport) UnmarshalJSON(raw []byte) error {
+	type statusReport StatusReport
+	err := json.Unmarshal(raw, (*statusReport)(s))
 	if err != nil {
 		return err
 	}
 
-	valid := []string{
-		DeviceDeploymentStatusDownloading,
-		DeviceDeploymentStatusInstalling,
-		DeviceDeploymentStatusRebooting,
-		DeviceDeploymentStatusSuccess,
-		DeviceDeploymentStatusFailure,
-		DeviceDeploymentStatusAlreadyInst,
-	}
-
-	if !containsString(temp.Status, valid) {
-		return ErrBadStatus
-	}
-
-	if ok, err := govalidator.ValidateStruct(temp); !ok {
+	if err := s.Validate(); err != nil {
 		return err
 	}
-
-	// all good
-	s.Status = temp.Status
-	s.SubState = temp.SubState
 
 	return nil
 }
