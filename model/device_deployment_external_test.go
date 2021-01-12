@@ -27,12 +27,10 @@ func TestNewDeviceDeployment(t *testing.T) {
 
 	t.Parallel()
 
-	dd, err := NewDeviceDeployment("device_123", "deployment_123")
-	assert.NoError(t, err)
-
-	assert.Equal(t, DeviceDeploymentStatusPending, *dd.Status)
-	assert.Equal(t, "device_123", *dd.DeviceId)
-	assert.Equal(t, "deployment_123", *dd.DeploymentId)
+	dd := NewDeviceDeployment("device_123", "deployment_123")
+	assert.Equal(t, DeviceDeploymentStatusPending, dd.Status)
+	assert.Equal(t, "device_123", dd.DeviceId)
+	assert.Equal(t, "deployment_123", dd.DeploymentId)
 	assert.NotEmpty(t, dd.Id)
 	assert.WithinDuration(t, time.Now(), *dd.Created, time.Minute)
 	assert.Equal(t, false, dd.IsLogAvailable)
@@ -43,65 +41,65 @@ func TestDeviceDeploymentValidate(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		InputID           *string
-		InputDeviceID     *string
-		InputDeploymentID *string
+		InputID           string
+		InputDeviceID     string
+		InputDeploymentID string
 		InputCreated      *time.Time
 		IsValid           bool
 	}{
 		{
-			InputID:           nil,
-			InputDeviceID:     nil,
-			InputDeploymentID: nil,
+			InputID:           "",
+			InputDeviceID:     "",
+			InputDeploymentID: "",
 			InputCreated:      nil,
 			IsValid:           false,
 		},
 		{
-			InputID:           StringToPointer("f826484e"),
-			InputDeviceID:     nil,
-			InputDeploymentID: nil,
+			InputID:           "f826484e",
+			InputDeviceID:     "",
+			InputDeploymentID: "",
 			InputCreated:      nil,
 			IsValid:           false,
 		},
 		{
-			InputID:           StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDeviceID:     nil,
-			InputDeploymentID: nil,
+			InputID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputDeviceID:     "",
+			InputDeploymentID: "",
 			InputCreated:      nil,
 			IsValid:           false,
 		},
 		{
-			InputID:           StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDeviceID:     StringToPointer("lala"),
-			InputDeploymentID: nil,
+			InputID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputDeviceID:     "lala",
+			InputDeploymentID: "",
 			InputCreated:      nil,
 			IsValid:           false,
 		},
 		{
-			InputID:           StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDeviceID:     StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDeploymentID: nil,
+			InputID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputDeviceID:     "f826484e-1157-4109-af21-304e6d711560",
+			InputDeploymentID: "",
 			InputCreated:      nil,
 			IsValid:           false,
 		},
 		{
-			InputID:           StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDeviceID:     StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDeploymentID: StringToPointer("ljadljd"),
+			InputID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputDeviceID:     "f826484e-1157-4109-af21-304e6d711560",
+			InputDeploymentID: "ljadljd",
 			InputCreated:      nil,
 			IsValid:           false,
 		},
 		{
-			InputID:           StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDeviceID:     StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDeploymentID: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputDeviceID:     "f826484e-1157-4109-af21-304e6d711560",
+			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputCreated:      nil,
 			IsValid:           false,
 		},
 		{
-			InputID:           StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDeviceID:     StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputDeploymentID: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputID:           "f826484e-1157-4109-af21-304e6d711560",
+			InputDeviceID:     "f826484e-1157-4109-af21-304e6d711560",
+			InputDeploymentID: "f826484e-1157-4109-af21-304e6d711560",
 			InputCreated:      TimeToPointer(time.Now()),
 			IsValid:           true,
 		},
@@ -109,15 +107,14 @@ func TestDeviceDeploymentValidate(t *testing.T) {
 
 	for _, test := range testCases {
 
-		dd, err := NewDeviceDeployment("", "")
-		assert.NoError(t, err)
+		dd := NewDeviceDeployment("", "")
 
 		dd.Created = test.InputCreated
 		dd.Id = test.InputID
 		dd.DeviceId = test.InputDeviceID
 		dd.DeploymentId = test.InputDeploymentID
 
-		err = dd.Validate()
+		err := dd.Validate()
 
 		if !test.IsValid {
 			assert.Error(t, err)
@@ -130,7 +127,7 @@ func TestDeviceDeploymentValidate(t *testing.T) {
 
 func TestDeviceDeploymentStats(t *testing.T) {
 	ds := NewDeviceDeploymentStats()
-	must := []string{
+	must := []DeviceDeploymentStatus{
 		DeviceDeploymentStatusNoArtifact,
 		DeviceDeploymentStatusFailure,
 		DeviceDeploymentStatusSuccess,
@@ -148,7 +145,7 @@ func TestDeviceDeploymentStats(t *testing.T) {
 
 func TestDeviceDeploymentIsFinished(t *testing.T) {
 	tcs := []struct {
-		status   string
+		status   DeviceDeploymentStatus
 		finished bool
 	}{
 		{DeviceDeploymentStatusNoArtifact, true},

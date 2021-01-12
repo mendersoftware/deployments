@@ -26,7 +26,6 @@ import (
 	"github.com/mendersoftware/deployments/app"
 	mapp "github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
-	. "github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/stretchr/testify/assert"
@@ -236,8 +235,8 @@ func TestPostDeployment(t *testing.T) {
 	}{{
 		Name: "ok, device list",
 		InputBody: &model.DeploymentConstructor{
-			Name:         StringToPointer("foo"),
-			ArtifactName: StringToPointer("bar"),
+			Name:         "foo",
+			ArtifactName: "bar",
 			Devices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
 		},
 		ResponseCode:           http.StatusCreated,
@@ -245,8 +244,8 @@ func TestPostDeployment(t *testing.T) {
 	}, {
 		Name: "ok, all devices",
 		InputBody: &model.DeploymentConstructor{
-			Name:         StringToPointer("foo"),
-			ArtifactName: StringToPointer("bar"),
+			Name:         "foo",
+			ArtifactName: "bar",
 			AllDevices:   true,
 		},
 		ResponseCode:           http.StatusCreated,
@@ -261,8 +260,8 @@ func TestPostDeployment(t *testing.T) {
 	}, {
 		Name: "error: app error",
 		InputBody: &model.DeploymentConstructor{
-			Name:         StringToPointer("foo"),
-			ArtifactName: StringToPointer("bar"),
+			Name:         "foo",
+			ArtifactName: "bar",
 			AllDevices:   true,
 		},
 		AppError:     errors.New("some error"),
@@ -274,8 +273,8 @@ func TestPostDeployment(t *testing.T) {
 	}, {
 		Name: "error: app error: no devices",
 		InputBody: &model.DeploymentConstructor{
-			Name:         StringToPointer("foo"),
-			ArtifactName: StringToPointer("bar"),
+			Name:         "foo",
+			ArtifactName: "bar",
 			AllDevices:   true,
 		},
 		AppError:     app.ErrNoDevices,
@@ -287,8 +286,8 @@ func TestPostDeployment(t *testing.T) {
 	}, {
 		Name: "error: conflict",
 		InputBody: &model.DeploymentConstructor{
-			Name:         StringToPointer("foo"),
-			ArtifactName: StringToPointer("bar"),
+			Name:         "foo",
+			ArtifactName: "bar",
 			Devices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
 			AllDevices:   true,
 		},
@@ -300,8 +299,8 @@ func TestPostDeployment(t *testing.T) {
 	}, {
 		Name: "error: no devices",
 		InputBody: &model.DeploymentConstructor{
-			Name:         StringToPointer("foo"),
-			ArtifactName: StringToPointer("bar"),
+			Name:         "foo",
+			ArtifactName: "bar",
 		},
 		ResponseCode: http.StatusBadRequest,
 		ResponseBody: rest_utils.ApiError{
@@ -371,8 +370,8 @@ func TestPostDeploymentToGroup(t *testing.T) {
 	}{{
 		Name: "ok",
 		InputBody: &model.DeploymentConstructor{
-			Name:         StringToPointer("foo"),
-			ArtifactName: StringToPointer("bar"),
+			Name:         "foo",
+			ArtifactName: "bar",
 		},
 		InputGroup:             "baz",
 		ResponseCode:           http.StatusCreated,
@@ -388,8 +387,8 @@ func TestPostDeploymentToGroup(t *testing.T) {
 	}, {
 		Name: "error: conflict",
 		InputBody: &model.DeploymentConstructor{
-			Name:         StringToPointer("foo"),
-			ArtifactName: StringToPointer("bar"),
+			Name:         "foo",
+			ArtifactName: "bar",
 			Devices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
 			AllDevices:   true,
 		},
@@ -402,8 +401,8 @@ func TestPostDeploymentToGroup(t *testing.T) {
 	}, {
 		Name: "error: app error",
 		InputBody: &model.DeploymentConstructor{
-			Name:         StringToPointer("foo"),
-			ArtifactName: StringToPointer("bar"),
+			Name:         "foo",
+			ArtifactName: "bar",
 		},
 		InputGroup:   "baz",
 		AppError:     errors.New("some error"),
@@ -415,8 +414,8 @@ func TestPostDeploymentToGroup(t *testing.T) {
 	}, {
 		Name: "error: app error: no devices",
 		InputBody: &model.DeploymentConstructor{
-			Name:         StringToPointer("foo"),
-			ArtifactName: StringToPointer("bar"),
+			Name:         "foo",
+			ArtifactName: "bar",
 		},
 		InputGroup:   "baz",
 		AppError:     app.ErrNoDevices,

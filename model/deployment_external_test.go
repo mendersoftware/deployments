@@ -20,8 +20,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	. "github.com/mendersoftware/deployments/utils/pointers"
 )
 
 func TestDeploymentConstructorValidate(t *testing.T) {
@@ -29,92 +27,92 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		InputName         *string
-		InputArtifactName *string
+		InputName         string
+		InputArtifactName string
 		InputDevices      []string
 		InputAllDevices   bool
 		InputGroup        string
 		IsValid           bool
 	}{
 		{
-			InputName:         nil,
-			InputArtifactName: nil,
+			InputName:         "",
+			InputArtifactName: "",
 			InputDevices:      nil,
 			IsValid:           false,
 		},
 		{
-			InputName:         StringToPointer("something"),
-			InputArtifactName: nil,
+			InputName:         "something",
+			InputArtifactName: "",
 			InputDevices:      nil,
 			IsValid:           false,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: nil,
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "",
 			InputDevices:      nil,
 			IsValid:           false,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      nil,
 			IsValid:           false,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{},
 			IsValid:           false,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{""},
 			IsValid:           false,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{"lala"},
 			IsValid:           true,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
 			IsValid:           true,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{},
 			InputGroup:        "foo",
 			IsValid:           true,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{},
 			InputAllDevices:   true,
 			IsValid:           true,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{"lala"},
 			InputAllDevices:   true,
 			IsValid:           false,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{"lala"},
 			InputGroup:        "foo",
 			IsValid:           false,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{"lala"},
 			InputAllDevices:   true,
 			IsValid:           false,
@@ -163,28 +161,28 @@ func TestDeploymentValidate(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		InputName         *string
-		InputArtifactName *string
+		InputName         string
+		InputArtifactName string
 		InputDevices      []string
 		IsValid           bool
 	}{
 		{
-			InputName:         nil,
-			InputArtifactName: nil,
+			InputName:         "",
+			InputArtifactName: "",
 			InputDevices:      nil,
 			IsValid:           false,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
 			IsValid:           true,
 		},
 		{
-			InputName:         StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
-			InputArtifactName: StringToPointer("f826484e-1157-4109-af21-304e6d711560"),
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
 			InputDevices:      []string{},
-			IsValid:           true,
+			IsValid:           false,
 		},
 	}
 
@@ -215,10 +213,10 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 
 	dep, err := NewDeployment()
 	assert.NoError(t, err)
-	dep.Name = StringToPointer("Region: NYC")
-	dep.ArtifactName = StringToPointer("App 123")
+	dep.Name = "Region: NYC"
+	dep.ArtifactName = "App 123"
 	dep.Devices = []string{"Device 123"}
-	dep.Id = StringToPointer("14ddec54-30be-49bf-aa6b-97ce271d71f5")
+	dep.Id = "14ddec54-30be-49bf-aa6b-97ce271d71f5"
 	deviceCount := 1337
 	dep.DeviceCount = &deviceCount
 	dep.Status = DeploymentStatusInProgress
@@ -249,7 +247,7 @@ func TestDeploymentIs(t *testing.T) {
 	assert.False(t, d.IsFinished())
 
 	// check all active statuses
-	active := []string{
+	active := []DeviceDeploymentStatus{
 		DeviceDeploymentStatusRebooting,
 		DeviceDeploymentStatusInstalling,
 		DeviceDeploymentStatusDownloading,
@@ -262,7 +260,7 @@ func TestDeploymentIs(t *testing.T) {
 		assert.False(t, d.IsFinished())
 	}
 
-	finished := []string{
+	finished := []DeviceDeploymentStatus{
 		DeviceDeploymentStatusSuccess,
 		DeviceDeploymentStatusFailure,
 		DeviceDeploymentStatusNoArtifact,
@@ -277,7 +275,7 @@ func TestDeploymentIs(t *testing.T) {
 		assert.True(t, d.IsNotPending())
 	}
 
-	pending := []string{
+	pending := []DeviceDeploymentStatus{
 		DeviceDeploymentStatusPending,
 	}
 	for _, as := range pending {
@@ -292,72 +290,72 @@ func TestDeploymentIs(t *testing.T) {
 func TestDeploymentGetStatus(t *testing.T) {
 
 	tests := map[string]struct {
-		Stats        map[string]int
-		OutputStatus string
+		Stats        Stats
+		OutputStatus DeploymentStatus
 	}{
 		"Single NoArtifact": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusNoArtifact: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Single Success": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusSuccess: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Success + NoArtifact": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusSuccess:    1,
 				DeviceDeploymentStatusNoArtifact: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Failed + NoArtifact": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusFailure:    1,
 				DeviceDeploymentStatusNoArtifact: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Failed + AlreadyInst": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusFailure:     1,
 				DeviceDeploymentStatusAlreadyInst: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Failed + Aborted": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusFailure: 1,
 				DeviceDeploymentStatusAborted: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Rebooting + NoArtifact": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusRebooting:  1,
 				DeviceDeploymentStatusNoArtifact: 1,
 			},
 			OutputStatus: "inprogress",
 		},
 		"Rebooting + Installing": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusRebooting:  1,
 				DeviceDeploymentStatusInstalling: 1,
 			},
 			OutputStatus: "inprogress",
 		},
 		"Rebooting + Pending": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusRebooting: 1,
 				DeviceDeploymentStatusPending:   1,
 			},
 			OutputStatus: "inprogress",
 		},
 		"Pending": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusPending: 1,
 			},
 			OutputStatus: "pending",
@@ -367,7 +365,7 @@ func TestDeploymentGetStatus(t *testing.T) {
 		},
 		//verify we count 'already-installed' towards 'inprogress'
 		"pending + already-installed": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusPending:     1,
 				DeviceDeploymentStatusAlreadyInst: 1,
 			},
@@ -375,7 +373,7 @@ func TestDeploymentGetStatus(t *testing.T) {
 		},
 		//verify we count 'already-installed' towards 'finished'
 		"already-installed + finished": {
-			Stats: map[string]int{
+			Stats: Stats{
 				DeviceDeploymentStatusPending:     0,
 				DeviceDeploymentStatusAlreadyInst: 1,
 			},

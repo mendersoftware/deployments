@@ -477,13 +477,13 @@ func (_m *App) SaveDeviceDeploymentLog(ctx context.Context, deviceID string, dep
 	return r0
 }
 
-// UpdateDeviceDeploymentStatus provides a mock function with given fields: ctx, deploymentID, deviceID, status
-func (_m *App) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string, deviceID string, status model.DeviceDeploymentStatus) error {
-	ret := _m.Called(ctx, deploymentID, deviceID, status)
+// UpdateDeviceDeploymentStatus provides a mock function with given fields: ctx, deploymentID, deviceID, state
+func (_m *App) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string, deviceID string, state model.DeviceDeploymentState) error {
+	ret := _m.Called(ctx, deploymentID, deviceID, state)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, model.DeviceDeploymentStatus) error); ok {
-		r0 = rf(ctx, deploymentID, deviceID, status)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, model.DeviceDeploymentState) error); ok {
+		r0 = rf(ctx, deploymentID, deviceID, state)
 	} else {
 		r0 = ret.Error(0)
 	}

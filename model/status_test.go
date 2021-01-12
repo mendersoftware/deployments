@@ -25,7 +25,7 @@ func TestStatusUnmarshal(t *testing.T) {
 	var report StatusReport
 
 	err := json.Unmarshal([]byte(`{"status": "aborted"}`), &report)
-	assert.EqualError(t, ErrBadStatus, err.Error())
+	assert.EqualError(t, err, "status: must be a valid value.")
 
 	err = json.Unmarshal([]byte(`"status": "bad"}`), &report)
 	assert.Error(t, err)

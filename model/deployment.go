@@ -163,7 +163,7 @@ func NewDeploymentFromConstructor(constructor *DeploymentConstructor) (*Deployme
 // Validate checks structure validation rules
 func (d Deployment) Validate() error {
 	return validation.ValidateStruct(&d,
-		validation.Field(&d.DeploymentConstructor, validation.Required),
+		validation.Field(&d.DeploymentConstructor, validation.NotNil),
 		validation.Field(&d.Created, validation.Required),
 		validation.Field(&d.Id, validation.Required, is.UUID),
 		validation.Field(&d.Artifacts, validation.Each(validation.Required)),

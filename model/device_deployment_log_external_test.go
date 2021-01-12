@@ -59,9 +59,7 @@ func TestValidateDeploymentLog(t *testing.T) {
 					},
 				},
 			},
-			// FIXME after one of the updates, govalidator returns this instead of a 'Level' error
-			// probably a bug in govalidator itself
-			err: errors.New("Messages.0.messages: non zero value required"),
+			err: errors.New("messages: (0: (level: cannot be blank.).)."),
 		},
 		{
 			input: DeploymentLog{
@@ -77,7 +75,7 @@ func TestValidateDeploymentLog(t *testing.T) {
 					},
 				},
 			},
-			err: errors.New("DeploymentID: asdasdad1231 does not validate as uuidv4"),
+			err: errors.New("DeploymentID: must be a valid UUID."),
 		},
 	}
 
@@ -161,15 +159,15 @@ func TestUnmarshalLogMessage(t *testing.T) {
 	}{
 		{
 			input: `{ "message": "foo", "level": "notice"}`,
-			err:   errors.New("timestamp: non zero value required"),
+			err:   errors.New("timestamp: cannot be blank."),
 		},
 		{
 			input: `{ "level": "notice", "timestamp": "2006-01-02T15:04:05-07:00"}`,
-			err:   errors.New("message: non zero value required"),
+			err:   errors.New("message: cannot be blank."),
 		},
 		{
 			input: `{ "message": "foo", "timestamp": "2006-01-02T15:04:05-07:00"}`,
-			err:   errors.New("level: non zero value required"),
+			err:   errors.New("level: cannot be blank."),
 		},
 		{
 			input: `{ "message": "foo", "level": "notice", "timestamp": "2006-01-02T15:04:05-07:00"}`,

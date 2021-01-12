@@ -34,7 +34,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 	ctx := context.TODO()
 
 	// 'downloading' -> 'installing'
-	ddStatusNew := model.DeviceDeploymentStatus{
+	ddStatusNew := model.DeviceDeploymentState{
 		Status: model.DeviceDeploymentStatusInstalling,
 	}
 
@@ -44,54 +44,53 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 	depArtifact := "bar"
 	fakeDeployment, err := model.NewDeploymentFromConstructor(
 		&model.DeploymentConstructor{
-			Name:         &depName,
-			ArtifactName: &depArtifact,
+			Name:         depName,
+			ArtifactName: depArtifact,
 			Devices:      []string{"baz"},
 		},
 	)
 	fakeDeployment.MaxDevices = 1
 	assert.NoError(t, err)
 
-	fakeDeviceDeployment, err := model.NewDeviceDeployment(
-		devId, *fakeDeployment.Id)
-	status := model.DeviceDeploymentStatusDownloading
-	fakeDeviceDeployment.Status = &status
+	fakeDeviceDeployment := model.NewDeviceDeployment(
+		devId, fakeDeployment.Id)
+	fakeDeviceDeployment.Status = model.DeviceDeploymentStatusDownloading
 
 	fs := &fs_mocks.FileStorage{}
 	db := mocks.DataStore{}
 
 	db.On("GetDeviceDeployment", ctx,
-		*fakeDeployment.Id, devId).Return(
+		fakeDeployment.Id, devId).Return(
 		fakeDeviceDeployment, nil)
 
-	db.On("UpdateDeviceDeploymentState", ctx,
+	db.On("UpdateDeviceDeploymentStatus", ctx,
 		devId,
-		*fakeDeployment.Id,
-		mock.MatchedBy(func(ddStatus model.DeviceDeploymentStatus) bool {
+		fakeDeployment.Id,
+		mock.MatchedBy(func(ddStatus model.DeviceDeploymentState) bool {
 			assert.Equal(t, model.DeviceDeploymentStatusInstalling, ddStatus.Status)
 
 			return true
 		})).Return(model.DeviceDeploymentStatusDownloading, nil)
 
 	db.On("UpdateStatsInc", ctx,
-		*fakeDeployment.Id,
+		fakeDeployment.Id,
 		model.DeviceDeploymentStatusDownloading,
 		model.DeviceDeploymentStatusInstalling).Return(nil)
 
 	// fake updated stats
 	fakeDeployment.Stats[model.DeviceDeploymentStatusInstalling] = 1
 
-	db.On("FindDeploymentByID", ctx, *fakeDeployment.Id).Return(
+	db.On("FindDeploymentByID", ctx, fakeDeployment.Id).Return(
 		fakeDeployment, nil)
 
 	db.On("SetDeploymentStatus", ctx,
-		*fakeDeployment.Id,
-		"inprogress",
+		fakeDeployment.Id,
+		model.DeploymentStatusInProgress,
 		mock.AnythingOfType("time.Time")).Return(nil)
 
 	ds := NewDeployments(&db, fs, "")
 
-	err = ds.UpdateDeviceDeploymentStatus(ctx, *fakeDeployment.Id, *fakeDeviceDeployment.DeviceId, ddStatusNew)
+	err = ds.UpdateDeviceDeploymentStatus(ctx, fakeDeployment.Id, fakeDeviceDeployment.DeviceId, ddStatusNew)
 	assert.NoError(t, err)
 
 }
@@ -113,18 +112,17 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 
 	fakeDeployment, err := model.NewDeploymentFromConstructor(
 		&model.DeploymentConstructor{
-			Name:         &depName,
-			ArtifactName: &depArtifact,
+			Name:         depName,
+			ArtifactName: depArtifact,
 			Devices:      []string{devType},
 		},
 	)
 	fakeDeployment.MaxDevices = 1
 	assert.NoError(t, err)
 
-	fakeDeviceDeployment, _ := model.NewDeviceDeployment(
-		devId, *fakeDeployment.Id)
-	status := model.DeviceDeploymentStatusPending
-	fakeDeviceDeployment.Status = &status
+	fakeDeviceDeployment := model.NewDeviceDeployment(
+		devId, fakeDeployment.Id)
+	fakeDeviceDeployment.Status = model.DeviceDeploymentStatusPending
 
 	fs := &fs_mocks.FileStorage{}
 	db := mocks.DataStore{}
@@ -136,40 +134,40 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 		call.Arguments = append(call.Arguments, interface{}(status))
 	}
 
-	db.On("FindDeploymentByID", ctx, *fakeDeployment.Id).Return(
+	db.On("FindDeploymentByID", ctx, fakeDeployment.Id).Return(
 		fakeDeployment, nil).Once()
 
-	db.On("DeviceCountByDeployment", ctx, *fakeDeployment.Id).Return(2, nil)
+	db.On("DeviceCountByDeployment", ctx, fakeDeployment.Id).Return(2, nil)
 	db.On("GetDeviceDeployment", ctx,
-		*fakeDeployment.Id, *fakeDeviceDeployment.DeviceId).Return(
+		fakeDeployment.Id, fakeDeviceDeployment.DeviceId).Return(
 		fakeDeviceDeployment, nil)
 
 	db.On("IncrementDeviceDeploymentAttempts", ctx,
-		*fakeDeviceDeployment.Id, uint(1)).Return(nil)
+		fakeDeviceDeployment.Id, uint(1)).Return(nil)
 
-	db.On("UpdateDeviceDeploymentState", ctx,
-		*fakeDeviceDeployment.DeviceId,
-		*fakeDeployment.Id,
+	db.On("UpdateDeviceDeploymentStatus", ctx,
+		fakeDeviceDeployment.DeviceId,
+		fakeDeployment.Id,
 
-		mock.MatchedBy(func(ddStatus model.DeviceDeploymentStatus) bool {
+		mock.MatchedBy(func(ddStatus model.DeviceDeploymentState) bool {
 			assert.Equal(t, model.DeviceDeploymentStatusAlreadyInst, ddStatus.Status)
 
 			return true
 		})).Return(model.DeviceDeploymentStatusPending, nil)
 
 	db.On("UpdateStatsInc", ctx,
-		*fakeDeployment.Id,
+		fakeDeployment.Id,
 		model.DeviceDeploymentStatusPending,
 		model.DeviceDeploymentStatusAlreadyInst).Return(nil)
 
 	// fake updated stats
 	fakeDeployment.Stats[model.DeviceDeploymentStatusNoArtifact] = 1
-	db.On("FindDeploymentByID", ctx, *fakeDeployment.Id).Return(
+	db.On("FindDeploymentByID", ctx, fakeDeployment.Id).Return(
 		fakeDeployment, nil)
 
 	db.On("SetDeploymentStatus", ctx,
-		*fakeDeployment.Id,
-		"finished",
+		fakeDeployment.Id,
+		model.DeploymentStatusFinished,
 		mock.AnythingOfType("time.Time")).Return(nil)
 
 	ds := NewDeployments(&db, fs, "")
@@ -187,14 +185,14 @@ func TestAbortDeployment(t *testing.T) {
 	depArtifact := "bar"
 	fakeDeployment, err := model.NewDeploymentFromConstructor(
 		&model.DeploymentConstructor{
-			Name:         &depName,
-			ArtifactName: &depArtifact,
+			Name:         depName,
+			ArtifactName: depArtifact,
 			Devices:      []string{"baz"},
 		},
 	)
 	fakeDeployment.MaxDevices = 1
 	fakeDeployment.Stats = stats
-	fakeDeployment.Id = &depId
+	fakeDeployment.Id = depId
 	assert.NoError(t, err)
 
 	db := mocks.DataStore{}
@@ -207,17 +205,13 @@ func TestAbortDeployment(t *testing.T) {
 
 	db.On("SetDeploymentStatus", ctx,
 		depId,
-		"finished",
+		model.DeploymentStatusFinished,
 		mock.AnythingOfType("time.Time")).Return(nil)
 
 	ds := NewDeployments(&db, nil, "")
 
 	err = ds.AbortDeployment(ctx, "foo")
 	assert.NoError(t, err)
-}
-
-func strPtr(s string) *string {
-	return &s
 }
 
 func timePtr(t time.Time) *time.Time {
@@ -243,7 +237,7 @@ func TestDecommission(t *testing.T) {
 		findOldestDeploymentForDeviceIDWithStatusesError      error
 		getDeviceDeploymentDeployment                         *model.DeviceDeployment
 		getDeviceDeploymentError                              error
-		updateDeviceDeploymentStatusStatus                    string
+		updateDeviceDeploymentStatusStatus                    model.DeviceDeploymentStatus
 		updateDeviceDeploymentStatusError                     error
 		findLatestDeploymentForDeviceIDWithStatusesDeployment *model.DeviceDeployment
 		findLatestDeploymentForDeviceIDWithStatusesError      error
@@ -264,27 +258,27 @@ func TestDecommission(t *testing.T) {
 			inputDevices:        []string{"baz"},
 
 			findOldestDeploymentForDeviceIDWithStatusesDeployment: &model.DeviceDeployment{
-				Id:           strPtr("bar"),
-				DeploymentId: strPtr("bar"),
-				Status:       strPtr(model.DeviceDeploymentStatusDownloading),
+				Id:           "bar",
+				DeploymentId: "bar",
+				Status:       model.DeviceDeploymentStatusDownloading,
 			},
 			getDeviceDeploymentDeployment: &model.DeviceDeployment{
-				Id:           strPtr("bar"),
-				DeploymentId: strPtr("bar"),
-				Status:       strPtr(model.DeviceDeploymentStatusDownloading),
+				Id:           "bar",
+				DeploymentId: "bar",
+				Status:       model.DeviceDeploymentStatusDownloading,
 			},
 			updateDeviceDeploymentStatusStatus: model.DeviceDeploymentStatusDownloading,
 			findDeploymentByIDDeployment: &model.Deployment{
-				Id:         strPtr("bar"),
+				Id:         "bar",
 				MaxDevices: 1,
 				Stats:      model.Stats{"decommissioned": 1},
 			},
 		},
 		"ok 1": {
 			findLatestDeploymentForDeviceIDWithStatusesDeployment: &model.DeviceDeployment{
-				Id:           strPtr("bar"),
-				DeploymentId: strPtr("bar"),
-				Status:       strPtr(model.DeviceDeploymentStatusSuccess),
+				Id:           "bar",
+				DeploymentId: "bar",
+				Status:       model.DeviceDeploymentStatusSuccess,
 				Created:      timePtr(time.Now()),
 			},
 		},
@@ -300,7 +294,7 @@ func TestDecommission(t *testing.T) {
 			findNewerActiveDeploymentsDeployments: []*model.Deployment{
 				{
 					DeviceList:  []string{"foo"},
-					Id:          strPtr("foo"),
+					Id:          "foo",
 					Created:     timePtr(time.Now()),
 					DeviceCount: intPtr(0),
 					MaxDevices:  1,
@@ -314,7 +308,7 @@ func TestDecommission(t *testing.T) {
 			findNewerActiveDeploymentsDeployments: []*model.Deployment{
 				{
 					DeviceList:  []string{"foo"},
-					Id:          strPtr("pending"),
+					Id:          "pending",
 					Created:     timePtr(time.Now()),
 					DeviceCount: intPtr(0),
 					MaxDevices:  2,
@@ -353,7 +347,7 @@ func TestDecommission(t *testing.T) {
 				tc.inputDeviceId).Return(
 				tc.getDeviceDeploymentDeployment, tc.getDeviceDeploymentError)
 
-			db.On("UpdateDeviceDeploymentState", ctx, tc.inputDeviceId,
+			db.On("UpdateDeviceDeploymentStatus", ctx, tc.inputDeviceId,
 				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentState")).Return(
 				tc.updateDeviceDeploymentStatusStatus, tc.updateDeviceDeploymentStatusError)
 
@@ -385,12 +379,16 @@ func TestDecommission(t *testing.T) {
 
 			db.On("SetDeploymentStatus", ctx,
 				tc.inputDeploymentId,
-				"finished",
-				mock.AnythingOfType("time.Time")).Return(tc.setDeploymentStatusError)
+				model.DeploymentStatusFinished,
+				mock.AnythingOfType("time.Time")).
+				Return(tc.setDeploymentStatusError).
+				Once()
 			db.On("SetDeploymentStatus", ctx,
 				"pending",
-				"pending",
-				mock.AnythingOfType("time.Time")).Return(tc.setDeploymentStatusError)
+				model.DeploymentStatusPending,
+				mock.AnythingOfType("time.Time")).
+				Return(tc.setDeploymentStatusError).
+				Once()
 
 			ds := NewDeployments(&db, nil, "")
 

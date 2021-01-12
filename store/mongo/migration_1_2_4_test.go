@@ -40,7 +40,7 @@ func TestMigration_1_2_4(t *testing.T) {
 		deployment interface{}
 		devices    []interface{}
 
-		outstatus        string
+		outstatus        model.DeploymentStatus
 		outerr           error
 		ignoreMaxDevices bool
 	}{
@@ -48,8 +48,8 @@ func TestMigration_1_2_4(t *testing.T) {
 			db: "deployments_service",
 			id: "dep-pending-1",
 			deployment: model.Deployment{
-				Id: strp("dep-pending-1"),
-				Stats: map[string]int{
+				Id: "dep-pending-1",
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending:        3,
 					model.DeviceDeploymentStatusDownloading:    0,
 					model.DeviceDeploymentStatusInstalling:     0,
@@ -64,19 +64,19 @@ func TestMigration_1_2_4(t *testing.T) {
 			},
 			devices: []interface{}{
 				model.DeviceDeployment{
-					Id:           strp("1"),
-					DeploymentId: strp("dep-pending-1"),
-					Status:       strp("pending"),
+					Id:           "1",
+					DeploymentId: "dep-pending-1",
+					Status:       "pending",
 				},
 				model.DeviceDeployment{
-					Id:           strp("2"),
-					DeploymentId: strp("dep-pending-1"),
-					Status:       strp("pending"),
+					Id:           "2",
+					DeploymentId: "dep-pending-1",
+					Status:       "pending",
 				},
 				model.DeviceDeployment{
-					Id:           strp("3"),
-					DeploymentId: strp("dep-pending-1"),
-					Status:       strp("pending"),
+					Id:           "3",
+					DeploymentId: "dep-pending-1",
+					Status:       "pending",
 				},
 			},
 			outstatus: "pending",
@@ -85,8 +85,8 @@ func TestMigration_1_2_4(t *testing.T) {
 			db: "deployments_service",
 			id: "dep-pending-1",
 			deployment: model.Deployment{
-				Id: strp("dep-pending-1"),
-				Stats: map[string]int{
+				Id: "dep-pending-1",
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending:        1,
 					model.DeviceDeploymentStatusDownloading:    0,
 					model.DeviceDeploymentStatusInstalling:     0,
@@ -101,9 +101,9 @@ func TestMigration_1_2_4(t *testing.T) {
 			},
 			devices: []interface{}{
 				model.DeviceDeployment{
-					Id:           strp("1"),
-					DeploymentId: strp("dep-pending-1"),
-					Status:       strp("pending"),
+					Id:           "1",
+					DeploymentId: "dep-pending-1",
+					Status:       "pending",
 				},
 			},
 			outstatus: "pending",
@@ -112,8 +112,8 @@ func TestMigration_1_2_4(t *testing.T) {
 			db: "deployments_service",
 			id: "dep-inprog-1",
 			deployment: model.Deployment{
-				Id: strp("dep-inprog-1"),
-				Stats: map[string]int{
+				Id: "dep-inprog-1",
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending:        2,
 					model.DeviceDeploymentStatusDownloading:    1,
 					model.DeviceDeploymentStatusInstalling:     0,
@@ -128,24 +128,24 @@ func TestMigration_1_2_4(t *testing.T) {
 			},
 			devices: []interface{}{
 				model.DeviceDeployment{
-					Id:           strp("1"),
-					DeploymentId: strp("dep-inprog-1"),
-					Status:       strp("pending"),
+					Id:           "1",
+					DeploymentId: "dep-inprog-1",
+					Status:       "pending",
 				},
 				model.DeviceDeployment{
-					Id:           strp("2"),
-					DeploymentId: strp("dep-inprog-1"),
-					Status:       strp("downloading"),
+					Id:           "2",
+					DeploymentId: "dep-inprog-1",
+					Status:       "downloading",
 				},
 				model.DeviceDeployment{
-					Id:           strp("3"),
-					DeploymentId: strp("dep-inprog-1"),
-					Status:       strp("failure"),
+					Id:           "3",
+					DeploymentId: "dep-inprog-1",
+					Status:       "failure",
 				},
 				model.DeviceDeployment{
-					Id:           strp("4"),
-					DeploymentId: strp("dep-inprog-1"),
-					Status:       strp("decommissioned"),
+					Id:           "4",
+					DeploymentId: "dep-inprog-1",
+					Status:       "decommissioned",
 				},
 			},
 			outstatus: "inprogress",
@@ -154,8 +154,8 @@ func TestMigration_1_2_4(t *testing.T) {
 			db: "deployments_service",
 			id: "dep-inprog-2",
 			deployment: model.Deployment{
-				Id: strp("dep-inprog-2"),
-				Stats: map[string]int{
+				Id: "dep-inprog-2",
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending:        0,
 					model.DeviceDeploymentStatusDownloading:    1,
 					model.DeviceDeploymentStatusInstalling:     1,
@@ -170,24 +170,24 @@ func TestMigration_1_2_4(t *testing.T) {
 			},
 			devices: []interface{}{
 				model.DeviceDeployment{
-					Id:           strp("1"),
-					DeploymentId: strp("dep-inprog-2"),
-					Status:       strp("downloading"),
+					Id:           "1",
+					DeploymentId: "dep-inprog-2",
+					Status:       "downloading",
 				},
 				model.DeviceDeployment{
-					Id:           strp("2"),
-					DeploymentId: strp("dep-inprog-2"),
-					Status:       strp("installing"),
+					Id:           "2",
+					DeploymentId: "dep-inprog-2",
+					Status:       "installing",
 				},
 				model.DeviceDeployment{
-					Id:           strp("3"),
-					DeploymentId: strp("dep-inprog-2"),
-					Status:       strp("rebooting"),
+					Id:           "3",
+					DeploymentId: "dep-inprog-2",
+					Status:       "rebooting",
 				},
 				model.DeviceDeployment{
-					Id:           strp("4"),
-					DeploymentId: strp("dep-inprog-2"),
-					Status:       strp("success"),
+					Id:           "4",
+					DeploymentId: "dep-inprog-2",
+					Status:       "success",
 				},
 			},
 			outstatus: "inprogress",
@@ -196,8 +196,8 @@ func TestMigration_1_2_4(t *testing.T) {
 			db: "deployments_service",
 			id: "dep-inprog-3",
 			deployment: model.Deployment{
-				Id: strp("dep-inprog-3"),
-				Stats: map[string]int{
+				Id: "dep-inprog-3",
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending:        1,
 					model.DeviceDeploymentStatusDownloading:    0,
 					model.DeviceDeploymentStatusInstalling:     0,
@@ -212,24 +212,24 @@ func TestMigration_1_2_4(t *testing.T) {
 			},
 			devices: []interface{}{
 				model.DeviceDeployment{
-					Id:           strp("1"),
-					DeploymentId: strp("dep-inprog-3"),
-					Status:       strp("pending"),
+					Id:           "1",
+					DeploymentId: "dep-inprog-3",
+					Status:       "pending",
 				},
 				model.DeviceDeployment{
-					Id:           strp("2"),
-					DeploymentId: strp("dep-inprog-3"),
-					Status:       strp("success"),
+					Id:           "2",
+					DeploymentId: "dep-inprog-3",
+					Status:       "success",
 				},
 				model.DeviceDeployment{
-					Id:           strp("3"),
-					DeploymentId: strp("dep-inprog-3"),
-					Status:       strp("success"),
+					Id:           "3",
+					DeploymentId: "dep-inprog-3",
+					Status:       "success",
 				},
 				model.DeviceDeployment{
-					Id:           strp("4"),
-					DeploymentId: strp("dep-inprog-3"),
-					Status:       strp("failure"),
+					Id:           "4",
+					DeploymentId: "dep-inprog-3",
+					Status:       "failure",
 				},
 			},
 			outstatus: "inprogress",
@@ -238,8 +238,8 @@ func TestMigration_1_2_4(t *testing.T) {
 			db: "deployments_service",
 			id: "finished-1",
 			deployment: model.Deployment{
-				Id: strp("finished-1"),
-				Stats: map[string]int{
+				Id: "finished-1",
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending:        0,
 					model.DeviceDeploymentStatusDownloading:    0,
 					model.DeviceDeploymentStatusInstalling:     0,
@@ -254,24 +254,24 @@ func TestMigration_1_2_4(t *testing.T) {
 			},
 			devices: []interface{}{
 				model.DeviceDeployment{
-					Id:           strp("1"),
-					DeploymentId: strp("finished-1"),
-					Status:       strp("success"),
+					Id:           "1",
+					DeploymentId: "finished-1",
+					Status:       "success",
 				},
 				model.DeviceDeployment{
-					Id:           strp("2"),
-					DeploymentId: strp("finished-1"),
-					Status:       strp("success"),
+					Id:           "2",
+					DeploymentId: "finished-1",
+					Status:       "success",
 				},
 				model.DeviceDeployment{
-					Id:           strp("3"),
-					DeploymentId: strp("finished-1"),
-					Status:       strp("failure"),
+					Id:           "3",
+					DeploymentId: "finished-1",
+					Status:       "failure",
 				},
 				model.DeviceDeployment{
-					Id:           strp("4"),
-					DeploymentId: strp("finished-1"),
-					Status:       strp("failure"),
+					Id:           "4",
+					DeploymentId: "finished-1",
+					Status:       "failure",
 				},
 			},
 			outstatus: "finished",
@@ -280,8 +280,8 @@ func TestMigration_1_2_4(t *testing.T) {
 			db: "deployments_service",
 			id: "finished-2",
 			deployment: model.Deployment{
-				Id: strp("finished-2"),
-				Stats: map[string]int{
+				Id: "finished-2",
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending:        0,
 					model.DeviceDeploymentStatusDownloading:    0,
 					model.DeviceDeploymentStatusInstalling:     0,
@@ -296,29 +296,29 @@ func TestMigration_1_2_4(t *testing.T) {
 			},
 			devices: []interface{}{
 				model.DeviceDeployment{
-					Id:           strp("1"),
-					DeploymentId: strp("finished-2"),
-					Status:       strp("success"),
+					Id:           "1",
+					DeploymentId: "finished-2",
+					Status:       "success",
 				},
 				model.DeviceDeployment{
-					Id:           strp("2"),
-					DeploymentId: strp("finished-2"),
-					Status:       strp("failure"),
+					Id:           "2",
+					DeploymentId: "finished-2",
+					Status:       "failure",
 				},
 				model.DeviceDeployment{
-					Id:           strp("3"),
-					DeploymentId: strp("finished-2"),
-					Status:       strp("failure"),
+					Id:           "3",
+					DeploymentId: "finished-2",
+					Status:       "failure",
 				},
 				model.DeviceDeployment{
-					Id:           strp("4"),
-					DeploymentId: strp("finished-2"),
-					Status:       strp("decommissioned"),
+					Id:           "4",
+					DeploymentId: "finished-2",
+					Status:       "decommissioned",
 				},
 				model.DeviceDeployment{
-					Id:           strp("5"),
-					DeploymentId: strp("finished-2"),
-					Status:       strp("noartifact"),
+					Id:           "5",
+					DeploymentId: "finished-2",
+					Status:       "noartifact",
 				},
 			},
 			outstatus: "finished",
@@ -327,8 +327,8 @@ func TestMigration_1_2_4(t *testing.T) {
 			db: "deployments_service",
 			id: "finished-3",
 			deployment: model.Deployment{
-				Id: strp("finished-3"),
-				Stats: map[string]int{
+				Id: "finished-3",
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending:        0,
 					model.DeviceDeploymentStatusDownloading:    0,
 					model.DeviceDeploymentStatusInstalling:     0,
@@ -343,29 +343,29 @@ func TestMigration_1_2_4(t *testing.T) {
 			},
 			devices: []interface{}{
 				model.DeviceDeployment{
-					Id:           strp("1"),
-					DeploymentId: strp("finished-3"),
-					Status:       strp("aborted"),
+					Id:           "1",
+					DeploymentId: "finished-3",
+					Status:       "aborted",
 				},
 				model.DeviceDeployment{
-					Id:           strp("2"),
-					DeploymentId: strp("finished-3"),
-					Status:       strp("aborted"),
+					Id:           "2",
+					DeploymentId: "finished-3",
+					Status:       "aborted",
 				},
 				model.DeviceDeployment{
-					Id:           strp("3"),
-					DeploymentId: strp("finished-3"),
-					Status:       strp("aborted"),
+					Id:           "3",
+					DeploymentId: "finished-3",
+					Status:       "aborted",
 				},
 				model.DeviceDeployment{
-					Id:           strp("4"),
-					DeploymentId: strp("finished-3"),
-					Status:       strp("aborted"),
+					Id:           "4",
+					DeploymentId: "finished-3",
+					Status:       "aborted",
 				},
 				model.DeviceDeployment{
-					Id:           strp("5"),
-					DeploymentId: strp("finished-3"),
-					Status:       strp("aborted"),
+					Id:           "5",
+					DeploymentId: "finished-3",
+					Status:       "aborted",
 				},
 			},
 			outstatus: "finished",
@@ -374,9 +374,9 @@ func TestMigration_1_2_4(t *testing.T) {
 			db: "deployments_service",
 			id: "finished-4",
 			deployment: model.Deployment{
-				Id:       strp("finished-4"),
+				Id:       "finished-4",
 				Finished: &now,
-				Stats: map[string]int{
+				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending:        0,
 					model.DeviceDeploymentStatusDownloading:    0,
 					model.DeviceDeploymentStatusInstalling:     0,
@@ -391,9 +391,9 @@ func TestMigration_1_2_4(t *testing.T) {
 			},
 			devices: []interface{}{
 				model.DeviceDeployment{
-					Id:           strp("3"),
-					DeploymentId: strp("dep-inprog-3"),
-					Status:       strp("success"),
+					Id:           "3",
+					DeploymentId: "dep-inprog-3",
+					Status:       "success",
 				},
 			},
 			outstatus:        "finished",
@@ -479,8 +479,4 @@ func TestMigration_1_2_4(t *testing.T) {
 
 		assert.Equal(t, true, found)
 	}
-}
-
-func strp(s string) *string {
-	return &s
 }

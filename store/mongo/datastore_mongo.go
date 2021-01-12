@@ -1682,10 +1682,6 @@ func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 	return err
 }
 
-func buildStatusKey(status string) string {
-	return StorageKeyDeploymentStats + "." + status
-}
-
 func (db *DataStoreMongo) Find(ctx context.Context,
 	match model.Query) ([]*model.Deployment, int64, error) {
 

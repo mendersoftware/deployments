@@ -143,8 +143,8 @@ func TestMigration_1_2_1(t *testing.T) {
 func makeDeployment(t *testing.T, name, artifactName string) *model.Deployment {
 	d, err := model.NewDeploymentFromConstructor(
 		&model.DeploymentConstructor{
-			Name:         sptr(name),
-			ArtifactName: sptr(artifactName)})
+			Name:         name,
+			ArtifactName: artifactName})
 
 	assert.NoError(t, err)
 	return d
@@ -194,8 +194,4 @@ func hasIndex(
 	}
 
 	return false, nil
-}
-
-func sptr(s string) *string {
-	return &s
 }

@@ -28,7 +28,6 @@ import (
 	"github.com/mendersoftware/deployments/model"
 	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
-	"github.com/mendersoftware/deployments/utils/pointers"
 	"github.com/mendersoftware/go-lib-micro/identity"
 )
 
@@ -149,8 +148,8 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		},
 		"insert error": {
 			InputConstructor: &model.DeploymentConstructor{
-				Name:         pointers.StringToPointer("NYC Production"),
-				ArtifactName: pointers.StringToPointer("App 123"),
+				Name:         "NYC Production",
+				ArtifactName: "App 123",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
 			InputDeploymentStorageInsertError: errors.New("insert error"),
@@ -159,8 +158,8 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		},
 		"ok": {
 			InputConstructor: &model.DeploymentConstructor{
-				Name:         pointers.StringToPointer("NYC Production"),
-				ArtifactName: pointers.StringToPointer("App 123"),
+				Name:         "NYC Production",
+				ArtifactName: "App 123",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
 
@@ -168,8 +167,8 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		},
 		"ok with group": {
 			InputConstructor: &model.DeploymentConstructor{
-				Name:         pointers.StringToPointer("group"),
-				ArtifactName: pointers.StringToPointer("App 123"),
+				Name:         "group",
+				ArtifactName: "App 123",
 				Group:        "group",
 			},
 
@@ -184,8 +183,8 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		},
 		"ok with group, two pages": {
 			InputConstructor: &model.DeploymentConstructor{
-				Name:         pointers.StringToPointer("group"),
-				ArtifactName: pointers.StringToPointer("App 123"),
+				Name:         "group",
+				ArtifactName: "App 123",
 				Group:        "group",
 			},
 
@@ -205,8 +204,8 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		},
 		"ko, with group, no device found": {
 			InputConstructor: &model.DeploymentConstructor{
-				Name:         pointers.StringToPointer("group"),
-				ArtifactName: pointers.StringToPointer("App 123"),
+				Name:         "group",
+				ArtifactName: "App 123",
 				Group:        "group",
 			},
 
@@ -214,8 +213,8 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		},
 		"ko, with group, error while searching": {
 			InputConstructor: &model.DeploymentConstructor{
-				Name:         pointers.StringToPointer("group"),
-				ArtifactName: pointers.StringToPointer("App 123"),
+				Name:         "group",
+				ArtifactName: "App 123",
 				Group:        "group",
 			},
 
