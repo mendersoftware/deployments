@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -172,7 +172,7 @@ func (d *DeploymentsApiHandlers) GetImage(w rest.ResponseWriter, r *rest.Request
 
 	id := r.PathParam("id")
 
-	if !govalidator.IsUUIDv4(id) {
+	if !govalidator.IsUUID(id) {
 		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
@@ -208,7 +208,7 @@ func (d *DeploymentsApiHandlers) DownloadLink(w rest.ResponseWriter, r *rest.Req
 
 	id := r.PathParam("id")
 
-	if !govalidator.IsUUIDv4(id) {
+	if !govalidator.IsUUID(id) {
 		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
@@ -232,7 +232,7 @@ func (d *DeploymentsApiHandlers) DeleteImage(w rest.ResponseWriter, r *rest.Requ
 
 	id := r.PathParam("id")
 
-	if !govalidator.IsUUIDv4(id) {
+	if !govalidator.IsUUID(id) {
 		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
@@ -257,7 +257,7 @@ func (d *DeploymentsApiHandlers) EditImage(w rest.ResponseWriter, r *rest.Reques
 
 	id := r.PathParam("id")
 
-	if !govalidator.IsUUIDv4(id) {
+	if !govalidator.IsUUID(id) {
 		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
@@ -651,7 +651,7 @@ func (d *DeploymentsApiHandlers) GetDeployment(w rest.ResponseWriter, r *rest.Re
 
 	id := r.PathParam("id")
 
-	if !govalidator.IsUUIDv4(id) {
+	if !govalidator.IsUUID(id) {
 		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
@@ -676,7 +676,7 @@ func (d *DeploymentsApiHandlers) GetDeploymentStats(w rest.ResponseWriter, r *re
 
 	id := r.PathParam("id")
 
-	if !govalidator.IsUUIDv4(id) {
+	if !govalidator.IsUUID(id) {
 		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
@@ -701,7 +701,7 @@ func (d *DeploymentsApiHandlers) GetDeploymentDeviceList(w rest.ResponseWriter, 
 
 	id := r.PathParam("id")
 
-	if !govalidator.IsUUIDv4(id) {
+	if !govalidator.IsUUID(id) {
 		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
@@ -726,14 +726,14 @@ func (d *DeploymentsApiHandlers) AbortDeployment(w rest.ResponseWriter, r *rest.
 
 	id := r.PathParam("id")
 
-	if !govalidator.IsUUIDv4(id) {
+	if !govalidator.IsUUID(id) {
 		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}
 
 	// receive request body
 	var status struct {
-		Status string
+		Status model.DeviceDeploymentStatus
 	}
 
 	err := r.DecodeJsonPayload(&status)
@@ -864,7 +864,7 @@ func (d *DeploymentsApiHandlers) PutDeploymentStatusForDevice(w rest.ResponseWri
 
 	l.Infof("status: %+v", report)
 	if err := d.app.UpdateDeviceDeploymentStatus(ctx, did,
-		idata.Subject, model.DeviceDeploymentStatus{
+		idata.Subject, model.DeviceDeploymentState{
 			Status:   report.Status,
 			SubState: report.SubState,
 		}); err != nil {
@@ -888,7 +888,7 @@ func (d *DeploymentsApiHandlers) GetDeviceStatusesForDeployment(w rest.ResponseW
 
 	did := r.PathParam("id")
 
-	if !govalidator.IsUUIDv4(did) {
+	if !govalidator.IsUUID(did) {
 		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
 		return
 	}

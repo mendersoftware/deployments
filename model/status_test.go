@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ func TestStatusUnmarshal(t *testing.T) {
 	var report StatusReport
 
 	err := json.Unmarshal([]byte(`{"status": "aborted"}`), &report)
-	assert.EqualError(t, ErrBadStatus, err.Error())
+	assert.EqualError(t, err, "status: must be a valid value.")
 
 	err = json.Unmarshal([]byte(`"status": "bad"}`), &report)
 	assert.Error(t, err)

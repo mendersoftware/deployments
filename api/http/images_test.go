@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -446,7 +446,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
 			responseBody: "api: invalid form parameters: " +
-				"device_types_compatible: non zero value required",
+				"device_types_compatible: cannot be blank.",
 		},
 		{
 			requestBodyObject: []h.Part{
@@ -485,7 +485,8 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			},
 			requestContentType: "multipart/form-data",
 			responseCode:       http.StatusBadRequest,
-			responseBody:       "api: invalid form parameters: type: non zero value required",
+			responseBody: "api: invalid form parameters: " +
+				"type: cannot be blank.",
 		},
 		{
 			requestBodyObject: []h.Part{

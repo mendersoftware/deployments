@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2020 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 // MigratorDummy does not actually apply migrations, just inserts the
 // target version into the db to mark the initial/current state.
 type DummyMigrator struct {
-	Client     *mongo.Client
+	Client      *mongo.Client
 	Db          string
 	Automigrate bool
 }

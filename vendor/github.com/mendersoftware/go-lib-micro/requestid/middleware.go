@@ -15,13 +15,61 @@ package requestid
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/satori/go.uuid"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 )
 
 const RequestIdHeader = "X-MEN-RequestID"
+
+type MiddlewareOptions struct {
+	// GenerateRequestID decides whether a request ID should
+	// be generated when none exists. (default: true)
+	GenerateRequestID *bool
+}
+
+func NewMiddlewareOptions() *MiddlewareOptions {
+	return new(MiddlewareOptions)
+}
+
+func (opt *MiddlewareOptions) SetGenerateRequestID(gen bool) *MiddlewareOptions {
+	opt.GenerateRequestID = &gen
+	return opt
+}
+
+// Middleware provides requestid middleware for the gin-gonic framework.
+func Middleware(opts ...*MiddlewareOptions) gin.HandlerFunc {
+	opt := NewMiddlewareOptions().
+		SetGenerateRequestID(true)
+	for _, o := range opts {
+		if o == nil {
+			continue
+		}
+		if o.GenerateRequestID != nil {
+			opt.GenerateRequestID = o.GenerateRequestID
+		}
+	}
+	return func(c *gin.Context) {
+		ctx := c.Request.Context()
+
+		requestID := c.GetHeader(RequestIdHeader)
+		if requestID == "" && *opt.GenerateRequestID {
+			uid, _ := uuid.NewRandom()
+			requestID = uid.String()
+		}
+		ctx = WithContext(ctx, requestID)
+
+		logger := log.FromContext(ctx)
+		if logger != nil {
+			logger = logger.F(log.Ctx{"request_id": requestID})
+			ctx = log.WithContext(ctx, logger)
+		}
+		c.Header(RequestIdHeader, requestID)
+		c.Request = c.Request.WithContext(ctx)
+	}
+}
 
 // RequestIdMiddleware sets the X-MEN-RequestID header if it's not present, and and adds the request id to the request's logger's context.
 type RequestIdMiddleware struct {
@@ -34,7 +82,7 @@ func (mw *RequestIdMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFu
 
 		reqId := r.Header.Get(RequestIdHeader)
 		if reqId == "" {
-			uid := uuid.NewV4()
+			uid, _ := uuid.NewRandom()
 			reqId = uid.String()
 		}
 

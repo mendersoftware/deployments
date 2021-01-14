@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -26,8 +26,6 @@ import (
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	ctxstore "github.com/mendersoftware/go-lib-micro/store"
-
-	"github.com/mendersoftware/deployments/utils/pointers"
 )
 
 func TestPing(t *testing.T) {
@@ -125,11 +123,12 @@ func TestGetReleases(t *testing.T) {
 
 		// Convert Depends["device_type"] to bson.A for the sake of
 		// simplifying test case definitions.
-		img.Depends = make(map[string]interface{})
-		img.Depends["device_type"] = make(bson.A, len(img.
-			DeviceTypesCompatible))
-		for i, devType := range img.DeviceTypesCompatible {
-			img.Depends["device_type"].(bson.A)[i] = devType
+		img.ArtifactMeta.Depends = make(map[string]interface{})
+		img.ArtifactMeta.Depends["device_type"] = make(bson.A,
+			len(img.ArtifactMeta.DeviceTypesCompatible),
+		)
+		for i, devType := range img.ArtifactMeta.DeviceTypesCompatible {
+			img.ArtifactMeta.Depends["device_type"].(bson.A)[i] = devType
 		}
 	}
 
@@ -223,20 +222,20 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 			InputDeploymentsCollection: []interface{}{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         pointers.StringToPointer("NYC Production"),
-						ArtifactName: pointers.StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:      pointers.StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id:      "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 					Created: &now,
 				},
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         pointers.StringToPointer("NYC Production"),
-						ArtifactName: pointers.StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:      pointers.StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Id:      "d1804903-5caa-4a73-a3ae-0efcc3205405",
 					Created: &now,
 				},
 			},
@@ -251,11 +250,11 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 			InputDeploymentsCollection: []interface{}{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         pointers.StringToPointer("NYC Production"),
-						ArtifactName: pointers.StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:      pointers.StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id:      "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 					Created: &now,
 				},
 			},
@@ -267,10 +266,10 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 			OutputDeployments: []*model.Deployment{
 				{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         pointers.StringToPointer("NYC Production"),
-						ArtifactName: pointers.StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 					},
-					Id: pointers.StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				},
 			},
 		},
@@ -278,20 +277,20 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 			InputDeploymentsCollection: []interface{}{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         pointers.StringToPointer("NYC Production"),
-						ArtifactName: pointers.StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:      pointers.StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id:      "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 					Created: TimePtr(now.Add(-time.Hour * 24)),
 				},
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         pointers.StringToPointer("NYC Production"),
-						ArtifactName: pointers.StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:      pointers.StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Id:      "d1804903-5caa-4a73-a3ae-0efcc3205405",
 					Created: TimePtr(now.Add(time.Hour * 24)),
 				},
 			},
@@ -303,10 +302,10 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 			OutputDeployments: []*model.Deployment{
 				{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         pointers.StringToPointer("NYC Production"),
-						ArtifactName: pointers.StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 					},
-					Id: pointers.StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Id: "d1804903-5caa-4a73-a3ae-0efcc3205405",
 				},
 			},
 		},
@@ -357,10 +356,6 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 	}
 }
 
-func strToPtr(value string) *string {
-	return &value
-}
-
 func TestSetDeploymentDeviceCount(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestSetDeploymentDeviceCount in short mode.")
@@ -377,11 +372,11 @@ func TestSetDeploymentDeviceCount(t *testing.T) {
 	}{
 		"device_count doesn't exist": {
 			deployment: &model.Deployment{
-				Id:      strToPtr("d50eda0d-2cea-4de1-8d42-9cd3e7e86701"),
+				Id:      "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
 				Created: &now,
 				DeploymentConstructor: &model.DeploymentConstructor{
-					Name:         strToPtr("name"),
-					ArtifactName: strToPtr("artifact"),
+					Name:         "name",
+					ArtifactName: "artifact",
 					Devices:      []string{"device-1"},
 				},
 			},
@@ -390,12 +385,12 @@ func TestSetDeploymentDeviceCount(t *testing.T) {
 		},
 		"device_count is zero": {
 			deployment: &model.Deployment{
-				Id:          strToPtr("d50eda0d-2cea-4de1-8d42-9cd3e7e86702"),
+				Id:          "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
 				DeviceCount: &zero,
 				Created:     &now,
 				DeploymentConstructor: &model.DeploymentConstructor{
-					Name:         strToPtr("name"),
-					ArtifactName: strToPtr("artifact"),
+					Name:         "name",
+					ArtifactName: "artifact",
 					Devices:      []string{"device-1"},
 				},
 			},
@@ -404,12 +399,12 @@ func TestSetDeploymentDeviceCount(t *testing.T) {
 		},
 		"device_count is one": {
 			deployment: &model.Deployment{
-				Id:          strToPtr("d50eda0d-2cea-4de1-8d42-9cd3e7e86703"),
+				Id:          "d50eda0d-2cea-4de1-8d42-9cd3e7e86703",
 				DeviceCount: &one,
 				Created:     &now,
 				DeploymentConstructor: &model.DeploymentConstructor{
-					Name:         strToPtr("name"),
-					ArtifactName: strToPtr("artifact"),
+					Name:         "name",
+					ArtifactName: "artifact",
 					Devices:      []string{"device-1"},
 				},
 			},
@@ -426,10 +421,10 @@ func TestSetDeploymentDeviceCount(t *testing.T) {
 			err := ds.InsertDeployment(ctx, tc.deployment)
 			assert.Nil(t, err)
 
-			err = ds.SetDeploymentDeviceCount(ctx, *tc.deployment.Id, tc.count)
+			err = ds.SetDeploymentDeviceCount(ctx, tc.deployment.Id, tc.count)
 			assert.Nil(t, err)
 
-			deployment, err := ds.FindDeploymentByID(ctx, *tc.deployment.Id)
+			deployment, err := ds.FindDeploymentByID(ctx, tc.deployment.Id)
 			assert.Nil(t, err)
 			assert.NotNil(t, deployment)
 			assert.NotNil(t, deployment.DeviceCount)

@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -77,11 +77,11 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to get deployment")
 		}
-		l.Infof("processing deployment %s with stats %v", *dep.Id, dep.Stats)
+		l.Infof("processing deployment %s with stats %v", dep.Id, dep.Stats)
 
 		var stats model.Stats
-		if allstats[*dep.Id] != nil {
-			stats = *allstats[*dep.Id]
+		if allstats[dep.Id] != nil {
+			stats = *allstats[dep.Id]
 		} else {
 			stats = model.NewDeviceDeploymentStats()
 		}
@@ -91,9 +91,9 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 		// substitute stats to recalc status with deployment.GetStatus
 		dep.Stats = newstats
 		status := m.getStatus(&dep)
-		deviceCount, err := m.deviceCountByDeployment(ctx, *dep.Id)
+		deviceCount, err := m.deviceCountByDeployment(ctx, dep.Id)
 		if err != nil {
-			return errors.Wrapf(err, "failed to count device deployments for deployment %s", *dep.Id)
+			return errors.Wrapf(err, "failed to count device deployments for deployment %s", dep.Id)
 		}
 
 		sets := bson.M{
@@ -105,16 +105,16 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 			sets[StorageKeyDeploymentStats] = newstats
 		}
 
-		res, err := coll.UpdateOne(ctx, bson.M{"_id": *dep.Id}, bson.M{"$set": sets})
+		res, err := coll.UpdateOne(ctx, bson.M{"_id": dep.Id}, bson.M{"$set": sets})
 		if err != nil {
-			return errors.Wrapf(err, "failed to update deployment %s", *dep.Id)
+			return errors.Wrapf(err, "failed to update deployment %s", dep.Id)
 		}
 
 		if res.MatchedCount == 0 {
-			return errors.Wrapf(err, "can't find deployment for update: %s", *dep.Id)
+			return errors.Wrapf(err, "can't find deployment for update: %s", dep.Id)
 		}
 
-		l.Infof("processing deployment %s: success", *dep.Id)
+		l.Infof("processing deployment %s: success", dep.Id)
 	}
 
 	if err := cur.Err(); err != nil {
@@ -161,7 +161,7 @@ func isPending(d *model.Deployment) bool {
 	return false
 }
 
-func (m *migration_1_2_4) getStatus(deployment *model.Deployment) string {
+func (m *migration_1_2_4) getStatus(deployment *model.Deployment) model.DeploymentStatus {
 	if isPending(deployment) {
 		return model.DeploymentStatusPending
 	} else if isFinished(deployment) {
@@ -201,7 +201,8 @@ func (m *migration_1_2_4) aggregateDeviceStatuses(ctx context.Context) (map[stri
 	var results []struct {
 		ID struct {
 			DeploymentID string `bson:"deploymentid"`
-			Status       string `bson:"status"`
+			Status       model.
+					DeviceDeploymentStatus `bson:"status"`
 		} `bson:"_id"`
 		Count int
 	}

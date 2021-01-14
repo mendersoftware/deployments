@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ func TestDeploymentStorageInsert(t *testing.T) {
 
 	newDeplFromConstr, err := model.NewDeploymentFromConstructor(&model.DeploymentConstructor{
 
-		Name:         StringToPointer("NYC Production"),
-		ArtifactName: StringToPointer("App 123"),
+		Name:         "NYC Production",
+		ArtifactName: "App 123",
 		Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 	})
 	assert.NoError(t, err)
@@ -63,7 +63,7 @@ func TestDeploymentStorageInsert(t *testing.T) {
 		},
 		{
 			InputDeployment: newDepl,
-			OutputError:     errors.New("DeploymentConstructor.name: non zero value required;DeploymentConstructor.artifact_name: non zero value required;DeploymentConstructor: non zero value required"),
+			OutputError:     errors.New("artifact_name: cannot be blank; name: cannot be blank."),
 		},
 		{
 			InputDeployment: newDeplFromConstr,
@@ -148,11 +148,11 @@ func TestDeploymentStorageDelete(t *testing.T) {
 			InputDeploymentsCollection: []interface{}{
 				model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
+					Id: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
 				},
 			},
 			OutputError: nil,
@@ -162,11 +162,11 @@ func TestDeploymentStorageDelete(t *testing.T) {
 			InputDeploymentsCollection: []interface{}{
 				model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("b532b01a-9313-404f-8d19-e7fcbe5cc347"),
+					Id: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
 				},
 			},
 			InputTenant: "acme",
@@ -254,19 +254,19 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 			InputDeploymentsCollection: bson.A{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				},
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Id: "d1804903-5caa-4a73-a3ae-0efcc3205405",
 				},
 			},
 			OutputError:      nil,
@@ -277,11 +277,11 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 			InputDeploymentsCollection: bson.A{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 					Stats: model.Stats{
 						model.DeviceDeploymentStatusDownloading: 0,
 						model.DeviceDeploymentStatusInstalling:  0,
@@ -296,11 +296,11 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 				},
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Id: "d1804903-5caa-4a73-a3ae-0efcc3205405",
 					Stats: model.Stats{
 						model.DeviceDeploymentStatusDownloading: 0,
 						model.DeviceDeploymentStatusInstalling:  0,
@@ -317,11 +317,11 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 			OutputError: nil,
 			OutputDeployment: &model.Deployment{
 				DeploymentConstructor: &model.DeploymentConstructor{
-					Name:         StringToPointer("NYC Production"),
-					ArtifactName: StringToPointer("App 123"),
+					Name:         "NYC Production",
+					ArtifactName: "App 123",
 					//Devices is not kept around!
 				},
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 0,
 					model.DeviceDeploymentStatusInstalling:  0,
@@ -340,11 +340,11 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 			InputDeploymentsCollection: bson.A{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:    StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id:    "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 					Stats: model.Stats{},
 				},
 			},
@@ -352,11 +352,11 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 
 			OutputDeployment: &model.Deployment{
 				DeploymentConstructor: &model.DeploymentConstructor{
-					Name:         StringToPointer("NYC Production"),
-					ArtifactName: StringToPointer("App 123"),
+					Name:         "NYC Production",
+					ArtifactName: "App 123",
 					//Devices is not kept around!
 				},
-				Id:    StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id:    "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: model.Stats{},
 			},
 		},
@@ -441,19 +441,19 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 			InputDeploymentsCollection: []interface{}{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				},
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Id: "d1804903-5caa-4a73-a3ae-0efcc3205405",
 				},
 			},
 			OutputError:      nil,
@@ -464,11 +464,11 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 			InputDeploymentsCollection: []interface{}{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 					Stats: model.Stats{
 						model.DeviceDeploymentStatusDownloading: 0,
 						model.DeviceDeploymentStatusInstalling:  0,
@@ -483,11 +483,11 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 				},
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Id: "d1804903-5caa-4a73-a3ae-0efcc3205405",
 					Stats: model.Stats{
 						model.DeviceDeploymentStatusDownloading: 0,
 						model.DeviceDeploymentStatusInstalling:  0,
@@ -504,11 +504,11 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 			OutputError: nil,
 			OutputDeployment: &model.Deployment{
 				DeploymentConstructor: &model.DeploymentConstructor{
-					Name:         StringToPointer("NYC Production"),
-					ArtifactName: StringToPointer("App 123"),
+					Name:         "NYC Production",
+					ArtifactName: "App 123",
 					//Devices is not kept around!
 				},
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 0,
 					model.DeviceDeploymentStatusInstalling:  0,
@@ -527,20 +527,20 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 			InputDeploymentsCollection: []interface{}{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id:       StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id:       "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 					Finished: &now,
 				},
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("d1804903-5caa-4a73-a3ae-0efcc3205405"),
+					Id: "d1804903-5caa-4a73-a3ae-0efcc3205405",
 				},
 			},
 			OutputError:      nil,
@@ -551,11 +551,11 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 			InputDeploymentsCollection: []interface{}{
 				&model.Deployment{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 					Stats: model.Stats{
 						model.DeviceDeploymentStatusPending: 10,
 						model.DeviceDeploymentStatusSuccess: 15,
@@ -567,11 +567,11 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 			OutputError: nil,
 			OutputDeployment: &model.Deployment{
 				DeploymentConstructor: &model.DeploymentConstructor{
-					Name:         StringToPointer("NYC Production"),
-					ArtifactName: StringToPointer("App 123"),
+					Name:         "NYC Production",
+					ArtifactName: "App 123",
 					//Devices is not kept around!
 				},
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusPending: 10,
 					model.DeviceDeploymentStatusSuccess: 15,
@@ -642,8 +642,8 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 		InputDeployment *model.Deployment
 		InputTenant     string
 
-		InputStateFrom string
-		InputStateTo   string
+		InputStateFrom model.DeviceDeploymentStatus
+		InputStateTo   model.DeviceDeploymentStatus
 
 		OutputError error
 		OutputStats model.Stats
@@ -651,7 +651,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 		"pending -> finished": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeployment: &model.Deployment{
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
@@ -683,7 +683,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 		"rebooting -> failed": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeployment: &model.Deployment{
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
@@ -733,7 +733,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 		"no old state": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeployment: &model.Deployment{
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
@@ -764,7 +764,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 		"install install": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeployment: &model.Deployment{
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
@@ -796,7 +796,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 		"tenant, pending -> finished": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			InputDeployment: &model.Deployment{
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
@@ -919,7 +919,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 		"all correct": {
 			id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			dep: &model.Deployment{
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloading: 1,
 					model.DeviceDeploymentStatusInstalling:  2,
@@ -961,7 +961,7 @@ func TestDeploymentStorageUpdateStats(t *testing.T) {
 		"tenant, all correct": {
 			id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 			dep: &model.Deployment{
-				Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				Stats: newTestStats(model.Stats{
 					model.DeviceDeploymentStatusRebooting: 3,
 				}),
@@ -1039,11 +1039,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 	someDeployments := []*model.Deployment{
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("NYC Production Inc."),
-				ArtifactName: StringToPointer("App 123"),
+				Name:         "NYC Production Inc.",
+				ArtifactName: "App 123",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000001"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000001",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusNoArtifact: 1,
 			}),
@@ -1052,11 +1052,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("NYC Production Inc."),
-				ArtifactName: StringToPointer("App 123"),
+				Name:         "NYC Production Inc.",
+				ArtifactName: "App 123",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000002"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000002",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusNoArtifact: 1,
 			}),
@@ -1065,11 +1065,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("foo"),
-				ArtifactName: StringToPointer("bar"),
+				Name:         "foo",
+				ArtifactName: "bar",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000003"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000003",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusFailure: 2,
 			}),
@@ -1078,11 +1078,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("foo"),
-				ArtifactName: StringToPointer("bar"),
+				Name:         "foo",
+				ArtifactName: "bar",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000004"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000004",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusNoArtifact: 1,
 			}),
@@ -1091,11 +1091,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("foo"),
-				ArtifactName: StringToPointer("bar"),
+				Name:         "foo",
+				ArtifactName: "bar",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000005"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000005",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusDownloading: 1,
 			}),
@@ -1103,11 +1103,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("zed"),
-				ArtifactName: StringToPointer("daz"),
+				Name:         "zed",
+				ArtifactName: "daz",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000006"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000006",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusDownloading: 1,
 				model.DeviceDeploymentStatusPending:     1,
@@ -1116,11 +1116,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("zed"),
-				ArtifactName: StringToPointer("daz"),
+				Name:         "zed",
+				ArtifactName: "daz",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000007"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000007",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusPending: 1,
 			}),
@@ -1128,11 +1128,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("zed"),
-				ArtifactName: StringToPointer("daz"),
+				Name:         "zed",
+				ArtifactName: "daz",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000008"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000008",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusNoArtifact: 1,
 				model.DeviceDeploymentStatusSuccess:    1,
@@ -1142,11 +1142,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("123"),
-				ArtifactName: StringToPointer("dfs"),
+				Name:         "123",
+				ArtifactName: "dfs",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc34a"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000009"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000009",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusAborted: 1,
 			}),
@@ -1157,11 +1157,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		//in progress deployment, with only pending and already-installed counters > 0
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("baz"),
-				ArtifactName: StringToPointer("asdf"),
+				Name:         "baz",
+				ArtifactName: "asdf",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000010"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000010",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusPending:     1,
 				model.DeviceDeploymentStatusAlreadyInst: 1,
@@ -1171,11 +1171,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		//in progress deployment, with only pending and success counters > 0
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("baz"),
-				ArtifactName: StringToPointer("asdf"),
+				Name:         "baz",
+				ArtifactName: "asdf",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000011"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000011",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusPending: 1,
 				model.DeviceDeploymentStatusSuccess: 1,
@@ -1185,11 +1185,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		//in progress deployment, with only pending and failure counters > 0
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("baz"),
-				ArtifactName: StringToPointer("asdf"),
+				Name:         "baz",
+				ArtifactName: "asdf",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000012"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000012",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusPending: 1,
 				model.DeviceDeploymentStatusFailure: 1,
@@ -1199,11 +1199,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		//in progress deployment, with only pending and noartifact counters > 0
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("baz"),
-				ArtifactName: StringToPointer("asdf"),
+				Name:         "baz",
+				ArtifactName: "asdf",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000013"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000013",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusPending:    1,
 				model.DeviceDeploymentStatusNoArtifact: 1,
@@ -1213,11 +1213,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		//finished deployment, with only already installed counter > 0
 		{
 			DeploymentConstructor: &model.DeploymentConstructor{
-				Name:         StringToPointer("baz"),
-				ArtifactName: StringToPointer("asdf"),
+				Name:         "baz",
+				ArtifactName: "asdf",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
-			Id: StringToPointer("a108ae14-bb4e-455f-9b40-000000000014"),
+			Id: "a108ae14-bb4e-455f-9b40-000000000014",
 			Stats: newTestStats(model.Stats{
 				model.DeviceDeploymentStatusAlreadyInst: 1,
 			}),
@@ -1247,11 +1247,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: []*model.Deployment{
 				{
 					DeploymentConstructor: &model.DeploymentConstructor{
-						Name:         StringToPointer("NYC Production"),
-						ArtifactName: StringToPointer("App 123"),
+						Name:         "NYC Production",
+						ArtifactName: "App 123",
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
-					Id: StringToPointer("a108ae14-bb4e-455f-9b40-2ef4bab97bb7"),
+					Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
 				},
 			},
 		},
@@ -1485,9 +1485,9 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				for idx, dep := range deps {
 					// deployments must be listed in the same order
 					assert.Equal(t, testCase.OutputID[idx],
-						*dep.Id,
+						dep.Id,
 						"unexpected deployment %v at position %v, expected %v",
-						*dep.Id, idx, testCase.OutputID[idx])
+						dep.Id, idx, testCase.OutputID[idx])
 				}
 
 				// output result should be stable
@@ -1509,11 +1509,11 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 				err = store.InsertDeployment(context.Background(),
 					&model.Deployment{
 						DeploymentConstructor: &model.DeploymentConstructor{
-							Name:         StringToPointer("foo-" + testCase.InputTenant),
-							ArtifactName: StringToPointer("bar-" + testCase.InputTenant),
+							Name:         "foo-" + testCase.InputTenant,
+							ArtifactName: "bar-" + testCase.InputTenant,
 							Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc399"},
 						},
-						Id:      StringToPointer("e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c199"),
+						Id:      "e8c32ff6-7c1b-43c7-aa31-2e4fc3a3c199",
 						Stats:   newTestStats(model.Stats{}),
 						Created: TimeToPointer(time.Now().UTC()),
 					})
@@ -1540,9 +1540,9 @@ func TestDeviceDeploymentCounting(t *testing.T) {
 		{
 			InputDeploymentID: "foo",
 			InputDeviceDeployment: []*model.DeviceDeployment{
-				&model.DeviceDeployment{
-					Id:           StringToPointer("foo"),
-					DeploymentId: StringToPointer("foo"),
+				{
+					Id:           "foo",
+					DeploymentId: "foo",
 				},
 			},
 			DeviceCount: 1,
@@ -1550,21 +1550,21 @@ func TestDeviceDeploymentCounting(t *testing.T) {
 		{
 			InputDeploymentID: "bar",
 			InputDeviceDeployment: []*model.DeviceDeployment{
-				&model.DeviceDeployment{
-					Id:           StringToPointer("996cf733-a7d9-4e8c-823e-122be04d9e39"),
-					DeploymentId: StringToPointer("bar"),
+				{
+					Id:           "996cf733-a7d9-4e8c-823e-122be04d9e39",
+					DeploymentId: "bar",
 				},
-				&model.DeviceDeployment{
-					Id:           StringToPointer("ced2feba-d0a9-4f89-8cda-dd6f749c67a1"),
-					DeploymentId: StringToPointer("bar"),
+				{
+					Id:           "ced2feba-d0a9-4f89-8cda-dd6f749c67a1",
+					DeploymentId: "bar",
 				},
-				&model.DeviceDeployment{
-					Id:           StringToPointer("9d333d96-80ee-45d3-96ef-1dd2776e0994"),
-					DeploymentId: StringToPointer("bar"),
+				{
+					Id:           "9d333d96-80ee-45d3-96ef-1dd2776e0994",
+					DeploymentId: "bar",
 				},
-				&model.DeviceDeployment{
-					Id:           StringToPointer("bba8dd14-7980-474f-a791-449f4dc67cf6"),
-					DeploymentId: StringToPointer("bar"),
+				{
+					Id:           "bba8dd14-7980-474f-a791-449f4dc67cf6",
+					DeploymentId: "bar",
 				},
 			},
 			DeviceCount: 4,
@@ -1606,14 +1606,14 @@ func TestDeploymentSetStatus(t *testing.T) {
 
 	id := "a108ae14-bb4e-455f-9b40-2ef4bab97bb7"
 	deployment := &model.Deployment{
-		Id: StringToPointer(id),
+		Id: id,
 	}
 
 	now := time.Now().UTC()
 	testCases := map[string]struct {
 		tenant string
 
-		status string
+		status model.DeploymentStatus
 	}{
 		"pending": {
 			status: model.DeploymentStatusPending,

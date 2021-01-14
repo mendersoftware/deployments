@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -143,8 +143,8 @@ func TestMigration_1_2_1(t *testing.T) {
 func makeDeployment(t *testing.T, name, artifactName string) *model.Deployment {
 	d, err := model.NewDeploymentFromConstructor(
 		&model.DeploymentConstructor{
-			Name:         sptr(name),
-			ArtifactName: sptr(artifactName)})
+			Name:         name,
+			ArtifactName: artifactName})
 
 	assert.NoError(t, err)
 	return d
@@ -194,8 +194,4 @@ func hasIndex(
 	}
 
 	return false, nil
-}
-
-func sptr(s string) *string {
-	return &s
 }

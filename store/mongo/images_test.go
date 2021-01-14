@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 
 	//image dataset - common for all cases
 	inputImgs := []*model.Image{
-		&model.Image{
+		{
 			Id: newID(),
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
@@ -48,7 +48,7 @@ func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 				Updates:               []model.Update{},
 			},
 		},
-		&model.Image{
+		{
 			Id: newID(),
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
@@ -77,11 +77,12 @@ func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 
 		// Convert Depends["device_type"] to bson.A for the sake of
 		// simplifying test case definitions.
-		image.Depends = make(map[string]interface{})
-		image.Depends["device_type"] = make(bson.A, len(image.
-			DeviceTypesCompatible))
-		for i, devType := range image.DeviceTypesCompatible {
-			image.Depends["device_type"].(bson.A)[i] = devType
+		image.ArtifactMeta.Depends = make(map[string]interface{})
+		image.ArtifactMeta.Depends["device_type"] = make(bson.A,
+			len(image.ArtifactMeta.DeviceTypesCompatible),
+		)
+		for i, devType := range image.ArtifactMeta.DeviceTypesCompatible {
+			image.ArtifactMeta.Depends["device_type"].(bson.A)[i] = devType
 		}
 	}
 

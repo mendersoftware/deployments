@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,119 +17,143 @@ package model
 import (
 	"time"
 
-	"github.com/asaskevich/govalidator"
-	"github.com/satori/go.uuid"
+	"github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
+
+type DeviceDeploymentStatus string
 
 // Deployment statuses
 const (
-	DeviceDeploymentStatusDownloading    = "downloading"
-	DeviceDeploymentStatusInstalling     = "installing"
-	DeviceDeploymentStatusRebooting      = "rebooting"
-	DeviceDeploymentStatusPending        = "pending"
-	DeviceDeploymentStatusSuccess        = "success"
-	DeviceDeploymentStatusFailure        = "failure"
-	DeviceDeploymentStatusNoArtifact     = "noartifact"
-	DeviceDeploymentStatusAlreadyInst    = "already-installed"
-	DeviceDeploymentStatusAborted        = "aborted"
-	DeviceDeploymentStatusDecommissioned = "decommissioned"
+	DeviceDeploymentStatusDownloading    DeviceDeploymentStatus = "downloading"
+	DeviceDeploymentStatusInstalling     DeviceDeploymentStatus = "installing"
+	DeviceDeploymentStatusRebooting      DeviceDeploymentStatus = "rebooting"
+	DeviceDeploymentStatusPending        DeviceDeploymentStatus = "pending"
+	DeviceDeploymentStatusSuccess        DeviceDeploymentStatus = "success"
+	DeviceDeploymentStatusFailure        DeviceDeploymentStatus = "failure"
+	DeviceDeploymentStatusNoArtifact     DeviceDeploymentStatus = "noartifact"
+	DeviceDeploymentStatusAlreadyInst    DeviceDeploymentStatus = "already-installed"
+	DeviceDeploymentStatusAborted        DeviceDeploymentStatus = "aborted"
+	DeviceDeploymentStatusDecommissioned DeviceDeploymentStatus = "decommissioned"
 )
+
+var allStatuses = []interface{}{ // NOTE: []DeviceDeploymentStatus
+	DeviceDeploymentStatusNoArtifact,
+	DeviceDeploymentStatusFailure,
+	DeviceDeploymentStatusSuccess,
+	DeviceDeploymentStatusPending,
+	DeviceDeploymentStatusRebooting,
+	DeviceDeploymentStatusInstalling,
+	DeviceDeploymentStatusDownloading,
+	DeviceDeploymentStatusAlreadyInst,
+	DeviceDeploymentStatusAborted,
+	DeviceDeploymentStatusDecommissioned,
+}
+
+func (stat DeviceDeploymentStatus) Validate() error {
+	return validation.In(allStatuses...).
+		Validate(stat)
+}
 
 // DeviceDeploymentStatus is a helper type for reporting status changes through
 // the layers
-type DeviceDeploymentStatus struct {
+type DeviceDeploymentState struct {
 	// status reported by device
-	Status string `valid:"required"`
+	Status DeviceDeploymentStatus
 	// substate reported by device
-	SubState *string
+	SubState string `json:",omitempty" bson:",omitempty"`
 	// finish time
-	FinishTime *time.Time
+	FinishTime *time.Time `json:",omitempty" bson:",omitempty"`
+}
+
+func (state DeviceDeploymentState) Validate() error {
+	return validation.ValidateStruct(&state,
+		validation.Field(&state.Status, validation.Required),
+	)
 }
 
 type DeviceDeployment struct {
 	// Internal field of initial creation of deployment
-	Created *time.Time `json:"created" valid:"required"`
+	Created *time.Time `json:"created" bson:"created"`
 
 	// Update finish time
-	Finished *time.Time `json:"finished,omitempty" valid:"-"`
+	Finished *time.Time `json:"finished,omitempty" bson:"finished,omitempty"`
 
 	// Status
-	Status *string `json:"status" valid:"required"`
+	Status DeviceDeploymentStatus `json:"status" bson:"status"`
 
 	// Device id
-	DeviceId *string `json:"id" valid:"required"`
+	DeviceId string `json:"id" bson:"deviceid"`
 
 	// Deployment id
-	DeploymentId *string `json:"-" valid:"uuidv4,required"`
+	DeploymentId string `json:"-" bson:"deploymentid"`
 
 	// ID
-	Id *string `json:"-" bson:"_id" valid:"uuidv4,required"`
+	Id string `json:"-" bson:"_id"`
 
 	// Assigned software image
-	Image *Image `json:"-" valid:"-"`
+	Image *Image `json:"-"`
 
 	// Target device type
-	DeviceType *string `json:"device_type,omitempty" valid:"-"`
+	DeviceType string `json:"device_type,omitempty" bson:"devicetype"`
 
 	// Presence of deployment log
-	IsLogAvailable bool `json:"log" valid:"-" bson:"log"`
+	IsLogAvailable bool `json:"log" bson:"log"`
 
 	// Device reported substate
-	SubState *string `json:"substate,omitempty" valid:"-" bson:"substate"`
+	SubState string `json:"substate,omitempty" bson:"substate,omitempty"`
 }
 
-func NewDeviceDeployment(deviceId, deploymentId string) (*DeviceDeployment, error) {
+func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
 
 	now := time.Now()
-	initStatus := DeviceDeploymentStatusPending
 
-	uid := uuid.NewV4()
+	uid, err := uuid.NewRandom()
+	if err != nil {
+		panic(errors.Wrap(err, "failed to generate random uuid (v4)"))
+	}
 	id := uid.String()
 
 	return &DeviceDeployment{
-		Status:         &initStatus,
-		DeviceId:       &deviceId,
-		DeploymentId:   &deploymentId,
-		Id:             &id,
+		Status:         DeviceDeploymentStatusPending,
+		DeviceId:       deviceId,
+		DeploymentId:   deploymentId,
+		Id:             id,
 		Created:        &now,
 		IsLogAvailable: false,
-	}, nil
+	}
 }
 
-func (d *DeviceDeployment) Validate() error {
-	_, err := govalidator.ValidateStruct(d)
-	return err
+func (d DeviceDeployment) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.Created, validation.Required),
+		validation.Field(&d.Status, validation.Required),
+		validation.Field(&d.DeviceId, validation.Required),
+		validation.Field(&d.DeploymentId, validation.Required, is.UUID),
+		validation.Field(&d.Id, validation.Required, is.UUID),
+	)
 }
 
 // Deployment statistics wrapper, each value carries a count of deployments
 // aggregated by state.
-type Stats map[string]int
+type Stats map[DeviceDeploymentStatus]int
 
 func NewDeviceDeploymentStats() Stats {
-	statuses := []string{
-		DeviceDeploymentStatusNoArtifact,
-		DeviceDeploymentStatusFailure,
-		DeviceDeploymentStatusSuccess,
-		DeviceDeploymentStatusPending,
-		DeviceDeploymentStatusRebooting,
-		DeviceDeploymentStatusInstalling,
-		DeviceDeploymentStatusDownloading,
-		DeviceDeploymentStatusAlreadyInst,
-		DeviceDeploymentStatusAborted,
-		DeviceDeploymentStatusDecommissioned,
-	}
 
 	s := make(Stats)
 
 	// populate statuses with 0s
-	for _, v := range statuses {
-		s[v] = 0
+	for _, v := range allStatuses {
+		status := v.(DeviceDeploymentStatus)
+		s[status] = 0
 	}
 
 	return s
 }
 
-func IsDeviceDeploymentStatusFinished(status string) bool {
+func IsDeviceDeploymentStatusFinished(status DeviceDeploymentStatus) bool {
 	if status == DeviceDeploymentStatusFailure || status == DeviceDeploymentStatusSuccess ||
 		status == DeviceDeploymentStatusNoArtifact || status == DeviceDeploymentStatusAlreadyInst ||
 		status == DeviceDeploymentStatusAborted || status == DeviceDeploymentStatusDecommissioned {
@@ -139,8 +163,8 @@ func IsDeviceDeploymentStatusFinished(status string) bool {
 }
 
 // ActiveDeploymentStatuses lists statuses that represent deployment in active state (not finished).
-func ActiveDeploymentStatuses() []string {
-	return []string{
+func ActiveDeploymentStatuses() []DeviceDeploymentStatus {
+	return []DeviceDeploymentStatus{
 		DeviceDeploymentStatusPending,
 		DeviceDeploymentStatusDownloading,
 		DeviceDeploymentStatusInstalling,
@@ -148,8 +172,8 @@ func ActiveDeploymentStatuses() []string {
 	}
 }
 
-func InactiveDeploymentStatuses() []string {
-	return []string{
+func InactiveDeploymentStatuses() []DeviceDeploymentStatus {
+	return []DeviceDeploymentStatus{
 		DeviceDeploymentStatusAlreadyInst,
 		DeviceDeploymentStatusSuccess,
 		DeviceDeploymentStatusFailure,
@@ -163,11 +187,17 @@ func InactiveDeploymentStatuses() []string {
 // InstalledDeviceDeployment describes a deployment currently installed on the
 // device, usually reported by a device
 type InstalledDeviceDeployment struct {
-	ArtifactName string `json:"artifact_name" valid:"length(1|4096),required"`
-	DeviceType   string `json:"device_type" valid:"length(1|4096),required"`
+	ArtifactName string `json:"artifact_name"`
+	DeviceType   string `json:"device_type"`
 }
 
 func (i *InstalledDeviceDeployment) Validate() error {
-	_, err := govalidator.ValidateStruct(i)
-	return err
+	return validation.ValidateStruct(i,
+		validation.Field(&i.ArtifactName,
+			validation.Required, lengthIn1To4096,
+		),
+		validation.Field(&i.DeviceType,
+			validation.Required, lengthIn1To4096,
+		),
+	)
 }

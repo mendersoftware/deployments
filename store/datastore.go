@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -61,15 +61,15 @@ type DataStore interface {
 	InsertMany(ctx context.Context,
 		deployment ...*model.DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(ctx context.Context,
-		id string, statuses ...string) (bool, error)
+		id string, statuses ...model.DeviceDeploymentStatus) (bool, error)
 	FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-		deviceID string, statuses ...string) (*model.DeviceDeployment, error)
+		deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error)
 	FindLatestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-		deviceID string, statuses ...string) (*model.DeviceDeployment, error)
+		deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error)
 	FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
 		deviceID string, statuses ...string) ([]model.DeviceDeployment, error)
 	UpdateDeviceDeploymentStatus(ctx context.Context, deviceID string,
-		deploymentID string, status model.DeviceDeploymentStatus) (string, error)
+		deploymentID string, state model.DeviceDeploymentState) (model.DeviceDeploymentStatus, error)
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
 	AssignArtifact(ctx context.Context, deviceID string,
@@ -81,7 +81,7 @@ type DataStore interface {
 	HasDeploymentForDevice(ctx context.Context,
 		deploymentID string, deviceID string) (bool, error)
 	GetDeviceDeploymentStatus(ctx context.Context,
-		deploymentID string, deviceID string) (string, error)
+		deploymentID string, deviceID string) (model.DeviceDeploymentStatus, error)
 	AbortDeviceDeployments(ctx context.Context, deploymentID string) error
 	DecommissionDeviceDeployments(ctx context.Context, deviceId string) error
 	GetDeviceDeployment(ctx context.Context,
@@ -93,12 +93,12 @@ type DataStore interface {
 	FindDeploymentByID(ctx context.Context, id string) (*model.Deployment, error)
 	FindUnfinishedByID(ctx context.Context,
 		id string) (*model.Deployment, error)
-	UpdateStatsInc(ctx context.Context, id string, state_from, state_to string) error
+	UpdateStatsInc(ctx context.Context, id string, stateFrom, stateTo model.DeviceDeploymentStatus) error
 	UpdateStats(ctx context.Context,
 		id string, stats model.Stats) error
 	Find(ctx context.Context,
 		query model.Query) ([]*model.Deployment, int64, error)
-	SetDeploymentStatus(ctx context.Context, id, status string, now time.Time) error
+	SetDeploymentStatus(ctx context.Context, id string, status model.DeploymentStatus, now time.Time) error
 	FindNewerActiveDeployments(ctx context.Context,
 		createdAfter *time.Time, skip, limit int) ([]*model.Deployment, error)
 	ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error)
