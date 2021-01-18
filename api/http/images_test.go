@@ -36,12 +36,6 @@ import (
 )
 
 func TestPostArtifacts(t *testing.T) {
-	type request struct {
-		Description string `json:"description"`
-		Size        int64  `json:"size"`
-		ArtifactID  string `json:"artifact_id"`
-	}
-
 	var testConflictError = model.NewConflictError(
 		store_mongo.ErrMsgConflictingDepends,
 		`{meta_artifact.artifact_name: "foobar", `+
@@ -214,12 +208,6 @@ func TestPostArtifacts(t *testing.T) {
 }
 
 func TestPostArtifactsInternal(t *testing.T) {
-	type request struct {
-		Description string `json:"description"`
-		Size        int64  `json:"size"`
-		ArtifactID  string `json:"artifact_id"`
-	}
-
 	imageBody := []byte("123456790")
 	var testConflictError = model.NewConflictError(
 		store_mongo.ErrMsgConflictingDepends,
@@ -389,15 +377,6 @@ func TestPostArtifactsInternal(t *testing.T) {
 }
 
 func TestPostArtifactsGenerate(t *testing.T) {
-	type request struct {
-		Name                  string `json:"name"`
-		Description           string `json:"description"`
-		Size                  int64  `json:"size"`
-		DeviceTypesCompatible string `json:"device_types_compatible"`
-		Type                  string `json:"type"`
-		Args                  string `json:"args"`
-	}
-
 	imageBody := []byte("123456790")
 
 	testCases := []struct {

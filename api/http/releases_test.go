@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ package http
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -44,9 +43,9 @@ func TestGetReleases(t *testing.T) {
 	}{
 		"ok": {
 			storeReleases: []dmodel.Release{
-				dmodel.Release{
+				{
 					Artifacts: []model.Image{
-						model.Image{
+						{
 							Id: "1",
 							ImageMeta: &model.ImageMeta{
 								Description: "description",
@@ -65,9 +64,9 @@ func TestGetReleases(t *testing.T) {
 				http.StatusOK,
 				nil,
 				[]dmodel.Release{
-					dmodel.Release{
+					{
 						Artifacts: []model.Image{
-							model.Image{
+							{
 								Id: "1",
 								ImageMeta: &model.ImageMeta{
 									Description: "description",
@@ -111,7 +110,7 @@ func TestGetReleases(t *testing.T) {
 	for name := range testCases {
 		tc := testCases[name]
 
-		t.Run(fmt.Sprintf("%s", name), func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			store := &store_mocks.DataStore{}
 
 			store.On("GetReleases", deployments_testing.ContextMatcher(), tc.filter).

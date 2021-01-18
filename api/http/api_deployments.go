@@ -68,7 +68,7 @@ const (
 
 // Errors
 var (
-	ErrIDNotUUIDv4                          = errors.New("ID is not UUIDv4")
+	ErrIDNotUUID                            = errors.New("ID is not a valid UUID")
 	ErrArtifactUsedInActiveDeployment       = errors.New("Artifact is used in active deployment")
 	ErrInvalidExpireParam                   = errors.New("Invalid expire parameter")
 	ErrArtifactNameMissing                  = errors.New("request does not contain the name of the artifact")
@@ -182,7 +182,7 @@ func (d *DeploymentsApiHandlers) GetImage(w rest.ResponseWriter, r *rest.Request
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -218,7 +218,7 @@ func (d *DeploymentsApiHandlers) DownloadLink(w rest.ResponseWriter, r *rest.Req
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -242,7 +242,7 @@ func (d *DeploymentsApiHandlers) DeleteImage(w rest.ResponseWriter, r *rest.Requ
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -267,7 +267,7 @@ func (d *DeploymentsApiHandlers) EditImage(w rest.ResponseWriter, r *rest.Reques
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -350,7 +350,6 @@ func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest
 
 	// parse multipart message
 	multipartUploadMsg, err := d.ParseMultipart(formReader)
-	defer r.MultipartForm.RemoveAll()
 
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
@@ -661,7 +660,7 @@ func (d *DeploymentsApiHandlers) GetDeployment(w rest.ResponseWriter, r *rest.Re
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -686,7 +685,7 @@ func (d *DeploymentsApiHandlers) GetDeploymentStats(w rest.ResponseWriter, r *re
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -711,7 +710,7 @@ func (d *DeploymentsApiHandlers) GetDeploymentDeviceList(w rest.ResponseWriter, 
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -736,7 +735,7 @@ func (d *DeploymentsApiHandlers) AbortDeployment(w rest.ResponseWriter, r *rest.
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -912,7 +911,7 @@ func (d *DeploymentsApiHandlers) GetDeviceStatusesForDeployment(w rest.ResponseW
 	did := r.PathParam("id")
 
 	if !govalidator.IsUUID(did) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
