@@ -54,6 +54,8 @@ const (
 	GetDeploymentForDeviceQueryDeviceType = "device_type"
 )
 
+const Redacted = "REDACTED"
+
 // JWT token
 const (
 	HTTPHeaderAuthorization       = "Authorization"
@@ -119,9 +121,16 @@ func (d *DeploymentsApiHandlers) GetReleases(w rest.ResponseWriter, r *rest.Requ
 
 	var filt *model.ReleaseFilter
 
-	name := r.URL.Query().Get("name")
+	q := r.URL.Query()
+	name := q.Get("name")
 
 	if name != "" {
+		defer func() {
+			if q.Get("name") != "" {
+				q.Set("name", Redacted)
+				r.URL.RawQuery = q.Encode()
+			}
+		}()
 		filt = &model.ReleaseFilter{
 			Name: name,
 		}
@@ -778,6 +787,20 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 	}
 
 	q := r.URL.Query()
+	defer func() {
+		var reEncode bool = false
+		if name := q.Get("artifact_name"); name != "" {
+			q.Set("artifact_name", Redacted)
+			reEncode = true
+		}
+		if typ := q.Get("device_type"); typ != "" {
+			q.Set("device_type", Redacted)
+			reEncode = true
+		}
+		if reEncode {
+			r.URL.RawQuery = q.Encode()
+		}
+	}()
 	installed := &model.InstalledDeviceDeployment{
 		ArtifactName: q.Get(GetDeploymentForDeviceQueryArtifact),
 		DeviceType:   q.Get(GetDeploymentForDeviceQueryDeviceType),
@@ -965,8 +988,15 @@ func parseEpochToTimestamp(epoch string) (time.Time, error) {
 func (d *DeploymentsApiHandlers) LookupDeployment(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)
+	q := r.URL.Query()
+	defer func() {
+		if search := q.Get("search"); search != "" {
+			q.Set("search", Redacted)
+			r.URL.RawQuery = q.Encode()
+		}
+	}()
 
-	query, err := ParseLookupQuery(r.URL.Query())
+	query, err := ParseLookupQuery(q)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
