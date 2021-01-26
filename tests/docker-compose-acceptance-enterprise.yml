@@ -11,7 +11,7 @@ services:
             - mender-inventory
             - mender-workflows-server
             - minio
-            - storage-proxy
+            - mender-api-gateway
     mender-deployments:
             # built/tagged locally and only used for testing
             image: mendersoftware/deployments:prtest
