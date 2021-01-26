@@ -15,6 +15,7 @@
 package model
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -128,7 +129,7 @@ func TestDeploymentConstructorValidate(t *testing.T) {
 		dep.Group = test.InputGroup
 		dep.AllDevices = test.InputAllDevices
 
-		err := dep.Validate()
+		err := dep.ValidateNew()
 
 		if !test.IsValid {
 			assert.Error(t, err)
@@ -178,31 +179,26 @@ func TestDeploymentValidate(t *testing.T) {
 			InputDevices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
 			IsValid:           true,
 		},
-		{
-			InputName:         "f826484e-1157-4109-af21-304e6d711560",
-			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
-			InputDevices:      []string{},
-			IsValid:           false,
-		},
 	}
 
-	for _, test := range testCases {
+	for i, test := range testCases {
+		t.Run(fmt.Sprintf("test #%d", i), func(t *testing.T) {
+			pub := &DeploymentConstructor{}
+			pub.Name = test.InputName
+			pub.ArtifactName = test.InputArtifactName
+			pub.Devices = test.InputDevices
 
-		pub := &DeploymentConstructor{}
-		pub.Name = test.InputName
-		pub.ArtifactName = test.InputArtifactName
-		pub.Devices = test.InputDevices
-
-		dep, err := NewDeploymentFromConstructor(pub)
-		assert.NoError(t, err)
-
-		err = dep.Validate()
-
-		if !test.IsValid {
-			assert.Error(t, err)
-		} else {
+			dep, err := NewDeploymentFromConstructor(pub)
 			assert.NoError(t, err)
-		}
+
+			err = dep.Validate()
+
+			if !test.IsValid {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 
 }

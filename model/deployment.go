@@ -70,11 +70,15 @@ type DeploymentConstructor struct {
 // Validate checks structure according to valid tags
 // TODO: Add custom validator to check devices array content (such us UUID formatting)
 func (c DeploymentConstructor) Validate() error {
-	if err := validation.ValidateStruct(&c,
+	return validation.ValidateStruct(&c,
 		validation.Field(&c.Name, validation.Required, lengthIn1To4096),
 		validation.Field(&c.ArtifactName, validation.Required, lengthIn1To4096),
 		validation.Field(&c.Devices, validation.Each(validation.Required)),
-	); err != nil {
+	)
+}
+
+func (c DeploymentConstructor) ValidateNew() error {
+	if err := c.Validate(); err != nil {
 		return err
 	}
 
@@ -90,7 +94,6 @@ func (c DeploymentConstructor) Validate() error {
 			return ErrInvalidDeploymentToGroupDefinitionConflict
 		}
 	}
-
 	return nil
 }
 
