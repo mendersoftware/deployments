@@ -700,7 +700,6 @@ func (d *Deployments) updateDeploymentConstructor(ctx context.Context,
 		}
 		searchParams.Page++
 	}
-	constructor.Group = ""
 
 	return constructor, nil
 }

@@ -638,7 +638,7 @@ func (d *DeploymentsApiHandlers) getDeploymentConstructorFromBody(r *rest.Reques
 
 	constructor.Group = group
 
-	if err := constructor.Validate(); err != nil {
+	if err := constructor.ValidateNew(); err != nil {
 		return nil, err
 	}
 
