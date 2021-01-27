@@ -68,6 +68,7 @@ class SwaggerApiClient(BaseApiClient):
     spec_option = "spec"
 
     def __init__(self, request):
+        super().__init__(request)
         self.spec = request.config.getoption(self.spec_option)
 
     def setup_swagger(self):
@@ -89,6 +90,7 @@ class ArtifactsClientError(Exception):
 class ArtifactsClient(SwaggerApiClient):
 
     def __init__(self, request):
+        super().__init__(request)
         self.api_url = DEPLOYMENTS_BASE_URL.format(request.config.getoption("host"), "management")
 
     @staticmethod
@@ -210,13 +212,15 @@ class ArtifactsClient(SwaggerApiClient):
 class SimpleArtifactsClient(ArtifactsClient):
     """Simple swagger based client for artifacts. Cannot be used as Pytest base class"""
 
-    def __init__(self):
+    def __init__(self, request):
+        super().__init__(request)
         self.setup_swagger()
 
 
 class DeploymentsClient(SwaggerApiClient):
 
     def __init__(self, request):
+        super().__init__(request)
         self.api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
 
 
@@ -281,6 +285,7 @@ class DeviceClient(SwaggerApiClient):
     logger_tag = "client.DeviceClient"
 
     def __init__(self, request):
+        super().__init__(request)
         self.api_url = DEPLOYMENTS_BASE_URL.format(request.config.getoption("host"), "devices")
 
 
@@ -323,7 +328,8 @@ class DeviceClient(SwaggerApiClient):
 class SimpleDeviceClient(DeviceClient):
     """Simple device API client, cannot be used as Pytest tests base class"""
 
-    def __init__(self):
+    def __init__(self, request):
+        super().__init__(request)
         self.setup_swagger()
 
 
@@ -335,6 +341,8 @@ class InventoryClient(BaseApiClient, RequestsApiClient):
 
 
     def __init__(self, request):
+        BaseApiClient.__init__(self, request)
+        # RequestsApiClient.__init(self)
         self.api_url = "http://%s/api/0.1.0/" % (pytest.config.getoption("inventory_host"))
 
     def report_attributes(self, devtoken, attributes):
@@ -372,6 +380,7 @@ class InternalApiClient(SwaggerApiClient):
     logger_tag = "client.InternalApiClient"
 
     def __init__(self, request):
+        super().__init__(request)
         self.api_url = DEPLOYMENTS_BASE_URL.format(request.config.getoption("host"), "internal")
         self.spec = request.config.getoption("spec")
         self.setup_swagger()
