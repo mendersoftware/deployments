@@ -54,6 +54,8 @@ const (
 	GetDeploymentForDeviceQueryDeviceType = "device_type"
 )
 
+const Redacted = "REDACTED"
+
 // JWT token
 const (
 	HTTPHeaderAuthorization       = "Authorization"
@@ -66,7 +68,7 @@ const (
 
 // Errors
 var (
-	ErrIDNotUUIDv4                          = errors.New("ID is not UUIDv4")
+	ErrIDNotUUID                            = errors.New("ID is not a valid UUID")
 	ErrArtifactUsedInActiveDeployment       = errors.New("Artifact is used in active deployment")
 	ErrInvalidExpireParam                   = errors.New("Invalid expire parameter")
 	ErrArtifactNameMissing                  = errors.New("request does not contain the name of the artifact")
@@ -119,9 +121,16 @@ func (d *DeploymentsApiHandlers) GetReleases(w rest.ResponseWriter, r *rest.Requ
 
 	var filt *model.ReleaseFilter
 
-	name := r.URL.Query().Get("name")
+	q := r.URL.Query()
+	name := q.Get("name")
 
 	if name != "" {
+		defer func() {
+			if q.Get("name") != "" {
+				q.Set("name", Redacted)
+				r.URL.RawQuery = q.Encode()
+			}
+		}()
 		filt = &model.ReleaseFilter{
 			Name: name,
 		}
@@ -173,7 +182,7 @@ func (d *DeploymentsApiHandlers) GetImage(w rest.ResponseWriter, r *rest.Request
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -209,7 +218,7 @@ func (d *DeploymentsApiHandlers) DownloadLink(w rest.ResponseWriter, r *rest.Req
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -233,7 +242,7 @@ func (d *DeploymentsApiHandlers) DeleteImage(w rest.ResponseWriter, r *rest.Requ
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -258,7 +267,7 @@ func (d *DeploymentsApiHandlers) EditImage(w rest.ResponseWriter, r *rest.Reques
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -341,7 +350,6 @@ func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest
 
 	// parse multipart message
 	multipartUploadMsg, err := d.ParseMultipart(formReader)
-	defer r.MultipartForm.RemoveAll()
 
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
@@ -652,7 +660,7 @@ func (d *DeploymentsApiHandlers) GetDeployment(w rest.ResponseWriter, r *rest.Re
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -677,7 +685,7 @@ func (d *DeploymentsApiHandlers) GetDeploymentStats(w rest.ResponseWriter, r *re
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -702,7 +710,7 @@ func (d *DeploymentsApiHandlers) GetDeploymentDeviceList(w rest.ResponseWriter, 
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -727,7 +735,7 @@ func (d *DeploymentsApiHandlers) AbortDeployment(w rest.ResponseWriter, r *rest.
 	id := r.PathParam("id")
 
 	if !govalidator.IsUUID(id) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -778,6 +786,20 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 	}
 
 	q := r.URL.Query()
+	defer func() {
+		var reEncode bool = false
+		if name := q.Get("artifact_name"); name != "" {
+			q.Set("artifact_name", Redacted)
+			reEncode = true
+		}
+		if typ := q.Get("device_type"); typ != "" {
+			q.Set("device_type", Redacted)
+			reEncode = true
+		}
+		if reEncode {
+			r.URL.RawQuery = q.Encode()
+		}
+	}()
 	installed := &model.InstalledDeviceDeployment{
 		ArtifactName: q.Get(GetDeploymentForDeviceQueryArtifact),
 		DeviceType:   q.Get(GetDeploymentForDeviceQueryDeviceType),
@@ -889,7 +911,7 @@ func (d *DeploymentsApiHandlers) GetDeviceStatusesForDeployment(w rest.ResponseW
 	did := r.PathParam("id")
 
 	if !govalidator.IsUUID(did) {
-		d.view.RenderError(w, r, ErrIDNotUUIDv4, http.StatusBadRequest, l)
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
 		return
 	}
 
@@ -965,8 +987,15 @@ func parseEpochToTimestamp(epoch string) (time.Time, error) {
 func (d *DeploymentsApiHandlers) LookupDeployment(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)
+	q := r.URL.Query()
+	defer func() {
+		if search := q.Get("search"); search != "" {
+			q.Set("search", Redacted)
+			r.URL.RawQuery = q.Encode()
+		}
+	}()
 
-	query, err := ParseLookupQuery(r.URL.Query())
+	query, err := ParseLookupQuery(q)
 	if err != nil {
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 		return
