@@ -1045,6 +1045,18 @@ func ParseLookupQuery(vals url.Values) (model.Query, error) {
 
 	}
 
+	dType := vals.Get("type")
+	if dType == "" {
+		return query, nil
+	}
+	deploymentType := model.DeploymentType(dType)
+	if deploymentType == model.DeploymentTypeSoftware ||
+		deploymentType == model.DeploymentTypeConfiguration {
+		query.Type = deploymentType
+	} else {
+		return query, errors.Errorf("unknown deployment type %s", dType)
+	}
+
 	return query, nil
 }
 

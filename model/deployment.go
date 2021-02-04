@@ -266,6 +266,9 @@ type Query struct {
 	// match deployments by text by looking at deployment name and artifact name
 	SearchText string
 
+	// deployment type
+	Type DeploymentType
+
 	// deployment status
 	Status StatusQuery
 	Limit  int
