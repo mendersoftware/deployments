@@ -34,11 +34,15 @@ var (
 )
 
 type DeploymentStatus string
+type DeploymentType string
 
 const (
 	DeploymentStatusFinished   DeploymentStatus = "finished"
 	DeploymentStatusInProgress DeploymentStatus = "inprogress"
 	DeploymentStatusPending    DeploymentStatus = "pending"
+
+	DeploymentTypeSoftware      DeploymentType = "software"
+	DeploymentTypeConfiguration DeploymentType = "configuration"
 )
 
 func (stat DeploymentStatus) Validate() error {
@@ -47,6 +51,11 @@ func (stat DeploymentStatus) Validate() error {
 		DeploymentStatusInProgress,
 		DeploymentStatusPending,
 	).Validate(stat)
+}
+
+func (typ DeploymentType) Validate() error {
+	return validation.In(DeploymentTypeSoftware,
+		DeploymentTypeConfiguration).Validate(typ)
 }
 
 // DeploymentConstructor represent input data needed for creating new Deployment (they differ in fields)
@@ -129,6 +138,18 @@ type Deployment struct {
 
 	// list of devices
 	DeviceList []string `json:"-" bson:"device_list"`
+
+	// deployment type
+	// currently we are supporting two types of deployments:
+	// software and configuration
+	Type DeploymentType `json:"type,omitempty" bson:"type"`
+
+	// A string containing a configuration object.
+	// The deployments service will use it to generate configuration
+	// artifact for the device.
+	// The artifact will be generated when the device will ask
+	// for an update.
+	Configuration string `json:"configuration,omitempty" bson:"configuration"`
 }
 
 // NewDeployment creates new deployment object, sets create data by default.
