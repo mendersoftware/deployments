@@ -32,6 +32,9 @@ type ConfigurationDeploymentConstructor struct {
 	// The artifact will be generated when the device will ask
 	// for an update.
 	Configuration string `json:"configuration"`
+
+	// Retries represents the number of retries in case of deployment failures
+	Retries uint `json:"retries,omitempty"`
 }
 
 // Validate validates the structure.
@@ -64,6 +67,10 @@ func NewDeploymentFromConfigurationDeploymentConstructor(constructor *Configurat
 
 	deployment.DeploymentConstructor = &DeploymentConstructor{
 		Name: constructor.Name,
+		// save constructor name as artifact name just to make deployment valid;
+		// this field will be overwtritten by the name of the auto-generated
+		// configuration artifact
+		ArtifactName: constructor.Name,
 	}
 
 	deviceCount := 0
