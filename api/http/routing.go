@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -58,11 +58,12 @@ const (
 	ApiUrlDevicesDeploymentStatus = ApiUrlDevices + "/device/deployments/:id/status"
 	ApiUrlDevicesDeploymentsLog   = ApiUrlDevices + "/device/deployments/:id/log"
 
-	ApiUrlInternalAlive             = ApiUrlInternal + "/alive"
-	ApiUrlInternalHealth            = ApiUrlInternal + "/health"
-	ApiUrlInternalTenants           = ApiUrlInternal + "/tenants"
-	ApiUrlInternalTenantDeployments = ApiUrlInternal + "/tenants/:tenant/deployments"
-	ApiUrlInternalTenantArtifacts   = ApiUrlInternal + "/tenants/:tenant/artifacts"
+	ApiUrlInternalAlive                          = ApiUrlInternal + "/alive"
+	ApiUrlInternalHealth                         = ApiUrlInternal + "/health"
+	ApiUrlInternalTenants                        = ApiUrlInternal + "/tenants"
+	ApiUrlInternalTenantDeployments              = ApiUrlInternal + "/tenants/:tenant/deployments"
+	ApiUrlInternalTenantArtifacts                = ApiUrlInternal + "/tenants/:tenant/artifacts"
+	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal + "/tenants/:tenant/devices/:id/configuration/deployments/:deployment_id"
 )
 
 func SetupS3(c config.Reader) (s3.FileStorage, error) {
@@ -158,6 +159,10 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 			controller.DecommissionDevice),
 		rest.Get(ApiUrlManagementDeploymentsDeviceList,
 			controller.GetDeploymentDeviceList),
+
+		// Configuration deployments (internal)
+		rest.Post(ApiUrlInternalDeviceConfigurationDeployments,
+			controller.PostDeviceConfigurationDeployment),
 
 		// Devices
 		rest.Get(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),

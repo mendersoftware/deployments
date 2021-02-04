@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -27,6 +28,8 @@ import (
 	mapp "github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
+	h "github.com/mendersoftware/deployments/utils/testing"
+	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -469,6 +472,116 @@ func TestPostDeploymentToGroup(t *testing.T) {
 			} else {
 				recorded.BodyIs("")
 			}
+		})
+	}
+}
+
+func TestControllerPostConfigurationDeployment(t *testing.T) {
+
+	t.Parallel()
+
+	testCases := map[string]struct {
+		h.JSONResponseParams
+
+		InputBodyObject interface{}
+
+		InputTenantID                           string
+		InputDeviceID                           string
+		InputDeploymentID                       string
+		InputCreateConfigurationDeploymentError error
+	}{
+		"ok": {
+			InputBodyObject: &model.ConfigurationDeploymentConstructor{
+				Name:          "name",
+				Configuration: "configuration",
+			},
+			InputTenantID:     "foo",
+			InputDeviceID:     "bar",
+			InputDeploymentID: "baz",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusCreated,
+				OutputBodyObject: nil,
+				OutputHeaders:    map[string]string{"Location": "./deployments/baz"},
+			},
+		},
+		"ko, empty body": {
+			InputBodyObject:   nil,
+			InputTenantID:     "foo",
+			InputDeviceID:     "bar",
+			InputDeploymentID: "baz",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating request body: JSON payload is empty")),
+			},
+		},
+		"ko, empty deployment": {
+			InputBodyObject:   &model.ConfigurationDeploymentConstructor{},
+			InputTenantID:     "foo",
+			InputDeviceID:     "bar",
+			InputDeploymentID: "baz",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusBadRequest,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("Validating request body: configuration: cannot be blank; name: cannot be blank.")),
+			},
+		},
+		"ko, internal error": {
+			InputBodyObject: &model.ConfigurationDeploymentConstructor{
+				Name:          "foo",
+				Configuration: "bar",
+			},
+			InputTenantID:                           "foo",
+			InputDeviceID:                           "bar",
+			InputDeploymentID:                       "baz",
+			InputCreateConfigurationDeploymentError: errors.New("model error"),
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusInternalServerError,
+				OutputBodyObject: h.ErrorToErrStruct(errors.New("internal error")),
+			},
+		},
+		"ko, conflict": {
+			InputBodyObject: &model.ConfigurationDeploymentConstructor{
+				Name:          "foo",
+				Configuration: "bar",
+			},
+			InputTenantID:                           "foo",
+			InputDeviceID:                           "bar",
+			InputDeploymentID:                       "baz",
+			InputCreateConfigurationDeploymentError: app.ErrDuplicateDeployment,
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusConflict,
+				OutputBodyObject: h.ErrorToErrStruct(app.ErrDuplicateDeployment),
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(fmt.Sprintf("test case: %s", name), func(t *testing.T) {
+			restView := new(view.RESTView)
+			app := &mapp.App{}
+
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+
+			app.On("CreateDeviceConfigurationDeployment",
+				h.ContextMatcher(), mock.AnythingOfType("*model.ConfigurationDeploymentConstructor"),
+				tc.InputDeviceID, tc.InputDeploymentID).
+				Return(tc.InputDeploymentID, tc.InputCreateConfigurationDeploymentError)
+
+			api := setUpRestTest(
+				ApiUrlInternalDeviceConfigurationDeployments,
+				rest.Post,
+				d.PostDeviceConfigurationDeployment,
+			)
+
+			uri := strings.Replace(ApiUrlInternalDeviceConfigurationDeployments, ":tenant", tc.InputTenantID, 1)
+			uri = strings.Replace(uri, ":id", tc.InputDeviceID, 1)
+			uri = strings.Replace(uri, ":deployment_id", tc.InputDeploymentID, 1)
+
+			req := test.MakeSimpleRequest("POST", "http://localhost"+uri, tc.InputBodyObject)
+			req.Header.Add(requestid.RequestIdHeader, "test")
+
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+
+			h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
 		})
 	}
 }

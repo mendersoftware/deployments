@@ -638,6 +638,78 @@ func (d *DeploymentsApiHandlers) DeployToGroup(w rest.ResponseWriter, r *rest.Re
 	d.createDeployment(w, r, ctx, l, group)
 }
 
+// parseDeviceConfigurationDeploymentPathParams parses expected params
+// and check if the params are not empty
+func parseDeviceConfigurationDeploymentPathParams(r *rest.Request) (string, string, string, error) {
+	tenantID := r.PathParam("tenant")
+	if tenantID == "" {
+		return "", "", "", errors.New("tenant ID missing")
+	}
+	deviceID := r.PathParam("id")
+	if deviceID == "" {
+		return "", "", "", errors.New("device ID missing")
+	}
+	deploymentID := r.PathParam("deployment_id")
+	if deploymentID == "" {
+		return "", "", "", errors.New("deployment ID missing")
+	}
+	return tenantID, deviceID, deploymentID, nil
+}
+
+// getConfigurationDeploymentConstructorFromBody extracts configuration
+// deployment constructor from the request body and validates it
+func getConfigurationDeploymentConstructorFromBody(r *rest.Request) (
+	*model.ConfigurationDeploymentConstructor, error) {
+
+	var constructor *model.ConfigurationDeploymentConstructor
+
+	if err := r.DecodeJsonPayload(&constructor); err != nil {
+		return nil, err
+	}
+
+	if err := constructor.Validate(); err != nil {
+		return nil, err
+	}
+
+	return constructor, nil
+}
+
+// device configuration deployment handler
+func (d *DeploymentsApiHandlers) PostDeviceConfigurationDeployment(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r)
+
+	// get path params
+	tenantID, deviceID, deploymentID, err := parseDeviceConfigurationDeploymentPathParams(r)
+	if err != nil {
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
+		return
+	}
+
+	// add tenant id to the context
+	ctx := identity.WithContext(r.Context(), &identity.Identity{Tenant: tenantID})
+
+	constructor, err := getConfigurationDeploymentConstructorFromBody(r)
+	if err != nil {
+		d.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
+		return
+	}
+
+	id, err := d.app.CreateDeviceConfigurationDeployment(ctx, constructor, deviceID, deploymentID)
+	switch err {
+	default:
+		d.view.RenderInternalError(w, r, err, l)
+	case nil:
+		r.URL.Path = "./deployments"
+		d.view.RenderSuccessPost(w, r, id)
+	case app.ErrDuplicateDeployment:
+		d.view.RenderError(w, r, err, http.StatusConflict, l)
+	case app.ErrInvalidDeploymentID:
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+	}
+
+	return
+}
+
 func (d *DeploymentsApiHandlers) getDeploymentConstructorFromBody(r *rest.Request, group string) (*model.DeploymentConstructor, error) {
 	var constructor *model.DeploymentConstructor
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
