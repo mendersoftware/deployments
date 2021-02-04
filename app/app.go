@@ -18,6 +18,7 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -82,6 +83,8 @@ var (
 	ErrDeviceDecommissioned    = errors.New("Device decommissioned")
 	ErrNoArtifact              = errors.New("No artifact for the deployment")
 	ErrNoDevices               = errors.New("No devices for the deployment")
+	ErrDuplicateDeployment     = errors.New("Deployment with given ID already exists")
+	ErrInvalidDeploymentID     = errors.New("Deployment ID must be a valid UUID")
 )
 
 //deployments
@@ -129,6 +132,9 @@ type App interface {
 	GetDeviceDeploymentLog(ctx context.Context,
 		deviceID, deploymentID string) (*model.DeploymentLog, error)
 	DecommissionDevice(ctx context.Context, deviceID string) error
+	CreateDeviceConfigurationDeployment(
+		ctx context.Context, constructor *model.ConfigurationDeploymentConstructor,
+		deviceID, deploymentID string) (string, error)
 }
 
 type Deployments struct {
@@ -704,6 +710,38 @@ func (d *Deployments) updateDeploymentConstructor(ctx context.Context,
 	return constructor, nil
 }
 
+// CreateDeviceConfigurationDeployment creates new configuration deployment for the device.
+func (d *Deployments) CreateDeviceConfigurationDeployment(
+	ctx context.Context, constructor *model.ConfigurationDeploymentConstructor,
+	deviceID, deploymentID string) (string, error) {
+
+	if constructor == nil {
+		return "", ErrModelMissingInput
+	}
+
+	deployment, err := model.NewDeploymentFromConfigurationDeploymentConstructor(constructor, deploymentID)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create deployment")
+	}
+
+	deployment.DeviceList = []string{deviceID}
+	deployment.MaxDevices = 1
+	deployment.Configuration = constructor.Configuration
+	deployment.Type = model.DeploymentTypeConfiguration
+
+	if err := d.db.InsertDeployment(ctx, deployment); err != nil {
+		if strings.Contains(err.Error(), "duplicate key error") {
+			return "", ErrDuplicateDeployment
+		}
+		if strings.Contains(err.Error(), "id: must be a valid UUID") {
+			return "", ErrInvalidDeploymentID
+		}
+		return "", errors.Wrap(err, "Storing deployment data")
+	}
+
+	return deployment.Id, nil
+}
+
 // CreateDeployment precomputes new deployment and schedules it for devices.
 func (d *Deployments) CreateDeployment(ctx context.Context,
 	constructor *model.DeploymentConstructor) (string, error) {
@@ -745,6 +783,7 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 	deployment.Artifacts = getArtifactIDs(artifacts)
 	deployment.DeviceList = constructor.Devices
 	deployment.MaxDevices = len(constructor.Devices)
+	deployment.Type = model.DeploymentTypeSoftware
 
 	if err := d.db.InsertDeployment(ctx, deployment); err != nil {
 		return "", errors.Wrap(err, "Storing deployment data")

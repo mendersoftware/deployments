@@ -321,3 +321,69 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 	}
 
 }
+
+func TestCreateDeviceConfigurationDeployment(t *testing.T) {
+
+	t.Parallel()
+
+	testCases := map[string]struct {
+		inputConstructor  *model.ConfigurationDeploymentConstructor
+		inputDeviceID     string
+		inputDeploymentID string
+
+		inputDeploymentStorageInsertError error
+
+		outputError error
+		outputID    string
+	}{
+		"ok": {
+			inputConstructor: &model.ConfigurationDeploymentConstructor{
+				Name:          "foo",
+				Configuration: "bar",
+			},
+			inputDeviceID:     "foo-device",
+			inputDeploymentID: "foo-deployment",
+
+			outputID: "foo-deployment",
+		},
+		"constructor missing": {
+			outputError: ErrModelMissingInput,
+		},
+		"insert error": {
+			inputConstructor: &model.ConfigurationDeploymentConstructor{
+				Name:          "foo",
+				Configuration: "bar",
+			},
+			inputDeploymentStorageInsertError: errors.New("insert error"),
+
+			outputError: errors.New("Storing deployment data: insert error"),
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", name), func(t *testing.T) {
+			ctx := context.Background()
+
+			identityObject := &identity.Identity{Tenant: "tenant_id"}
+			ctx = identity.WithContext(ctx, identityObject)
+
+			db := mocks.DataStore{}
+			db.On("InsertDeployment",
+				ctx,
+				mock.AnythingOfType("*model.Deployment")).
+				Return(tc.inputDeploymentStorageInsertError)
+
+			ds := &Deployments{
+				db: &db,
+			}
+
+			out, err := ds.CreateDeviceConfigurationDeployment(ctx, tc.inputConstructor, tc.inputDeviceID, tc.inputDeploymentID)
+			if tc.outputError != nil {
+				assert.EqualError(t, err, tc.outputError.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, out, tc.outputID)
+			}
+		})
+	}
+}
