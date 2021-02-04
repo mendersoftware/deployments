@@ -74,10 +74,6 @@ paths:
           in: query
           description: |
               Deployment type filter.
-              It is possible for the deployment to not have the type field.
-              In this case, the deployments service will treat it
-              as software deployment and return it with other
-              software deployments.
           required: false
           type: string
           enum:
