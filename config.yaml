@@ -177,3 +177,6 @@ aws:
     #     key: ACCESS_KEY
     #     secret: SECRET_KEY
     #     token: TOKEN
+
+presign_secret_base64: "qF4/MZzQmHTJ+nrlr26b3g=="
+presign_expire_seconds: 900

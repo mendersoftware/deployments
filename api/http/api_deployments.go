@@ -84,17 +84,46 @@ var (
 	ErrMissingGroupName           = errors.New("Missing group name")
 )
 
-type DeploymentsApiHandlers struct {
-	view  RESTView
-	store store.DataStore
-	app   app.App
+type Config struct {
+	PresignSecret []byte
 }
 
-func NewDeploymentsApiHandlers(store store.DataStore, view RESTView, app app.App) *DeploymentsApiHandlers {
+func NewConfig() *Config {
+	return new(Config)
+}
+
+func (conf *Config) SetPresignSecret(key []byte) *Config {
+	conf.PresignSecret = key
+	return conf
+}
+
+type DeploymentsApiHandlers struct {
+	view   RESTView
+	store  store.DataStore
+	app    app.App
+	config Config
+}
+
+func NewDeploymentsApiHandlers(
+	store store.DataStore,
+	view RESTView,
+	app app.App,
+	config ...*Config,
+) *DeploymentsApiHandlers {
+	var conf Config
+	for _, c := range config {
+		if c == nil {
+			continue
+		}
+		if c.PresignSecret != nil {
+			conf.PresignSecret = c.PresignSecret
+		}
+	}
 	return &DeploymentsApiHandlers{
-		store: store,
-		view:  view,
-		app:   app,
+		store:  store,
+		view:   view,
+		app:    app,
+		config: conf,
 	}
 }
 
@@ -234,6 +263,80 @@ func (d *DeploymentsApiHandlers) DownloadLink(w rest.ResponseWriter, r *rest.Req
 	}
 
 	d.view.RenderSuccessGet(w, link)
+}
+
+func (d *DeploymentsApiHandlers) DownloadConfiguration(w rest.ResponseWriter, r *rest.Request) {
+	if d.config.PresignSecret == nil {
+		rest.NotFound(w, r)
+		return
+	}
+
+	var (
+		tenantID     string
+		deviceID     = r.PathParam("device_id")
+		deviceType   = r.PathParam("device_type")
+		deploymentID = r.PathParam("deployment_id")
+		l            = log.FromContext(r.Context())
+		q            = r.URL.Query()
+		err          error
+	)
+	tenantID = q.Get("tenant_id")
+	sig := model.NewRequestSignature(r.Request, d.config.PresignSecret)
+	if err = sig.Validate(); err != nil {
+		switch cause := errors.Cause(err); cause {
+		case model.ErrLinkExpired:
+			d.view.RenderError(w, r, cause, http.StatusForbidden, l)
+		default:
+			d.view.RenderError(w, r,
+				errors.Wrap(err, "invalid request parameters"),
+				http.StatusBadRequest, l,
+			)
+		}
+		return
+	}
+
+	if !sig.VerifyHMAC256() {
+		d.view.RenderError(w, r,
+			errors.New("signature invalid"),
+			http.StatusForbidden, l,
+		)
+		return
+	}
+
+	// Validate request signature
+	ctx := identity.WithContext(r.Context(), &identity.Identity{
+		Subject:  deviceID,
+		Tenant:   tenantID,
+		IsDevice: true,
+	})
+
+	artifact, err := d.app.GenerateConfigurationImage(ctx, deviceType, deploymentID)
+	if err != nil {
+		switch cause := errors.Cause(err); cause {
+		case app.ErrModelDeploymentNotFound:
+			d.view.RenderError(w, r,
+				errors.Errorf(
+					"deployment with id '%s' not found",
+					deploymentID,
+				),
+				http.StatusNotFound, l,
+			)
+		default:
+			l.Error(err.Error())
+			d.view.RenderInternalError(w, r, err, l)
+		}
+		return
+	}
+	rw := w.(http.ResponseWriter)
+	hdr := rw.Header()
+	hdr.Set("Content-Disposition", `attachment; filename="artifact.mender"`)
+	hdr.Set("Content-Type", app.ArtifactContentType)
+	rw.WriteHeader(http.StatusOK)
+	_, err = io.Copy(rw, artifact)
+	if err != nil {
+		// There's not anything we can do here in terms of the response.
+		l.Error(err.Error())
+	}
 }
 
 func (d *DeploymentsApiHandlers) DeleteImage(w rest.ResponseWriter, r *rest.Request) {

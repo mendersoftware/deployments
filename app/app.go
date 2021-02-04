@@ -15,7 +15,9 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -28,6 +30,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/mender-artifact/areader"
 	"github.com/mendersoftware/mender-artifact/artifact"
+	"github.com/mendersoftware/mender-artifact/awriter"
 	"github.com/mendersoftware/mender-artifact/handlers"
 
 	"github.com/mendersoftware/deployments/client/inventory"
@@ -40,7 +43,10 @@ import (
 )
 
 const (
-	ArtifactContentType = "application/vnd.mender-artifact"
+	ArtifactContentType              = "application/vnd.mender-artifact"
+	ArtifactConfigureType            = "mender-configure"
+	ArtifactConfigureProvides        = "module-image.mender-configure.version"
+	ArtifactConfigureProvidesCleared = "module-image.mender-configure.*"
 
 	DefaultUpdateDownloadLinkExpire  = 24 * time.Hour
 	DefaultImageGenerationLinkExpire = 7 * 24 * time.Hour
@@ -107,6 +113,7 @@ type App interface {
 		multipartUploadMsg *model.MultipartUploadMsg) (string, error)
 	GenerateImage(ctx context.Context,
 		multipartUploadMsg *model.MultipartGenerateImageMsg) (string, error)
+	GenerateConfigurationImage(ctx context.Context, deviceType string, deploymentID string) (io.Reader, error)
 	EditImage(ctx context.Context, id string,
 		constructorData *model.ImageMeta) (bool, error)
 
@@ -371,6 +378,52 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 	}
 
 	return imgID, err
+}
+
+func (d *Deployments) GenerateConfigurationImage(
+	ctx context.Context,
+	deviceType string,
+	deploymentID string,
+) (io.Reader, error) {
+	var buf bytes.Buffer
+	dpl, err := d.db.FindDeploymentByID(ctx, deploymentID)
+	if err != nil {
+		return nil, err
+	} else if dpl == nil {
+		return nil, ErrModelDeploymentNotFound
+	}
+	var metaData map[string]interface{}
+	err = json.Unmarshal(dpl.Configuration, &metaData)
+	if err != nil {
+		return nil, errors.Wrapf(err, "malformed configuration in deployment")
+	}
+
+	artieWriter := awriter.NewWriter(&buf, artifact.NewCompressorNone())
+	module := handlers.NewModuleImage(ArtifactConfigureType)
+	err = artieWriter.WriteArtifact(&awriter.WriteArtifactArgs{
+		Format:  "mender",
+		Version: 3,
+		Devices: []string{deviceType},
+		Name:    dpl.ArtifactName,
+		Updates: &awriter.Updates{Updates: []handlers.Composer{module}},
+		Depends: &artifact.ArtifactDepends{
+			CompatibleDevices: []string{deviceType},
+		},
+		Provides: &artifact.ArtifactProvides{
+			ArtifactName: dpl.ArtifactName,
+		},
+		MetaData: metaData,
+		TypeInfoV3: &artifact.TypeInfoV3{
+			Type: ArtifactConfigureType,
+			ArtifactProvides: artifact.TypeInfoProvides{
+				ArtifactConfigureProvides: dpl.ArtifactName,
+			},
+			ArtifactDepends:        artifact.TypeInfoDepends{},
+			ClearsArtifactProvides: []string{ArtifactConfigureProvidesCleared},
+		},
+	})
+
+	return &buf, err
 }
 
 // handleRawFile parses raw data, uploads it to the file storage,

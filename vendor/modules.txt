@@ -139,6 +139,8 @@ github.com/mendersoftware/go-lib-micro/testing
 ## explicit
 github.com/mendersoftware/mender-artifact/areader
 github.com/mendersoftware/mender-artifact/artifact
+github.com/mendersoftware/mender-artifact/artifact/stage
+github.com/mendersoftware/mender-artifact/awriter
 github.com/mendersoftware/mender-artifact/handlers
 github.com/mendersoftware/mender-artifact/utils
 # github.com/mendersoftware/progressbar v0.0.2

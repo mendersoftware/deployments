@@ -73,6 +73,12 @@ const (
 
 	SettingInventoryTimeout        = "inventory_timeout"
 	SettingInventoryTimeoutDefault = 10
+
+	SettingPresignSecretBase64        = "presign_secret_base64"
+	SettingPresignSecretBase64Default = "qF4/MZzQmHTJ+nrlr26b3g=="
+
+	SettingPresignExpireSeconds        = "presign_expire_seconds"
+	SettingPresignExpireSecondsDefault = 900
 )
 
 // ValidateAwsAuth validates configuration of SettingsAwsAuth section if provided.
@@ -138,5 +144,7 @@ var (
 		{Key: SettingsAwsTagArtifact, Value: SettingsAwsTagArtifactDefault},
 		{Key: SettingInventoryAddr, Value: SettingInventoryAddrDefault},
 		{Key: SettingInventoryTimeout, Value: SettingInventoryTimeoutDefault},
+		{Key: SettingPresignSecretBase64, Value: SettingPresignSecretBase64},
+		{Key: SettingPresignExpireSeconds, Value: SettingPresignExpireSecondsDefault},
 	}
 )
