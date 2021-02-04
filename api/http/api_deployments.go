@@ -645,7 +645,7 @@ func parseDeviceConfigurationDeploymentPathParams(r *rest.Request) (string, stri
 	if tenantID == "" {
 		return "", "", "", errors.New("tenant ID missing")
 	}
-	deviceID := r.PathParam("id")
+	deviceID := r.PathParam("device_id")
 	if deviceID == "" {
 		return "", "", "", errors.New("device ID missing")
 	}

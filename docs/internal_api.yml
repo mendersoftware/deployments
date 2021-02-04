@@ -274,7 +274,7 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
-  /tenants/{tenant_id}/devices/{device_id}/configuration/deployments/{deployment_id}:
+  /tenants/{tenant_id}/configuration/deployments/{deployment_id}/devices/{device_id}:
     post:
       operationId: Create Deployment
       tags:
@@ -443,4 +443,4 @@ definitions:
       - configuration
     example:
       name: config-1.1
-      configuration: "{foo:bar}"
+      configuration: "{\"foo\":\"bar\"}"

@@ -63,7 +63,7 @@ const (
 	ApiUrlInternalTenants                        = ApiUrlInternal + "/tenants"
 	ApiUrlInternalTenantDeployments              = ApiUrlInternal + "/tenants/:tenant/deployments"
 	ApiUrlInternalTenantArtifacts                = ApiUrlInternal + "/tenants/:tenant/artifacts"
-	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal + "/tenants/:tenant/devices/:id/configuration/deployments/:deployment_id"
+	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal + "/tenants/:tenant/configuration/deployments/:deployment_id/devices/:device_id"
 )
 
 func SetupS3(c config.Reader) (s3.FileStorage, error) {

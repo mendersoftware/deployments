@@ -573,7 +573,7 @@ func TestControllerPostConfigurationDeployment(t *testing.T) {
 			)
 
 			uri := strings.Replace(ApiUrlInternalDeviceConfigurationDeployments, ":tenant", tc.InputTenantID, 1)
-			uri = strings.Replace(uri, ":id", tc.InputDeviceID, 1)
+			uri = strings.Replace(uri, ":device_id", tc.InputDeviceID, 1)
 			uri = strings.Replace(uri, ":deployment_id", tc.InputDeploymentID, 1)
 
 			req := test.MakeSimpleRequest("POST", "http://localhost"+uri, tc.InputBodyObject)
