@@ -1142,6 +1142,18 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 
 		return nil, nil
 	}
+	if deployment.Type == model.DeploymentTypeConfiguration {
+		// There's nothing more we need to do, the link must be filled
+		// in by the API layer.
+		return &model.DeploymentInstructions{
+			ID: deployment.Id,
+			Artifact: model.ArtifactDeploymentInstructions{
+				ArtifactName:          deployment.ArtifactName,
+				DeviceTypesCompatible: []string{installed.DeviceType},
+			},
+			Type: model.DeploymentTypeConfiguration,
+		}, nil
+	}
 
 	// assign artifact only if the artifact was not assigned previously or the device type has changed
 	if deviceDeployment.Image == nil ||

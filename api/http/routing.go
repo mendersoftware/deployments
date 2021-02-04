@@ -17,6 +17,9 @@ package http
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -102,9 +105,15 @@ func NewRouter(ctx context.Context, c config.Reader,
 
 	app := app.NewDeployments(mongoStorage, fileStorage, app.ArtifactContentType)
 
-	apiConf := NewConfig()
-	if key, err := base64.StdEncoding.DecodeString(
-		c.GetString(dconfig.SettingPresignSecretBase64),
+	// Encode base64 secret in either std or URL encoding ignoring padding.
+	base64Repl := strings.NewReplacer("-", "+", "_", "/", "=", "")
+	expireSec := c.GetDuration(dconfig.SettingPresignExpireSeconds)
+	apiConf := NewConfig().
+		SetPresignExpire(time.Second * expireSec)
+	if key, err := base64.RawStdEncoding.DecodeString(
+		base64Repl.Replace(
+			c.GetString(dconfig.SettingPresignSecretBase64),
+		),
 	); err == nil {
 		apiConf.SetPresignSecret(key)
 	}
@@ -221,4 +230,13 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	return []*rest.Route{
 		rest.Get(ApiUrlManagementReleases, controller.GetReleases),
 	}
+}
+
+func FMTConfigURL(hostname, deploymentID, deviceType, deviceID string) string {
+	repl := strings.NewReplacer(
+		":deployment_id", deploymentID,
+		":device_type", deviceType,
+		":device_id", deviceID,
+	)
+	return fmt.Sprintf("https://%s%s", hostname, repl.Replace(ApiUrlDevicesDownloadConfig))
 }

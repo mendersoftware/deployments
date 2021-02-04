@@ -23,4 +23,5 @@ type ArtifactDeploymentInstructions struct {
 type DeploymentInstructions struct {
 	ID       string                         `json:"id"`
 	Artifact ArtifactDeploymentInstructions `json:"artifact"`
+	Type     DeploymentType                 `json:"-"`
 }

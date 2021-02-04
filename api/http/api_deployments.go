@@ -86,14 +86,22 @@ var (
 
 type Config struct {
 	PresignSecret []byte
+	PresignExpire time.Duration
 }
 
 func NewConfig() *Config {
-	return new(Config)
+	return &Config{
+		PresignExpire: time.Second * 900,
+	}
 }
 
 func (conf *Config) SetPresignSecret(key []byte) *Config {
 	conf.PresignSecret = key
+	return conf
+}
+
+func (conf *Config) SetPresignExpire(duration time.Duration) *Config {
+	conf.PresignExpire = duration
 	return conf
 }
 
@@ -117,6 +125,9 @@ func NewDeploymentsApiHandlers(
 		}
 		if c.PresignSecret != nil {
 			conf.PresignSecret = c.PresignSecret
+		}
+		if c.PresignExpire != 0 {
+			conf.PresignExpire = c.PresignExpire
 		}
 	}
 	return &DeploymentsApiHandlers{
@@ -991,6 +1002,26 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 	if deployment == nil {
 		d.view.RenderNoUpdateForDevice(w)
 		return
+	} else if deployment.Type == model.DeploymentTypeConfiguration {
+		// Generate pre-signed URL
+		hostName := r.Header.Get("X-Forwarded-Host")
+		req, _ := http.NewRequest(
+			http.MethodGet,
+			FMTConfigURL(hostName, deployment.ID, installed.DeviceType, idata.Subject),
+			nil,
+		)
+		if idata.Tenant != "" {
+			q := req.URL.Query()
+			q.Set(model.ParamTenantID, idata.Tenant)
+			req.URL.RawQuery = q.Encode()
+		}
+		sig := model.NewRequestSignature(req, d.config.PresignSecret)
+		expireTS := time.Now().Add(d.config.PresignExpire)
+		sig.SetExpire(expireTS)
+		deployment.Artifact.Source = model.Link{
+			Uri:    sig.PresignURL(),
+			Expire: expireTS,
+		}
 	}
 
 	d.view.RenderSuccessGet(w, deployment)

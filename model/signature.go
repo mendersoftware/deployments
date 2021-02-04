@@ -49,6 +49,7 @@ func NewRequestSignature(req *http.Request, secret []byte) *RequestSignature {
 func (sig *RequestSignature) SetExpire(expire time.Time) {
 	q := sig.URL.Query()
 	q.Set(ParamExpire, expire.UTC().Format(time.RFC3339))
+	sig.URL.RawQuery = q.Encode()
 }
 
 // Validate validates the request parameters - assumes that
