@@ -144,12 +144,12 @@ type Deployment struct {
 	// software and configuration
 	Type DeploymentType `json:"type,omitempty" bson:"type"`
 
-	// A string containing a configuration object.
+	// A field containing a configuration object.
 	// The deployments service will use it to generate configuration
 	// artifact for the device.
 	// The artifact will be generated when the device will ask
 	// for an update.
-	Configuration string `json:"configuration,omitempty" bson:"configuration"`
+	Configuration []byte `json:"configuration,omitempty" bson:"configuration"`
 }
 
 // NewDeployment creates new deployment object, sets create data by default.

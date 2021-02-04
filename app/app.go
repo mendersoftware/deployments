@@ -726,7 +726,7 @@ func (d *Deployments) CreateDeviceConfigurationDeployment(
 
 	deployment.DeviceList = []string{deviceID}
 	deployment.MaxDevices = 1
-	deployment.Configuration = constructor.Configuration
+	deployment.Configuration = []byte(constructor.Configuration)
 	deployment.Type = model.DeploymentTypeConfiguration
 
 	if err := d.db.InsertDeployment(ctx, deployment); err != nil {
