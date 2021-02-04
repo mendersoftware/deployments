@@ -221,7 +221,7 @@ paths:
               $ref: '#/definitions/Deployment'
           headers:
             X-Total-Count:
-              type: int
+              type: integer
               description: Total number of deployments matching query.
         400:
           $ref: "#/responses/InvalidRequestError"
@@ -274,6 +274,56 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
+  /tenants/{tenant_id}/devices/{device_id}/configuration/deployments/{deployment_id}:
+    post:
+      operationId: Create Deployment
+      tags:
+        - Internal API
+      summary: Create a configuration deployment
+      description: |
+        Deploy configuration to a specified device.
+        The artifact will be auto-generated based on the configuration object
+        provided with the deployment constructor.
+      parameters:
+        - name: tenant_id
+          in: path
+          description: Tenant identifier.
+          required: true
+          type: string
+        - name: device_id
+          in: path
+          description: Device identifier.
+          required: true
+          type: string
+        - name: deployment_id
+          in: path
+          description: Deployment identifier.
+          required: true
+          type: string
+        - name: deployment
+          in: body
+          description: New deployment that needs to be created.
+          required: true
+          schema:
+            $ref: "#/definitions/NewConfigurationDeployment"
+      produces:
+        - application/json
+      responses:
+        201:
+          description: New configuration deployment created.
+          headers:
+            Location:
+              description: URL of the newly created deployment.
+              type: string
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        409:
+          description: The deployment with a given id already exists.
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          $ref: "#/responses/InternalServerError"
+
 definitions:
   NewTenant:
     description: New tenant descriptor.
@@ -296,7 +346,7 @@ definitions:
         description: Request ID (same as in X-MEN-RequestID header).
         type: string
     example:
-      error: "failed to decode request body: JSON payload is empty"
+      error: "error message"
       request_id: "f7881e82-0492-49fb-b459-795654e7188a"
   StorageUsage:
     description: Tenant account storage limit and storage usage.
@@ -356,6 +406,11 @@ definitions:
         description: An array of artifact's identifiers.
         items:
           type: string
+      type:
+        type: string
+        enum:
+          - configuration
+          - software
     required:
       - created
       - name
@@ -369,3 +424,23 @@ definitions:
       artifact_name: Application 0.0.1
       id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
       finished: 2016-03-11T13:03:17.063493443Z
+  NewConfigurationDeployment:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of the deployment
+      configuration:
+        type: string
+        description: |
+            A string containing a configuration object.
+            The deployments service will use it to generate configuration
+            artifact for the device.
+            The artifact will be generated when the device will ask
+            for an update.
+    required:
+      - name
+      - configuration
+    example:
+      name: config-1.1
+      configuration: "{foo:bar}"
