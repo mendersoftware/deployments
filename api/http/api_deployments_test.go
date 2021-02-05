@@ -17,13 +17,16 @@ package http
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/mendersoftware/deployments/app"
 	mapp "github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
@@ -31,6 +34,7 @@ import (
 	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -582,6 +586,359 @@ func TestControllerPostConfigurationDeployment(t *testing.T) {
 			recorded := test.RunRequest(t, api.MakeHandler(), req)
 
 			h.CheckRecordedResponse(t, recorded, tc.JSONResponseParams)
+		})
+	}
+}
+
+type brokenReader struct{}
+
+func (r brokenReader) Read(b []byte) (int, error) {
+	return 0, errors.New("rekt")
+}
+
+func TestDownloadConfiguration(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		Name string
+
+		Config  *Config
+		Request *http.Request
+		App     *mapp.App // mock App
+
+		// Response parameters
+		StatusCode int    // Response StatusCode
+		Error      error  // Error message in case of non-2XX response.
+		Body       []byte // The Body on 2XX responses.
+		Headers    http.Header
+	}{{
+		Name: "ok",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				FMTConfigURL(
+					"http", "localhost",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+					"Bagelbone",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				),
+				nil,
+			)
+			sig := model.NewRequestSignature(req, []byte("test"))
+			sig.SetExpire(time.Now().Add(time.Minute))
+			signature := sig.HMAC256()
+			q := req.URL.Query()
+			q.Set(
+				model.ParamSignature,
+				base64.RawURLEncoding.EncodeToString(signature))
+			req.URL.RawQuery = q.Encode()
+			return req
+		}(),
+		Config: NewConfig().
+			SetPresignExpire(time.Minute).
+			SetPresignSecret([]byte("test")).
+			SetPresignHostname("localhost").
+			SetPresignScheme("http"),
+		App: func() *mapp.App {
+			app := new(mapp.App)
+			app.On("GenerateConfigurationImage",
+				contextMatcher(),
+				"Bagelbone",
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+			).Return(bytes.NewReader([]byte("*Just imagine an artifact here*")), nil)
+			return app
+		}(),
+
+		Headers: http.Header{
+			"Content-Disposition": []string{"attachment; filename=\"artifact.mender\""},
+			"Content-Type":        []string{app.ArtifactContentType},
+		},
+		StatusCode: http.StatusOK,
+		Body:       []byte("*Just imagine an artifact here*"),
+	}, {
+		Name: "ok, multi-tenant",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				FMTConfigURL(
+					"http", "localhost",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+					"Bagelbone",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				),
+				nil,
+			)
+			sig := model.NewRequestSignature(req, []byte("test"))
+			sig.SetExpire(time.Now().Add(time.Minute))
+			q := req.URL.Query()
+			q.Set("tenant_id", "123456789012345678901234")
+			req.URL.RawQuery = q.Encode()
+			signature := sig.HMAC256()
+			q.Set(
+				model.ParamSignature,
+				base64.RawURLEncoding.EncodeToString(signature))
+			req.URL.RawQuery = q.Encode()
+			return req
+		}(),
+		Config: NewConfig().
+			SetPresignExpire(time.Minute).
+			SetPresignSecret([]byte("test")).
+			SetPresignHostname("localhost").
+			SetPresignScheme("http"),
+		App: func() *mapp.App {
+			app := new(mapp.App)
+			app.On("GenerateConfigurationImage",
+				contextMatcher(),
+				"Bagelbone",
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+			).Return(bytes.NewReader([]byte("*Just imagine an artifact here*")), nil)
+			return app
+		}(),
+
+		Headers: http.Header{
+			"Content-Disposition": []string{"attachment; filename=\"artifact.mender\""},
+			"Content-Type":        []string{app.ArtifactContentType},
+		},
+		StatusCode: http.StatusOK,
+		Body:       []byte("*Just imagine an artifact here*"),
+	}, {
+		Name: "error, signing configured incorrectly",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				FMTConfigURL(
+					"http", "localhost",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+					"Bagelbone",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				),
+				nil,
+			)
+			return req
+		}(),
+		App: new(mapp.App),
+
+		StatusCode: http.StatusNotFound,
+		Error:      errors.New("Resource not found"),
+	}, {
+		Name: "error, invalid request",
+
+		Config: NewConfig().
+			SetPresignSecret([]byte("test")),
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				FMTConfigURL(
+					"http", "localhost",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+					"Bagelbone",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				),
+				nil,
+			)
+			return req
+		}(),
+		App: new(mapp.App),
+
+		StatusCode: http.StatusBadRequest,
+		Error: errors.New("invalid request parameters: " +
+			"x-men-expire: required key is missing; " +
+			"x-men-signature: required key is missing.",
+		),
+	}, {
+		Name: "error, signature expired",
+
+		Config: NewConfig().
+			SetPresignSecret([]byte("test")),
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				FMTConfigURL(
+					"http", "localhost",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+					"Bagelbone",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				),
+				nil,
+			)
+			sig := model.NewRequestSignature(req, []byte("test"))
+			sig.SetExpire(time.Now().Add(-time.Second))
+			sig.PresignURL()
+			return req
+		}(),
+		App: new(mapp.App),
+
+		StatusCode: http.StatusForbidden,
+		Error:      model.ErrLinkExpired,
+	}, {
+		Name: "error, signature invalid",
+
+		Config: NewConfig().
+			SetPresignSecret([]byte("test")),
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				FMTConfigURL(
+					"http", "localhost",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+					"Bagelbone",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				),
+				nil,
+			)
+			sig := model.NewRequestSignature(req, []byte("wrong_key"))
+			sig.SetExpire(time.Now().Add(time.Minute))
+			sig.PresignURL()
+			return req
+		}(),
+		App: new(mapp.App),
+
+		StatusCode: http.StatusForbidden,
+		Error:      errors.New("signature invalid"),
+	}, {
+		Name: "error, deployment not found",
+
+		Config: NewConfig().
+			SetPresignSecret([]byte("test")),
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				FMTConfigURL(
+					"http", "localhost",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+					"Bagelbone",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				),
+				nil,
+			)
+			sig := model.NewRequestSignature(req, []byte("test"))
+			sig.SetExpire(time.Now().Add(time.Minute))
+			sig.PresignURL()
+			return req
+		}(),
+		App: func() *mapp.App {
+			appl := new(mapp.App)
+			appl.On("GenerateConfigurationImage",
+				contextMatcher(),
+				"Bagelbone",
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+			).Return(nil, app.ErrModelDeploymentNotFound)
+			return appl
+		}(),
+
+		StatusCode: http.StatusNotFound,
+		Error: errors.Errorf(
+			"deployment with id '%s' not found",
+			uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")),
+		),
+	}, {
+		Name: "error, internal error",
+
+		Config: NewConfig().
+			SetPresignSecret([]byte("test")),
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				FMTConfigURL(
+					"http", "localhost",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+					"Bagelbone",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				),
+				nil,
+			)
+			sig := model.NewRequestSignature(req, []byte("test"))
+			sig.SetExpire(time.Now().Add(time.Minute))
+			sig.PresignURL()
+			return req
+		}(),
+		App: func() *mapp.App {
+			appl := new(mapp.App)
+			appl.On("GenerateConfigurationImage",
+				contextMatcher(),
+				"Bagelbone",
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+			).Return(nil, errors.New("internal error"))
+			return appl
+		}(),
+
+		StatusCode: http.StatusInternalServerError,
+		Error:      errors.New("internal error"),
+	}, {
+		Name: "error, broken artifact reader",
+
+		Config: NewConfig().
+			SetPresignSecret([]byte("test")),
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				FMTConfigURL(
+					"http", "localhost",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+					"Bagelbone",
+					uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				),
+				nil,
+			)
+			sig := model.NewRequestSignature(req, []byte("test"))
+			sig.SetExpire(time.Now().Add(time.Minute))
+			sig.PresignURL()
+			return req
+		}(),
+		App: func() *mapp.App {
+			appl := new(mapp.App)
+			appl.On("GenerateConfigurationImage",
+				contextMatcher(),
+				"Bagelbone",
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("deployment")).String(),
+			).Return(brokenReader{}, nil)
+			return appl
+		}(),
+
+		StatusCode: http.StatusOK,
+		Body:       []byte(nil),
+	}}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			defer tc.App.AssertExpectations(t)
+			reqClone := tc.Request.Clone(context.Background())
+			handlers := NewDeploymentsApiHandlers(nil, &view.RESTView{}, tc.App, tc.Config)
+			routes := NewDeploymentsResourceRoutes(handlers)
+			router, _ := rest.MakeRouter(routes...)
+			api := rest.NewApi()
+			api.SetApp(router)
+			handler := api.MakeHandler()
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, tc.Request)
+
+			assert.Equal(t, tc.StatusCode, w.Code)
+			if tc.Error != nil {
+				var apiErr rest_utils.ApiError
+				err := json.Unmarshal(w.Body.Bytes(), &apiErr)
+				if assert.NoError(t, err) {
+					assert.EqualError(t, &apiErr, tc.Error.Error())
+				}
+			} else {
+				assert.Equal(t, w.Body.Bytes(), tc.Body)
+				model.NewRequestSignature(reqClone, []byte("test"))
+				rspHdr := w.Header()
+				for key := range tc.Headers {
+					if assert.Contains(t,
+						rspHdr,
+						key,
+						"missing expected header",
+					) {
+						assert.Equal(t,
+							tc.Headers.Get(key),
+							rspHdr.Get(key),
+						)
+					}
+				}
+			}
 		})
 	}
 }
