@@ -105,14 +105,20 @@ func NewRouter(ctx context.Context, c config.Reader,
 
 	app := app.NewDeployments(mongoStorage, fileStorage, app.ArtifactContentType)
 
+	// Create and configure API handlers
+	//
 	// Encode base64 secret in either std or URL encoding ignoring padding.
 	base64Repl := strings.NewReplacer("-", "+", "_", "/", "=", "")
 	expireSec := c.GetDuration(dconfig.SettingPresignExpireSeconds)
 	apiConf := NewConfig().
-		SetPresignExpire(time.Second * expireSec)
+		SetPresignExpire(time.Second * expireSec).
+		SetPresignHostname(c.GetString(dconfig.SettingPresignHost)).
+		SetPresignScheme(c.GetString(dconfig.SettingPresignScheme))
+	// TODO: When adding support for different signing algorithm,
+	//       conditionally decode this one:
 	if key, err := base64.RawStdEncoding.DecodeString(
 		base64Repl.Replace(
-			c.GetString(dconfig.SettingPresignSecretBase64),
+			c.GetString(dconfig.SettingPresignSecret),
 		),
 	); err == nil {
 		apiConf.SetPresignSecret(key)
@@ -232,11 +238,11 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	}
 }
 
-func FMTConfigURL(hostname, deploymentID, deviceType, deviceID string) string {
+func FMTConfigURL(scheme, hostname, deploymentID, deviceType, deviceID string) string {
 	repl := strings.NewReplacer(
 		":deployment_id", deploymentID,
 		":device_type", deviceType,
 		":device_id", deviceID,
 	)
-	return fmt.Sprintf("https://%s%s", hostname, repl.Replace(ApiUrlDevicesDownloadConfig))
+	return fmt.Sprintf("%s://%s%s", scheme, hostname, repl.Replace(ApiUrlDevicesDownloadConfig))
 }

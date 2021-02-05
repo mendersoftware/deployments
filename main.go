@@ -79,6 +79,7 @@ func doMain(args []string) {
 	app.Action = cmdServer
 	app.Before = func(args *cli.Context) error {
 
+		l := log.NewEmpty()
 		err := config.FromConfigFile(configPath, dconfig.Defaults)
 		if err != nil {
 			return cli.NewExitError(
@@ -90,6 +91,16 @@ func doMain(args []string) {
 		config.Config.SetEnvPrefix("DEPLOYMENTS")
 		config.Config.AutomaticEnv()
 		config.Config.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+		if config.Config.Get(dconfig.SettingPresignSecret) ==
+			dconfig.SettingPresignSecretDefault {
+			l.Warn("Using the default signature secret; THIS IS A POTENTIAL SECURITY ISSUE!")
+			l.Warnf(
+				"Please reconfigure the secret in '%s' or "+
+					"override with environment variable "+
+					"DEPLOYMENTS_PRESIGN_SECRET_BASE64",
+				args.String("config"),
+			)
+		}
 
 		return nil
 	}

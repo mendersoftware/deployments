@@ -85,13 +85,23 @@ var (
 )
 
 type Config struct {
+	// URL signing parameters:
+
+	// PresignSecret holds the secret value used by the signature algorithm.
 	PresignSecret []byte
+	// PresignExpire duration until the link expires.
 	PresignExpire time.Duration
+	// PresignHostname fallback value for the signed url hostname.
+	PresignHostname string
+	// PresignScheme URL scheme to used for generating signed URLs.
+	PresignScheme string
 }
 
 func NewConfig() *Config {
 	return &Config{
-		PresignExpire: time.Second * 900,
+		PresignExpire:   time.Second * 900,
+		PresignScheme:   "https",
+		PresignHostname: "localhost",
 	}
 }
 
@@ -102,6 +112,16 @@ func (conf *Config) SetPresignSecret(key []byte) *Config {
 
 func (conf *Config) SetPresignExpire(duration time.Duration) *Config {
 	conf.PresignExpire = duration
+	return conf
+}
+
+func (conf *Config) SetPresignHostname(hostname string) *Config {
+	conf.PresignHostname = hostname
+	return conf
+}
+
+func (conf *Config) SetPresignScheme(scheme string) *Config {
+	conf.PresignScheme = scheme
 	return conf
 }
 
@@ -118,7 +138,7 @@ func NewDeploymentsApiHandlers(
 	app app.App,
 	config ...*Config,
 ) *DeploymentsApiHandlers {
-	var conf Config
+	conf := NewConfig()
 	for _, c := range config {
 		if c == nil {
 			continue
@@ -129,12 +149,18 @@ func NewDeploymentsApiHandlers(
 		if c.PresignExpire != 0 {
 			conf.PresignExpire = c.PresignExpire
 		}
+		if c.PresignHostname != "" {
+			conf.PresignHostname = c.PresignHostname
+		}
+		if c.PresignScheme != "" {
+			conf.PresignScheme = c.PresignScheme
+		}
 	}
 	return &DeploymentsApiHandlers{
 		store:  store,
 		view:   view,
 		app:    app,
-		config: conf,
+		config: *conf,
 	}
 }
 
@@ -1004,10 +1030,17 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 		return
 	} else if deployment.Type == model.DeploymentTypeConfiguration {
 		// Generate pre-signed URL
-		hostName := r.Header.Get("X-Forwarded-Host")
+		var hostName string
+		if hostName = r.Header.Get("X-Forwarded-Host"); hostName == "" {
+			hostName = d.config.PresignHostname
+		}
 		req, _ := http.NewRequest(
 			http.MethodGet,
-			FMTConfigURL(hostName, deployment.ID, installed.DeviceType, idata.Subject),
+			FMTConfigURL(
+				d.config.PresignScheme, hostName,
+				deployment.ID, installed.DeviceType,
+				idata.Subject,
+			),
 			nil,
 		)
 		if idata.Tenant != "" {

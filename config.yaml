@@ -178,5 +178,41 @@ aws:
     #     secret: SECRET_KEY
     #     token: TOKEN
 
-presign_secret_base64: "qF4/MZzQmHTJ+nrlr26b3g=="
-presign_expire_seconds: 900
+presign:
+  # Presign algorithm
+  # Signature algorithm used for generating URL signature for signed URLs.
+  # Currently only HMAC256 is supported and this configuration is ignored.
+  # enum: ["HMAC256"]
+  # Defaults to: HMAC256
+  # Override with environment variable: DEPLOYMENTS_PRESIGN_ALGORITHM
+  algorithm: "HMAC256"
+
+  # Presign secret
+  # The secret used for signing URLs. For HMAC256 the value must be a valid
+  # base64 encoded secret, for public key signatures it must be a path to a
+  # private key. (Public key signatures are not yet supported).
+  # Defaults to: qF4/MZzQmHTJ+nrlr26b3g==
+  # Override with environment variable: DEPLOYMENTS_PRESIGN_SECRET
+  secret: "qF4/MZzQmHTJ+nrlr26b3g=="
+
+  # Link expiry duration
+  # Number of second a presigned URL is valid
+  # Defaults to: 900 (15 minutes)
+  # Override with environment variable: DEPLOYMENTS_PRESIGN_EXPIRE_SECONDS
+  expire_seconds: 900
+
+  # URL format [url_scheme]://[(X-Forwarded-Host|url_hostname)[<path(generated)>]
+
+  # Presign hostname
+  # This is the fallback hostname (to the gateway proxy) used for generating
+  # signed download URLs, the value is only used if the proxy does not forward
+  # X-Forwarded-Host.
+  # Defaults to: localhost
+  # Overwrite with environment variable: DEPLOYMENTS_PRESIGN_URL_HOSTNAME
+  url_hostname: "localhost"
+  # Presign URL scheme
+  # This value is used as the url scheme for generating signed URLs.
+  # Defaults to: https
+  # Overwrite with environment variable: DEPLOYMENTS_PRESIGN_URL_SCHEME
+  url_scheme: "https"
+
