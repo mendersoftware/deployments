@@ -17,16 +17,20 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	workflows_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
 	"github.com/mendersoftware/deployments/model"
 	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
 	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/mendersoftware/go-lib-micro/identity"
+	"github.com/mendersoftware/mender-artifact/areader"
+	"github.com/mendersoftware/mender-artifact/artifact"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -533,4 +537,137 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 	db.AssertExpectations(t)
 	fs.AssertExpectations(t)
 	workflowsClient.AssertExpectations(t)
+}
+
+func TestGenerateConfigurationImage(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		Name string
+
+		DeviceType   string
+		DeploymentID string
+
+		StoreError error
+		Deployment *model.Deployment
+
+		Error error
+	}{{
+		Name: "ok",
+
+		DeviceType: "strawberryPlanck",
+		DeploymentID: uuid.NewSHA1(
+			uuid.NameSpaceOID,
+			[]byte("deployment"),
+		).String(),
+		Deployment: &model.Deployment{
+			Id: uuid.NewSHA1(
+				uuid.NameSpaceOID,
+				[]byte("deployment"),
+			).String(),
+			Type:          model.DeploymentTypeConfiguration,
+			Configuration: []byte("{\"foo\":\"bar\"}"),
+			DeploymentConstructor: &model.DeploymentConstructor{
+				Name:         "spicyDeployment",
+				ArtifactName: "spicyPi",
+			},
+		},
+	}, {
+		Name: "error, internal DataStore error",
+
+		DeviceType: "strawberryPlanck",
+		DeploymentID: uuid.NewSHA1(
+			uuid.NameSpaceOID,
+			[]byte("deployment"),
+		).String(),
+		StoreError: errors.New("internal error"),
+		Error:      errors.New("internal error"),
+	}, {
+		Name: "error, deployment not found",
+
+		DeviceType: "strawberryPlanck",
+		DeploymentID: uuid.NewSHA1(
+			uuid.NameSpaceOID,
+			[]byte("deployment"),
+		).String(),
+		Error: ErrModelDeploymentNotFound,
+	}, {
+		Name: "error, invalid JSON metadata",
+
+		DeviceType: "strawberryPlanck",
+		DeploymentID: uuid.NewSHA1(
+			uuid.NameSpaceOID,
+			[]byte("deployment"),
+		).String(),
+		Deployment: &model.Deployment{
+			Id: uuid.NewSHA1(
+				uuid.NameSpaceOID,
+				[]byte("deployment"),
+			).String(),
+			Type:          model.DeploymentTypeConfiguration,
+			Configuration: []byte("gotcha"),
+			DeploymentConstructor: &model.DeploymentConstructor{
+				Name:         "spicyDeployment",
+				ArtifactName: "spicyPi",
+			},
+		},
+		Error: errors.New(
+			"malformed configuration in deployment: " +
+				"invalid character 'g' looking for beginning of value",
+		),
+	}}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			ds := new(mocks.DataStore)
+			defer ds.AssertExpectations(t)
+			ds.On("FindDeploymentByID", ctx, tc.DeploymentID).
+				Return(tc.Deployment, tc.StoreError)
+			d := NewDeployments(ds, nil, ArtifactContentType)
+			artieFact, err := d.GenerateConfigurationImage(
+				ctx, tc.DeviceType, tc.DeploymentID,
+			)
+			if tc.Error != nil {
+				assert.EqualError(t, err, tc.Error.Error())
+			} else {
+				artieReader := areader.NewReader(artieFact)
+				err := artieReader.ReadArtifactHeaders()
+				if !assert.NoError(t, err, "Generated artifact is invalid") {
+					t.FailNow()
+				}
+				assert.Equal(t,
+					[]artifact.UpdateType{{Type: ArtifactConfigureType}},
+					artieReader.GetUpdates(),
+				)
+				provides, _ := artieReader.MergeArtifactProvides()
+				if assert.Contains(t,
+					provides,
+					ArtifactConfigureProvides,
+				) {
+					assert.Equal(t,
+						tc.Deployment.ArtifactName,
+						provides[ArtifactConfigureProvides],
+					)
+				}
+				depends, _ := artieReader.MergeArtifactDepends()
+				if assert.Contains(t, depends, "device_type") {
+					deviceTypes := []interface{}{tc.DeviceType}
+					assert.Equal(t,
+						deviceTypes,
+						depends["device_type"],
+					)
+				}
+				handlers := artieReader.GetHandlers()
+				if assert.Len(t, handlers, 1) && assert.Contains(t, handlers, 0) {
+					handler := handlers[0]
+					metadata, _ := handler.GetUpdateMetaData()
+					var actual map[string]interface{}
+					//nolint:errcheck
+					json.Unmarshal(tc.Deployment.Configuration, &actual)
+					assert.Equal(t, metadata, actual)
+				}
+			}
+		})
+	}
 }
