@@ -1224,6 +1224,20 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			Status:   model.DeploymentStatusFinished,
 			Finished: &now,
 		},
+		//configuration deployment
+		{
+			DeploymentConstructor: &model.DeploymentConstructor{
+				Name:         "zed",
+				ArtifactName: "daz",
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			Id: "a108ae14-bb4e-455f-9b40-000000000015",
+			Stats: newTestStats(model.Stats{
+				model.DeviceDeploymentStatusPending: 1,
+			}),
+			Status: model.DeploymentStatusPending,
+			Type:   model.DeploymentTypeConfiguration,
+		},
 	}
 
 	testCases := []struct {
@@ -1337,6 +1351,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-000000000015",
 				"a108ae14-bb4e-455f-9b40-000000000007",
 			},
 		},
@@ -1366,6 +1381,7 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-000000000015",
 				"a108ae14-bb4e-455f-9b40-000000000014",
 				"a108ae14-bb4e-455f-9b40-000000000013",
 				"a108ae14-bb4e-455f-9b40-000000000012",
@@ -1393,8 +1409,8 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-000000000015",
 				"a108ae14-bb4e-455f-9b40-000000000014",
-				"a108ae14-bb4e-455f-9b40-000000000013",
 			},
 		},
 		{
@@ -1409,8 +1425,8 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-000000000013",
 				"a108ae14-bb4e-455f-9b40-000000000012",
-				"a108ae14-bb4e-455f-9b40-000000000011",
 			},
 		},
 		{
@@ -1423,6 +1439,16 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 			OutputID: []string{
 				"a108ae14-bb4e-455f-9b40-000000000002",
 				"a108ae14-bb4e-455f-9b40-000000000001",
+			},
+		},
+		{
+			InputModelQuery: model.Query{
+				Type: model.DeploymentTypeConfiguration,
+			},
+			InputDeploymentsCollection: someDeployments,
+			OutputError:                nil,
+			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-000000000015",
 			},
 		},
 	}

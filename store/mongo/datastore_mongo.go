@@ -303,6 +303,7 @@ const (
 	StorageKeyDeploymentArtifacts    = "artifacts"
 	StorageKeyDeploymentDeviceCount  = "device_count"
 	StorageKeyDeploymentMaxDevices   = "max_devices"
+	StorageKeyDeploymentType         = "type"
 
 	ArtifactDependsDeviceType = "device_type"
 )
@@ -1718,6 +1719,20 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 		}
 		stq := bson.M{StorageKeyDeploymentStatus: status}
 		andq = append(andq, stq)
+	}
+
+	// build deployment by type part of the query
+	if match.Type != "" {
+		if match.Type == model.DeploymentTypeConfiguration {
+			andq = append(andq, bson.M{StorageKeyDeploymentType: match.Type})
+		} else if match.Type == model.DeploymentTypeSoftware {
+			andq = append(andq, bson.M{
+				"$or": []bson.M{
+					{StorageKeyDeploymentType: match.Type},
+					{StorageKeyDeploymentType: ""},
+				},
+			})
+		}
 	}
 
 	query := bson.M{}

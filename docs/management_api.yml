@@ -70,6 +70,15 @@ paths:
             - inprogress
             - finished
             - pending
+        - name: type
+          in: query
+          description: |
+              Deployment type filter.
+          required: false
+          type: string
+          enum:
+            - software
+            - configuration
         - name: search
           in: query
           description: Deployment name or description filter.
@@ -116,7 +125,7 @@ paths:
               type: string
               description: Standard header, we support 'first', 'next', and 'prev'.
             X-Total-Count:
-              type: int
+              type: integer
               description: Total number of deployments matching query.
         400:
           $ref: "#/responses/InvalidRequestError"
@@ -989,6 +998,16 @@ definitions:
         description: An array of artifact's identifiers.
         items:
           type: string
+      type:
+        type: string
+        enum:
+          - configuration
+          - software
+      configuration:
+        type: string
+        description: |
+            A string containing a configuration object provided
+            with the deployment constructor.
     required:
       - created
       - name

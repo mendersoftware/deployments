@@ -65,6 +65,27 @@ func (_m *App) CreateDeployment(ctx context.Context, constructor *model.Deployme
 	return r0, r1
 }
 
+// CreateDeviceConfigurationDeployment provides a mock function with given fields: ctx, constructor, deviceID, deploymentID
+func (_m *App) CreateDeviceConfigurationDeployment(ctx context.Context, constructor *model.ConfigurationDeploymentConstructor, deviceID string, deploymentID string) (string, error) {
+	ret := _m.Called(ctx, constructor, deviceID, deploymentID)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(context.Context, *model.ConfigurationDeploymentConstructor, string, string) string); ok {
+		r0 = rf(ctx, constructor, deviceID, deploymentID)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *model.ConfigurationDeploymentConstructor, string, string) error); ok {
+		r1 = rf(ctx, constructor, deviceID, deploymentID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CreateImage provides a mock function with given fields: ctx, multipartUploadMsg
 func (_m *App) CreateImage(ctx context.Context, multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
 	ret := _m.Called(ctx, multipartUploadMsg)
