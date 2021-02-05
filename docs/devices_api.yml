@@ -159,7 +159,7 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
-  /configuration/download/{deployment_id}/{device_type}/{device_id}:
+  /download/configuration/{deployment_id}/{device_type}/{device_id}:
     get:
       operationId: Fetch Configuration
       tags:

@@ -61,7 +61,7 @@ const (
 	ApiUrlDevicesDeploymentsNext  = ApiUrlDevices + "/device/deployments/next"
 	ApiUrlDevicesDeploymentStatus = ApiUrlDevices + "/device/deployments/:id/status"
 	ApiUrlDevicesDeploymentsLog   = ApiUrlDevices + "/device/deployments/:id/log"
-	ApiUrlDevicesDownloadConfig   = ApiUrlDevices + "/configuration/download/:deployment_id/:device_type/:device_id"
+	ApiUrlDevicesDownloadConfig   = ApiUrlDevices + "/download/configuration/:deployment_id/:device_type/:device_id"
 
 	ApiUrlInternalAlive                          = ApiUrlInternal + "/alive"
 	ApiUrlInternalHealth                         = ApiUrlInternal + "/health"
