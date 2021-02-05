@@ -642,9 +642,6 @@ func (d *DeploymentsApiHandlers) DeployToGroup(w rest.ResponseWriter, r *rest.Re
 // and check if the params are not empty
 func parseDeviceConfigurationDeploymentPathParams(r *rest.Request) (string, string, string, error) {
 	tenantID := r.PathParam("tenant")
-	if tenantID == "" {
-		return "", "", "", errors.New("tenant ID missing")
-	}
 	deviceID := r.PathParam("device_id")
 	if deviceID == "" {
 		return "", "", "", errors.New("device ID missing")
