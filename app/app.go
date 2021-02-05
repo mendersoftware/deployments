@@ -45,8 +45,8 @@ import (
 const (
 	ArtifactContentType              = "application/vnd.mender-artifact"
 	ArtifactConfigureType            = "mender-configure"
-	ArtifactConfigureProvides        = "module-image.mender-configure.version"
-	ArtifactConfigureProvidesCleared = "module-image.mender-configure.*"
+	ArtifactConfigureProvides        = "data-partition.mender-configure.version"
+	ArtifactConfigureProvidesCleared = "data-partition.mender-configure.*"
 
 	DefaultUpdateDownloadLinkExpire  = 24 * time.Hour
 	DefaultImageGenerationLinkExpire = 7 * 24 * time.Hour
