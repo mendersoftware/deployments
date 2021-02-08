@@ -191,6 +191,7 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 
 		// Devices
 		rest.Get(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
+		rest.Post(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
 		rest.Put(ApiUrlDevicesDeploymentStatus,
 			controller.PutDeploymentStatusForDevice),
 		rest.Put(ApiUrlDevicesDeploymentsLog,

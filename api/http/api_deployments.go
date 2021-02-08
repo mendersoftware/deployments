@@ -985,10 +985,12 @@ func (d *DeploymentsApiHandlers) AbortDeployment(w rest.ResponseWriter, r *rest.
 }
 
 func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
-	ctx := r.Context()
-	l := requestlog.GetRequestLogger(r)
-
-	idata := identity.FromContext(ctx)
+	var (
+		installed *model.InstalledDeviceDeployment
+		ctx       = r.Context()
+		l         = requestlog.GetRequestLogger(r)
+		idata     = identity.FromContext(ctx)
+	)
 	if idata == nil {
 		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
 		return
@@ -1009,9 +1011,21 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 			r.URL.RawQuery = q.Encode()
 		}
 	}()
-	installed := &model.InstalledDeviceDeployment{
-		ArtifactName: q.Get(GetDeploymentForDeviceQueryArtifact),
-		DeviceType:   q.Get(GetDeploymentForDeviceQueryDeviceType),
+	if strings.EqualFold(r.Method, http.MethodPost) {
+		// POST
+		installed = new(model.InstalledDeviceDeployment)
+		if err := r.DecodeJsonPayload(&installed); err != nil {
+			d.view.RenderError(w, r,
+				errors.Wrap(err, "invalid schema"),
+				http.StatusBadRequest, l)
+			return
+		}
+	} else {
+		// GET or HEAD
+		installed = &model.InstalledDeviceDeployment{
+			ArtifactName: q.Get(GetDeploymentForDeviceQueryArtifact),
+			DeviceType:   q.Get(GetDeploymentForDeviceQueryDeviceType),
+		}
 	}
 
 	if err := installed.Validate(); err != nil {
@@ -1057,45 +1071,6 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 		}
 	}
 
-	d.view.RenderSuccessGet(w, deployment)
-}
-
-func (d *DeploymentsApiHandlers) PostDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
-	ctx := r.Context()
-	l := requestlog.GetRequestLogger(r)
-
-	idata := identity.FromContext(ctx)
-	if idata == nil {
-		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
-		return
-	}
-
-	var installed model.InstalledDeviceDeployment
-	if err := r.DecodeJsonPayload(&installed); err != nil {
-		d.view.RenderError(w, r,
-			errors.Wrap(err, "invalid schema"),
-			http.StatusBadRequest, l)
-		return
-	}
-
-	if err := installed.Validate(); err != nil {
-		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
-		return
-	}
-
-	deployment, err := d.app.GetDeploymentForDeviceWithCurrent(ctx, idata.Subject, &installed)
-	if err != nil {
-		d.view.RenderInternalError(w, r, err, l)
-		return
-	}
-
-	if deployment == nil {
-		d.view.RenderNoUpdateForDevice(w)
-		return
-	}
-
-	// NOTE: Must use the RenderSuccessGet as the POST variant reports
-	//       incorrect status code.
 	d.view.RenderSuccessGet(w, deployment)
 }
 

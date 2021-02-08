@@ -998,6 +998,51 @@ func TestGetDeploymentForDevice(t *testing.T) {
 		StatusCode: http.StatusOK,
 		Error:      nil,
 	}, {
+		Name: "ok, POST",
+
+		Request: func() *http.Request {
+			b, _ := json.Marshal(model.InstalledDeviceDeployment{
+				ArtifactName: "bagelOS1.0.1",
+				DeviceType:   "bagelBone",
+			})
+			req, _ := http.NewRequestWithContext(
+				identity.WithContext(context.Background(), &identity.Identity{
+					Subject:  uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+					IsDevice: true,
+				}),
+				http.MethodPost,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext+
+					"?device_type=bagelShins&artifact_name=bagelOS1.0.1",
+				bytes.NewReader(b),
+			)
+			return req
+		}(),
+		App: func() *mapp.App {
+			app := new(mapp.App)
+			app.On("GetDeploymentForDeviceWithCurrent",
+				contextMatcher(),
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				&model.InstalledDeviceDeployment{
+					ArtifactName: "bagelOS1.0.1",
+					DeviceType:   "bagelBone",
+				},
+			).Return(&model.DeploymentInstructions{
+				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
+				Artifact: model.ArtifactDeploymentInstructions{
+					ArtifactName:          "bagelOS1.1.0",
+					DeviceTypesCompatible: []string{"bagelBone"},
+					Source: model.Link{
+						Uri:    "https://localhost/bucket/head/bagelOS1.0.1",
+						Expire: time.Now().Add(time.Hour),
+					},
+				},
+			}, nil)
+			return app
+		}(),
+
+		StatusCode: http.StatusOK,
+		Error:      nil,
+	}, {
 		Name: "ok, configuration deployment",
 
 		Request: func() *http.Request {
@@ -1093,6 +1138,26 @@ func TestGetDeploymentForDevice(t *testing.T) {
 
 		StatusCode: http.StatusBadRequest,
 		Error:      ErrMissingIdentity,
+	}, {
+		Name: "error, invalid POST schema",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequestWithContext(
+				identity.WithContext(context.Background(), &identity.Identity{
+					Subject:  uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+					IsDevice: true,
+					Tenant:   "12456789012345678901234",
+				}),
+				http.MethodPost,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext,
+				bytes.NewReader([]byte("Lorem ipsum...")),
+			)
+			return req
+		}(),
+		App: new(mapp.App),
+
+		StatusCode: http.StatusBadRequest,
+		Error:      errors.New("invalid schema: invalid character 'L' looking for beginning of value"),
 	}, {
 		Name: "error, missing parameters",
 
