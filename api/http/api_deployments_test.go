@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -32,6 +33,7 @@ import (
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	h "github.com/mendersoftware/deployments/utils/testing"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
@@ -938,6 +940,291 @@ func TestDownloadConfiguration(t *testing.T) {
 						)
 					}
 				}
+			}
+		})
+	}
+}
+
+func TestGetDeploymentForDevice(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		Name string
+
+		Request  *http.Request
+		App      *mapp.App
+		IsConfig bool
+
+		StatusCode int
+		Error      error
+	}{{
+		Name: "ok",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequestWithContext(
+				identity.WithContext(context.Background(), &identity.Identity{
+					Subject:  uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+					IsDevice: true,
+				}),
+				http.MethodGet,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext+
+					"?device_type=bagelShins&artifact_name=bagelOS1.0.1",
+				nil,
+			)
+			return req
+		}(),
+		App: func() *mapp.App {
+			app := new(mapp.App)
+			app.On("GetDeploymentForDeviceWithCurrent",
+				contextMatcher(),
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				&model.InstalledDeviceDeployment{
+					ArtifactName: "bagelOS1.0.1",
+					DeviceType:   "bagelShins",
+				},
+			).Return(&model.DeploymentInstructions{
+				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
+				Artifact: model.ArtifactDeploymentInstructions{
+					ArtifactName:          "bagelOS1.1.0",
+					DeviceTypesCompatible: []string{"bagelShins", "raspberryPlanck"},
+					Source: model.Link{
+						Uri:    "https://localhost/bucket/head/bagelOS1.0.1",
+						Expire: time.Now().Add(time.Hour),
+					},
+				},
+			}, nil)
+			return app
+		}(),
+
+		StatusCode: http.StatusOK,
+		Error:      nil,
+	}, {
+		Name: "ok, configuration deployment",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequestWithContext(
+				identity.WithContext(context.Background(), &identity.Identity{
+					Subject:  uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+					IsDevice: true,
+				}),
+				http.MethodGet,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext+
+					"?device_type=bagelShins&artifact_name=bagelOS1.0.1",
+				nil,
+			)
+			return req
+		}(),
+		App: func() *mapp.App {
+			app := new(mapp.App)
+			app.On("GetDeploymentForDeviceWithCurrent",
+				contextMatcher(),
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				&model.InstalledDeviceDeployment{
+					ArtifactName: "bagelOS1.0.1",
+					DeviceType:   "bagelShins",
+				},
+			).Return(&model.DeploymentInstructions{
+				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
+				Artifact: model.ArtifactDeploymentInstructions{
+					ArtifactName:          "bagelOS1.1.0",
+					DeviceTypesCompatible: []string{"bagelShins", "raspberryPlanck"},
+				},
+				Type: model.DeploymentTypeConfiguration,
+			}, nil)
+			return app
+		}(),
+		IsConfig: true,
+
+		StatusCode: http.StatusOK,
+		Error:      nil,
+	}, {
+		Name: "ok, configuration deployment w/tenant",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequestWithContext(
+				identity.WithContext(context.Background(), &identity.Identity{
+					Subject:  uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+					IsDevice: true,
+					Tenant:   "12456789012345678901234",
+				}),
+				http.MethodGet,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext+
+					"?device_type=bagelShins&artifact_name=bagelOS1.0.1",
+				nil,
+			)
+			return req
+		}(),
+		App: func() *mapp.App {
+			app := new(mapp.App)
+			app.On("GetDeploymentForDeviceWithCurrent",
+
+				contextMatcher(),
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				&model.InstalledDeviceDeployment{
+					ArtifactName: "bagelOS1.0.1",
+					DeviceType:   "bagelShins",
+				},
+			).Return(&model.DeploymentInstructions{
+				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
+				Artifact: model.ArtifactDeploymentInstructions{
+					ArtifactName:          "bagelOS1.1.0",
+					DeviceTypesCompatible: []string{"bagelShins", "raspberryPlanck"},
+				},
+				Type: model.DeploymentTypeConfiguration,
+			}, nil)
+			return app
+		}(),
+		IsConfig: true,
+
+		StatusCode: http.StatusOK,
+		Error:      nil,
+	}, {
+		Name: "error, missing identity",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext+
+					"?device_type=bagelShins&artifact_name=bagelOS1.0.1",
+				nil,
+			)
+			return req
+		}(),
+		App: new(mapp.App),
+
+		StatusCode: http.StatusBadRequest,
+		Error:      ErrMissingIdentity,
+	}, {
+		Name: "error, missing parameters",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequestWithContext(
+				identity.WithContext(context.Background(), &identity.Identity{
+					Subject:  uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+					IsDevice: true,
+					Tenant:   "12456789012345678901234",
+				}),
+				http.MethodGet,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext,
+				nil,
+			)
+			return req
+		}(),
+		App: new(mapp.App),
+
+		StatusCode: http.StatusBadRequest,
+		Error:      errors.New("artifact_name: cannot be blank; device_type: cannot be blank."),
+	}, {
+		Name: "error, internal app error",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequestWithContext(
+				identity.WithContext(context.Background(), &identity.Identity{
+					Subject:  uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+					IsDevice: true,
+					Tenant:   "12456789012345678901234",
+				}),
+				http.MethodGet,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext+
+					"?device_type=bagelShins&artifact_name=bagelOS1.0.1",
+				nil,
+			)
+			return req
+		}(),
+		App: func() *mapp.App {
+			app := new(mapp.App)
+			app.On("GetDeploymentForDeviceWithCurrent",
+
+				contextMatcher(),
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				&model.InstalledDeviceDeployment{
+					ArtifactName: "bagelOS1.0.1",
+					DeviceType:   "bagelShins",
+				},
+			).Return(nil, errors.New("mongo: internal error"))
+			return app
+		}(),
+
+		StatusCode: http.StatusInternalServerError,
+		Error:      errors.New("internal error"),
+	}, {
+		Name: "error, internal app error",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequestWithContext(
+				identity.WithContext(context.Background(), &identity.Identity{
+					Subject:  uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+					IsDevice: true,
+					Tenant:   "12456789012345678901234",
+				}),
+				http.MethodGet,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext+
+					"?device_type=bagelShins&artifact_name=bagelOS1.0.1",
+				nil,
+			)
+			return req
+		}(),
+		App: func() *mapp.App {
+			app := new(mapp.App)
+			app.On("GetDeploymentForDeviceWithCurrent",
+
+				contextMatcher(),
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				&model.InstalledDeviceDeployment{
+					ArtifactName: "bagelOS1.0.1",
+					DeviceType:   "bagelShins",
+				},
+			).Return(nil, nil)
+			return app
+		}(),
+
+		StatusCode: http.StatusNoContent,
+	}}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			defer tc.App.AssertExpectations(t)
+			config := NewConfig().
+				SetPresignScheme("https").
+				SetPresignHostname("localhost").
+				SetPresignSecret([]byte("test")).
+				SetPresignExpire(time.Hour)
+			handlers := NewDeploymentsApiHandlers(nil, &view.RESTView{}, tc.App, config)
+			routes := NewDeploymentsResourceRoutes(handlers)
+			router, _ := rest.MakeRouter(routes...)
+			api := rest.NewApi()
+			api.SetApp(router)
+			handler := api.MakeHandler()
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, tc.Request)
+
+			assert.Equal(t, tc.StatusCode, w.Code)
+			if tc.Error != nil {
+				var apiErr rest_utils.ApiError
+				err := json.Unmarshal(w.Body.Bytes(), &apiErr)
+				if assert.NoError(t, err) {
+					assert.EqualError(t, &apiErr, tc.Error.Error())
+				}
+			} else if tc.StatusCode == 204 {
+				assert.Equal(t, []byte(nil), w.Body.Bytes())
+			} else {
+				if !assert.NotNil(t, w.Body.Bytes()) {
+					return
+				}
+				var instr model.DeploymentInstructions
+				json.Unmarshal(w.Body.Bytes(), &instr) //nolint: errcheck
+				link, err := url.Parse(instr.Artifact.Source.Uri)
+				if tc.IsConfig {
+					assert.NoError(t, err)
+					assert.Equal(t, "https", link.Scheme)
+					assert.Equal(t, "localhost", link.Host)
+					q := link.Query()
+					expire, err := time.Parse(time.RFC3339, q.Get(model.ParamExpire))
+					if assert.NoError(t, err) {
+						assert.WithinDuration(t, time.Now().Add(time.Hour), expire, time.Minute)
+					}
+				}
+				assert.WithinDuration(t, time.Now().Add(time.Hour), instr.Artifact.Source.Expire, time.Minute)
 			}
 		})
 	}
