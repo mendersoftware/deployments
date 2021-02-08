@@ -204,7 +204,8 @@ paths:
         200:
           description: Successful response
           schema:
-            type: binary
+            type: string
+            format: binary
             description: Artifact file
         400:
           $ref: "#/responses/InvalidRequestError"
