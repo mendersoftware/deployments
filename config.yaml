@@ -191,9 +191,9 @@ presign:
   # The secret used for signing URLs. For HMAC256 the value must be a valid
   # base64 encoded secret, for public key signatures it must be a path to a
   # private key. (Public key signatures are not yet supported).
-  # Defaults to: qF4/MZzQmHTJ+nrlr26b3g==
+  # Defaults to: "" (randomly geneated string of bytes)
   # Override with environment variable: DEPLOYMENTS_PRESIGN_SECRET
-  secret: "qF4/MZzQmHTJ+nrlr26b3g=="
+  secret: ""
 
   # Link expiry duration
   # Number of second a presigned URL is valid

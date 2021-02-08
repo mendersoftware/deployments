@@ -84,7 +84,7 @@ const (
 	// secret. For public key signatures, the value must be a path to
 	// the private key (not yet supported).
 	SettingPresignSecret        = "presign.secret"
-	SettingPresignSecretDefault = "qF4/MZzQmHTJ+nrlr26b3g=="
+	SettingPresignSecretDefault = ""
 
 	// SettingPresignExpireSeconds sets the amount of seconds it takes for
 	// the signed URL to expire.
@@ -166,7 +166,7 @@ var (
 		{Key: SettingInventoryAddr, Value: SettingInventoryAddrDefault},
 		{Key: SettingInventoryTimeout, Value: SettingInventoryTimeoutDefault},
 		{Key: SettingPresignAlgorithm, Value: SettingPresignAlgorithmDefault},
-		{Key: SettingPresignSecret, Value: SettingPresignSecret},
+		{Key: SettingPresignSecret, Value: SettingPresignSecretDefault},
 		{Key: SettingPresignExpireSeconds, Value: SettingPresignExpireSecondsDefault},
 		{Key: SettingPresignHost, Value: SettingPresignHostDefault},
 		{Key: SettingPresignScheme, Value: SettingPresignSchemeDefault},

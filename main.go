@@ -16,13 +16,17 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/log"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
 	dconfig "github.com/mendersoftware/deployments/config"
@@ -91,21 +95,34 @@ func doMain(args []string) {
 		config.Config.SetEnvPrefix("DEPLOYMENTS")
 		config.Config.AutomaticEnv()
 		config.Config.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-		if config.Config.Get(dconfig.SettingPresignSecret) ==
-			dconfig.SettingPresignSecretDefault {
-			l.Warn("Using the default signature secret; THIS IS A POTENTIAL SECURITY ISSUE!")
-			l.Warnf(
-				"Please reconfigure the secret in '%s' or "+
-					"override with environment variable "+
-					"DEPLOYMENTS_PRESIGN_SECRET_BASE64",
-				args.String("config"),
+		if config.Config.Get(dconfig.SettingPresignSecret) == "" {
+			l.Infof("'%s' not configured. Generating a random secret.",
+				dconfig.SettingPresignSecret,
 			)
+			var buf [32]byte
+			n, err := io.ReadFull(rand.Reader, buf[:])
+			if err != nil {
+				return errors.Wrapf(err,
+					"failed to generate '%s'",
+					dconfig.SettingPresignSecret,
+				)
+			} else if n == 0 {
+				return errors.Errorf(
+					"failed to generate '%s'",
+					dconfig.SettingPresignSecret,
+				)
+			}
+			secret := base64.StdEncoding.EncodeToString(buf[:n])
+			config.Config.Set(dconfig.SettingPresignSecret, secret)
 		}
 
 		return nil
 	}
 
-	app.Run(args)
+	err := app.Run(args)
+	if err != nil {
+		log.NewEmpty().Fatal(err.Error())
+	}
 }
 
 func cmdServer(args *cli.Context) error {
