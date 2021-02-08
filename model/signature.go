@@ -52,7 +52,8 @@ func (sig *RequestSignature) SetExpire(expire time.Time) {
 	sig.URL.RawQuery = q.Encode()
 }
 
-// Validate validates the request parameters - assumes that
+// Validate validates the request parameters - assumes that the signature is
+// already signed.
 func (sig *RequestSignature) Validate() error {
 	q := sig.URL.Query()
 	if err := validation.Validate(q, validation.Map(
