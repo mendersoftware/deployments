@@ -1044,9 +1044,15 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 		return
 	} else if deployment.Type == model.DeploymentTypeConfiguration {
 		// Generate pre-signed URL
-		var hostName string
-		if hostName = r.Header.Get("X-Forwarded-Host"); hostName == "" {
-			hostName = d.config.PresignHostname
+		var hostName string = d.config.PresignHostname
+		if hostName == "" {
+			if hostName = r.Header.Get(hdrForwardedHost); hostName == "" {
+				d.view.RenderInternalError(w, r,
+					errors.New("presign.hostname not configured; "+
+						"unable to generate download link "+
+						" for configuration deployment"), l)
+				return
+			}
 		}
 		req, _ := http.NewRequest(
 			http.MethodGet,

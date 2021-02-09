@@ -204,12 +204,12 @@ presign:
   # URL format [url_scheme]://[(X-Forwarded-Host|url_hostname)[<path(generated)>]
 
   # Presign hostname
-  # This is the fallback hostname (to the gateway proxy) used for generating
-  # signed download URLs, the value is only used if the proxy does not forward
-  # X-Forwarded-Host.
-  # Defaults to: localhost
+  # This is the hostname (to the gateway proxy) used for generating
+  # signed download URLs. If left empty, the service will attempt to use
+  # X-Forwarded-Host forwarded by the proxy.
+  # Defaults to: "" (use X-Forwarded-Host)
   # Overwrite with environment variable: DEPLOYMENTS_PRESIGN_URL_HOSTNAME
-  url_hostname: "localhost"
+  url_hostname: ""
   # Presign URL scheme
   # This value is used as the url scheme for generating signed URLs.
   # Defaults to: https

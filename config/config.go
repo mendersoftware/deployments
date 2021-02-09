@@ -91,10 +91,12 @@ const (
 	SettingPresignExpireSeconds        = "presign.expire_seconds"
 	SettingPresignExpireSecondsDefault = 900
 
-	// SettingPresignHost sets the fallback URL hostname (pointing to the
-	// gateway) in case the gateway does not send X-Forwarded-Host header.
+	// SettingPresignHost sets the URL hostname (pointing to the gateway)
+	// for the generated URL. If the configuration option is left blank
+	// (default), it will try to use the X-Forwarded-Host header forwarded
+	// by the proxy.
 	SettingPresignHost        = "presign.url_hostname"
-	SettingPresignHostDefault = "localhost"
+	SettingPresignHostDefault = ""
 
 	// SettingPresignURLScheme sets the URL scheme used for generating the
 	// pre-signed url.
