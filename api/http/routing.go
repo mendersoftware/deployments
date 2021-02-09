@@ -17,7 +17,6 @@ package http
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"strings"
 	"time"
 
@@ -241,9 +240,9 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 
 func FMTConfigURL(scheme, hostname, deploymentID, deviceType, deviceID string) string {
 	repl := strings.NewReplacer(
-		":deployment_id", deploymentID,
-		":device_type", deviceType,
-		":device_id", deviceID,
+		":"+ParamDeploymentID, deploymentID,
+		":"+ParamDeviceType, deviceType,
+		":"+ParamDeviceID, deviceID,
 	)
-	return fmt.Sprintf("%s://%s%s", scheme, hostname, repl.Replace(ApiUrlDevicesDownloadConfig))
+	return scheme + "://" + hostname + repl.Replace(ApiUrlDevicesDownloadConfig)
 }

@@ -45,13 +45,24 @@ const (
 	DefaultDownloadLinkExpire = 15 * time.Minute
 
 	DefaultMaxMetaSize = 1024 * 1024 * 10
-	hdrTotalCount      = "X-Total-Count"
+)
+
+const (
+	// Header Constants
+
+	hdrTotalCount    = "X-Total-Count"
+	hdrForwardedHost = "X-Forwarded-Host"
 )
 
 // storage keys
 const (
-	GetDeploymentForDeviceQueryArtifact   = "artifact_name"
-	GetDeploymentForDeviceQueryDeviceType = "device_type"
+	// Common HTTP form parameters
+
+	ParamArtifactName = "artifact_name"
+	ParamDeviceType   = "device_type"
+	ParamDeploymentID = "deployment_id"
+	ParamDeviceID     = "device_id"
+	ParamTenantID     = "tenant_id"
 )
 
 const Redacted = "REDACTED"
@@ -91,15 +102,15 @@ type Config struct {
 	PresignSecret []byte
 	// PresignExpire duration until the link expires.
 	PresignExpire time.Duration
-	// PresignHostname fallback value for the signed url hostname.
+	// PresignHostname is the signed url hostname.
 	PresignHostname string
-	// PresignScheme URL scheme to used for generating signed URLs.
+	// PresignScheme is the URL scheme used for generating signed URLs.
 	PresignScheme string
 }
 
 func NewConfig() *Config {
 	return &Config{
-		PresignExpire:   time.Second * 900,
+		PresignExpire:   DefaultDownloadLinkExpire,
 		PresignScheme:   "https",
 		PresignHostname: "localhost",
 	}
@@ -310,14 +321,14 @@ func (d *DeploymentsApiHandlers) DownloadConfiguration(w rest.ResponseWriter, r 
 
 	var (
 		tenantID     string
-		deviceID     = r.PathParam("device_id")
-		deviceType   = r.PathParam("device_type")
-		deploymentID = r.PathParam("deployment_id")
+		deviceID     = r.PathParam(ParamDeviceID)
+		deviceType   = r.PathParam(ParamDeviceType)
+		deploymentID = r.PathParam(ParamDeploymentID)
 		l            = log.FromContext(r.Context())
 		q            = r.URL.Query()
 		err          error
 	)
-	tenantID = q.Get("tenant_id")
+	tenantID = q.Get(ParamTenantID)
 	sig := model.NewRequestSignature(r.Request, d.config.PresignSecret)
 	if err = sig.Validate(); err != nil {
 		switch cause := errors.Cause(err); cause {
@@ -782,11 +793,11 @@ func (d *DeploymentsApiHandlers) DeployToGroup(w rest.ResponseWriter, r *rest.Re
 // and check if the params are not empty
 func parseDeviceConfigurationDeploymentPathParams(r *rest.Request) (string, string, string, error) {
 	tenantID := r.PathParam("tenant")
-	deviceID := r.PathParam("device_id")
+	deviceID := r.PathParam(ParamDeviceID)
 	if deviceID == "" {
 		return "", "", "", errors.New("device ID missing")
 	}
-	deploymentID := r.PathParam("deployment_id")
+	deploymentID := r.PathParam(ParamDeploymentID)
 	if deploymentID == "" {
 		return "", "", "", errors.New("deployment ID missing")
 	}
@@ -999,12 +1010,12 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 	q := r.URL.Query()
 	defer func() {
 		var reEncode bool = false
-		if name := q.Get("artifact_name"); name != "" {
-			q.Set("artifact_name", Redacted)
+		if name := q.Get(ParamArtifactName); name != "" {
+			q.Set(ParamArtifactName, Redacted)
 			reEncode = true
 		}
-		if typ := q.Get("device_type"); typ != "" {
-			q.Set("device_type", Redacted)
+		if typ := q.Get(ParamDeviceType); typ != "" {
+			q.Set(ParamDeviceType, Redacted)
 			reEncode = true
 		}
 		if reEncode {
@@ -1023,8 +1034,8 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 	} else {
 		// GET or HEAD
 		installed = &model.InstalledDeviceDeployment{
-			ArtifactName: q.Get(GetDeploymentForDeviceQueryArtifact),
-			DeviceType:   q.Get(GetDeploymentForDeviceQueryDeviceType),
+			ArtifactName: q.Get(ParamArtifactName),
+			DeviceType:   q.Get(ParamDeviceType),
 		}
 	}
 
