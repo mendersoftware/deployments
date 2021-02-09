@@ -12,16 +12,15 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package model
+package stage
 
-type ArtifactDeploymentInstructions struct {
-	ArtifactName          string   `json:"artifact_name"`
-	Source                Link     `json:"source"`
-	DeviceTypesCompatible []string `json:"device_types_compatible"`
-}
-
-type DeploymentInstructions struct {
-	ID       string                         `json:"id"`
-	Artifact ArtifactDeploymentInstructions `json:"artifact"`
-	Type     DeploymentType                 `json:"-"`
-}
+// The stages the Artifact parser/writer is in
+const (
+	Version           = "Version"
+	Manifest          = "Manifest"
+	ManifestSignature = "Manifest signature"
+	ManifestAugment   = "Manifest augment"
+	Header            = "Header"
+	HeaderAugment     = "Header Augment"
+	Data              = "Payload"
+)

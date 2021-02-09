@@ -45,13 +45,24 @@ const (
 	DefaultDownloadLinkExpire = 15 * time.Minute
 
 	DefaultMaxMetaSize = 1024 * 1024 * 10
-	hdrTotalCount      = "X-Total-Count"
+)
+
+const (
+	// Header Constants
+
+	hdrTotalCount    = "X-Total-Count"
+	hdrForwardedHost = "X-Forwarded-Host"
 )
 
 // storage keys
 const (
-	GetDeploymentForDeviceQueryArtifact   = "artifact_name"
-	GetDeploymentForDeviceQueryDeviceType = "device_type"
+	// Common HTTP form parameters
+
+	ParamArtifactName = "artifact_name"
+	ParamDeviceType   = "device_type"
+	ParamDeploymentID = "deployment_id"
+	ParamDeviceID     = "device_id"
+	ParamTenantID     = "tenant_id"
 )
 
 const Redacted = "REDACTED"
@@ -84,17 +95,83 @@ var (
 	ErrMissingGroupName           = errors.New("Missing group name")
 )
 
-type DeploymentsApiHandlers struct {
-	view  RESTView
-	store store.DataStore
-	app   app.App
+type Config struct {
+	// URL signing parameters:
+
+	// PresignSecret holds the secret value used by the signature algorithm.
+	PresignSecret []byte
+	// PresignExpire duration until the link expires.
+	PresignExpire time.Duration
+	// PresignHostname is the signed url hostname.
+	PresignHostname string
+	// PresignScheme is the URL scheme used for generating signed URLs.
+	PresignScheme string
 }
 
-func NewDeploymentsApiHandlers(store store.DataStore, view RESTView, app app.App) *DeploymentsApiHandlers {
+func NewConfig() *Config {
+	return &Config{
+		PresignExpire:   DefaultDownloadLinkExpire,
+		PresignScheme:   "https",
+		PresignHostname: "localhost",
+	}
+}
+
+func (conf *Config) SetPresignSecret(key []byte) *Config {
+	conf.PresignSecret = key
+	return conf
+}
+
+func (conf *Config) SetPresignExpire(duration time.Duration) *Config {
+	conf.PresignExpire = duration
+	return conf
+}
+
+func (conf *Config) SetPresignHostname(hostname string) *Config {
+	conf.PresignHostname = hostname
+	return conf
+}
+
+func (conf *Config) SetPresignScheme(scheme string) *Config {
+	conf.PresignScheme = scheme
+	return conf
+}
+
+type DeploymentsApiHandlers struct {
+	view   RESTView
+	store  store.DataStore
+	app    app.App
+	config Config
+}
+
+func NewDeploymentsApiHandlers(
+	store store.DataStore,
+	view RESTView,
+	app app.App,
+	config ...*Config,
+) *DeploymentsApiHandlers {
+	conf := NewConfig()
+	for _, c := range config {
+		if c == nil {
+			continue
+		}
+		if c.PresignSecret != nil {
+			conf.PresignSecret = c.PresignSecret
+		}
+		if c.PresignExpire != 0 {
+			conf.PresignExpire = c.PresignExpire
+		}
+		if c.PresignHostname != "" {
+			conf.PresignHostname = c.PresignHostname
+		}
+		if c.PresignScheme != "" {
+			conf.PresignScheme = c.PresignScheme
+		}
+	}
 	return &DeploymentsApiHandlers{
-		store: store,
-		view:  view,
-		app:   app,
+		store:  store,
+		view:   view,
+		app:    app,
+		config: *conf,
 	}
 }
 
@@ -234,6 +311,80 @@ func (d *DeploymentsApiHandlers) DownloadLink(w rest.ResponseWriter, r *rest.Req
 	}
 
 	d.view.RenderSuccessGet(w, link)
+}
+
+func (d *DeploymentsApiHandlers) DownloadConfiguration(w rest.ResponseWriter, r *rest.Request) {
+	if d.config.PresignSecret == nil {
+		rest.NotFound(w, r)
+		return
+	}
+
+	var (
+		tenantID     string
+		deviceID     = r.PathParam(ParamDeviceID)
+		deviceType   = r.PathParam(ParamDeviceType)
+		deploymentID = r.PathParam(ParamDeploymentID)
+		l            = log.FromContext(r.Context())
+		q            = r.URL.Query()
+		err          error
+	)
+	tenantID = q.Get(ParamTenantID)
+	sig := model.NewRequestSignature(r.Request, d.config.PresignSecret)
+	if err = sig.Validate(); err != nil {
+		switch cause := errors.Cause(err); cause {
+		case model.ErrLinkExpired:
+			d.view.RenderError(w, r, cause, http.StatusForbidden, l)
+		default:
+			d.view.RenderError(w, r,
+				errors.Wrap(err, "invalid request parameters"),
+				http.StatusBadRequest, l,
+			)
+		}
+		return
+	}
+
+	if !sig.VerifyHMAC256() {
+		d.view.RenderError(w, r,
+			errors.New("signature invalid"),
+			http.StatusForbidden, l,
+		)
+		return
+	}
+
+	// Validate request signature
+	ctx := identity.WithContext(r.Context(), &identity.Identity{
+		Subject:  deviceID,
+		Tenant:   tenantID,
+		IsDevice: true,
+	})
+
+	artifact, err := d.app.GenerateConfigurationImage(ctx, deviceType, deploymentID)
+	if err != nil {
+		switch cause := errors.Cause(err); cause {
+		case app.ErrModelDeploymentNotFound:
+			d.view.RenderError(w, r,
+				errors.Errorf(
+					"deployment with id '%s' not found",
+					deploymentID,
+				),
+				http.StatusNotFound, l,
+			)
+		default:
+			l.Error(err.Error())
+			d.view.RenderInternalError(w, r, err, l)
+		}
+		return
+	}
+	rw := w.(http.ResponseWriter)
+	hdr := rw.Header()
+	hdr.Set("Content-Disposition", `attachment; filename="artifact.mender"`)
+	hdr.Set("Content-Type", app.ArtifactContentType)
+	rw.WriteHeader(http.StatusOK)
+	_, err = io.Copy(rw, artifact)
+	if err != nil {
+		// There's not anything we can do here in terms of the response.
+		l.Error(err.Error())
+	}
 }
 
 func (d *DeploymentsApiHandlers) DeleteImage(w rest.ResponseWriter, r *rest.Request) {
@@ -642,11 +793,11 @@ func (d *DeploymentsApiHandlers) DeployToGroup(w rest.ResponseWriter, r *rest.Re
 // and check if the params are not empty
 func parseDeviceConfigurationDeploymentPathParams(r *rest.Request) (string, string, string, error) {
 	tenantID := r.PathParam("tenant")
-	deviceID := r.PathParam("device_id")
+	deviceID := r.PathParam(ParamDeviceID)
 	if deviceID == "" {
 		return "", "", "", errors.New("device ID missing")
 	}
-	deploymentID := r.PathParam("deployment_id")
+	deploymentID := r.PathParam(ParamDeploymentID)
 	if deploymentID == "" {
 		return "", "", "", errors.New("deployment ID missing")
 	}
@@ -845,10 +996,12 @@ func (d *DeploymentsApiHandlers) AbortDeployment(w rest.ResponseWriter, r *rest.
 }
 
 func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
-	ctx := r.Context()
-	l := requestlog.GetRequestLogger(r)
-
-	idata := identity.FromContext(ctx)
+	var (
+		installed *model.InstalledDeviceDeployment
+		ctx       = r.Context()
+		l         = requestlog.GetRequestLogger(r)
+		idata     = identity.FromContext(ctx)
+	)
 	if idata == nil {
 		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
 		return
@@ -857,21 +1010,33 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 	q := r.URL.Query()
 	defer func() {
 		var reEncode bool = false
-		if name := q.Get("artifact_name"); name != "" {
-			q.Set("artifact_name", Redacted)
+		if name := q.Get(ParamArtifactName); name != "" {
+			q.Set(ParamArtifactName, Redacted)
 			reEncode = true
 		}
-		if typ := q.Get("device_type"); typ != "" {
-			q.Set("device_type", Redacted)
+		if typ := q.Get(ParamDeviceType); typ != "" {
+			q.Set(ParamDeviceType, Redacted)
 			reEncode = true
 		}
 		if reEncode {
 			r.URL.RawQuery = q.Encode()
 		}
 	}()
-	installed := &model.InstalledDeviceDeployment{
-		ArtifactName: q.Get(GetDeploymentForDeviceQueryArtifact),
-		DeviceType:   q.Get(GetDeploymentForDeviceQueryDeviceType),
+	if strings.EqualFold(r.Method, http.MethodPost) {
+		// POST
+		installed = new(model.InstalledDeviceDeployment)
+		if err := r.DecodeJsonPayload(&installed); err != nil {
+			d.view.RenderError(w, r,
+				errors.Wrap(err, "invalid schema"),
+				http.StatusBadRequest, l)
+			return
+		}
+	} else {
+		// GET or HEAD
+		installed = &model.InstalledDeviceDeployment{
+			ArtifactName: q.Get(ParamArtifactName),
+			DeviceType:   q.Get(ParamDeviceType),
+		}
 	}
 
 	if err := installed.Validate(); err != nil {
@@ -888,47 +1053,41 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 	if deployment == nil {
 		d.view.RenderNoUpdateForDevice(w)
 		return
+	} else if deployment.Type == model.DeploymentTypeConfiguration {
+		// Generate pre-signed URL
+		var hostName string = d.config.PresignHostname
+		if hostName == "" {
+			if hostName = r.Header.Get(hdrForwardedHost); hostName == "" {
+				d.view.RenderInternalError(w, r,
+					errors.New("presign.hostname not configured; "+
+						"unable to generate download link "+
+						" for configuration deployment"), l)
+				return
+			}
+		}
+		req, _ := http.NewRequest(
+			http.MethodGet,
+			FMTConfigURL(
+				d.config.PresignScheme, hostName,
+				deployment.ID, installed.DeviceType,
+				idata.Subject,
+			),
+			nil,
+		)
+		if idata.Tenant != "" {
+			q := req.URL.Query()
+			q.Set(model.ParamTenantID, idata.Tenant)
+			req.URL.RawQuery = q.Encode()
+		}
+		sig := model.NewRequestSignature(req, d.config.PresignSecret)
+		expireTS := time.Now().Add(d.config.PresignExpire)
+		sig.SetExpire(expireTS)
+		deployment.Artifact.Source = model.Link{
+			Uri:    sig.PresignURL(),
+			Expire: expireTS,
+		}
 	}
 
-	d.view.RenderSuccessGet(w, deployment)
-}
-
-func (d *DeploymentsApiHandlers) PostDeploymentForDevice(w rest.ResponseWriter, r *rest.Request) {
-	ctx := r.Context()
-	l := requestlog.GetRequestLogger(r)
-
-	idata := identity.FromContext(ctx)
-	if idata == nil {
-		d.view.RenderError(w, r, ErrMissingIdentity, http.StatusBadRequest, l)
-		return
-	}
-
-	var installed model.InstalledDeviceDeployment
-	if err := r.DecodeJsonPayload(&installed); err != nil {
-		d.view.RenderError(w, r,
-			errors.Wrap(err, "invalid schema"),
-			http.StatusBadRequest, l)
-		return
-	}
-
-	if err := installed.Validate(); err != nil {
-		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
-		return
-	}
-
-	deployment, err := d.app.GetDeploymentForDeviceWithCurrent(ctx, idata.Subject, &installed)
-	if err != nil {
-		d.view.RenderInternalError(w, r, err, l)
-		return
-	}
-
-	if deployment == nil {
-		d.view.RenderNoUpdateForDevice(w)
-		return
-	}
-
-	// NOTE: Must use the RenderSuccessGet as the POST variant reports
-	//       incorrect status code.
 	d.view.RenderSuccessGet(w, deployment)
 }
 

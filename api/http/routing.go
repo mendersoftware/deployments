@@ -16,6 +16,9 @@ package http
 
 import (
 	"context"
+	"encoding/base64"
+	"strings"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -57,6 +60,7 @@ const (
 	ApiUrlDevicesDeploymentsNext  = ApiUrlDevices + "/device/deployments/next"
 	ApiUrlDevicesDeploymentStatus = ApiUrlDevices + "/device/deployments/:id/status"
 	ApiUrlDevicesDeploymentsLog   = ApiUrlDevices + "/device/deployments/:id/log"
+	ApiUrlDevicesDownloadConfig   = ApiUrlDevices + "/download/configuration/:deployment_id/:device_type/:device_id"
 
 	ApiUrlInternalAlive                          = ApiUrlInternal + "/alive"
 	ApiUrlInternalHealth                         = ApiUrlInternal + "/health"
@@ -100,7 +104,27 @@ func NewRouter(ctx context.Context, c config.Reader,
 
 	app := app.NewDeployments(mongoStorage, fileStorage, app.ArtifactContentType)
 
-	deploymentsHandlers := NewDeploymentsApiHandlers(mongoStorage, new(view.RESTView), app)
+	// Create and configure API handlers
+	//
+	// Encode base64 secret in either std or URL encoding ignoring padding.
+	base64Repl := strings.NewReplacer("-", "+", "_", "/", "=", "")
+	expireSec := c.GetDuration(dconfig.SettingPresignExpireSeconds)
+	apiConf := NewConfig().
+		SetPresignExpire(time.Second * expireSec).
+		SetPresignHostname(c.GetString(dconfig.SettingPresignHost)).
+		SetPresignScheme(c.GetString(dconfig.SettingPresignScheme))
+	// TODO: When adding support for different signing algorithm,
+	//       conditionally decode this one:
+	if key, err := base64.RawStdEncoding.DecodeString(
+		base64Repl.Replace(
+			c.GetString(dconfig.SettingPresignSecret),
+		),
+	); err == nil {
+		apiConf.SetPresignSecret(key)
+	}
+	deploymentsHandlers := NewDeploymentsApiHandlers(
+		mongoStorage, new(view.RESTView), app, apiConf,
+	)
 
 	// Routing
 	imageRoutes := NewImagesResourceRoutes(deploymentsHandlers)
@@ -166,10 +190,13 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 
 		// Devices
 		rest.Get(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
+		rest.Post(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
 		rest.Put(ApiUrlDevicesDeploymentStatus,
 			controller.PutDeploymentStatusForDevice),
 		rest.Put(ApiUrlDevicesDeploymentsLog,
 			controller.PutDeploymentLogForDevice),
+		rest.Get(ApiUrlDevicesDownloadConfig,
+			controller.DownloadConfiguration),
 
 		// Health Check
 		rest.Get(ApiUrlInternalAlive, controller.AliveHandler),
@@ -209,4 +236,13 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	return []*rest.Route{
 		rest.Get(ApiUrlManagementReleases, controller.GetReleases),
 	}
+}
+
+func FMTConfigURL(scheme, hostname, deploymentID, deviceType, deviceID string) string {
+	repl := strings.NewReplacer(
+		":"+ParamDeploymentID, deploymentID,
+		":"+ParamDeviceType, deviceType,
+		":"+ParamDeviceID, deviceID,
+	)
+	return scheme + "://" + hostname + repl.Replace(ApiUrlDevicesDownloadConfig)
 }

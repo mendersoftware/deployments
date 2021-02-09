@@ -18,9 +18,11 @@ package mocks
 
 import (
 	context "context"
+	io "io"
+
+	mock "github.com/stretchr/testify/mock"
 
 	model "github.com/mendersoftware/deployments/model"
-	mock "github.com/stretchr/testify/mock"
 
 	time "time"
 )
@@ -172,6 +174,29 @@ func (_m *App) EditImage(ctx context.Context, id string, constructorData *model.
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, *model.ImageMeta) error); ok {
 		r1 = rf(ctx, id, constructorData)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GenerateConfigurationImage provides a mock function with given fields: ctx, deviceType, deploymentID
+func (_m *App) GenerateConfigurationImage(ctx context.Context, deviceType string, deploymentID string) (io.Reader, error) {
+	ret := _m.Called(ctx, deviceType, deploymentID)
+
+	var r0 io.Reader
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) io.Reader); ok {
+		r0 = rf(ctx, deviceType, deploymentID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(io.Reader)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, deviceType, deploymentID)
 	} else {
 		r1 = ret.Error(1)
 	}

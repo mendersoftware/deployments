@@ -159,6 +159,61 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /download/configuration/{deployment_id}/{device_type}/{device_id}:
+    get:
+      operationId: Fetch Configuration
+      tags:
+        - Device API
+      security: []
+      summary: |
+        Internally generated download link for deploying device configurations.
+        All parameters are generated internally when fetching a configuration deployment.
+      parameters:
+        - name: deployment_id
+          in: path
+          description: Deployment UUID
+          type: string
+          required: true
+        - name: device_type
+          in: path
+          description: Device type of the calling device
+          type: string
+          required: true
+        - name: device_id
+          in: path
+          description: Device UUID
+          type: string
+          required: true
+        - name: x-men-expire
+          in: query
+          description: Time of link expire
+          type: string
+          format: date-time
+          required: true
+        - name: x-men-signature
+          in: query
+          description: Signature of the URL link
+          type: string
+          required: true
+        - name: tenant_id
+          in: query
+          description: Device tenant ID
+          type: string
+          required: false
+      responses:
+        200:
+          description: Successful response
+          schema:
+            type: string
+            format: binary
+            description: Artifact file
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        403:
+          description: The download link has expired or the signature is invalid.
+        500:
+          $ref: "#/responses/InternalServerError"
+
 definitions:
   Error:
     description: Error descriptor.

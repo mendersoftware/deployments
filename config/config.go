@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -73,6 +73,35 @@ const (
 
 	SettingInventoryTimeout        = "inventory_timeout"
 	SettingInventoryTimeoutDefault = 10
+
+	// SettingPresignAlgorithm sets the algorithm used for signing
+	// downloadable URLs. This option is currently ignored.
+	SettingPresignAlgorithm        = "presign.algorithm"
+	SettingPresignAlgorithmDefault = "HMAC256"
+
+	// SettingPresignSecret sets the secret for generating signed url.
+	// For HMAC type of algorithms the value must be a base64 encoded
+	// secret. For public key signatures, the value must be a path to
+	// the private key (not yet supported).
+	SettingPresignSecret        = "presign.secret"
+	SettingPresignSecretDefault = ""
+
+	// SettingPresignExpireSeconds sets the amount of seconds it takes for
+	// the signed URL to expire.
+	SettingPresignExpireSeconds        = "presign.expire_seconds"
+	SettingPresignExpireSecondsDefault = 900
+
+	// SettingPresignHost sets the URL hostname (pointing to the gateway)
+	// for the generated URL. If the configuration option is left blank
+	// (default), it will try to use the X-Forwarded-Host header forwarded
+	// by the proxy.
+	SettingPresignHost        = "presign.url_hostname"
+	SettingPresignHostDefault = ""
+
+	// SettingPresignURLScheme sets the URL scheme used for generating the
+	// pre-signed url.
+	SettingPresignScheme        = "presign.url_scheme"
+	SettingPresignSchemeDefault = "https"
 )
 
 // ValidateAwsAuth validates configuration of SettingsAwsAuth section if provided.
@@ -138,5 +167,10 @@ var (
 		{Key: SettingsAwsTagArtifact, Value: SettingsAwsTagArtifactDefault},
 		{Key: SettingInventoryAddr, Value: SettingInventoryAddrDefault},
 		{Key: SettingInventoryTimeout, Value: SettingInventoryTimeoutDefault},
+		{Key: SettingPresignAlgorithm, Value: SettingPresignAlgorithmDefault},
+		{Key: SettingPresignSecret, Value: SettingPresignSecretDefault},
+		{Key: SettingPresignExpireSeconds, Value: SettingPresignExpireSecondsDefault},
+		{Key: SettingPresignHost, Value: SettingPresignHostDefault},
+		{Key: SettingPresignScheme, Value: SettingPresignSchemeDefault},
 	}
 )
