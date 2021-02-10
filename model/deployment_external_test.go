@@ -228,7 +228,8 @@ func TestDeploymentMarshalJSON(t *testing.T) {
         "created":"` + dep.Created.Format(time.RFC3339Nano) + `",
         "device_count": 1337,
         "id":"14ddec54-30be-49bf-aa6b-97ce271d71f5",
-        "status": "inprogress"
+        "status": "inprogress",
+        "type": "software"
     }`
 
 	assert.JSONEq(t, expectedJSON, string(j))

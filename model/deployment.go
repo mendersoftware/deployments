@@ -203,10 +203,15 @@ func (d *Deployment) MarshalJSON() ([]byte, error) {
 
 	slim := struct {
 		*Alias
-		Devices []string `json:"devices,omitempty"`
+		Devices []string       `json:"devices,omitempty"`
+		Type    DeploymentType `json:"type,omitempty"`
 	}{
 		Alias:   (*Alias)(d),
 		Devices: nil,
+		Type:    d.Type,
+	}
+	if slim.Type == "" {
+		slim.Type = DeploymentTypeSoftware
 	}
 
 	return json.Marshal(&slim)
