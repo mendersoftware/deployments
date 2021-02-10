@@ -176,6 +176,15 @@ class Device:
             for p in [hdr, claims, signature]
         )
 
+    def fake_token_mt(self, tenant):
+        claims = json.dumps({"sub": self.devid, "iss": "Mender", "mender.tenant": tenant})
+        hdr = '{"typ": "JWT"}'
+        signature = "fake-signature"
+        return ".".join(
+            urlsafe_b64encode(p.encode()).decode().strip("=")
+            for p in [hdr, claims, signature]
+        )
+
 
 @pytest.fixture(scope="session")
 def cli():

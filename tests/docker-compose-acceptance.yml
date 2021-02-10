@@ -20,6 +20,9 @@ services:
                 - "${TESTS_DIR}:/testing"
             environment:
               TESTING_LOGS: 1
+              DEPLOYMENTS_PRESIGN_URL_HOSTNAME: mender-deployments:8080
+              DEPLOYMENTS_PRESIGN_URL_SCHEME: http
+              DEPLOYMENTS_PRESIGN_SECRET: qF4/MZzQmHTJ+nrlr26b3g==
     mender-workflows-server:
         image: python:3
         command: ["/app/docker-entrypoint.sh"]
