@@ -110,9 +110,8 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		PresignExpire:   DefaultDownloadLinkExpire,
-		PresignScheme:   "https",
-		PresignHostname: "localhost",
+		PresignExpire: DefaultDownloadLinkExpire,
+		PresignScheme: "https",
 	}
 }
 
