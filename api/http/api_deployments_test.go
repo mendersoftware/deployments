@@ -654,6 +654,7 @@ func TestDownloadConfiguration(t *testing.T) {
 		Headers: http.Header{
 			"Content-Disposition": []string{"attachment; filename=\"artifact.mender\""},
 			"Content-Type":        []string{app.ArtifactContentType},
+			"Content-Length":      []string{"31"},
 		},
 		StatusCode: http.StatusOK,
 		Body:       []byte("*Just imagine an artifact here*"),
@@ -701,6 +702,7 @@ func TestDownloadConfiguration(t *testing.T) {
 		Headers: http.Header{
 			"Content-Disposition": []string{"attachment; filename=\"artifact.mender\""},
 			"Content-Type":        []string{app.ArtifactContentType},
+			"Content-Length":      []string{"31"},
 		},
 		StatusCode: http.StatusOK,
 		Body:       []byte("*Just imagine an artifact here*"),
@@ -899,8 +901,8 @@ func TestDownloadConfiguration(t *testing.T) {
 			return appl
 		}(),
 
-		StatusCode: http.StatusOK,
-		Body:       []byte(nil),
+		StatusCode: http.StatusInternalServerError,
+		Error:      errors.New("internal error"),
 	}}
 	for i := range testCases {
 		tc := testCases[i]
