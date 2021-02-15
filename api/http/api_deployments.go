@@ -110,9 +110,8 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		PresignExpire:   DefaultDownloadLinkExpire,
-		PresignScheme:   "https",
-		PresignHostname: "localhost",
+		PresignExpire: DefaultDownloadLinkExpire,
+		PresignScheme: "https",
 	}
 }
 
@@ -375,12 +374,20 @@ func (d *DeploymentsApiHandlers) DownloadConfiguration(w rest.ResponseWriter, r 
 		}
 		return
 	}
+	artifactPayload, err := ioutil.ReadAll(artifact)
+	if err != nil {
+		l.Error(err.Error())
+		d.view.RenderInternalError(w, r, err, l)
+		return
+	}
+
 	rw := w.(http.ResponseWriter)
 	hdr := rw.Header()
 	hdr.Set("Content-Disposition", `attachment; filename="artifact.mender"`)
 	hdr.Set("Content-Type", app.ArtifactContentType)
+	hdr.Set("Content-Length", strconv.Itoa(len(artifactPayload)))
 	rw.WriteHeader(http.StatusOK)
-	_, err = io.Copy(rw, artifact)
+	_, err = rw.Write(artifactPayload)
 	if err != nil {
 		// There's not anything we can do here in terms of the response.
 		l.Error(err.Error())

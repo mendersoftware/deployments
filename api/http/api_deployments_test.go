@@ -654,6 +654,7 @@ func TestDownloadConfiguration(t *testing.T) {
 		Headers: http.Header{
 			"Content-Disposition": []string{"attachment; filename=\"artifact.mender\""},
 			"Content-Type":        []string{app.ArtifactContentType},
+			"Content-Length":      []string{"31"},
 		},
 		StatusCode: http.StatusOK,
 		Body:       []byte("*Just imagine an artifact here*"),
@@ -701,6 +702,7 @@ func TestDownloadConfiguration(t *testing.T) {
 		Headers: http.Header{
 			"Content-Disposition": []string{"attachment; filename=\"artifact.mender\""},
 			"Content-Type":        []string{app.ArtifactContentType},
+			"Content-Length":      []string{"31"},
 		},
 		StatusCode: http.StatusOK,
 		Body:       []byte("*Just imagine an artifact here*"),
@@ -899,8 +901,8 @@ func TestDownloadConfiguration(t *testing.T) {
 			return appl
 		}(),
 
-		StatusCode: http.StatusOK,
-		Body:       []byte(nil),
+		StatusCode: http.StatusInternalServerError,
+		Error:      errors.New("internal error"),
 	}}
 	for i := range testCases {
 		tc := testCases[i]
@@ -950,9 +952,10 @@ func TestGetDeploymentForDevice(t *testing.T) {
 	testCases := []struct {
 		Name string
 
-		Request  *http.Request
-		App      *mapp.App
-		IsConfig bool
+		Request        *http.Request
+		App            *mapp.App
+		IsConfig       bool
+		XForwardedHost string
 
 		StatusCode int
 		Error      error
@@ -1123,6 +1126,91 @@ func TestGetDeploymentForDevice(t *testing.T) {
 		StatusCode: http.StatusOK,
 		Error:      nil,
 	}, {
+		Name:           "ok, configuration deployment with X-Forwarded-Host",
+		XForwardedHost: "hosted.mender.io",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequestWithContext(
+				identity.WithContext(context.Background(), &identity.Identity{
+					Subject:  uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+					IsDevice: true,
+					Tenant:   "12456789012345678901234",
+				}),
+				http.MethodGet,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext+
+					"?device_type=bagelShins&artifact_name=bagelOS1.0.1",
+				nil,
+			)
+			req.Header.Add(hdrForwardedHost, "hosted.mender.io")
+			return req
+		}(),
+		App: func() *mapp.App {
+			app := new(mapp.App)
+			app.On("GetDeploymentForDeviceWithCurrent",
+
+				contextMatcher(),
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				&model.InstalledDeviceDeployment{
+					ArtifactName: "bagelOS1.0.1",
+					DeviceType:   "bagelShins",
+				},
+			).Return(&model.DeploymentInstructions{
+				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
+				Artifact: model.ArtifactDeploymentInstructions{
+					ArtifactName:          "bagelOS1.1.0",
+					DeviceTypesCompatible: []string{"bagelShins", "raspberryPlanck"},
+				},
+				Type: model.DeploymentTypeConfiguration,
+			}, nil)
+			return app
+		}(),
+		IsConfig: true,
+
+		StatusCode: http.StatusOK,
+		Error:      nil,
+	}, {
+		Name:           "ko, configuration deployment without X-Forwarded-Host nor presign host config",
+		XForwardedHost: "hosted.mender.io",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequestWithContext(
+				identity.WithContext(context.Background(), &identity.Identity{
+					Subject:  uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+					IsDevice: true,
+					Tenant:   "12456789012345678901234",
+				}),
+				http.MethodGet,
+				"http://localhost"+ApiUrlDevicesDeploymentsNext+
+					"?device_type=bagelShins&artifact_name=bagelOS1.0.1",
+				nil,
+			)
+			return req
+		}(),
+		App: func() *mapp.App {
+			app := new(mapp.App)
+			app.On("GetDeploymentForDeviceWithCurrent",
+
+				contextMatcher(),
+				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
+				&model.InstalledDeviceDeployment{
+					ArtifactName: "bagelOS1.0.1",
+					DeviceType:   "bagelShins",
+				},
+			).Return(&model.DeploymentInstructions{
+				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
+				Artifact: model.ArtifactDeploymentInstructions{
+					ArtifactName:          "bagelOS1.1.0",
+					DeviceTypesCompatible: []string{"bagelShins", "raspberryPlanck"},
+				},
+				Type: model.DeploymentTypeConfiguration,
+			}, nil)
+			return app
+		}(),
+		IsConfig: true,
+
+		StatusCode: http.StatusInternalServerError,
+		Error:      errors.New("internal error"),
+	}, {
 		Name: "error, missing identity",
 
 		Request: func() *http.Request {
@@ -1251,9 +1339,12 @@ func TestGetDeploymentForDevice(t *testing.T) {
 			defer tc.App.AssertExpectations(t)
 			config := NewConfig().
 				SetPresignScheme("https").
-				SetPresignHostname("localhost").
 				SetPresignSecret([]byte("test")).
 				SetPresignExpire(time.Hour)
+			if tc.XForwardedHost == "" {
+				config = config.SetPresignHostname("localhost")
+			}
+
 			handlers := NewDeploymentsApiHandlers(nil, &view.RESTView{}, tc.App, config)
 			routes := NewDeploymentsResourceRoutes(handlers)
 			router, _ := rest.MakeRouter(routes...)
@@ -1282,7 +1373,11 @@ func TestGetDeploymentForDevice(t *testing.T) {
 				if tc.IsConfig {
 					assert.NoError(t, err)
 					assert.Equal(t, "https", link.Scheme)
-					assert.Equal(t, "localhost", link.Host)
+					if tc.XForwardedHost != "" {
+						assert.Equal(t, tc.XForwardedHost, link.Host)
+					} else {
+						assert.Equal(t, "localhost", link.Host)
+					}
 					q := link.Query()
 					expire, err := time.Parse(time.RFC3339, q.Get(model.ParamExpire))
 					if assert.NoError(t, err) {
