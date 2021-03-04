@@ -19,7 +19,7 @@ and comprises several repositories.
 The Deployment Service manages artifacts, deployments, and reports of outcome of deployments.
 
 
-![Mender logo](https://hosted.mender.io/ui/assets/img/loginlogo.png)
+![Mender logo](https://raw.githubusercontent.com/mendersoftware/mender/master/mender_logo.png)
 
 
 ## Getting started
