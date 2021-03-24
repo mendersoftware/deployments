@@ -545,7 +545,7 @@ func (db *DataStoreMongo) ImageByNameAndDeviceType(ctx context.Context,
 
 	// If multiple entries matches, pick the smallest one.
 	findOpts := mopts.FindOne()
-	findOpts.SetSort(bson.M{StorageKeyImageSize: 1})
+	findOpts.SetSort(bson.D{{Key: StorageKeyImageSize, Value: 1}})
 
 	dbName := mstore.DbFromContext(ctx, DatabaseName)
 	database := db.client.Database(dbName)
@@ -586,7 +586,7 @@ func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 
 	// If multiple entries matches, pick the smallest one
 	findOpts := mopts.FindOne()
-	findOpts.SetSort(bson.M{StorageKeyImageSize: 1})
+	findOpts.SetSort(bson.D{{Key: StorageKeyImageSize, Value: 1}})
 
 	// Both we lookup unique object, should be one or none.
 	var image model.Image
@@ -963,7 +963,7 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 	// Find the oldest one by sorting the creation timestamp
 	// in ascending order.
 	findOptions := mopts.FindOne()
-	findOptions.SetSort(bson.M{"created": 1})
+	findOptions.SetSort(bson.D{{Key: "created", Value: 1}})
 
 	// Select only the oldest one that have not been finished yet.
 	var deployment *model.DeviceDeployment
@@ -1001,7 +1001,7 @@ func (db *DataStoreMongo) FindLatestDeploymentForDeviceIDWithStatuses(ctx contex
 	// Find the latest one by sorting by the creation timestamp
 	// in ascending order.
 	findOptions := mopts.FindOne()
-	findOptions.SetSort(bson.M{"created": -1})
+	findOptions.SetSort(bson.D{{Key: "created", Value: -1}})
 
 	// Select only the latest one that have not been finished yet.
 	var deployment *model.DeviceDeployment
@@ -1759,7 +1759,7 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 	}
 
 	options := &mopts.FindOptions{}
-	options.SetSort(bson.M{"created": -1})
+	options.SetSort(bson.D{{Key: "created", Value: -1}})
 	if match.Skip > 0 {
 		options.SetSkip(int64(match.Skip))
 	}
@@ -1810,9 +1810,7 @@ func (db *DataStoreMongo) FindNewerActiveDeployments(ctx context.Context,
 	findOptions.SetSkip(int64(skip))
 	findOptions.SetLimit(int64(limit))
 
-	sort := bson.M{}
-	sort[StorageKeyDeploymentCreated] = 1
-	findOptions.SetSort(sort)
+	findOptions.SetSort(bson.D{{Key: StorageKeyDeploymentCreated, Value: 1}})
 	cursor, err := c.Find(ctx, findQuery, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get deployments")
