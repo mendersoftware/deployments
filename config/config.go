@@ -42,6 +42,11 @@ const (
 	SettingsAwsTagArtifact            = SettingsAws + ".tag_artifact"
 	SettingsAwsTagArtifactDefault     = false
 
+	SettingsAwsDownloadExpireSeconds        = SettingsAws + ".download_expire_seconds"
+	SettingsAwsDownloadExpireSecondsDefault = 900
+	SettingsAwsUploadExpireSeconds          = SettingsAws + ".upload_expire_seconds"
+	SettingsAwsUploadExpireSecondsDefault   = 3600
+
 	SettingsAwsAuth      = SettingsAws + ".auth"
 	SettingAwsAuthKeyId  = SettingsAwsAuth + ".key"
 	SettingAwsAuthSecret = SettingsAwsAuth + ".secret"
@@ -159,6 +164,8 @@ var (
 		{Key: SettingAwsS3Region, Value: SettingAwsS3RegionDefault},
 		{Key: SettingAwsS3Bucket, Value: SettingAwsS3BucketDefault},
 		{Key: SettingAwsS3ForcePathStyle, Value: SettingAwsS3ForcePathStyleDefault},
+		{Key: SettingsAwsDownloadExpireSeconds, Value: SettingsAwsDownloadExpireSecondsDefault},
+		{Key: SettingsAwsUploadExpireSeconds, Value: SettingsAwsUploadExpireSecondsDefault},
 		{Key: SettingMongo, Value: SettingMongoDefault},
 		{Key: SettingDbSSL, Value: SettingDbSSLDefault},
 		{Key: SettingDbSSLSkipVerify, Value: SettingDbSSLSkipVerifyDefault},

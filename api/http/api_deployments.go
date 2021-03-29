@@ -30,12 +30,14 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 
+	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 
 	"github.com/mendersoftware/deployments/app"
+	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/store"
 )
@@ -298,7 +300,8 @@ func (d *DeploymentsApiHandlers) DownloadLink(w rest.ResponseWriter, r *rest.Req
 		return
 	}
 
-	link, err := d.app.DownloadLink(r.Context(), id, DefaultDownloadLinkExpire)
+	expireSeconds := config.Config.GetInt(dconfig.SettingsAwsDownloadExpireSeconds)
+	link, err := d.app.DownloadLink(r.Context(), id, time.Duration(expireSeconds)*time.Second)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return

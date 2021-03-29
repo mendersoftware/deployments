@@ -126,6 +126,17 @@ aws:
 
     # uri: example.com
 
+    # Download link expiry duration
+    # Number of second a presigned download URL is valid
+    # Defaults to: 900 (15 minutes)
+    # Override with environment variable: DEPLOYMENTS_AWS_DOWNLOAD_EXPIRE_SECONDS
+    download_expire_seconds: 900
+
+    # Download link expiry duration
+    # Number of second a presigned upload URL is valid
+    # Defaults to: 3600 (60 minutes)
+    # Override with environment variable: DEPLOYMENTS_AWS_UPLOAD_EXPIRE_SECONDS
+    upload_expire_seconds: 3600
 
     # Artifact Tagging
     # Defaults to: false
