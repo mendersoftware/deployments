@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -30,8 +30,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
+
+	dconfig "github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/deployments/model"
 )
 
 const (
@@ -264,10 +267,11 @@ func (s *SimpleStorageService) uploadMultipart(
 	completedParts := make([]*s3.CompletedPart, 0, 100)
 	// expiresAt is the maximum time the s3 service will cache the uploaded
 	// parts. All request will be presigned relative to this time.
-	expiresAt := time.Now().Add(10 * time.Minute)
+	expireSeconds := config.Config.GetInt(dconfig.SettingsAwsUploadExpireSeconds)
+	expiresAt := time.Now().Add(time.Duration(expireSeconds) * time.Second)
 	requestOptions := func(req *request.Request) {
 		// This will pre-sign the request for the given duration.
-		exp := expiresAt.Sub(time.Now())
+		exp := time.Until(expiresAt)
 		req.ExpireTime = exp
 	}
 
@@ -410,8 +414,9 @@ func (s *SimpleStorageService) UploadArtifact(
 			uploadParams,
 			func(req *request.Request) {
 				// ExpireTime will presign URI to expire after
-				// 5 minutes
-				req.ExpireTime = time.Minute * 5
+				// a configurable amount of seconds (aws.upload_expire_seconds)
+				expireSeconds := config.Config.GetInt(dconfig.SettingsAwsUploadExpireSeconds)
+				req.ExpireTime = time.Duration(expireSeconds) * time.Second
 			},
 		)
 		return err
