@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import logging
+from config import init
 
 
 def pytest_addoption(parser):
@@ -38,3 +39,6 @@ def pytest_configure(config):
     # configure bravado related loggers to be less verbose
     logging.getLogger("swagger_spec_validator").setLevel(logging.INFO)
     logging.getLogger("bravado_core").setLevel(logging.INFO)
+
+    # capture global pytest cmdline config
+    init(config)
