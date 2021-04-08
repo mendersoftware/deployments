@@ -29,9 +29,8 @@ from client import (
 from common import artifact_from_data, Device
 
 
-class TestDeployment(DeploymentsClient):
-    def setup(self):
-        self.setup_swagger()
+class TestDeployment:
+    d = DeploymentsClient()
 
     @staticmethod
     def inventory_add_dev(dev):
@@ -41,12 +40,14 @@ class TestDeployment(DeploymentsClient):
         )
 
     def test_deployments_get(self):
-        res = self.client.Management_API.List_Deployments(Authorization="foo").result()
-        self.log.debug("result: %s", res)
+        res = self.d.client.Management_API.List_Deployments(
+            Authorization="foo"
+        ).result()
+        self.d.log.debug("result: %s", res)
 
         # try with bogus image ID
         try:
-            res = self.client.Management_API.Show_Deployment(
+            res = self.d.client.Management_API.Show_Deployment(
                 Authorization="foo", id="foo"
             ).result()
         except bravado.exception.HTTPError as e:
@@ -58,30 +59,30 @@ class TestDeployment(DeploymentsClient):
 
         # NOTE: cannot make requests with arbitary data through swagger client,
         # so we'll use requests directly instead
-        rsp = requests.post(self.make_api_url("/deployments"), data="foobar")
+        rsp = requests.post(self.d.make_api_url("/deployments"), data="foobar")
         assert 400 <= rsp.status_code < 500
         # some broken JSON now
         rsp = requests.post(
-            self.make_api_url("/deployments"),
+            self.d.make_api_url("/deployments"),
             data='{"foo": }',
             headers={"Content-Type": "application/json"},
         )
         assert 400 <= rsp.status_code < 500
 
         baddeps = [
-            self.make_new_deployment(
+            self.d.make_new_deployment(
                 name="foobar", artifact_name="someartifact", devices=[]
             ),
-            self.make_new_deployment(
+            self.d.make_new_deployment(
                 name="", artifact_name="someartifact", devices=["foo"]
             ),
-            self.make_new_deployment(name="adad", artifact_name="", devices=["foo"]),
-            self.make_new_deployment(name="", artifact_name="", devices=["foo"]),
+            self.d.make_new_deployment(name="adad", artifact_name="", devices=["foo"]),
+            self.d.make_new_deployment(name="", artifact_name="", devices=["foo"]),
         ]
         for newdep in baddeps:
             # try bogus image data
             try:
-                res = self.client.Management_API.Create_Deployment(
+                res = self.d.client.Management_API.Create_Deployment(
                     Authorization="foo", deployment=newdep
                 ).result()
             except bravado.exception.HTTPError as e:
@@ -94,7 +95,7 @@ class TestDeployment(DeploymentsClient):
         status, abort and verify eveything once again"""
         dev = Device()
 
-        self.log.info("fake device with ID: %s", dev.devid)
+        self.d.log.info("fake device with ID: %s", dev.devid)
 
         self.inventory_add_dev(dev)
 
@@ -109,10 +110,10 @@ class TestDeployment(DeploymentsClient):
                 description="some description", size=art.size, data=art
             )
 
-            newdep = self.make_new_deployment(
+            newdep = self.d.make_new_deployment(
                 name="fake deployment", artifact_name=artifact_name, devices=[dev.devid]
             )
-            depid = self.add_deployment(newdep)
+            depid = self.d.add_deployment(newdep)
 
             # artifact is used in deployment, so attempts to remove it should
             # fail
@@ -131,7 +132,7 @@ class TestDeployment(DeploymentsClient):
                 device_type=dev.device_type,
             )
 
-            dep = self.client.Management_API.Show_Deployment(
+            dep = self.d.client.Management_API.Show_Deployment(
                 Authorization="foo", id=depid
             ).result()[0]
             assert dep.artifact_name == artifact_name
@@ -139,7 +140,7 @@ class TestDeployment(DeploymentsClient):
             assert dep.status == "pending"
 
             # fetch device status
-            depdevs = self.client.Management_API.List_Devices_in_Deployment(
+            depdevs = self.d.client.Management_API.List_Devices_in_Deployment(
                 Authorization="foo", deployment_id=depid
             ).result()[0]
             assert len(depdevs) == 1
@@ -148,26 +149,26 @@ class TestDeployment(DeploymentsClient):
             assert depdev.id == dev.devid
 
             # verify statistics
-            self.verify_deployment_stats(depid, expected={"pending": 1})
+            self.d.verify_deployment_stats(depid, expected={"pending": 1})
 
             # abort deployment
-            self.abort_deployment(depid)
+            self.d.abort_deployment(depid)
 
             # that it's 'finished' now
-            aborted_dep = self.client.Management_API.Show_Deployment(
+            aborted_dep = self.d.client.Management_API.Show_Deployment(
                 Authorization="foo", id=depid
             ).result()[0]
-            self.log.debug("deployment dep: %s", aborted_dep)
+            self.d.log.debug("deployment dep: %s", aborted_dep)
             assert aborted_dep.status == "finished"
 
             # verify statistics once again
-            self.verify_deployment_stats(depid, expected={"aborted": 1})
+            self.d.verify_deployment_stats(depid, expected={"aborted": 1})
 
             # fetch device status
-            depdevs = self.client.Management_API.List_Devices_in_Deployment(
+            depdevs = self.d.client.Management_API.List_Devices_in_Deployment(
                 Authorization="foo", deployment_id=depid
             ).result()[0]
-            self.log.debug("deployment devices: %s", depdevs)
+            self.d.log.debug("deployment devices: %s", depdevs)
             assert len(depdevs) == 1
             depdev = depdevs[0]
             assert depdev.status == "aborted"
@@ -179,17 +180,17 @@ class TestDeployment(DeploymentsClient):
         """Try to add deployment without an artifact, verify that it failed with 422"""
         dev = Device()
 
-        self.log.info("fake device with ID: %s", dev.devid)
+        self.d.log.info("fake device with ID: %s", dev.devid)
 
         self.inventory_add_dev(dev)
 
         artifact_name = "no-artifact " + str(uuid4())
         # come up with an artifact
-        newdep = self.make_new_deployment(
+        newdep = self.d.make_new_deployment(
             name="fake deployment", artifact_name=artifact_name, devices=[dev.devid]
         )
         try:
-            self.add_deployment(newdep)
+            self.d.add_deployment(newdep)
         except bravado.exception.HTTPError as err:
             assert err.response.status_code == 422
         else:
@@ -203,7 +204,7 @@ class TestDeployment(DeploymentsClient):
         """
         dev = Device()
 
-        self.log.info("fake device with ID: %s", dev.devid)
+        self.d.log.info("fake device with ID: %s", dev.devid)
 
         self.inventory_add_dev(dev)
 
@@ -218,13 +219,13 @@ class TestDeployment(DeploymentsClient):
                 description="desc", size=art.size, data=art
             ) as artid:
 
-                newdep = self.make_new_deployment(
+                newdep = self.d.make_new_deployment(
                     name="foo", artifact_name=artifact_name, devices=[dev.devid]
                 )
 
-                with self.with_added_deployment(newdep) as depid:
+                with self.d.with_added_deployment(newdep) as depid:
                     dc = SimpleDeviceClient()
-                    self.log.debug("device token %s", dev.fake_token)
+                    self.d.log.debug("device token %s", dev.fake_token)
 
                     # try with some bogus token
                     try:
@@ -244,7 +245,7 @@ class TestDeployment(DeploymentsClient):
                         artifact_name="different {}".format(artifact_name),
                         device_type=dev.device_type,
                     )
-                    self.log.info("device next: %s", nextdep)
+                    self.d.log.info("device next: %s", nextdep)
                     assert nextdep
 
                     assert (
@@ -257,17 +258,16 @@ class TestDeployment(DeploymentsClient):
                         artifact_name="different {}".format(artifact_name),
                         device_type="other {}".format(dev.device_type),
                     )
-                    self.log.info("device next: %s", nextdep)
+                    self.d.log.info("device next: %s", nextdep)
                     assert nextdep == None
                     # verify that device status was properly recorded
-                    self.verify_deployment_stats(depid, expected={"noartifact": 1})
+                    self.d.verify_deployment_stats(depid, expected={"noartifact": 1})
 
     def test_device_deployments_already_installed(self):
-        """Check case with already installed artifact
-        """
+        """Check case with already installed artifact"""
         dev = Device()
 
-        self.log.info("fake device with ID: %s", dev.devid)
+        self.d.log.info("fake device with ID: %s", dev.devid)
 
         self.inventory_add_dev(dev)
 
@@ -282,13 +282,13 @@ class TestDeployment(DeploymentsClient):
                 description="desc", size=art.size, data=art
             ) as artid:
 
-                newdep = self.make_new_deployment(
+                newdep = self.d.make_new_deployment(
                     name="foo", artifact_name=artifact_name, devices=[dev.devid]
                 )
 
-                with self.with_added_deployment(newdep) as depid:
+                with self.d.with_added_deployment(newdep) as depid:
                     dc = SimpleDeviceClient()
-                    self.log.debug("device token %s", dev.fake_token)
+                    self.d.log.debug("device token %s", dev.fake_token)
 
                     # pretend we have the same artifact installed already
                     # NOTE: asking for a deployment while having it already
@@ -299,19 +299,18 @@ class TestDeployment(DeploymentsClient):
                         artifact_name=artifact_name,
                         device_type=dev.device_type,
                     )
-                    self.log.info("device next: %s", nextdep)
+                    self.d.log.info("device next: %s", nextdep)
                     assert nextdep == None
                     # verify that device status was properly recorded
-                    self.verify_deployment_stats(
+                    self.d.verify_deployment_stats(
                         depid, expected={"already-installed": 1}
                     )
 
     def test_device_deployments_full(self):
-        """Check that device can get next deployment, full cycle
-        """
+        """Check that device can get next deployment, full cycle"""
         dev = Device()
 
-        self.log.info("fake device with ID: %s", dev.devid)
+        self.d.log.info("fake device with ID: %s", dev.devid)
 
         self.inventory_add_dev(dev)
 
@@ -326,13 +325,13 @@ class TestDeployment(DeploymentsClient):
                 description="desc", size=art.size, data=art
             ) as artid:
 
-                newdep = self.make_new_deployment(
+                newdep = self.d.make_new_deployment(
                     name="foo", artifact_name=artifact_name, devices=[dev.devid]
                 )
 
-                with self.with_added_deployment(newdep) as depid:
+                with self.d.with_added_deployment(newdep) as depid:
                     dc = SimpleDeviceClient()
-                    self.log.debug("device token %s", dev.fake_token)
+                    self.d.log.debug("device token %s", dev.fake_token)
 
                     # pretend we have another artifact installed
                     nextdep = dc.get_next_deployment(
@@ -340,20 +339,20 @@ class TestDeployment(DeploymentsClient):
                         artifact_name="different {}".format(artifact_name),
                         device_type=dev.device_type,
                     )
-                    self.log.info("device next: %s", nextdep)
+                    self.d.log.info("device next: %s", nextdep)
                     assert nextdep
 
                     assert (
                         dev.device_type in nextdep.artifact["device_types_compatible"]
                     )
 
-                    self.verify_deployment_stats(depid, expected={"pending": 1})
+                    self.d.verify_deployment_stats(depid, expected={"pending": 1})
 
                     for st in ["downloading", "installing", "rebooting"]:
                         dc.report_status(
                             token=dev.fake_token, devdepid=nextdep.id, status=st
                         )
-                        self.verify_deployment_stats(depid, expected={st: 1})
+                        self.d.verify_deployment_stats(depid, expected={st: 1})
 
                     # we have reported some statuses now, but not the final
                     # status, try to get the next deployment
@@ -366,7 +365,7 @@ class TestDeployment(DeploymentsClient):
                     assert againdep.id == nextdep.id
 
                     # deployment should be marked as inprogress
-                    dep = self.client.Management_API.Show_Deployment(
+                    dep = self.d.client.Management_API.Show_Deployment(
                         Authorization="foo", id=depid
                     ).result()[0]
                     assert dep.status == "inprogress"
@@ -375,9 +374,9 @@ class TestDeployment(DeploymentsClient):
                     dc.report_status(
                         token=dev.fake_token, devdepid=nextdep.id, status="success"
                     )
-                    self.verify_deployment_stats(depid, expected={"success": 1})
+                    self.d.verify_deployment_stats(depid, expected={"success": 1})
 
-                    dep = self.client.Management_API.Show_Deployment(
+                    dep = self.d.client.Management_API.Show_Deployment(
                         Authorization="foo", id=depid
                     ).result()[0]
                     assert dep.status == "finished"
@@ -386,7 +385,7 @@ class TestDeployment(DeploymentsClient):
                     dc.report_status(
                         token=dev.fake_token, devdepid=nextdep.id, status="failure"
                     )
-                    self.verify_deployment_stats(depid, expected={"failure": 1})
+                    self.d.verify_deployment_stats(depid, expected={"failure": 1})
 
                     # deployment is finished, should get no more updates
                     nodep = dc.get_next_deployment(
@@ -400,9 +399,9 @@ class TestDeployment(DeploymentsClient):
                     dc.report_status(
                         token=dev.fake_token, devdepid=nextdep.id, status="rebooting"
                     )
-                    self.verify_deployment_stats(depid, expected={"rebooting": 1})
+                    self.d.verify_deployment_stats(depid, expected={"rebooting": 1})
                     # deployment is in progress again
-                    dep = self.client.Management_API.Show_Deployment(
+                    dep = self.d.client.Management_API.Show_Deployment(
                         Authorization="foo", id=depid
                     ).result()[0]
                     assert dep.status == "inprogress"
@@ -414,16 +413,15 @@ class TestDeployment(DeploymentsClient):
                         device_type=dev.device_type,
                     )
                     assert nodep == None
-                    self.verify_deployment_stats(
+                    self.d.verify_deployment_stats(
                         depid, expected={"already-installed": 1}
                     )
 
     def test_device_deployments_logs(self):
-        """Check that device can get next deployment, full cycle
-        """
+        """Check that device can get next deployment, full cycle"""
         dev = Device()
 
-        self.log.info("fake device with ID: %s", dev.devid)
+        self.d.log.info("fake device with ID: %s", dev.devid)
 
         self.inventory_add_dev(dev)
 
@@ -438,13 +436,13 @@ class TestDeployment(DeploymentsClient):
                 description="desc", size=art.size, data=art
             ) as artid:
 
-                newdep = self.make_new_deployment(
+                newdep = self.d.make_new_deployment(
                     name="foo", artifact_name=artifact_name, devices=[dev.devid]
                 )
 
-                with self.with_added_deployment(newdep) as depid:
+                with self.d.with_added_deployment(newdep) as depid:
                     dc = SimpleDeviceClient()
-                    self.log.debug("device token %s", dev.fake_token)
+                    self.d.log.debug("device token %s", dev.fake_token)
 
                     # pretend we have another artifact installed
                     nextdep = dc.get_next_deployment(
@@ -452,18 +450,18 @@ class TestDeployment(DeploymentsClient):
                         artifact_name="different {}".format(artifact_name),
                         device_type=dev.device_type,
                     )
-                    self.log.info("device next: %s", nextdep)
+                    self.d.log.info("device next: %s", nextdep)
                     assert nextdep
 
                     dc.upload_logs(
                         dev.fake_token, nextdep.id, logs=["foo bar baz", "lorem ipsum"]
                     )
 
-                    rsp = self.client.Management_API.Get_Deployment_Log_for_Device(
+                    rsp = self.d.client.Management_API.Get_Deployment_Log_for_Device(
                         Authorization="foo", deployment_id=depid, device_id=dev.devid
                     ).result()[1]
                     logs = rsp.text
-                    self.log.info("device logs\n%s", logs)
+                    self.d.log.info("device logs\n%s", logs)
 
                     assert "lorem ipsum" in logs
                     assert "foo bar baz" in logs

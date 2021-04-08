@@ -29,12 +29,12 @@ from bravado.swagger_model import load_file
 from bravado.client import SwaggerClient, RequestsClient
 from bravado.exception import HTTPUnprocessableEntity
 
+from config import pytest_config
+
 DEPLOYMENTS_BASE_URL = "http://{}/api/{}/v1/deployments"
 
 
 class BaseApiClient:
-    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
-
     def make_api_url(self, path=None):
         if path is not None:
             return os.path.join(
@@ -65,13 +65,16 @@ class SwaggerApiClient(BaseApiClient):
     log = logging.getLogger("client.Client")
     spec_option = "spec"
 
+    def __init__(self):
+        self.setup_swagger()
+
     def setup_swagger(self):
         self.http_client = RequestsClient()
         self.http_client.session.verify = False
 
-        spec = pytest.config.getoption(self.spec_option)
+        spec = pytest_config.getoption(self.spec_option)
         self.client = SwaggerClient.from_spec(
-            load_file(spec), config=self.config, http_client=self.http_client
+            load_file(spec), config=dict(self.config), http_client=self.http_client
         )
         self.client.swagger_spec.api_url = self.make_api_url()
 
@@ -83,7 +86,11 @@ class ArtifactsClientError(Exception):
 
 
 class ArtifactsClient(SwaggerApiClient):
-    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
+    def __init__(self):
+        self.api_url = DEPLOYMENTS_BASE_URL.format(
+            pytest_config.getoption("host"), "management"
+        )
+        super().__init__()
 
     @staticmethod
     def make_upload_meta(meta):
@@ -205,11 +212,15 @@ class SimpleArtifactsClient(ArtifactsClient):
     """Simple swagger based client for artifacts. Cannot be used as Pytest base class"""
 
     def __init__(self):
-        self.setup_swagger()
+        super().__init__()
 
 
 class DeploymentsClient(SwaggerApiClient):
-    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "management")
+    def __init__(self):
+        self.api_url = DEPLOYMENTS_BASE_URL.format(
+            pytest_config.getoption("host"), "management"
+        )
+        super().__init__()
 
     def make_new_deployment(self, *args, **kwargs):
         NewDeployment = self.client.get_model("NewDeployment")
@@ -230,7 +241,9 @@ class DeploymentsClient(SwaggerApiClient):
     def abort_deployment(self, depid):
         """Abort deployment with `ID `depid`"""
         self.client.Management_API.Abort_Deployment(
-            Authorization="foo", deployment_id=depid, Status={"status": "aborted"},
+            Authorization="foo",
+            deployment_id=depid,
+            Status={"status": "aborted"},
         ).result()
 
     @contextmanager
@@ -270,15 +283,23 @@ class DeviceClient(SwaggerApiClient):
 
     spec_option = "device_spec"
     logger_tag = "client.DeviceClient"
-    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "devices")
+
+    def __init__(self):
+        self.api_url = DEPLOYMENTS_BASE_URL.format(
+            pytest_config.getoption("host"), "devices"
+        )
+        super().__init__()
 
     def get_next_deployment(self, token="", artifact_name="", device_type=""):
         """Obtain next deployment"""
         auth = "Bearer " + token
         res = self.client.Device_API.Check_Update(
-            Authorization=auth, artifact_name=artifact_name, device_type=device_type,
-        ).result()[0]
-        return res
+            Authorization=auth,
+            artifact_name=artifact_name,
+            device_type=device_type,
+        ).result()
+
+        return res[0]
 
     def report_status(self, token="", devdepid=None, status=None):
         """Report device deployment status"""
@@ -312,7 +333,7 @@ class SimpleDeviceClient(DeviceClient):
     """Simple device API client, cannot be used as Pytest tests base class"""
 
     def __init__(self):
-        self.setup_swagger()
+        super().__init__()
 
 
 class InventoryClientError(Exception):
@@ -320,8 +341,11 @@ class InventoryClientError(Exception):
 
 
 class InventoryClient(BaseApiClient, RequestsApiClient):
-
-    api_url = "http://%s/api/0.1.0/" % (pytest.config.getoption("inventory_host"))
+    def __init__(self):
+        self.api_url = "http://%s/api/0.1.0/" % (
+            pytest_config.getoption("inventory_host")
+        )
+        super().__init__()
 
     def report_attributes(self, devtoken, attributes):
         """Send device attributes to inventory service. Device is identified using
@@ -356,10 +380,12 @@ class CliClient:
 class InternalApiClient(SwaggerApiClient):
     spec_option = "internal_spec"
     logger_tag = "client.InternalApiClient"
-    api_url = DEPLOYMENTS_BASE_URL.format(pytest.config.getoption("host"), "internal")
 
     def __init__(self):
-        self.setup_swagger()
+        self.api_url = DEPLOYMENTS_BASE_URL.format(
+            pytest_config.getoption("host"), "internal"
+        )
+        super().__init__()
 
     def create_tenant(self, tenant_id):
         return self.client.tenants.Create_Tenant(

@@ -1,7 +1,7 @@
 version: '2.1'
 services:
     acceptance:
-        image: testing
+        image: mendersoftware/mender-test-containers:acceptance-testing
         networks:
             - mender
         volumes:
