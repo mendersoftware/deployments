@@ -33,22 +33,23 @@ from common import (
 )
 
 
-class TestArtifact(ArtifactsClient):
+class TestArtifact:
     m = MinioClient()
-
-    def setup(self):
-        self.setup_swagger()
+    ac = ArtifactsClient()
 
     def test_artifacts_all(self):
-        res = self.client.Management_API.List_Artifacts().result()
-        self.log.debug("result: %s", res)
+        res = self.ac.client.Management_API.List_Artifacts().result()
+        self.ac.log.debug("result: %s", res)
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_new_bogus_empty(self):
         # try bogus image data
         try:
-            res = self.client.Management_API.Upload_Artifact(
-                Authorization="foo", size=100, artifact="".encode(), description="bar",
+            res = self.ac.client.Management_API.Upload_Artifact(
+                Authorization="foo",
+                size=100,
+                artifact="".encode(),
+                description="bar",
             ).result()
         except bravado.exception.HTTPError as e:
 
@@ -64,11 +65,16 @@ class TestArtifact(ArtifactsClient):
                 {
                     "description": "bar",
                     "size": str(art.size),
-                    "artifact": ("firmware", art, "application/octet-stream", {},),
+                    "artifact": (
+                        "firmware",
+                        art,
+                        "application/octet-stream",
+                        {},
+                    ),
                 }
             )
 
-            rsp = requests.post(self.make_api_url("/artifacts"), files=files)
+            rsp = requests.post(self.ac.make_api_url("/artifacts"), files=files)
 
             assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
             assert rsp.status_code == 400
@@ -84,18 +90,18 @@ class TestArtifact(ArtifactsClient):
         with artifact_from_data(
             name=artifact_name, data=data, devicetype=device_type
         ) as art:
-            self.log.info("uploading artifact")
-            artid = self.add_artifact(description, art.size, art)
+            self.ac.log.info("uploading artifact")
+            artid = self.ac.add_artifact(description, art.size, art)
 
             # artifacts listing should not be empty now
-            res = self.client.Management_API.List_Artifacts().result()
-            self.log.debug("result: %s", res)
+            res = self.ac.client.Management_API.List_Artifacts().result()
+            self.ac.log.debug("result: %s", res)
             assert len(res[0]) > 0
 
-            res = self.client.Management_API.Show_Artifact(
+            res = self.ac.client.Management_API.Show_Artifact(
                 Authorization="foo", id=artid
             ).result()[0]
-            self.log.info("artifact: %s", res)
+            self.ac.log.info("artifact: %s", res)
 
             # verify its data
             assert res.id == artid
@@ -113,10 +119,10 @@ class TestArtifact(ArtifactsClient):
             # assert uf.signature
 
             # try to fetch the update
-            res = self.client.Management_API.Download_Artifact(
+            res = self.ac.client.Management_API.Download_Artifact(
                 Authorization="foo", id=artid
             ).result()[0]
-            self.log.info("download result %s", res)
+            self.ac.log.info("download result %s", res)
             assert res.uri
             # fetch it now (disable SSL verification)
             rsp = requests.get(res.uri, verify=False, stream=True)
@@ -133,17 +139,19 @@ class TestArtifact(ArtifactsClient):
                 else:
                     break
 
-            self.log.info(
-                "artifact checksum %s expecting %s", dig.hexdigest(), art.checksum,
+            self.ac.log.info(
+                "artifact checksum %s expecting %s",
+                dig.hexdigest(),
+                art.checksum,
             )
             assert dig.hexdigest() == art.checksum
 
             # delete it now
-            self.delete_artifact(artid)
+            self.ac.delete_artifact(artid)
 
             # should be unavailable now
             try:
-                res = self.client.Management_API.Show_Artifact(
+                res = self.ac.client.Management_API.Show_Artifact(
                     Authorization="foo", id=artid
                 ).result()
             except bravado.exception.HTTPError as e:
@@ -165,18 +173,18 @@ class TestArtifact(ArtifactsClient):
         with artifact_from_data(
             name=artifact_name, data=data, devicetype=device_type
         ) as art:
-            self.log.info("uploading artifact")
-            artid = self.add_artifact(description, art.size, art)
+            self.ac.log.info("uploading artifact")
+            artid = self.ac.add_artifact(description, art.size, art)
 
             # artifacts listing should not be empty now
-            res = self.client.Management_API.List_Artifacts().result()
-            self.log.debug("result: %s", res)
+            res = self.ac.client.Management_API.List_Artifacts().result()
+            self.ac.log.debug("result: %s", res)
             assert len(res[0]) > 0
 
-            res = self.client.Management_API.Show_Artifact(
+            res = self.ac.client.Management_API.Show_Artifact(
                 Authorization="foo", id=artid
             ).result()[0]
-            self.log.info("artifact: %s", res)
+            self.ac.log.info("artifact: %s", res)
 
             # verify its data
             assert res.id == artid
@@ -194,7 +202,7 @@ class TestArtifact(ArtifactsClient):
     def test_single_artifact(self):
         # try with bogus image ID
         try:
-            res = self.client.Management_API.Show_Artifact(
+            res = self.ac.client.Management_API.Show_Artifact(
                 Authorization="foo", id="foo"
             ).result()
         except bravado.exception.HTTPError as e:
@@ -204,7 +212,7 @@ class TestArtifact(ArtifactsClient):
 
         # try with nonexistent image ID
         try:
-            res = self.client.Management_API.Show_Artifact(
+            res = self.ac.client.Management_API.Show_Artifact(
                 Authorization="foo", id=uuid4()
             ).result()
         except bravado.exception.HTTPError as e:
@@ -220,8 +228,8 @@ class TestArtifact(ArtifactsClient):
         data = b"foo_bar"
 
         # generate artifact
-        self.log.info("uploading artifact")
-        artid = self.generate_artifact(
+        self.ac.log.info("uploading artifact")
+        artid = self.ac.generate_artifact(
             name=artifact_name,
             description=description,
             device_types_compatible=device_type,
