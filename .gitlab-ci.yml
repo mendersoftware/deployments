@@ -1,5 +1,6 @@
 variables:
   DOCKER_REPOSITORY: mendersoftware/deployments
+  INTEGRATION_REV: 2.5.x
 
 stages:
   - test_prep
