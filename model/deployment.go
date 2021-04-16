@@ -225,7 +225,10 @@ func (d *Deployment) IsNotPending() bool {
 		d.Stats[DeviceDeploymentStatusAlreadyInst] > 0 ||
 		d.Stats[DeviceDeploymentStatusFailure] > 0 ||
 		d.Stats[DeviceDeploymentStatusAborted] > 0 ||
-		d.Stats[DeviceDeploymentStatusNoArtifact] > 0 {
+		d.Stats[DeviceDeploymentStatusNoArtifact] > 0 ||
+		d.Stats[DeviceDeploymentStatusPauseBeforeInstall] > 0 ||
+		d.Stats[DeviceDeploymentStatusPauseBeforeCommit] > 0 ||
+		d.Stats[DeviceDeploymentStatusPauseBeforeReboot] > 0 {
 
 		return true
 	}
