@@ -1053,6 +1053,15 @@ definitions:
       aborted:
         type: integer
         description: Number of deployments aborted by user.
+      pause_before_installing:
+        type: integer
+        description: Number of deployments paused before install state.
+      pause_before_rebooting:
+        type: integer
+        description: Number of deployments paused before reboot phase.
+      pause_before_committing:
+        type: integer
+        description: Number of deployments paused before commit phase.
     required:
       - success
       - pending
@@ -1063,6 +1072,9 @@ definitions:
       - noartifact
       - already-installed
       - aborted
+      - pause_before_installing
+      - pause_before_rebooting
+      - pause_before_committing
     example:
       success: 3
       pending: 1
@@ -1073,6 +1085,9 @@ definitions:
       noartifact: 0
       already-installed: 0
       aborted: 0
+      pause_before_installing: 0
+      pause_before_rebooting: 0 
+      pause_before_committing: 0
   Device:
     type: object
     properties:
@@ -1087,6 +1102,9 @@ definitions:
         enum:
           - downloading
           - installing
+          - pause_before_installing
+          - pause_before_rebooting
+          - pause_before_committing
           - rebooting
           - pending
           - success
