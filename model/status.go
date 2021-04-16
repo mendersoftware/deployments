@@ -51,6 +51,9 @@ func (s StatusReport) Validate() error {
 			DeviceDeploymentStatusSuccess,
 			DeviceDeploymentStatusFailure,
 			DeviceDeploymentStatusAlreadyInst,
+			DeviceDeploymentStatusPauseBeforeInstall,
+			DeviceDeploymentStatusPauseBeforeCommit,
+			DeviceDeploymentStatusPauseBeforeReboot,
 		)),
 	)
 }
