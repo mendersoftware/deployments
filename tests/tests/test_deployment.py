@@ -348,7 +348,14 @@ class TestDeployment:
 
                     self.d.verify_deployment_stats(depid, expected={"pending": 1})
 
-                    for st in ["downloading", "installing", "rebooting"]:
+                    for st in [
+                        "downloading",
+                        "pause_before_installing",
+                        "installing",
+                        "pause_before_committing",
+                        "pause_before_rebooting",
+                        "rebooting",
+                    ]:
                         dc.report_status(
                             token=dev.fake_token, devdepid=nextdep.id, status=st
                         )
