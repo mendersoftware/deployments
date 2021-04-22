@@ -606,6 +606,29 @@ func (_m *DataStore) GetReleases(ctx context.Context, filt *model.ReleaseFilter)
 	return r0, r1
 }
 
+// GetStorageSettings provides a mock function with given fields: ctx
+func (_m *DataStore) GetStorageSettings(ctx context.Context) (*model.StorageSettings, error) {
+	ret := _m.Called(ctx)
+
+	var r0 *model.StorageSettings
+	if rf, ok := ret.Get(0).(func(context.Context) *model.StorageSettings); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.StorageSettings)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // HasDeploymentForDevice provides a mock function with given fields: ctx, deploymentID, deviceID
 func (_m *DataStore) HasDeploymentForDevice(ctx context.Context, deploymentID string, deviceID string) (bool, error) {
 	ret := _m.Called(ctx, deploymentID, deviceID)
@@ -857,6 +880,20 @@ func (_m *DataStore) SetDeploymentStatus(ctx context.Context, id string, status 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, model.DeploymentStatus, time.Time) error); ok {
 		r0 = rf(ctx, id, status, now)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SetStorageSettings provides a mock function with given fields: ctx, storageSettings
+func (_m *DataStore) SetStorageSettings(ctx context.Context, storageSettings *model.StorageSettings) error {
+	ret := _m.Called(ctx, storageSettings)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *model.StorageSettings) error); ok {
+		r0 = rf(ctx, storageSettings)
 	} else {
 		r0 = ret.Error(0)
 	}

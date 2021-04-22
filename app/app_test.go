@@ -25,10 +25,12 @@ import (
 
 	inventory_mocks "github.com/mendersoftware/deployments/client/inventory/mocks"
 	workflows_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
+	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
 	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
 	h "github.com/mendersoftware/deployments/utils/testing"
+	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
 )
 
@@ -92,6 +94,14 @@ func TestHealthCheck(t *testing.T) {
 			case tc.DataStoreError != nil:
 				mDStore.On("Ping", ctx).
 					Return(tc.DataStoreError)
+				mDStore.On("GetStorageSettings", ctx).
+					Return(&model.StorageSettings{
+						Region: config.Config.GetString(dconfig.SettingAwsS3Region),
+						Uri:    config.Config.GetString(dconfig.SettingAwsURI),
+						Bucket: config.Config.GetString(dconfig.SettingAwsS3Bucket),
+						Key:    config.Config.GetString(dconfig.SettingAwsAuthKeyId),
+						Secret: config.Config.GetString(dconfig.SettingAwsAuthSecret),
+						Token:  config.Config.GetString(dconfig.SettingAwsAuthToken)}, nil)
 			}
 			err := dep.HealthCheck(ctx)
 			switch {
