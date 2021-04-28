@@ -28,6 +28,7 @@ import (
 	"github.com/mendersoftware/deployments/model"
 	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
+	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/mendersoftware/go-lib-micro/identity"
 )
 
@@ -383,6 +384,96 @@ func TestCreateDeviceConfigurationDeployment(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, out, tc.outputID)
+			}
+		})
+	}
+}
+
+func TestAbortDeployment(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		InputDeploymentID string
+
+		AbortDeviceDeploymentsError error
+
+		AggregateDeviceDeploymentByStatusStats model.Stats
+		AggregateDeviceDeploymentByStatusError error
+		CallAggregateDeviceDeploymentByStatus  bool
+
+		UpdateStatsError error
+		CallUpdateStats  bool
+
+		SetDeploymentStatusError error
+		CallSetDeploymentStatus  bool
+
+		OutputError error
+	}{
+		"AbortDeviceDeployments error": {
+			InputDeploymentID:           "f826484e-1157-4109-af21-304e6d711561",
+			AbortDeviceDeploymentsError: errors.New("AbortDeviceDeploymentsError"),
+			OutputError:                 errors.New("AbortDeviceDeploymentsError"),
+		},
+		"AggregateDeviceDeploymentByStatus error": {
+			InputDeploymentID:                      "f826484e-1157-4109-af21-304e6d711561",
+			CallAggregateDeviceDeploymentByStatus:  true,
+			AggregateDeviceDeploymentByStatusError: errors.New("AggregateDeviceDeploymentByStatusError"),
+			AggregateDeviceDeploymentByStatusStats: model.Stats{},
+			OutputError:                            errors.New("AggregateDeviceDeploymentByStatusError"),
+		},
+		"UpdateStats error": {
+			InputDeploymentID:                      "f826484e-1157-4109-af21-304e6d711561",
+			CallAggregateDeviceDeploymentByStatus:  true,
+			AggregateDeviceDeploymentByStatusStats: model.Stats{"aaa": 1},
+			CallUpdateStats:                        true,
+			UpdateStatsError:                       errors.New("UpdateStatsError"),
+			OutputError:                            errors.New("failed to update deployment stats: UpdateStatsError"),
+		},
+		"all correct": {
+			InputDeploymentID:                      "f826484e-1157-4109-af21-304e6d711561",
+			CallAggregateDeviceDeploymentByStatus:  true,
+			AggregateDeviceDeploymentByStatusStats: model.Stats{"aaa": 1},
+			CallUpdateStats:                        true,
+			CallSetDeploymentStatus:                true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", name), func(t *testing.T) {
+			db := mocks.DataStore{}
+			defer db.AssertExpectations(t)
+			db.On("AbortDeviceDeployments",
+				h.ContextMatcher(), tc.InputDeploymentID).
+				Return(tc.AbortDeviceDeploymentsError)
+			if tc.CallAggregateDeviceDeploymentByStatus {
+				db.On("AggregateDeviceDeploymentByStatus",
+					h.ContextMatcher(), tc.InputDeploymentID).
+					Return(tc.AggregateDeviceDeploymentByStatusStats,
+						tc.AggregateDeviceDeploymentByStatusError)
+			}
+			if tc.CallUpdateStats {
+				db.On("UpdateStats",
+					h.ContextMatcher(), tc.InputDeploymentID,
+					mock.AnythingOfType("model.Stats")).
+					Return(tc.UpdateStatsError)
+			}
+			if tc.CallSetDeploymentStatus {
+				db.On("SetDeploymentStatus",
+					h.ContextMatcher(), tc.InputDeploymentID,
+					model.DeploymentStatusFinished, mock.AnythingOfType("time.Time")).
+					Return(tc.SetDeploymentStatusError)
+			}
+
+			ds := &Deployments{
+				db: &db,
+			}
+			ctx := context.Background()
+
+			err := ds.AbortDeployment(ctx, tc.InputDeploymentID)
+			if tc.OutputError != nil {
+				assert.EqualError(t, err, tc.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
