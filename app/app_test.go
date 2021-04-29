@@ -478,3 +478,82 @@ func TestAbortDeployment(t *testing.T) {
 		})
 	}
 }
+
+func TestImageUsedInActiveDeployment(t *testing.T) {
+
+	t.Parallel()
+
+	testCases := map[string]struct {
+		InputID string
+
+		ExistUnfinishedByArtifactIdResponse bool
+		ExistUnfinishedByArtifactIdError    error
+
+		CallExistAssignedImageWithIDAndStatuses     bool
+		ExistAssignedImageWithIDAndStatusesResponse bool
+		ExistAssignedImageWithIDAndStatusesError    error
+
+		OutputError error
+		OutputBool  bool
+	}{
+		"ok": {
+			InputID: "ID:1234",
+			ExistAssignedImageWithIDAndStatusesResponse: true,
+			CallExistAssignedImageWithIDAndStatuses:     true,
+
+			OutputBool: true,
+		},
+		"ExistAssignedImageWithIDAndStatuses error": {
+			InputID:                                  "ID:1234",
+			ExistAssignedImageWithIDAndStatusesError: errors.New("Some error"),
+			CallExistAssignedImageWithIDAndStatuses:  true,
+
+			OutputError: errors.New("Checking if image is used by active deployment: Some error"),
+		},
+		"ExistUnfinishedByArtifactId error": {
+			InputID:                             "ID:1234",
+			ExistUnfinishedByArtifactIdError:    errors.New("Some error"),
+			ExistUnfinishedByArtifactIdResponse: false,
+
+			OutputError: errors.New("Checking if image is used by active deployment: Some error"),
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", name), func(t *testing.T) {
+			db := mocks.DataStore{}
+			defer db.AssertExpectations(t)
+
+			db.On("ExistUnfinishedByArtifactId",
+				h.ContextMatcher(),
+				mock.AnythingOfType("string")).
+				Return(tc.ExistUnfinishedByArtifactIdResponse,
+					tc.ExistUnfinishedByArtifactIdError)
+
+			if tc.CallExistAssignedImageWithIDAndStatuses {
+				db.On("ExistAssignedImageWithIDAndStatuses",
+					h.ContextMatcher(),
+					tc.InputID, model.DeviceDeploymentStatusPending,
+					model.DeviceDeploymentStatusDownloading,
+					model.DeviceDeploymentStatusInstalling,
+					model.DeviceDeploymentStatusRebooting).
+					Return(tc.ExistAssignedImageWithIDAndStatusesResponse,
+						tc.ExistAssignedImageWithIDAndStatusesError)
+			}
+
+			ds := &Deployments{
+				db: &db,
+			}
+
+			found, err := ds.ImageUsedInActiveDeployment(context.Background(),
+				tc.InputID)
+			if tc.OutputError != nil {
+				assert.EqualError(t, err, tc.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tc.OutputBool, found)
+		})
+	}
+
+}
