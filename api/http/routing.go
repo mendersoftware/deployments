@@ -67,6 +67,7 @@ const (
 	ApiUrlInternalTenants                        = ApiUrlInternal + "/tenants"
 	ApiUrlInternalTenantDeployments              = ApiUrlInternal + "/tenants/:tenant/deployments"
 	ApiUrlInternalTenantArtifacts                = ApiUrlInternal + "/tenants/:tenant/artifacts"
+	ApiUrlInternalTenantStorageSettings          = ApiUrlInternal + "/tenants/:tenant/storage/settings"
 	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal + "/tenants/:tenant/configuration/deployments/:deployment_id/devices/:device_id"
 )
 
@@ -100,6 +101,14 @@ func NewRouter(ctx context.Context, c config.Reader,
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialise a bucket, which is needed by Minio
+	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
+	err = fileStorage.InitBucket(ctx, bucket)
+	if err != nil {
+		return nil, err
+	}
+
 	mongoStorage := mstore.NewDataStoreMongoWithClient(mongoClient)
 
 	app := app.NewDeployments(mongoStorage, fileStorage, app.ArtifactContentType)
@@ -225,6 +234,10 @@ func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 		rest.Post(ApiUrlInternalTenants, controller.ProvisionTenantsHandler),
 		rest.Get(ApiUrlInternalTenantDeployments, controller.DeploymentsPerTenantHandler),
 		rest.Post(ApiUrlInternalTenantArtifacts, controller.NewImageForTenantHandler),
+
+		// per-tenant storage settings
+		rest.Get(ApiUrlInternalTenantStorageSettings, controller.GetTenantStorageSettingsHandler),
+		rest.Put(ApiUrlInternalTenantStorageSettings, controller.PutTenantStorageSettingsHandler),
 	}
 }
 
