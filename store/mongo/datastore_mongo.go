@@ -37,6 +37,7 @@ const (
 	CollectionDeployments          = "deployments"
 	CollectionDeviceDeploymentLogs = "devices.logs"
 	CollectionDevices              = "devices"
+	CollectionStorageSettings      = "settings"
 )
 
 // Internal status codes from
@@ -304,6 +305,14 @@ const (
 	StorageKeyDeploymentDeviceCount  = "device_count"
 	StorageKeyDeploymentMaxDevices   = "max_devices"
 	StorageKeyDeploymentType         = "type"
+
+	StorageKeyStorageSettingsDefaultID = "settings"
+	StorageKeyStorageSettingsBucket    = "bucket"
+	StorageKeyStorageSettingsRegion    = "region"
+	StorageKeyStorageSettingsKey       = "key"
+	StorageKeyStorageSettingsSecret    = "secret"
+	StorageKeyStorageSettingsURI       = "uri"
+	StorageKeyStorageSettingsToken     = "token"
 
 	ArtifactDependsDeviceType = "device_type"
 )
@@ -1911,4 +1920,51 @@ func (db *DataStoreMongo) ExistByArtifactId(ctx context.Context,
 	}
 
 	return true, nil
+}
+
+// Per-tenant storage settings
+func (db *DataStoreMongo) GetStorageSettings(ctx context.Context) (*model.StorageSettings, error) {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collection := database.Collection(CollectionStorageSettings)
+
+	settings := new(model.StorageSettings)
+	// supposed that it's only one document in the collection
+	query := bson.M{
+		"_id": StorageKeyStorageSettingsDefaultID,
+	}
+	if err := collection.FindOne(ctx, query).Decode(settings); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return settings, nil
+}
+
+func (db *DataStoreMongo) SetStorageSettings(ctx context.Context, storageSettings *model.StorageSettings) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collection := database.Collection(CollectionStorageSettings)
+
+	filter := bson.M{
+		"_id": StorageKeyStorageSettingsDefaultID,
+	}
+	update := bson.M{
+		"$setOnInsert": bson.M{"_id": StorageKeyStorageSettingsDefaultID},
+		"$set": bson.M{
+			StorageKeyStorageSettingsBucket: storageSettings.Bucket,
+			StorageKeyStorageSettingsKey:    storageSettings.Key,
+			StorageKeyStorageSettingsSecret: storageSettings.Secret,
+			StorageKeyStorageSettingsURI:    storageSettings.Uri,
+			StorageKeyStorageSettingsRegion: storageSettings.Region,
+			StorageKeyStorageSettingsToken:  storageSettings.Token,
+		},
+	}
+	updateOptions := mopts.Update()
+	updateOptions.SetUpsert(true)
+	if _, err := collection.UpdateOne(ctx, filter, update, updateOptions); err != nil {
+		return err
+	}
+
+	return nil
 }

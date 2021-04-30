@@ -1394,3 +1394,37 @@ func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWrit
 	))
 	d.LookupDeployment(w, r)
 }
+
+func (d *DeploymentsApiHandlers) GetTenantStorageSettingsHandler(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r)
+	ctx := r.Context()
+
+	settings, err := d.app.GetStorageSettings(ctx)
+	if err != nil {
+		rest_utils.RestErrWithLogInternal(w, r, l, err)
+		return
+	}
+
+	d.view.RenderSuccessGet(w, settings)
+}
+
+func (d *DeploymentsApiHandlers) PutTenantStorageSettingsHandler(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r)
+	ctx := r.Context()
+
+	defer r.Body.Close()
+
+	settings, err := model.ParseStorageSettingsRequest(r.Body)
+	if err != nil {
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
+		return
+	}
+
+	err = d.app.SetStorageSettings(ctx, settings)
+	if err != nil {
+		rest_utils.RestErrWithLogInternal(w, r, l, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

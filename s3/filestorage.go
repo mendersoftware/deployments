@@ -51,6 +51,7 @@ var (
 // FileStorage allows to store and manage large files
 //go:generate ../utils/mockgen.sh
 type FileStorage interface {
+	InitBucket(ctx context.Context, bucket string) error
 	ListBuckets(ctx context.Context) ([]string, error)
 	Delete(ctx context.Context, objectId string) error
 	Exists(ctx context.Context, objectId string) (bool, error)
@@ -94,29 +95,6 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 
 	client := s3.New(sess)
 
-	// minio requires explicit bucket creation
-	cparams := &s3.CreateBucketInput{
-		Bucket: aws.String(bucket), // Required
-	}
-
-	ctx := context.Background()
-
-	// timeout set to 5 seconds
-	var cancelFn func()
-	ctxWithTimeout, cancelFn := context.WithTimeout(ctx, 5*time.Second)
-	defer cancelFn()
-
-	_, err := client.CreateBucketWithContext(ctxWithTimeout, cparams)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
-	}
-
 	return &SimpleStorageService{
 		client:      client,
 		bucket:      bucket,
@@ -132,28 +110,15 @@ func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageServi
 	sess := session.New(aws.NewConfig().WithRegion(region))
 	client := s3.New(sess)
 
-	// minio requires explicit bucket creation
-	cparams := &s3.CreateBucketInput{
-		Bucket: aws.String(bucket), // Required
-	}
+	return &SimpleStorageService{
+		client: client,
+		bucket: bucket,
+	}, nil
+}
 
-	ctx := context.Background()
-
-	// timeout set to 5 seconds
-	var cancelFn func()
-	ctxWithTimeout, cancelFn := context.WithTimeout(ctx, 5*time.Second)
-	defer cancelFn()
-
-	_, err := client.CreateBucketWithContext(ctxWithTimeout, cparams)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
-	}
+func NewSimpleStorageService(bucket, region string) (*SimpleStorageService, error) {
+	sess := session.New(aws.NewConfig().WithRegion(region))
+	client := s3.New(sess)
 
 	return &SimpleStorageService{
 		client: client,
@@ -167,6 +132,30 @@ func getArtifactByTenant(ctx context.Context, objectID string) string {
 	}
 
 	return objectID
+}
+
+func (s *SimpleStorageService) InitBucket(ctx context.Context, bucket string) error {
+	// minio requires explicit bucket creation
+	cparams := &s3.CreateBucketInput{
+		Bucket: aws.String(bucket), // Required
+	}
+
+	// timeout set to 5 seconds
+	var cancelFn func()
+	ctxWithTimeout, cancelFn := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelFn()
+
+	_, err := s.client.CreateBucketWithContext(ctxWithTimeout, cparams)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *SimpleStorageService) ListBuckets(ctx context.Context) ([]string, error) {

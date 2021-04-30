@@ -423,3 +423,16 @@ class InternalApiClient(SwaggerApiClient):
         loc = rsp.headers.get("Location", None)
         artid = os.path.basename(loc)
         return artid
+
+    def set_settings(self, tenant_id, data, status_code=204):
+        url = self.make_api_url("/tenants/{}/storage/settings".format(tenant_id))
+        resp = requests.put(url, json=data)
+        assert resp.status_code == status_code
+
+    def get_settings(self, tenant_id, status_code=200):
+        url = self.make_api_url("/tenants/{}/storage/settings".format(tenant_id))
+        resp = requests.get(url)
+        assert resp.status_code == status_code
+        if resp.json() is None:
+            return {}
+        return resp.json()

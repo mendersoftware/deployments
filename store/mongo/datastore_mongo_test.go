@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -432,4 +432,41 @@ func TestSetDeploymentDeviceCount(t *testing.T) {
 		})
 	}
 
+}
+
+func TestSetStorageSettings(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestSetStorageSettings in short mode.")
+	}
+
+	testCases := map[string]struct {
+		tenantID string
+		settings *model.StorageSettings
+		err      error
+	}{
+		"ok": {
+			settings: &model.StorageSettings{
+				Region: "region",
+				Key:    "secretkey",
+				Secret: "secret",
+				Bucket: "bucket",
+				Uri:    "https://example.com",
+				Token:  "token",
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			ds := NewDataStoreMongoWithClient(db.Client())
+
+			err := ds.SetStorageSettings(ctx, tc.settings)
+			assert.NoError(t, err)
+
+			settings, err := ds.GetStorageSettings(ctx)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.settings, settings)
+		})
+	}
 }

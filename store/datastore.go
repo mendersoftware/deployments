@@ -30,6 +30,10 @@ type DataStore interface {
 	//limits
 	GetLimit(ctx context.Context, name string) (*model.Limit, error)
 
+	//storage settings
+	GetStorageSettings(ctx context.Context) (*model.StorageSettings, error)
+	SetStorageSettings(ctx context.Context, storageSettings *model.StorageSettings) error
+
 	//tenants
 	ProvisionTenant(ctx context.Context, tenantId string) error
 
