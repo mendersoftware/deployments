@@ -236,11 +236,11 @@ func (d *Deployments) getFileStorage(ctx context.Context) (s3.FileStorage, error
 
 		return s3.NewSimpleStorageServiceStatic(
 			settings.Bucket,
-			uri,
 			key,
 			secret,
 			region,
 			token,
+			uri,
 			tagArtifact,
 			forcePathStype,
 		)

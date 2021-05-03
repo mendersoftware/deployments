@@ -1397,7 +1397,13 @@ func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWrit
 
 func (d *DeploymentsApiHandlers) GetTenantStorageSettingsHandler(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
-	ctx := r.Context()
+
+	tenantID := r.PathParam("tenant")
+
+	ctx := identity.WithContext(
+		r.Context(),
+		&identity.Identity{Tenant: tenantID},
+	)
 
 	settings, err := d.app.GetStorageSettings(ctx)
 	if err != nil {
@@ -1410,9 +1416,15 @@ func (d *DeploymentsApiHandlers) GetTenantStorageSettingsHandler(w rest.Response
 
 func (d *DeploymentsApiHandlers) PutTenantStorageSettingsHandler(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
-	ctx := r.Context()
 
 	defer r.Body.Close()
+
+	tenantID := r.PathParam("tenant")
+
+	ctx := identity.WithContext(
+		r.Context(),
+		&identity.Identity{Tenant: tenantID},
+	)
 
 	settings, err := model.ParseStorageSettingsRequest(r.Body)
 	if err != nil {
