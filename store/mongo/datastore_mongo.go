@@ -1767,14 +1767,7 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 		}
 	}
 
-	options := &mopts.FindOptions{}
-	options.SetSort(bson.D{{Key: "created", Value: -1}})
-	if match.Skip > 0 {
-		options.SetSkip(int64(match.Skip))
-	}
-	if match.Limit > 0 {
-		options.SetLimit(int64(match.Limit))
-	}
+	options := db.findOptions(match)
 
 	var deployments []*model.Deployment
 	cursor, err := collDpl.Find(ctx, query, options)
@@ -1797,6 +1790,22 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 	}
 
 	return deployments, count, nil
+}
+
+func (db *DataStoreMongo) findOptions(match model.Query) *mopts.FindOptions {
+	options := &mopts.FindOptions{}
+	if match.Sort == model.SortDirectionAscending {
+		options.SetSort(bson.D{{Key: "created", Value: 1}})
+	} else {
+		options.SetSort(bson.D{{Key: "created", Value: -1}})
+	}
+	if match.Skip > 0 {
+		options.SetSkip(int64(match.Skip))
+	}
+	if match.Limit > 0 {
+		options.SetLimit(int64(match.Limit))
+	}
+	return options
 }
 
 // FindNewerActiveDeployments finds active deployments which were created

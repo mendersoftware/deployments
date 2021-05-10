@@ -264,6 +264,9 @@ const (
 	StatusQueryInProgress
 	StatusQueryFinished
 	StatusQueryAborted
+
+	SortDirectionAscending  = "asc"
+	SortDirectionDescending = "desc"
 )
 
 // Deployment lookup query
@@ -281,4 +284,7 @@ type Query struct {
 	// only return deployments between timestamp range
 	CreatedAfter  *time.Time
 	CreatedBefore *time.Time
+
+	// sort values by creation date
+	Sort string
 }
