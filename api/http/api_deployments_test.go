@@ -127,6 +127,7 @@ func TestDeploymentsPerTenantHandler(t *testing.T) {
 			tenant: "tenantID",
 			query: &model.Query{
 				Limit: rest_utils.PerPageDefault + 1,
+				Sort:  model.SortDirectionDescending,
 			},
 			deployments:  []*model.Deployment{},
 			count:        0,
@@ -139,6 +140,7 @@ func TestDeploymentsPerTenantHandler(t *testing.T) {
 			query: &model.Query{
 				Skip:  50,
 				Limit: 51,
+				Sort:  model.SortDirectionDescending,
 			},
 			deployments:  []*model.Deployment{},
 			count:        0,
@@ -175,6 +177,7 @@ func TestDeploymentsPerTenantHandler(t *testing.T) {
 			tenant: "tenantID",
 			query: &model.Query{
 				Limit: rest_utils.PerPageDefault + 1,
+				Sort:  model.SortDirectionDescending,
 			},
 			appError:     errors.New("generic error"),
 			deployments:  []*model.Deployment{},
@@ -1577,6 +1580,83 @@ func TestPutTenantStorageSettings(t *testing.T) {
 				fmt.Println(recorded.Recorder.Body)
 			}
 			recorded.CodeIs(tc.httpStatus)
+		})
+	}
+}
+
+func TestLookupDeployment(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		Name         string
+		appError     error
+		query        *model.Query
+		deployments  []*model.Deployment
+		count        int64
+		sort         string
+		ResponseCode int
+	}{
+		{
+			Name: "ok, discending",
+			query: &model.Query{
+				Limit: rest_utils.PerPageDefault + 1,
+				Sort:  model.SortDirectionDescending,
+			},
+			deployments:  []*model.Deployment{},
+			count:        0,
+			sort:         model.SortDirectionDescending,
+			ResponseCode: http.StatusOK,
+		},
+		{
+			Name: "ok, ascending",
+			query: &model.Query{
+				Limit: rest_utils.PerPageDefault + 1,
+				Sort:  model.SortDirectionAscending,
+			},
+			deployments:  []*model.Deployment{},
+			count:        0,
+			sort:         model.SortDirectionAscending,
+			ResponseCode: http.StatusOK,
+		},
+		{
+			Name: "ok, default",
+			query: &model.Query{
+				Limit: rest_utils.PerPageDefault + 1,
+				Sort:  model.SortDirectionDescending,
+			},
+			deployments:  []*model.Deployment{},
+			count:        0,
+			ResponseCode: http.StatusOK,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			app := &mapp.App{}
+			app.On("LookupDeployment",
+				mock.MatchedBy(func(ctx context.Context) bool {
+					return true
+				}),
+				*tc.query,
+			).Return(tc.deployments, tc.count, tc.appError)
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlManagementDeployments,
+				rest.Get,
+				d.LookupDeployment,
+			)
+			url := "http://localhost" + ApiUrlManagementDeployments
+			if tc.sort != "" {
+				url = "http://localhost" + ApiUrlManagementDeployments + "?sort=" + tc.sort
+			}
+			req := test.MakeSimpleRequest(
+				"GET",
+				url,
+				"",
+			)
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.ResponseCode)
 		})
 	}
 }
