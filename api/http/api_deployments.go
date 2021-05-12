@@ -95,6 +95,9 @@ var (
 	ErrMissingIdentity            = errors.New("Missing identity data")
 	ErrMissingSize                = errors.New("missing size form-data")
 	ErrMissingGroupName           = errors.New("Missing group name")
+
+	ErrInvalidSortDirection = fmt.Errorf("invalid form value: must be one of \"%s\" or \"%s\"",
+		model.SortDirectionAscending, model.SortDirectionDescending)
 )
 
 type Config struct {
@@ -1192,6 +1195,15 @@ func ParseLookupQuery(vals url.Values) (model.Query, error) {
 		} else {
 			query.CreatedAfter = &createdAfterTime
 		}
+	}
+
+	switch strings.ToLower(vals.Get("sort")) {
+	case model.SortDirectionAscending:
+		query.Sort = model.SortDirectionAscending
+	case "", model.SortDirectionDescending:
+		query.Sort = model.SortDirectionDescending
+	default:
+		return query, ErrInvalidSortDirection
 	}
 
 	status := vals.Get("status")
