@@ -216,8 +216,6 @@ func (d *Deployments) getFileStorage(ctx context.Context) (s3.FileStorage, error
 		uri := config.Config.GetString(dconfig.SettingAwsURI)
 		token := config.Config.GetString(dconfig.SettingAwsAuthToken)
 		tagArtifact := config.Config.GetBool(dconfig.SettingsAwsTagArtifact)
-		forcePathStype := config.Config.GetBool(dconfig.SettingAwsS3ForcePathStyle)
-
 		if settings.Region != "" {
 			region = settings.Region
 		}
@@ -242,7 +240,8 @@ func (d *Deployments) getFileStorage(ctx context.Context) (s3.FileStorage, error
 			token,
 			uri,
 			tagArtifact,
-			forcePathStype,
+			settings.ForcePathStyle,
+			settings.UseAccelerate,
 		)
 	}
 

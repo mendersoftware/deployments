@@ -423,6 +423,12 @@ definitions:
       token:
         type: string
         description: Token.
+      force_path_style:
+        type: boolean
+        description: Force S3 path-style instead of virtual-hosted style.
+      use_accelerate:
+        type: boolean
+        description: Enable S3 Transfer acceleration.
     required:
       - region
       - bucket
@@ -435,6 +441,8 @@ definitions:
       key: AKIAQIHEV11XZJFVCNM4
       secret: f2Ref4JU3eRqAFO23qpy5XOhcfTnzJivAcNO1lvn
       token: <token>
+      force_path_style: false
+      use_accelerate: false
   StorageUsage:
     description: Tenant account storage limit and storage usage.
     type: object

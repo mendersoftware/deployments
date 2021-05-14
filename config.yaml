@@ -119,6 +119,12 @@ aws:
 
     # force_path_style: true
 
+    # Use S3 Transfer Acceleration
+    # Enable the S3 Transfer Acceleration for the operations that support it.
+    # Defaults to: false
+    # Overwrite with environment variable: DEPLOYMENTS_AWS_USE_ACCELERATE
+
+    # use_accelerate: false
 
     # S3 URI
     # Defaults to: none (s3.amazonaws.com)

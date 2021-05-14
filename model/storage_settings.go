@@ -23,12 +23,14 @@ import (
 )
 
 type StorageSettings struct {
-	Region string `json:"region" bson:"region"`
-	Bucket string `json:"bucket" bson:"bucket"`
-	Uri    string `json:"uri" bson:"uri"`
-	Key    string `json:"key" bson:"key"`
-	Secret string `json:"secret" bson:"secret"`
-	Token  string `json:"token" bson:"token"`
+	Region         string `json:"region" bson:"region"`
+	Bucket         string `json:"bucket" bson:"bucket"`
+	Uri            string `json:"uri" bson:"uri"`
+	Key            string `json:"key" bson:"key"`
+	Secret         string `json:"secret" bson:"secret"`
+	Token          string `json:"token" bson:"token"`
+	ForcePathStyle bool   `json:"force_path_style" bson:"force_path_style"`
+	UseAccelerate  bool   `json:"use_accelerate" bson:"use_accelerate"`
 }
 
 func ParseStorageSettingsRequest(source io.Reader) (*StorageSettings, error) {

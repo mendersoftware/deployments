@@ -306,13 +306,15 @@ const (
 	StorageKeyDeploymentMaxDevices   = "max_devices"
 	StorageKeyDeploymentType         = "type"
 
-	StorageKeyStorageSettingsDefaultID = "settings"
-	StorageKeyStorageSettingsBucket    = "bucket"
-	StorageKeyStorageSettingsRegion    = "region"
-	StorageKeyStorageSettingsKey       = "key"
-	StorageKeyStorageSettingsSecret    = "secret"
-	StorageKeyStorageSettingsURI       = "uri"
-	StorageKeyStorageSettingsToken     = "token"
+	StorageKeyStorageSettingsDefaultID      = "settings"
+	StorageKeyStorageSettingsBucket         = "bucket"
+	StorageKeyStorageSettingsRegion         = "region"
+	StorageKeyStorageSettingsKey            = "key"
+	StorageKeyStorageSettingsSecret         = "secret"
+	StorageKeyStorageSettingsURI            = "uri"
+	StorageKeyStorageSettingsToken          = "token"
+	StorageKeyStorageSettingsForcePathStyle = "force_path_style"
+	StorageKeyStorageSettingsUseAccelerate  = "use_accelerate"
 
 	ArtifactDependsDeviceType = "device_type"
 )
@@ -1961,12 +1963,14 @@ func (db *DataStoreMongo) SetStorageSettings(ctx context.Context, storageSetting
 	update := bson.M{
 		"$setOnInsert": bson.M{"_id": StorageKeyStorageSettingsDefaultID},
 		"$set": bson.M{
-			StorageKeyStorageSettingsBucket: storageSettings.Bucket,
-			StorageKeyStorageSettingsKey:    storageSettings.Key,
-			StorageKeyStorageSettingsSecret: storageSettings.Secret,
-			StorageKeyStorageSettingsURI:    storageSettings.Uri,
-			StorageKeyStorageSettingsRegion: storageSettings.Region,
-			StorageKeyStorageSettingsToken:  storageSettings.Token,
+			StorageKeyStorageSettingsBucket:         storageSettings.Bucket,
+			StorageKeyStorageSettingsKey:            storageSettings.Key,
+			StorageKeyStorageSettingsSecret:         storageSettings.Secret,
+			StorageKeyStorageSettingsURI:            storageSettings.Uri,
+			StorageKeyStorageSettingsRegion:         storageSettings.Region,
+			StorageKeyStorageSettingsToken:          storageSettings.Token,
+			StorageKeyStorageSettingsForcePathStyle: storageSettings.ForcePathStyle,
+			StorageKeyStorageSettingsUseAccelerate:  storageSettings.UseAccelerate,
 		},
 	}
 	updateOptions := mopts.Update()
