@@ -24,10 +24,12 @@ class TestInternalApiStorageSettings:
         data = {
             "region": "region",
             "bucket": "bucket",
-            "uri":    "https://example.com",
-            "key":    "long_key",
+            "uri": "https://example.com",
+            "key": "long_key",
             "secret": "secret",
-            "token":  "token"
+            "token": "token",
+            "force_path_style": True,
+            "use_accelerate": True,
         }
         api_client_int.set_settings(tenant_id, data)
         rx_data = api_client_int.get_settings(tenant_id)
@@ -38,18 +40,22 @@ class TestInternalApiStorageSettings:
         data1 = {
             "region": "region",
             "bucket": "bucket",
-            "uri":    "https://example.com",
-            "key":    "long_key",
+            "uri": "https://example.com",
+            "key": "long_key",
             "secret": "secret",
-            "token":  "token"
+            "token": "token",
+            "force_path_style": True,
+            "use_accelerate": True,
         }
         data2 = {
             "region": "region",
             "bucket": "new_bucket",
-            "uri":    "https://example.com",
-            "key":    "long_key",
+            "uri": "https://example.com",
+            "key": "long_key",
             "secret": "secret",
-            "token":  "token"
+            "token": "token",
+            "force_path_style": False,
+            "use_accelerate": False,
         }
         api_client_int.set_settings(tenant_id, data1)
         api_client_int.set_settings(tenant_id, data2)
@@ -59,18 +65,20 @@ class TestInternalApiStorageSettings:
         data1 = {
             "region": "region",
             "bucket": "bucket",
-            "uri":    "https://example.com",
-            "key":    "long_key",
+            "uri": "https://example.com",
+            "key": "long_key",
             "secret": "secret",
-            "token":  "token"
+            "token": "token",
+            "force_path_style": True,
+            "use_accelerate": True,
         }
         data2 = {
             "region": "",
             "bucket": "",
-            "uri":    "",
-            "key":    "",
+            "uri": "",
+            "key": "",
             "secret": "",
-            "token":  ""
+            "token": "",
         }
         api_client_int.set_settings(tenant_id, data1)
         api_client_int.set_settings(tenant_id, data2)
@@ -81,10 +89,10 @@ class TestInternalApiStorageSettings:
         data = {
             "region": "region",
             "bucket": "bucket",
-            "uri":    "https://example.com",
-            "key":    "key",
+            "uri": "https://example.com",
+            "key": "key",
             "secret": "secret",
-            "token":  "token"
+            "token": "token",
         }
         api_client_int.set_settings(tenant_id, data, 500)
 
@@ -93,9 +101,9 @@ class TestInternalApiStorageSettings:
         # 'Bucket' key is missing
         data = {
             "region": "region",
-            "uri":    "https://example.com",
-            "key":    "long_key",
+            "uri": "https://example.com",
+            "key": "long_key",
             "secret": "secret",
-            "token":  "token"
+            "token": "token",
         }
         api_client_int.set_settings(tenant_id, data, 400)

@@ -86,6 +86,7 @@ func SetupS3(c config.Reader) (s3.FileStorage, error) {
 			c.GetString(dconfig.SettingAwsURI),
 			c.GetBool(dconfig.SettingsAwsTagArtifact),
 			c.GetBool(dconfig.SettingAwsS3ForcePathStyle),
+			c.GetBool(dconfig.SettingAwsS3UseAccelerate),
 		)
 	}
 

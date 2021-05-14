@@ -38,6 +38,8 @@ const (
 	SettingAwsS3BucketDefault         = "mender-artifact-storage"
 	SettingAwsS3ForcePathStyle        = SettingsAws + ".force_path_style"
 	SettingAwsS3ForcePathStyleDefault = true
+	SettingAwsS3UseAccelerate         = SettingsAws + ".use_accelerate"
+	SettingAwsS3UseAccelerateDefault  = false
 	SettingAwsURI                     = SettingsAws + ".uri"
 	SettingsAwsTagArtifact            = SettingsAws + ".tag_artifact"
 	SettingsAwsTagArtifactDefault     = false
@@ -164,6 +166,7 @@ var (
 		{Key: SettingAwsS3Region, Value: SettingAwsS3RegionDefault},
 		{Key: SettingAwsS3Bucket, Value: SettingAwsS3BucketDefault},
 		{Key: SettingAwsS3ForcePathStyle, Value: SettingAwsS3ForcePathStyleDefault},
+		{Key: SettingAwsS3UseAccelerate, Value: SettingAwsS3UseAccelerateDefault},
 		{Key: SettingsAwsDownloadExpireSeconds, Value: SettingsAwsDownloadExpireSecondsDefault},
 		{Key: SettingsAwsUploadExpireSeconds, Value: SettingsAwsUploadExpireSecondsDefault},
 		{Key: SettingMongo, Value: SettingMongoDefault},

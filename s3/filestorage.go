@@ -77,7 +77,7 @@ type SimpleStorageService struct {
 
 // NewSimpleStorageServiceStatic create new S3 client model.
 // AWS authentication keys are automatically reloaded from env variables.
-func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string, tag_artifact, forcePathStyle bool) (*SimpleStorageService, error) {
+func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string, tag_artifact, forcePathStyle bool, useAccelerate bool) (*SimpleStorageService, error) {
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
 
@@ -91,8 +91,12 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 	// Setting S3ForcePathStyle to false forces virtual-hosted style.
 	config.S3ForcePathStyle = aws.Bool(forcePathStyle)
 
-	sess := session.New(config)
+	// If `true`, enables the S3 Accelerate feature. For all operations
+	// compatible with S3 Accelerate will use the accelerate endpoint for
+	// requests. Requests not compatible will fall back to normal S3 requests.
+	config.S3UseAccelerate = aws.Bool(useAccelerate)
 
+	sess := session.New(config)
 	client := s3.New(sess)
 
 	return &SimpleStorageService{
