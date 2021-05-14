@@ -43,15 +43,16 @@ const (
 	ApiUrlManagementArtifactsId         = ApiUrlManagement + "/artifacts/:id"
 	ApiUrlManagementArtifactsIdDownload = ApiUrlManagement + "/artifacts/:id/download"
 
-	ApiUrlManagementDeployments           = ApiUrlManagement + "/deployments"
-	ApiUrlManagementDeploymentsGroup      = ApiUrlManagement + "/deployments/group/:name"
-	ApiUrlManagementDeploymentsId         = ApiUrlManagement + "/deployments/:id"
-	ApiUrlManagementDeploymentsStatistics = ApiUrlManagement + "/deployments/:id/statistics"
-	ApiUrlManagementDeploymentsStatus     = ApiUrlManagement + "/deployments/:id/status"
-	ApiUrlManagementDeploymentsDevices    = ApiUrlManagement + "/deployments/:id/devices"
-	ApiUrlManagementDeploymentsLog        = ApiUrlManagement + "/deployments/:id/devices/:devid/log"
-	ApiUrlManagementDeploymentsDeviceId   = ApiUrlManagement + "/deployments/devices/:id"
-	ApiUrlManagementDeploymentsDeviceList = ApiUrlManagement + "/deployments/:id/device_list"
+	ApiUrlManagementDeployments            = ApiUrlManagement + "/deployments"
+	ApiUrlManagementDeploymentsGroup       = ApiUrlManagement + "/deployments/group/:name"
+	ApiUrlManagementDeploymentsId          = ApiUrlManagement + "/deployments/:id"
+	ApiUrlManagementDeploymentsStatistics  = ApiUrlManagement + "/deployments/:id/statistics"
+	ApiUrlManagementDeploymentsStatus      = ApiUrlManagement + "/deployments/:id/status"
+	ApiUrlManagementDeploymentsDevices     = ApiUrlManagement + "/deployments/:id/devices"
+	ApiUrlManagementDeploymentsDevicesList = ApiUrlManagement + "/deployments/:id/devices/list"
+	ApiUrlManagementDeploymentsLog         = ApiUrlManagement + "/deployments/:id/devices/:devid/log"
+	ApiUrlManagementDeploymentsDeviceId    = ApiUrlManagement + "/deployments/devices/:id"
+	ApiUrlManagementDeploymentsDeviceList  = ApiUrlManagement + "/deployments/:id/device_list"
 
 	ApiUrlManagementReleases = ApiUrlManagement + "/deployments/releases"
 
@@ -187,6 +188,8 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 		rest.Put(ApiUrlManagementDeploymentsStatus, controller.AbortDeployment),
 		rest.Get(ApiUrlManagementDeploymentsDevices,
 			controller.GetDeviceStatusesForDeployment),
+		rest.Get(ApiUrlManagementDeploymentsDevicesList,
+			controller.GetDevicesListForDeployment),
 		rest.Get(ApiUrlManagementDeploymentsLog,
 			controller.GetDeploymentLogForDevice),
 		rest.Delete(ApiUrlManagementDeploymentsDeviceId,

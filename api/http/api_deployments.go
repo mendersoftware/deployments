@@ -1171,6 +1171,50 @@ func (d *DeploymentsApiHandlers) GetDeviceStatusesForDeployment(w rest.ResponseW
 	d.view.RenderSuccessGet(w, statuses)
 }
 
+func (d *DeploymentsApiHandlers) GetDevicesListForDeployment(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	did := r.PathParam("id")
+
+	if !govalidator.IsUUID(did) {
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
+		return
+	}
+
+	page, perPage, err := rest_utils.ParsePagination(r)
+	if err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+
+	lq := store.ListQuery{
+		Skip:         int((page - 1) * perPage),
+		Limit:        int(perPage),
+		DeploymentID: did,
+	}
+
+	statuses, totalCount, err := d.app.GetDevicesListForDeployment(ctx, lq)
+	if err != nil {
+		switch err {
+		case app.ErrModelDeploymentNotFound:
+			d.view.RenderError(w, r, err, http.StatusNotFound, l)
+			return
+		default:
+			d.view.RenderInternalError(w, r, ErrInternal, l)
+			return
+		}
+	}
+
+	hasNext := totalCount > int(page*perPage)
+	links := rest_utils.MakePageLinkHdrs(r, page, perPage, hasNext)
+	for _, l := range links {
+		w.Header().Add("Link", l)
+	}
+	w.Header().Add("X-Total-Count", strconv.Itoa(totalCount))
+	d.view.RenderSuccessGet(w, statuses)
+}
+
 func ParseLookupQuery(vals url.Values) (model.Query, error) {
 	query := model.Query{}
 
