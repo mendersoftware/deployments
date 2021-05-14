@@ -438,8 +438,8 @@ definitions:
       region: us-east-1
       bucket: mender-artifacts-unique-bucket-name
       uri: example.com
-      key: AKIAQIHEV11XZJFVCNM4
-      secret: f2Ref4JU3eRqAFO23qpy5XOhcfTnzJivAcNO1lvn
+      key: <key>
+      secret: <secret>
       token: <token>
       force_path_style: false
       use_accelerate: false
