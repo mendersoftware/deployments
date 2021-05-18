@@ -27,6 +27,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/deployments/store"
 )
 
 func TestDeviceDeploymentStorageInsert(t *testing.T) {
@@ -665,8 +666,133 @@ func TestGetDeviceStatusesForDeployment(t *testing.T) {
 				// deployment statuses are present in tenant's
 				// DB, verify that listing from default DB
 				// yields empty list
-				statuses, err := store.GetDeviceStatusesForDeployment(context.Background(),
+				statuses, err := store.GetDeviceStatusesForDeployment(
+					context.Background(),
 					tc.inputDeploymentId)
+				assert.NoError(t, err)
+				assert.Len(t, statuses, 0)
+			}
+		})
+	}
+}
+
+func TestGetDevicesListForDeployment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping GetDevicesListForDeployment in short mode.")
+	}
+
+	input := []*model.DeviceDeployment{}
+
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"device0004", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"},
+		{"device0005", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"},
+	}
+
+	for _, dd := range dds {
+		newdd := model.NewDeviceDeployment(dd.did, dd.depid)
+		input = append(input, newdd)
+	}
+
+	testCases := map[string]struct {
+		caseId string
+		tenant string
+
+		inputListQuery store.ListQuery
+		outputStatuses []*model.DeviceDeployment
+	}{
+		"existing deployments 1": {
+			inputListQuery: store.ListQuery{
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+			},
+			outputStatuses: input[:3],
+		},
+		"existing deployments 2": {
+			inputListQuery: store.ListQuery{
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+			},
+			outputStatuses: input[3:],
+		},
+		"nonexistent deployment": {
+			inputListQuery: store.ListQuery{
+				DeploymentID: "aaaaaaaa-9ec2-4312-a7fa-cff24cc7397b",
+			},
+			outputStatuses: []*model.DeviceDeployment{},
+		},
+		"tenant, existing deployments": {
+			inputListQuery: store.ListQuery{
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+			},
+			tenant:         "acme",
+			outputStatuses: input[3:],
+		},
+		"tenant, existing deployments + limit": {
+			inputListQuery: store.ListQuery{
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+				Limit:        2,
+			},
+			tenant:         "acme",
+			outputStatuses: input[3:],
+		},
+		"tenant, existing deployments + limit + skip": {
+			inputListQuery: store.ListQuery{
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+				Limit:        2,
+				Skip:         1,
+			},
+			tenant:         "acme",
+			outputStatuses: input[3:],
+		},
+	}
+
+	for testCaseName, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
+
+			// setup db - once for all cases
+			db.Wipe()
+
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+			if tc.tenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.tenant,
+				})
+			}
+
+			err := store.InsertMany(ctx, input...)
+			assert.NoError(t, err)
+
+			statuses, _, err := store.GetDevicesListForDeployment(ctx,
+				tc.inputListQuery)
+			assert.NoError(t, err)
+
+			if tc.inputListQuery.Limit > 0 {
+				assert.Equal(t,
+					tc.inputListQuery.Limit-tc.inputListQuery.Skip,
+					len(statuses))
+			}
+
+			counterAddition := 0
+			if tc.inputListQuery.Skip > 0 {
+				counterAddition = tc.inputListQuery.Skip
+			}
+			assert.Equal(t, len(tc.outputStatuses)-counterAddition, len(statuses))
+
+			if tc.tenant != "" {
+				// deployment statuses are present in tenant's
+				// DB, verify that listing from default DB
+				// yields empty list
+				statuses, _, err := store.GetDevicesListForDeployment(
+					context.Background(),
+					tc.inputListQuery,
+				)
 				assert.NoError(t, err)
 				assert.Len(t, statuses, 0)
 			}

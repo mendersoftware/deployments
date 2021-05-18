@@ -22,6 +22,8 @@ import (
 	model "github.com/mendersoftware/deployments/model"
 	mock "github.com/stretchr/testify/mock"
 
+	store "github.com/mendersoftware/deployments/store"
+
 	time "time"
 )
 
@@ -558,6 +560,36 @@ func (_m *DataStore) GetDeviceStatusesForDeployment(ctx context.Context, deploym
 	}
 
 	return r0, r1
+}
+
+// GetDevicesListForDeployment provides a mock function with given fields: ctx, query
+func (_m *DataStore) GetDevicesListForDeployment(ctx context.Context, query store.ListQuery) ([]model.DeviceDeployment, int, error) {
+	ret := _m.Called(ctx, query)
+
+	var r0 []model.DeviceDeployment
+	if rf, ok := ret.Get(0).(func(context.Context, store.ListQuery) []model.DeviceDeployment); ok {
+		r0 = rf(ctx, query)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.DeviceDeployment)
+		}
+	}
+
+	var r1 int
+	if rf, ok := ret.Get(1).(func(context.Context, store.ListQuery) int); ok {
+		r1 = rf(ctx, query)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, store.ListQuery) error); ok {
+		r2 = rf(ctx, query)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // GetLimit provides a mock function with given fields: ctx, name
