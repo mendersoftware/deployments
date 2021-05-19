@@ -356,14 +356,16 @@ paths:
 
   /deployments/{deployment_id}/devices:
     get:
+      deprecated: true
       operationId: List Devices in Deployment
       tags:
         - Management API
       security:
         - ManagementJWT: []
       summary: |
-        Get list of all devices and their respective status for the deployment
-        with the given ID.
+        DEPRECATED: this end-point is deprecated because it doesn't support
+        pagination and will be removed in the future, please use the
+        /deployments/{deployment_id}/devices/list end-point instead.
       parameters:
         - name: deployment_id
           in: path
