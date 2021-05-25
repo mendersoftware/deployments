@@ -82,6 +82,8 @@ type DataStore interface {
 		id string) (model.Stats, error)
 	GetDeviceStatusesForDeployment(ctx context.Context,
 		deploymentID string) ([]model.DeviceDeployment, error)
+	GetDevicesListForDeployment(ctx context.Context,
+		query ListQuery) ([]model.DeviceDeployment, int, error)
 	HasDeploymentForDevice(ctx context.Context,
 		deploymentID string, deviceID string) (bool, error)
 	GetDeviceDeploymentStatus(ctx context.Context,

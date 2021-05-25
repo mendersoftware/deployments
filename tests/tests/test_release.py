@@ -32,6 +32,7 @@ class TestRelease:
     m = MinioClient()
     d = DeploymentsClient()
 
+    @pytest.mark.usefixtures("clean_db")
     def test_releases_no_artifacts(self):
         rsp = self.d.client.Management_API.List_Releases(Authorization="foo").result()
         assert len(rsp[0]) == 0

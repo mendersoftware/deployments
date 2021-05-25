@@ -356,7 +356,41 @@ paths:
 
   /deployments/{deployment_id}/devices:
     get:
+      deprecated: true
       operationId: List Devices in Deployment
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: |
+        DEPRECATED: this end-point is deprecated because it doesn't support
+        pagination and will be removed in the future, please use the
+        /deployments/{deployment_id}/devices/list end-point instead.
+      parameters:
+        - name: deployment_id
+          in: path
+          description: Deployment identifier.
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Device"
+        401:
+          $ref: '#/responses/UnauthorizedError'
+        404:
+          $ref: "#/responses/NotFoundError"
+        500:
+          $ref: "#/responses/InternalServerError"
+
+  /deployments/{deployment_id}/devices/list:
+    get:
+      operationId: List Devices in Deployment with pagination
       tags:
         - Management API
       security:
@@ -370,6 +404,20 @@ paths:
           description: Deployment identifier.
           required: true
           type: string
+        - name: page
+          in: query
+          description: Starting page.
+          required: false
+          type: number
+          format: integer
+          default: 1
+        - name: per_page
+          in: query
+          description: Maximum number of results per page.
+          required: false
+          type: number
+          format: integer
+          default: 10
       produces:
         - application/json
       responses:

@@ -28,6 +28,7 @@ import (
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/deployments/store"
 )
 
 const (
@@ -264,7 +265,8 @@ var (
 	ErrDeploymentStorageCannotExecQuery   = errors.New("Cannot execute query")
 	ErrStorageInvalidInput                = errors.New("invalid input")
 
-	ErrLimitNotFound = errors.New("limit not found")
+	ErrLimitNotFound      = errors.New("limit not found")
+	ErrDevicesCountFailed = errors.New("failed to count devices")
 )
 
 const (
@@ -275,7 +277,8 @@ const (
 // Database keys
 const (
 	// Need to be kept in sync with structure filed names
-	StorageKeyImageId          = "_id"
+	StorageKeyId = "_id"
+
 	StorageKeyImageDepends     = "meta_artifact.depends"
 	StorageKeyImageDependsIdx  = "meta_artifact.depends_idx"
 	StorageKeyImageSize        = "size"
@@ -285,7 +288,7 @@ const (
 	StorageKeyDeviceDeploymentLogMessages = "messages"
 
 	StorageKeyDeviceDeploymentAssignedImage   = "image"
-	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + StorageKeyImageId
+	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + StorageKeyId
 	StorageKeyDeviceDeploymentDeviceId        = "deviceid"
 	StorageKeyDeviceDeploymentStatus          = "status"
 	StorageKeyDeviceDeploymentSubState        = "substate"
@@ -588,7 +591,7 @@ func (db *DataStoreMongo) ImageByIdsAndDeviceType(ctx context.Context,
 	}
 
 	query := bson.D{
-		{Key: StorageKeyImageId, Value: bson.M{"$in": ids}},
+		{Key: StorageKeyId, Value: bson.M{"$in": ids}},
 		{Key: StorageKeyImageDeviceTypes, Value: deviceType},
 	}
 
@@ -1249,6 +1252,7 @@ func (db *DataStoreMongo) GetDeviceStatusesForDeployment(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+
 	if err = cursor.All(ctx, &statuses); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -1257,6 +1261,47 @@ func (db *DataStoreMongo) GetDeviceStatusesForDeployment(ctx context.Context,
 	}
 
 	return statuses, nil
+}
+
+func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
+	q store.ListQuery) ([]model.DeviceDeployment, int, error) {
+
+	statuses := []model.DeviceDeployment{}
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
+
+	query := bson.M{
+		StorageKeyDeviceDeploymentDeploymentID: q.DeploymentID,
+	}
+
+	options := mopts.Find()
+	sortFieldQuery := bson.D{{Key: StorageKeyDeviceDeploymentDeploymentID, Value: 1}}
+	options.SetSort(sortFieldQuery)
+	if q.Skip > 0 {
+		options.SetSkip(int64(q.Skip))
+	}
+	if q.Limit > 0 {
+		options.SetLimit(int64(q.Limit))
+	}
+
+	cursor, err := collDevs.Find(ctx, query, options)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	if err = cursor.All(ctx, &statuses); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, -1, nil
+		}
+		return nil, -1, err
+	}
+
+	count, err := collDevs.CountDocuments(ctx, query)
+	if err != nil {
+		return nil, -1, ErrDevicesCountFailed
+	}
+
+	return statuses, int(count), nil
 }
 
 // Returns true if deployment of ID `deploymentID` is assigned to device with ID

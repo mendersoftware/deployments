@@ -138,6 +138,8 @@ type App interface {
 		deviceID string, state model.DeviceDeploymentState) error
 	GetDeviceStatusesForDeployment(ctx context.Context,
 		deploymentID string) ([]model.DeviceDeployment, error)
+	GetDevicesListForDeployment(ctx context.Context,
+		query store.ListQuery) ([]model.DeviceDeployment, int, error)
 	LookupDeployment(ctx context.Context,
 		query model.Query) ([]*model.Deployment, int64, error)
 	SaveDeviceDeploymentLog(ctx context.Context, deviceID string,
@@ -1381,6 +1383,26 @@ func (d *Deployments) GetDeviceStatusesForDeployment(ctx context.Context,
 	}
 
 	return statuses, nil
+}
+
+func (d *Deployments) GetDevicesListForDeployment(ctx context.Context,
+	query store.ListQuery) ([]model.DeviceDeployment, int, error) {
+
+	deployment, err := d.db.FindDeploymentByID(ctx, query.DeploymentID)
+	if err != nil {
+		return nil, -1, ErrModelInternal
+	}
+
+	if deployment == nil {
+		return nil, -1, ErrModelDeploymentNotFound
+	}
+
+	statuses, totalCount, err := d.db.GetDevicesListForDeployment(ctx, query)
+	if err != nil {
+		return nil, -1, ErrModelInternal
+	}
+
+	return statuses, totalCount, nil
 }
 
 func (d *Deployments) setDeploymentDeviceCountIfUnset(ctx context.Context, deployment *model.Deployment) error {
