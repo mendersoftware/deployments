@@ -30,6 +30,10 @@ type DataStore interface {
 	//limits
 	GetLimit(ctx context.Context, name string) (*model.Limit, error)
 
+	//storage settings
+	GetStorageSettings(ctx context.Context) (*model.StorageSettings, error)
+	SetStorageSettings(ctx context.Context, storageSettings *model.StorageSettings) error
+
 	//tenants
 	ProvisionTenant(ctx context.Context, tenantId string) error
 
@@ -78,6 +82,8 @@ type DataStore interface {
 		id string) (model.Stats, error)
 	GetDeviceStatusesForDeployment(ctx context.Context,
 		deploymentID string) ([]model.DeviceDeployment, error)
+	GetDevicesListForDeployment(ctx context.Context,
+		query ListQuery) ([]model.DeviceDeployment, int, error)
 	HasDeploymentForDevice(ctx context.Context,
 		deploymentID string, deviceID string) (bool, error)
 	GetDeviceDeploymentStatus(ctx context.Context,

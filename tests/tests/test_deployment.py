@@ -196,6 +196,67 @@ class TestDeployment:
         else:
             raise AssertionError("expected to fail")
 
+    def test_deplyments_get_devices(self):
+        """Create deployments, get devices with pagination"""
+        devices = []
+        devices_qty = 30
+        device_ids = []
+        default_per_page = 20
+        device_type = "test-hammer-type"
+
+        # create devices
+        for i in range(0, devices_qty):
+            device = Device(device_type)
+            self.inventory_add_dev(device)
+            devices.append(device)
+            device_ids.append(device.devid)
+
+        data = b"foo_bar"
+        artifact_name = "pagination-test-" + str(uuid4())
+        # come up with an artifact
+        with artifact_from_data(
+                name=artifact_name, data=data, devicetype=device_type
+        ) as art:
+            ac = SimpleArtifactsClient()
+            ac.add_artifact(
+                description="some description", size=art.size, data=art
+            )
+
+            new_dep = self.d.make_new_deployment(
+                name="pagination deployment", artifact_name=artifact_name, devices=device_ids
+            )
+            dep_id = self.d.add_deployment(new_dep)
+
+            for dev in devices:
+                dc = SimpleDeviceClient()
+                dc.get_next_deployment(
+                    dev.fake_token,
+                    artifact_name="different {}".format(artifact_name),
+                    device_type=dev.device_type,
+                )
+
+            # check default 'page' and 'per_page' values
+            res = self.d.client.Management_API.List_Devices_in_Deployment_with_pagination(
+                Authorization="foo", deployment_id=dep_id
+            ).result()[0]
+            assert len(res) == default_per_page
+
+            # check custom 'per_page'
+            res = self.d.client.Management_API.List_Devices_in_Deployment_with_pagination(
+                Authorization="foo", deployment_id=dep_id, per_page=devices_qty
+            ).result()[0]
+            assert len(res) == devices_qty
+
+            # check 2nd page
+            devices_qty_on_second_page = devices_qty - default_per_page
+            res = self.d.client.Management_API.List_Devices_in_Deployment_with_pagination(
+                Authorization="foo",
+                deployment_id=dep_id,
+                page=2,
+                per_page=default_per_page
+            ).result()[0]
+            assert len(res) == devices_qty_on_second_page
+
     def test_device_deployments_simple(self):
         """Check that device can get next deployment, simple cases:
         - bogus token

@@ -127,6 +127,7 @@ func TestDeploymentsPerTenantHandler(t *testing.T) {
 			tenant: "tenantID",
 			query: &model.Query{
 				Limit: rest_utils.PerPageDefault + 1,
+				Sort:  model.SortDirectionDescending,
 			},
 			deployments:  []*model.Deployment{},
 			count:        0,
@@ -139,6 +140,7 @@ func TestDeploymentsPerTenantHandler(t *testing.T) {
 			query: &model.Query{
 				Skip:  50,
 				Limit: 51,
+				Sort:  model.SortDirectionDescending,
 			},
 			deployments:  []*model.Deployment{},
 			count:        0,
@@ -175,6 +177,7 @@ func TestDeploymentsPerTenantHandler(t *testing.T) {
 			tenant: "tenantID",
 			query: &model.Query{
 				Limit: rest_utils.PerPageDefault + 1,
+				Sort:  model.SortDirectionDescending,
 			},
 			appError:     errors.New("generic error"),
 			deployments:  []*model.Deployment{},
@@ -1386,6 +1389,274 @@ func TestGetDeploymentForDevice(t *testing.T) {
 				}
 				assert.WithinDuration(t, time.Now().Add(time.Hour), instr.Artifact.Source.Expire, time.Minute)
 			}
+		})
+	}
+}
+
+func TestGetTenantStorageSettings(t *testing.T) {
+	testCases := map[string]struct {
+		tenantID   string
+		settings   *model.StorageSettings
+		err        error
+		httpStatus int
+	}{
+		"ok": {
+			tenantID: "",
+			settings: &model.StorageSettings{
+				Region: "region",
+				Key:    "key",
+				Secret: "secret",
+				Bucket: "bucket",
+			},
+			httpStatus: http.StatusOK,
+		},
+		"ok multi-tenant": {
+			tenantID: "tenant1",
+			settings: &model.StorageSettings{
+				Region: "region",
+				Key:    "key",
+				Secret: "secret",
+				Bucket: "bucket",
+			},
+			httpStatus: http.StatusOK,
+		},
+		"error": {
+			tenantID:   "",
+			err:        errors.New("generic error"),
+			httpStatus: http.StatusInternalServerError,
+		},
+		"error multi-tenant": {
+			tenantID:   "tenant1",
+			err:        errors.New("generic error"),
+			httpStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			app := &mapp.App{}
+			app.On("GetStorageSettings",
+				mock.MatchedBy(func(ctx context.Context) bool { return true }),
+			).Return(tc.settings, tc.err)
+
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlInternalTenantStorageSettings,
+				rest.Get,
+				d.GetTenantStorageSettingsHandler,
+			)
+			url := strings.Replace(ApiUrlInternalTenantStorageSettings, ":tenant", tc.tenantID, -1)
+			req, _ := http.NewRequest(
+				"GET",
+				"http://localhost"+url,
+				nil,
+			)
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.httpStatus)
+
+			if tc.httpStatus == http.StatusOK {
+				settings := &model.StorageSettings{}
+				err := json.Unmarshal(recorded.Recorder.Body.Bytes(), settings)
+				assert.NoError(t, err)
+				assert.Equal(t, settings, tc.settings)
+			}
+		})
+	}
+}
+
+func TestPutTenantStorageSettings(t *testing.T) {
+	testCases := map[string]struct {
+		tenantID   string
+		settings   *model.StorageSettings
+		err        error
+		httpStatus int
+	}{
+		"ok": {
+			tenantID: "",
+			settings: &model.StorageSettings{
+				Region: "region",
+				Key:    "secretkey",
+				Secret: "secret",
+				Bucket: "bucket",
+				Uri:    "https://example.com",
+				Token:  "token",
+			},
+			httpStatus: http.StatusNoContent,
+		},
+		"ok multi-tenant": {
+			tenantID: "tenant1",
+			settings: &model.StorageSettings{
+				Region: "region",
+				Key:    "secretkey",
+				Secret: "secret",
+				Bucket: "bucket",
+				Uri:    "https://example.com",
+				Token:  "token",
+			},
+			httpStatus: http.StatusNoContent,
+		},
+		"error no data": {
+			tenantID:   "",
+			settings:   &model.StorageSettings{},
+			httpStatus: http.StatusNoContent,
+		},
+		"error no data multi-tenant": {
+			tenantID:   "tenant1",
+			settings:   &model.StorageSettings{},
+			httpStatus: http.StatusNoContent,
+		},
+		"error invalid data": {
+			tenantID: "",
+			settings: &model.StorageSettings{
+				Region: "region",
+				Key:    "secretkey",
+				Bucket: "bucket",
+			},
+			httpStatus: http.StatusBadRequest,
+		},
+		"error invalid data multi-tenant": {
+			tenantID: "tenant1",
+			settings: &model.StorageSettings{
+				Region: "region",
+				Key:    "secretkey",
+				Bucket: "bucket",
+			},
+			httpStatus: http.StatusBadRequest,
+		},
+		"error app err": {
+			tenantID: "",
+			settings: &model.StorageSettings{
+				Region: "region",
+				Key:    "secretkey",
+				Secret: "secret",
+				Bucket: "bucket",
+				Uri:    "https://example.com",
+				Token:  "token",
+			},
+			err:        errors.New("generic error"),
+			httpStatus: http.StatusInternalServerError,
+		},
+		"error app err multi-tenant": {
+			tenantID: "tenant1",
+			settings: &model.StorageSettings{
+				Region: "region",
+				Key:    "secretkey",
+				Secret: "secret",
+				Bucket: "bucket",
+				Uri:    "https://example.com",
+				Token:  "token",
+			},
+			err:        errors.New("generic error"),
+			httpStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			app := &mapp.App{}
+			app.On("SetStorageSettings",
+				mock.MatchedBy(func(ctx context.Context) bool { return true }),
+				tc.settings,
+			).Return(tc.err)
+
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlInternalTenantStorageSettings,
+				rest.Put,
+				d.PutTenantStorageSettingsHandler,
+			)
+			body, _ := json.Marshal(tc.settings)
+			url := strings.Replace(ApiUrlInternalTenantStorageSettings, ":tenant", tc.tenantID, -1)
+			req, _ := http.NewRequest(
+				http.MethodPut,
+				"http://localhost"+url,
+				bytes.NewBuffer(body),
+			)
+
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			if recorded.Recorder.Code != tc.httpStatus {
+				fmt.Println(recorded.Recorder.Body)
+			}
+			recorded.CodeIs(tc.httpStatus)
+		})
+	}
+}
+
+func TestLookupDeployment(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		Name         string
+		appError     error
+		query        *model.Query
+		deployments  []*model.Deployment
+		count        int64
+		sort         string
+		ResponseCode int
+	}{
+		{
+			Name: "ok, discending",
+			query: &model.Query{
+				Limit: rest_utils.PerPageDefault + 1,
+				Sort:  model.SortDirectionDescending,
+			},
+			deployments:  []*model.Deployment{},
+			count:        0,
+			sort:         model.SortDirectionDescending,
+			ResponseCode: http.StatusOK,
+		},
+		{
+			Name: "ok, ascending",
+			query: &model.Query{
+				Limit: rest_utils.PerPageDefault + 1,
+				Sort:  model.SortDirectionAscending,
+			},
+			deployments:  []*model.Deployment{},
+			count:        0,
+			sort:         model.SortDirectionAscending,
+			ResponseCode: http.StatusOK,
+		},
+		{
+			Name: "ok, default",
+			query: &model.Query{
+				Limit: rest_utils.PerPageDefault + 1,
+				Sort:  model.SortDirectionDescending,
+			},
+			deployments:  []*model.Deployment{},
+			count:        0,
+			ResponseCode: http.StatusOK,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			app := &mapp.App{}
+			app.On("LookupDeployment",
+				mock.MatchedBy(func(ctx context.Context) bool {
+					return true
+				}),
+				*tc.query,
+			).Return(tc.deployments, tc.count, tc.appError)
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlManagementDeployments,
+				rest.Get,
+				d.LookupDeployment,
+			)
+			url := "http://localhost" + ApiUrlManagementDeployments
+			if tc.sort != "" {
+				url = "http://localhost" + ApiUrlManagementDeployments + "?sort=" + tc.sort
+			}
+			req := test.MakeSimpleRequest(
+				"GET",
+				url,
+				"",
+			)
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.ResponseCode)
 		})
 	}
 }

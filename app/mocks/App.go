@@ -24,6 +24,8 @@ import (
 
 	model "github.com/mendersoftware/deployments/model"
 
+	store "github.com/mendersoftware/deployments/store"
+
 	time "time"
 )
 
@@ -340,6 +342,36 @@ func (_m *App) GetDeviceStatusesForDeployment(ctx context.Context, deploymentID 
 	return r0, r1
 }
 
+// GetDevicesListForDeployment provides a mock function with given fields: ctx, query
+func (_m *App) GetDevicesListForDeployment(ctx context.Context, query store.ListQuery) ([]model.DeviceDeployment, int, error) {
+	ret := _m.Called(ctx, query)
+
+	var r0 []model.DeviceDeployment
+	if rf, ok := ret.Get(0).(func(context.Context, store.ListQuery) []model.DeviceDeployment); ok {
+		r0 = rf(ctx, query)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.DeviceDeployment)
+		}
+	}
+
+	var r1 int
+	if rf, ok := ret.Get(1).(func(context.Context, store.ListQuery) int); ok {
+		r1 = rf(ctx, query)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, store.ListQuery) error); ok {
+		r2 = rf(ctx, query)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
 // GetImage provides a mock function with given fields: ctx, id
 func (_m *App) GetImage(ctx context.Context, id string) (*model.Image, error) {
 	ret := _m.Called(ctx, id)
@@ -379,6 +411,29 @@ func (_m *App) GetLimit(ctx context.Context, name string) (*model.Limit, error) 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetStorageSettings provides a mock function with given fields: ctx
+func (_m *App) GetStorageSettings(ctx context.Context) (*model.StorageSettings, error) {
+	ret := _m.Called(ctx)
+
+	var r0 *model.StorageSettings
+	if rf, ok := ret.Get(0).(func(context.Context) *model.StorageSettings); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.StorageSettings)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -516,6 +571,20 @@ func (_m *App) SaveDeviceDeploymentLog(ctx context.Context, deviceID string, dep
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string, []model.LogMessage) error); ok {
 		r0 = rf(ctx, deviceID, deploymentID, logs)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SetStorageSettings provides a mock function with given fields: ctx, storageSettings
+func (_m *App) SetStorageSettings(ctx context.Context, storageSettings *model.StorageSettings) error {
+	ret := _m.Called(ctx, storageSettings)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *model.StorageSettings) error); ok {
+		r0 = rf(ctx, storageSettings)
 	} else {
 		r0 = ret.Error(0)
 	}

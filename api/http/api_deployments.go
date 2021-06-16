@@ -95,6 +95,9 @@ var (
 	ErrMissingIdentity            = errors.New("Missing identity data")
 	ErrMissingSize                = errors.New("missing size form-data")
 	ErrMissingGroupName           = errors.New("Missing group name")
+
+	ErrInvalidSortDirection = fmt.Errorf("invalid form value: must be one of \"%s\" or \"%s\"",
+		model.SortDirectionAscending, model.SortDirectionDescending)
 )
 
 type Config struct {
@@ -1168,6 +1171,50 @@ func (d *DeploymentsApiHandlers) GetDeviceStatusesForDeployment(w rest.ResponseW
 	d.view.RenderSuccessGet(w, statuses)
 }
 
+func (d *DeploymentsApiHandlers) GetDevicesListForDeployment(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	did := r.PathParam("id")
+
+	if !govalidator.IsUUID(did) {
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
+		return
+	}
+
+	page, perPage, err := rest_utils.ParsePagination(r)
+	if err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+
+	lq := store.ListQuery{
+		Skip:         int((page - 1) * perPage),
+		Limit:        int(perPage),
+		DeploymentID: did,
+	}
+
+	statuses, totalCount, err := d.app.GetDevicesListForDeployment(ctx, lq)
+	if err != nil {
+		switch err {
+		case app.ErrModelDeploymentNotFound:
+			d.view.RenderError(w, r, err, http.StatusNotFound, l)
+			return
+		default:
+			d.view.RenderInternalError(w, r, ErrInternal, l)
+			return
+		}
+	}
+
+	hasNext := totalCount > int(page*perPage)
+	links := rest_utils.MakePageLinkHdrs(r, page, perPage, hasNext)
+	for _, l := range links {
+		w.Header().Add("Link", l)
+	}
+	w.Header().Add("X-Total-Count", strconv.Itoa(totalCount))
+	d.view.RenderSuccessGet(w, statuses)
+}
+
 func ParseLookupQuery(vals url.Values) (model.Query, error) {
 	query := model.Query{}
 
@@ -1192,6 +1239,15 @@ func ParseLookupQuery(vals url.Values) (model.Query, error) {
 		} else {
 			query.CreatedAfter = &createdAfterTime
 		}
+	}
+
+	switch strings.ToLower(vals.Get("sort")) {
+	case model.SortDirectionAscending:
+		query.Sort = model.SortDirectionAscending
+	case "", model.SortDirectionDescending:
+		query.Sort = model.SortDirectionDescending
+	default:
+		return query, ErrInvalidSortDirection
 	}
 
 	status := vals.Get("status")
@@ -1393,4 +1449,50 @@ func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWrit
 		&identity.Identity{Tenant: tenantID},
 	))
 	d.LookupDeployment(w, r)
+}
+
+func (d *DeploymentsApiHandlers) GetTenantStorageSettingsHandler(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r)
+
+	tenantID := r.PathParam("tenant")
+
+	ctx := identity.WithContext(
+		r.Context(),
+		&identity.Identity{Tenant: tenantID},
+	)
+
+	settings, err := d.app.GetStorageSettings(ctx)
+	if err != nil {
+		rest_utils.RestErrWithLogInternal(w, r, l, err)
+		return
+	}
+
+	d.view.RenderSuccessGet(w, settings)
+}
+
+func (d *DeploymentsApiHandlers) PutTenantStorageSettingsHandler(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r)
+
+	defer r.Body.Close()
+
+	tenantID := r.PathParam("tenant")
+
+	ctx := identity.WithContext(
+		r.Context(),
+		&identity.Identity{Tenant: tenantID},
+	)
+
+	settings, err := model.ParseStorageSettingsRequest(r.Body)
+	if err != nil {
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusBadRequest)
+		return
+	}
+
+	err = d.app.SetStorageSettings(ctx, settings)
+	if err != nil {
+		rest_utils.RestErrWithLogInternal(w, r, l, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

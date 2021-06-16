@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -432,4 +432,115 @@ func TestSetDeploymentDeviceCount(t *testing.T) {
 		})
 	}
 
+}
+
+func TestSetStorageSettings(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestSetStorageSettings in short mode.")
+	}
+
+	testCases := map[string]struct {
+		tenantID string
+		settings *model.StorageSettings
+		err      error
+	}{
+		"ok": {
+			settings: &model.StorageSettings{
+				Region: "region",
+				Key:    "secretkey",
+				Secret: "secret",
+				Bucket: "bucket",
+				Uri:    "https://example.com",
+				Token:  "token",
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			ds := NewDataStoreMongoWithClient(db.Client())
+
+			err := ds.SetStorageSettings(ctx, tc.settings)
+			assert.NoError(t, err)
+
+			settings, err := ds.GetStorageSettings(ctx)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.settings, settings)
+		})
+	}
+}
+
+func TestSortDeployments(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestSortDeployments in short mode.")
+	}
+
+	// Make sure we start test with empty database
+	db.Wipe()
+
+	deploymentOneID := uuid.NewV4().String()
+	deploymentTwoID := uuid.NewV4().String()
+	now := time.Now()
+	startDate := now.AddDate(0, -1, 0)
+	deviceCount := 1
+	devicesList := []string{uuid.NewV4().String()}
+	config := make([]byte, 0)
+	inputDeployments := []*model.Deployment{
+		{
+			DeploymentConstructor: &model.DeploymentConstructor{
+				Name:         "deployment 1",
+				ArtifactName: "artifact 1",
+			},
+			Created:       &now,
+			Id:            deploymentOneID,
+			DeviceCount:   &deviceCount,
+			MaxDevices:    1,
+			DeviceList:    devicesList,
+			Status:        model.DeploymentStatusInProgress,
+			Type:          model.DeploymentTypeConfiguration,
+			Configuration: config,
+		},
+		{
+			DeploymentConstructor: &model.DeploymentConstructor{
+				Name:         "deployment 2",
+				ArtifactName: "artifact 2",
+			},
+			Created:       &startDate,
+			Id:            deploymentTwoID,
+			DeviceCount:   &deviceCount,
+			MaxDevices:    1,
+			DeviceList:    devicesList,
+			Status:        model.DeploymentStatusFinished,
+			Type:          model.DeploymentTypeConfiguration,
+			Configuration: config,
+		},
+	}
+
+	ctx := context.Background()
+	ds := NewDataStoreMongoWithClient(db.Client())
+	var deploymentsQty int64 = 2
+
+	for _, depl := range inputDeployments {
+		err := ds.InsertDeployment(ctx, depl)
+		assert.NoError(t, err)
+	}
+
+	query := model.Query{
+		Sort: model.SortDirectionDescending,
+	}
+	deployments, count, err := ds.Find(ctx, query)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, deployments)
+	assert.Equal(t, deploymentsQty, count)
+	assert.Equal(t, deploymentOneID, deployments[0].Id)
+
+	query = model.Query{
+		Sort: model.SortDirectionAscending,
+	}
+	deployments, count, err = ds.Find(ctx, query)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, deployments)
+	assert.Equal(t, deploymentsQty, count)
+	assert.Equal(t, deploymentTwoID, deployments[0].Id)
 }
