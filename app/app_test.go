@@ -541,14 +541,15 @@ func TestImageUsedInActiveDeployment(t *testing.T) {
 					tc.ExistUnfinishedByArtifactIdError)
 
 			if tc.CallExistAssignedImageWithIDAndStatuses {
-				db.On("ExistAssignedImageWithIDAndStatuses",
+				call := db.On("ExistAssignedImageWithIDAndStatuses",
 					h.ContextMatcher(),
-					tc.InputID, model.DeviceDeploymentStatusPending,
-					model.DeviceDeploymentStatusDownloading,
-					model.DeviceDeploymentStatusInstalling,
-					model.DeviceDeploymentStatusRebooting).
+					tc.InputID).
 					Return(tc.ExistAssignedImageWithIDAndStatusesResponse,
 						tc.ExistAssignedImageWithIDAndStatusesError)
+				varArgs := model.ActiveDeploymentStatuses()
+				for i := range varArgs {
+					call.Arguments = append(call.Arguments, varArgs[i])
+				}
 			}
 
 			ds := &Deployments{
