@@ -80,7 +80,60 @@ paths:
               Internal API error
           schema:
             $ref: '#/definitions/Error'
-
+  /tenants/{id}/storage/settings:
+    get:
+      operationId: Get Storage Settings
+      tags:
+        - Internal API
+      summary: Get storage setting for a given tenant
+      description: >
+        Returns an object with per tenant storage layer specific settings.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Tenant ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response with all available settings.
+          schema:
+            $ref: "#/definitions/StorageSettings"
+        500:
+          description: Internal error.
+          schema:
+            $ref: "#/responses/InternalServerError"
+    put:
+      operationId: Set Storage Settings
+      tags:
+        - Internal API
+      summary: Set storage settings for a given tenant
+      description: Set the storage layer settings for a given tenant.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Tenant ID
+          required: true
+        - name: settings
+          in: body
+          description: Settings to set.
+          required: true
+          schema:
+            $ref: "#/definitions/StorageSettings"
+      responses:
+        204:
+          description: Settings updated.
+        400:
+          description: The request body is malformed.
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: Internal server error.
+          schema:
+            $ref: "#/definitions/Error"
   /tenants/{id}/limits/storage:
     get:
       operationId: Get Storage Usage
@@ -348,6 +401,48 @@ definitions:
     example:
       error: "error message"
       request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+  StorageSettings:
+    description: Per tenant storage settings.
+    type: object
+    properties:
+      region:
+        type: string
+        description: AWS region.
+      bucket:
+        type: string
+        description: Bucket name.
+      uri:
+        type: string
+        description: Endpoint URI.
+      key:
+        type: string
+        description: Access key id (for S3 - AWS_ACCESS_KEY_ID).
+      secret:
+        type: string
+        description: Secret access key (for S3 - AWS_SECRET_ACCESS_KEY).
+      token:
+        type: string
+        description: Token.
+      force_path_style:
+        type: boolean
+        description: Force S3 path-style instead of virtual-hosted style.
+      use_accelerate:
+        type: boolean
+        description: Enable S3 Transfer acceleration.
+    required:
+      - region
+      - bucket
+      - key
+      - secret
+    example:
+      region: us-east-1
+      bucket: mender-artifacts-unique-bucket-name
+      uri: example.com
+      key: <key>
+      secret: <secret>
+      token: <token>
+      force_path_style: false
+      use_accelerate: false
   StorageUsage:
     description: Tenant account storage limit and storage usage.
     type: object

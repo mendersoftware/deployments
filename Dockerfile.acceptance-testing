@@ -3,7 +3,7 @@ WORKDIR /go/src/github.com/mendersoftware/deployments
 COPY ./ .
 RUN env CGO_ENABLED=0 go test -c -o deployments-test -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,)
 
-FROM alpine:3.13.4
+FROM alpine:3.13.5
 RUN apk add --no-cache ca-certificates xz-dev
 RUN mkdir /etc/deployments
 EXPOSE 8080

@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -111,6 +111,20 @@ func (_m *FileStorage) GetRequest(ctx context.Context, objectId string, duration
 	}
 
 	return r0, r1
+}
+
+// InitBucket provides a mock function with given fields: ctx, bucket
+func (_m *FileStorage) InitBucket(ctx context.Context, bucket string) error {
+	ret := _m.Called(ctx, bucket)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, bucket)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // LastModified provides a mock function with given fields: ctx, objectId

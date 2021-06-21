@@ -176,44 +176,6 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestAbortDeployment(t *testing.T) {
-	ctx := context.TODO()
-
-	depId := "foo"
-	stats := model.NewDeviceDeploymentStats()
-	depName := "foo"
-	depArtifact := "bar"
-	fakeDeployment, err := model.NewDeploymentFromConstructor(
-		&model.DeploymentConstructor{
-			Name:         depName,
-			ArtifactName: depArtifact,
-			Devices:      []string{"baz"},
-		},
-	)
-	fakeDeployment.MaxDevices = 1
-	fakeDeployment.Stats = stats
-	fakeDeployment.Id = depId
-	assert.NoError(t, err)
-
-	db := mocks.DataStore{}
-	db.On("AbortDeviceDeployments", ctx, depId).Return(nil)
-	stats[model.DeviceDeploymentStatusAborted] = 10
-
-	db.On("AggregateDeviceDeploymentByStatus", ctx, depId).Return(stats, nil)
-
-	db.On("UpdateStats", ctx, depId, stats).Return(nil)
-
-	db.On("SetDeploymentStatus", ctx,
-		depId,
-		model.DeploymentStatusFinished,
-		mock.AnythingOfType("time.Time")).Return(nil)
-
-	ds := NewDeployments(&db, nil, "")
-
-	err = ds.AbortDeployment(ctx, "foo")
-	assert.NoError(t, err)
-}
-
 func timePtr(t time.Time) *time.Time {
 	return &t
 }

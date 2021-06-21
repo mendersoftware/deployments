@@ -43,15 +43,16 @@ const (
 	ApiUrlManagementArtifactsId         = ApiUrlManagement + "/artifacts/:id"
 	ApiUrlManagementArtifactsIdDownload = ApiUrlManagement + "/artifacts/:id/download"
 
-	ApiUrlManagementDeployments           = ApiUrlManagement + "/deployments"
-	ApiUrlManagementDeploymentsGroup      = ApiUrlManagement + "/deployments/group/:name"
-	ApiUrlManagementDeploymentsId         = ApiUrlManagement + "/deployments/:id"
-	ApiUrlManagementDeploymentsStatistics = ApiUrlManagement + "/deployments/:id/statistics"
-	ApiUrlManagementDeploymentsStatus     = ApiUrlManagement + "/deployments/:id/status"
-	ApiUrlManagementDeploymentsDevices    = ApiUrlManagement + "/deployments/:id/devices"
-	ApiUrlManagementDeploymentsLog        = ApiUrlManagement + "/deployments/:id/devices/:devid/log"
-	ApiUrlManagementDeploymentsDeviceId   = ApiUrlManagement + "/deployments/devices/:id"
-	ApiUrlManagementDeploymentsDeviceList = ApiUrlManagement + "/deployments/:id/device_list"
+	ApiUrlManagementDeployments            = ApiUrlManagement + "/deployments"
+	ApiUrlManagementDeploymentsGroup       = ApiUrlManagement + "/deployments/group/:name"
+	ApiUrlManagementDeploymentsId          = ApiUrlManagement + "/deployments/:id"
+	ApiUrlManagementDeploymentsStatistics  = ApiUrlManagement + "/deployments/:id/statistics"
+	ApiUrlManagementDeploymentsStatus      = ApiUrlManagement + "/deployments/:id/status"
+	ApiUrlManagementDeploymentsDevices     = ApiUrlManagement + "/deployments/:id/devices"
+	ApiUrlManagementDeploymentsDevicesList = ApiUrlManagement + "/deployments/:id/devices/list"
+	ApiUrlManagementDeploymentsLog         = ApiUrlManagement + "/deployments/:id/devices/:devid/log"
+	ApiUrlManagementDeploymentsDeviceId    = ApiUrlManagement + "/deployments/devices/:id"
+	ApiUrlManagementDeploymentsDeviceList  = ApiUrlManagement + "/deployments/:id/device_list"
 
 	ApiUrlManagementReleases = ApiUrlManagement + "/deployments/releases"
 
@@ -67,6 +68,7 @@ const (
 	ApiUrlInternalTenants                        = ApiUrlInternal + "/tenants"
 	ApiUrlInternalTenantDeployments              = ApiUrlInternal + "/tenants/:tenant/deployments"
 	ApiUrlInternalTenantArtifacts                = ApiUrlInternal + "/tenants/:tenant/artifacts"
+	ApiUrlInternalTenantStorageSettings          = ApiUrlInternal + "/tenants/:tenant/storage/settings"
 	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal + "/tenants/:tenant/configuration/deployments/:deployment_id/devices/:device_id"
 )
 
@@ -85,6 +87,7 @@ func SetupS3(c config.Reader) (s3.FileStorage, error) {
 			c.GetString(dconfig.SettingAwsURI),
 			c.GetBool(dconfig.SettingsAwsTagArtifact),
 			c.GetBool(dconfig.SettingAwsS3ForcePathStyle),
+			c.GetBool(dconfig.SettingAwsS3UseAccelerate),
 		)
 	}
 
@@ -100,6 +103,14 @@ func NewRouter(ctx context.Context, c config.Reader,
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialise a bucket, which is needed by Minio
+	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
+	err = fileStorage.InitBucket(ctx, bucket)
+	if err != nil {
+		return nil, err
+	}
+
 	mongoStorage := mstore.NewDataStoreMongoWithClient(mongoClient)
 
 	app := app.NewDeployments(mongoStorage, fileStorage, app.ArtifactContentType)
@@ -177,6 +188,8 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 		rest.Put(ApiUrlManagementDeploymentsStatus, controller.AbortDeployment),
 		rest.Get(ApiUrlManagementDeploymentsDevices,
 			controller.GetDeviceStatusesForDeployment),
+		rest.Get(ApiUrlManagementDeploymentsDevicesList,
+			controller.GetDevicesListForDeployment),
 		rest.Get(ApiUrlManagementDeploymentsLog,
 			controller.GetDeploymentLogForDevice),
 		rest.Delete(ApiUrlManagementDeploymentsDeviceId,
@@ -225,6 +238,10 @@ func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 		rest.Post(ApiUrlInternalTenants, controller.ProvisionTenantsHandler),
 		rest.Get(ApiUrlInternalTenantDeployments, controller.DeploymentsPerTenantHandler),
 		rest.Post(ApiUrlInternalTenantArtifacts, controller.NewImageForTenantHandler),
+
+		// per-tenant storage settings
+		rest.Get(ApiUrlInternalTenantStorageSettings, controller.GetTenantStorageSettingsHandler),
+		rest.Put(ApiUrlInternalTenantStorageSettings, controller.PutTenantStorageSettingsHandler),
 	}
 }
 
