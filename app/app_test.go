@@ -343,6 +343,10 @@ func TestCreateDeviceConfigurationDeployment(t *testing.T) {
 		inputDeploymentID string
 
 		inputDeploymentStorageInsertError error
+		inventoryError                    error
+
+		callInventory bool
+		callDb        bool
 
 		outputError error
 		outputID    string
@@ -354,6 +358,8 @@ func TestCreateDeviceConfigurationDeployment(t *testing.T) {
 			},
 			inputDeviceID:     "foo-device",
 			inputDeploymentID: "foo-deployment",
+			callInventory:     true,
+			callDb:            true,
 
 			outputID: "foo-deployment",
 		},
@@ -366,8 +372,20 @@ func TestCreateDeviceConfigurationDeployment(t *testing.T) {
 				Configuration: "bar",
 			},
 			inputDeploymentStorageInsertError: errors.New("insert error"),
+			callInventory:                     true,
+			callDb:                            true,
 
 			outputError: errors.New("Storing deployment data: insert error"),
+		},
+		"inventory error": {
+			inputConstructor: &model.ConfigurationDeploymentConstructor{
+				Name:          "foo",
+				Configuration: "bar",
+			},
+			inventoryError: errors.New("inventory error"),
+			callInventory:  true,
+
+			outputError: errors.New("inventory error"),
 		},
 	}
 
@@ -379,13 +397,24 @@ func TestCreateDeviceConfigurationDeployment(t *testing.T) {
 			ctx = identity.WithContext(ctx, identityObject)
 
 			db := mocks.DataStore{}
-			db.On("InsertDeployment",
-				ctx,
-				mock.AnythingOfType("*model.Deployment")).
-				Return(tc.inputDeploymentStorageInsertError)
+			if tc.callDb {
+				db.On("InsertDeployment",
+					ctx,
+					mock.AnythingOfType("*model.Deployment")).
+					Return(tc.inputDeploymentStorageInsertError)
+			}
+			defer db.AssertExpectations(t)
+
+			inv := &inventory_mocks.Client{}
+			if tc.callInventory {
+				inv.On("GetDeviceGroups", ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+					Return([]string{}, tc.inventoryError)
+			}
+			defer inv.AssertExpectations(t)
 
 			ds := &Deployments{
-				db: &db,
+				db:              &db,
+				inventoryClient: inv,
 			}
 
 			out, err := ds.CreateDeviceConfigurationDeployment(ctx, tc.inputConstructor, tc.inputDeviceID, tc.inputDeploymentID)

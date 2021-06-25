@@ -16,12 +16,13 @@ package model
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"time"
 
-	"github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/pkg/errors"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // Errors
@@ -135,6 +136,9 @@ type Deployment struct {
 
 	// Total number of devices targeted
 	MaxDevices int `json:"max_devices,omitempty" bson:"max_devices"`
+
+	// device groups
+	Groups []string `json:"groups,omitempty" bson:"groups"`
 
 	// list of devices
 	DeviceList []string `json:"-" bson:"device_list"`

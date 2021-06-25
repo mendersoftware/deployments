@@ -150,7 +150,7 @@ func TestGetDeviceGroups(t *testing.T) {
 			ctx:          context.TODO(),
 			responseCode: http.StatusNotFound,
 
-			outError: errors.New("get device group request failed with unexpected status: 404"),
+			outError: errors.New("get device groups request failed with unexpected status: 404"),
 		},
 	}
 

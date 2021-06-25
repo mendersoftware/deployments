@@ -167,12 +167,12 @@ func (c *client) GetDeviceGroups(ctx context.Context, tenantId, deviceId string)
 
 	rsp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "get device group request failed")
+		return nil, errors.Wrap(err, "get device groups request failed")
 	}
 	defer rsp.Body.Close()
 
 	if rsp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("get device group request failed with unexpected status: %v", rsp.StatusCode)
+		return nil, errors.Errorf("get device groups request failed with unexpected status: %v", rsp.StatusCode)
 	}
 
 	res := model.DeviceGroups{}

@@ -177,7 +177,9 @@ class Device:
         )
 
     def fake_token_mt(self, tenant):
-        claims = json.dumps({"sub": self.devid, "iss": "Mender", "mender.tenant": tenant})
+        claims = json.dumps(
+            {"sub": self.devid, "iss": "Mender", "mender.tenant": tenant}
+        )
         hdr = '{"typ": "JWT"}'
         signature = "fake-signature"
         return ".".join(
