@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -41,6 +41,29 @@ func (_m *Client) CheckHealth(ctx context.Context) error {
 	}
 
 	return r0
+}
+
+// GetDeviceGroups provides a mock function with given fields: ctx, tenantId, deviceId
+func (_m *Client) GetDeviceGroups(ctx context.Context, tenantId string, deviceId string) ([]string, error) {
+	ret := _m.Called(ctx, tenantId, deviceId)
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []string); ok {
+		r0 = rf(ctx, tenantId, deviceId)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, tenantId, deviceId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Search provides a mock function with given fields: ctx, tenantId, searchParams

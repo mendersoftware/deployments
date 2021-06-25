@@ -48,6 +48,7 @@ var (
 type Client interface {
 	CheckHealth(ctx context.Context) error
 	Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error)
+	GetDeviceGroups(ctx context.Context, tenantId, deviceId string) ([]string, error)
 }
 
 // NewClient returns a new inventory client
@@ -143,4 +144,41 @@ func (c *client) Search(ctx context.Context, tenantId string, searchParams model
 	}
 
 	return devs, totalCount, nil
+}
+
+func (c *client) GetDeviceGroups(ctx context.Context, tenantId, deviceId string) ([]string, error) {
+	repl := strings.NewReplacer(":tenantId", tenantId, ":deviceId", deviceId)
+	url := c.baseURL + repl.Replace(getDeviceGroupsURL)
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
+		defer cancel()
+	}
+	req, err := http.NewRequestWithContext(
+		ctx, "GET", url, nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	rsp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "get device group request failed")
+	}
+	defer rsp.Body.Close()
+
+	if rsp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("get device group request failed with unexpected status: %v", rsp.StatusCode)
+	}
+
+	res := model.DeviceGroups{}
+	if err := json.NewDecoder(rsp.Body).Decode(&res); err != nil {
+		return nil, errors.Wrap(err, "error parsing device groups response")
+	}
+
+	return res.Groups, nil
 }

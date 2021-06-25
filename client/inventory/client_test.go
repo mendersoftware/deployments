@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 )
 
@@ -113,6 +114,80 @@ func TestCheckHealth(t *testing.T) {
 				assert.Contains(t, err.Error(), tc.Error.Error())
 			} else {
 				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestGetDeviceGroups(t *testing.T) {
+	t.Parallel()
+
+	defaultCtx, cancel := context.WithTimeout(context.TODO(), time.Second*10)
+	defer cancel()
+
+	testCases := map[string]struct {
+		name string
+
+		ctx context.Context
+
+		// Inventory response
+		responseCode int
+		responseBody interface{}
+
+		expectedGroups []string
+
+		outError error
+	}{
+		"ok": {
+
+			ctx:            defaultCtx,
+			responseCode:   http.StatusOK,
+			responseBody:   model.DeviceGroups{Groups: []string{"foo"}},
+			expectedGroups: []string{"foo"},
+		},
+		"not found": {
+
+			ctx:          context.TODO(),
+			responseCode: http.StatusNotFound,
+
+			outError: errors.New("get device group request failed with unexpected status: 404"),
+		},
+	}
+
+	responses := make(chan http.Response, 1)
+	serveHTTP := func(w http.ResponseWriter, r *http.Request) {
+		rsp := <-responses
+		w.WriteHeader(rsp.StatusCode)
+		if rsp.Body != nil {
+			_, _ = io.Copy(w, rsp.Body)
+		}
+	}
+	srv := httptest.NewServer(http.HandlerFunc(serveHTTP))
+	client := NewClient().(*client)
+	client.baseURL = srv.URL
+	defer srv.Close()
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+
+			if tc.responseCode > 0 {
+				rsp := http.Response{
+					StatusCode: tc.responseCode,
+				}
+				if tc.responseBody != nil {
+					b, _ := json.Marshal(tc.responseBody)
+					rsp.Body = ioutil.NopCloser(bytes.NewReader(b))
+				}
+				responses <- rsp
+			}
+
+			groups, err := client.GetDeviceGroups(tc.ctx, "foo", "bar")
+
+			if tc.outError != nil {
+				assert.EqualError(t, err, tc.outError.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedGroups, groups)
 			}
 		})
 	}
