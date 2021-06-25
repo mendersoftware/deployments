@@ -45,7 +45,7 @@ func TestCheckHealth(t *testing.T) {
 
 		Ctx context.Context
 
-		// Workflows response
+		// inventory response
 		ResponseCode int
 		ResponseBody interface{}
 
@@ -61,7 +61,7 @@ func TestCheckHealth(t *testing.T) {
 		Ctx:   expiredCtx,
 		Error: errors.New(context.DeadlineExceeded.Error()),
 	}, {
-		Name: "error, workflows unhealthy",
+		Name: "error, inventory unhealthy",
 
 		ResponseCode: http.StatusServiceUnavailable,
 		ResponseBody: rest_utils.ApiError{

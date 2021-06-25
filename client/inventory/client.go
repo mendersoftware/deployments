@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -32,10 +32,10 @@ import (
 )
 
 const (
-	healthURL      = "/api/internal/v1/inventory/health"
-	searchURL      = "/api/internal/v2/inventory/tenants/:tenantId/filters/search"
-	areInGroupURL  = "/api/internal/v1/inventory/devices/:tenantId/ingroup/:name"
-	defaultTimeout = 5 * time.Second
+	healthURL          = "/api/internal/v1/inventory/health"
+	searchURL          = "/api/internal/v2/inventory/tenants/:tenantId/filters/search"
+	getDeviceGroupsURL = "/api/internal/v1/inventory/tenants/:tenantId/devices/:deviceId/groups"
+	defaultTimeout     = 5 * time.Second
 )
 
 // Errors
@@ -48,7 +48,6 @@ var (
 type Client interface {
 	CheckHealth(ctx context.Context) error
 	Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error)
-	AreDevicesInGroup(ctx context.Context, devices []string, group string, tenantId string) bool
 }
 
 // NewClient returns a new inventory client
@@ -144,34 +143,4 @@ func (c *client) Search(ctx context.Context, tenantId string, searchParams model
 	}
 
 	return devs, totalCount, nil
-}
-
-func (c *client) AreDevicesInGroup(ctx context.Context, devices []string, group string, tenantId string) bool {
-	l := log.FromContext(ctx)
-	l.Debugf("AreDevicesInGroup starting")
-
-	repl := strings.NewReplacer(":tenantId", tenantId, ":name", group)
-	url := c.baseURL + repl.Replace(areInGroupURL)
-
-	deviceIds := model.DeviceIds{
-		Devices: devices,
-	}
-	payload, _ := json.Marshal(deviceIds)
-	req, err := http.NewRequest("POST", url, strings.NewReader(string(payload)))
-	if err != nil {
-		return false
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	rsp, err := c.httpClient.Do(req)
-	if err != nil {
-		return false
-	}
-	defer rsp.Body.Close()
-
-	if rsp.StatusCode != http.StatusOK {
-		return false
-	}
-
-	return true
 }

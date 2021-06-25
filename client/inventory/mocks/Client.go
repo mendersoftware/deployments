@@ -29,20 +29,6 @@ type Client struct {
 	mock.Mock
 }
 
-// AreDevicesInGroup provides a mock function with given fields: ctx, devices, group, tenantId
-func (_m *Client) AreDevicesInGroup(ctx context.Context, devices []string, group string, tenantId string) bool {
-	ret := _m.Called(ctx, devices, group, tenantId)
-
-	var r0 bool
-	if rf, ok := ret.Get(0).(func(context.Context, []string, string, string) bool); ok {
-		r0 = rf(ctx, devices, group, tenantId)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	return r0
-}
-
 // CheckHealth provides a mock function with given fields: ctx
 func (_m *Client) CheckHealth(ctx context.Context) error {
 	ret := _m.Called(ctx)
