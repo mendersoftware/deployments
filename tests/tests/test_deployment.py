@@ -461,11 +461,11 @@ class TestDeployment:
                         token=dev.fake_token, devdepid=nextdep.id, status="rebooting"
                     )
                     self.d.verify_deployment_stats(depid, expected={"rebooting": 1})
-                    # deployment is in progress again
+                    # deployment is still finished
                     dep = self.d.client.Management_API.Show_Deployment(
                         Authorization="foo", id=depid
                     ).result()[0]
-                    assert dep.status == "inprogress"
+                    assert dep.status == "finished"
 
                     # go on, let's pretend that the artifact is already installed
                     nodep = dc.get_next_deployment(

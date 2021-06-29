@@ -167,3 +167,12 @@ func TestDeviceDeploymentIsFinished(t *testing.T) {
 		}
 	}
 }
+
+func TestDeviceDeploymentIsFinishedWithFinishedTimestamp(t *testing.T) {
+	now := time.Now()
+	deployment := Deployment{}
+	assert.False(t, deployment.IsFinished())
+
+	deployment = Deployment{Finished: &now}
+	assert.True(t, deployment.IsFinished())
+}
