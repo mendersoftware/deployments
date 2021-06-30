@@ -271,6 +271,9 @@ class DeploymentsClient(SwaggerApiClient):
             "noartifact",
             "already-installed",
             "aborted",
+            "pause_before_installing",
+            "pause_before_committing",
+            "pause_before_rebooting",
         ]
         for s in stat_names:
             exp = expected.get(s, 0)

@@ -248,6 +248,9 @@ func TestDeploymentIs(t *testing.T) {
 		DeviceDeploymentStatusRebooting,
 		DeviceDeploymentStatusInstalling,
 		DeviceDeploymentStatusDownloading,
+		DeviceDeploymentStatusPauseBeforeInstall,
+		DeviceDeploymentStatusPauseBeforeReboot,
+		DeviceDeploymentStatusPauseBeforeCommit,
 	}
 	for _, as := range active {
 		t.Logf("checking in-progress deployment stat %s", as)
@@ -348,6 +351,23 @@ func TestDeploymentGetStatus(t *testing.T) {
 			Stats: Stats{
 				DeviceDeploymentStatusRebooting: 1,
 				DeviceDeploymentStatusPending:   1,
+			},
+			OutputStatus: "inprogress",
+		},
+		"All paused states": {
+			Stats: Stats{
+				DeviceDeploymentStatusPauseBeforeInstall: 1,
+				DeviceDeploymentStatusPauseBeforeCommit:  1,
+				DeviceDeploymentStatusPauseBeforeReboot:  1,
+			},
+			OutputStatus: "inprogress",
+		},
+		"Some paused states": {
+			Stats: Stats{
+				DeviceDeploymentStatusInstalling:         1,
+				DeviceDeploymentStatusPauseBeforeInstall: 1,
+				DeviceDeploymentStatusPauseBeforeCommit:  0,
+				DeviceDeploymentStatusPauseBeforeReboot:  1,
 			},
 			OutputStatus: "inprogress",
 		},

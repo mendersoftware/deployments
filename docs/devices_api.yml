@@ -235,8 +235,11 @@ definitions:
         type: string
         enum:
           - installing
+          - pause_before_installing
           - downloading
+          - pause_before_rebooting
           - rebooting
+          - pause_before_committing
           - success
           - failure
           - already-installed

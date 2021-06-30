@@ -27,16 +27,19 @@ type DeviceDeploymentStatus string
 
 // Deployment statuses
 const (
-	DeviceDeploymentStatusDownloading    DeviceDeploymentStatus = "downloading"
-	DeviceDeploymentStatusInstalling     DeviceDeploymentStatus = "installing"
-	DeviceDeploymentStatusRebooting      DeviceDeploymentStatus = "rebooting"
-	DeviceDeploymentStatusPending        DeviceDeploymentStatus = "pending"
-	DeviceDeploymentStatusSuccess        DeviceDeploymentStatus = "success"
-	DeviceDeploymentStatusFailure        DeviceDeploymentStatus = "failure"
-	DeviceDeploymentStatusNoArtifact     DeviceDeploymentStatus = "noartifact"
-	DeviceDeploymentStatusAlreadyInst    DeviceDeploymentStatus = "already-installed"
-	DeviceDeploymentStatusAborted        DeviceDeploymentStatus = "aborted"
-	DeviceDeploymentStatusDecommissioned DeviceDeploymentStatus = "decommissioned"
+	DeviceDeploymentStatusDownloading        DeviceDeploymentStatus = "downloading"
+	DeviceDeploymentStatusInstalling         DeviceDeploymentStatus = "installing"
+	DeviceDeploymentStatusRebooting          DeviceDeploymentStatus = "rebooting"
+	DeviceDeploymentStatusPending            DeviceDeploymentStatus = "pending"
+	DeviceDeploymentStatusSuccess            DeviceDeploymentStatus = "success"
+	DeviceDeploymentStatusFailure            DeviceDeploymentStatus = "failure"
+	DeviceDeploymentStatusNoArtifact         DeviceDeploymentStatus = "noartifact"
+	DeviceDeploymentStatusAlreadyInst        DeviceDeploymentStatus = "already-installed"
+	DeviceDeploymentStatusAborted            DeviceDeploymentStatus = "aborted"
+	DeviceDeploymentStatusDecommissioned     DeviceDeploymentStatus = "decommissioned"
+	DeviceDeploymentStatusPauseBeforeInstall DeviceDeploymentStatus = "pause_before_installing"
+	DeviceDeploymentStatusPauseBeforeCommit  DeviceDeploymentStatus = "pause_before_committing"
+	DeviceDeploymentStatusPauseBeforeReboot  DeviceDeploymentStatus = "pause_before_rebooting"
 )
 
 var allStatuses = []interface{}{ // NOTE: []DeviceDeploymentStatus
@@ -50,6 +53,9 @@ var allStatuses = []interface{}{ // NOTE: []DeviceDeploymentStatus
 	DeviceDeploymentStatusAlreadyInst,
 	DeviceDeploymentStatusAborted,
 	DeviceDeploymentStatusDecommissioned,
+	DeviceDeploymentStatusPauseBeforeInstall,
+	DeviceDeploymentStatusPauseBeforeCommit,
+	DeviceDeploymentStatusPauseBeforeReboot,
 }
 
 func (stat DeviceDeploymentStatus) Validate() error {
@@ -169,6 +175,9 @@ func ActiveDeploymentStatuses() []DeviceDeploymentStatus {
 		DeviceDeploymentStatusDownloading,
 		DeviceDeploymentStatusInstalling,
 		DeviceDeploymentStatusRebooting,
+		DeviceDeploymentStatusPauseBeforeInstall,
+		DeviceDeploymentStatusPauseBeforeCommit,
+		DeviceDeploymentStatusPauseBeforeReboot,
 	}
 }
 
