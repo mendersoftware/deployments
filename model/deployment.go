@@ -16,12 +16,13 @@ package model
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"time"
 
-	"github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/pkg/errors"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // Errors
@@ -237,12 +238,13 @@ func (d *Deployment) IsNotPending() bool {
 }
 
 func (d *Deployment) IsFinished() bool {
-	if d.MaxDevices <= 0 || ((d.Stats[DeviceDeploymentStatusAlreadyInst] +
-		d.Stats[DeviceDeploymentStatusSuccess] +
-		d.Stats[DeviceDeploymentStatusFailure] +
-		d.Stats[DeviceDeploymentStatusNoArtifact] +
-		d.Stats[DeviceDeploymentStatusDecommissioned] +
-		d.Stats[DeviceDeploymentStatusAborted]) >= d.MaxDevices) {
+	if d.Finished != nil ||
+		d.MaxDevices > 0 && ((d.Stats[DeviceDeploymentStatusAlreadyInst]+
+			d.Stats[DeviceDeploymentStatusSuccess]+
+			d.Stats[DeviceDeploymentStatusFailure]+
+			d.Stats[DeviceDeploymentStatusNoArtifact]+
+			d.Stats[DeviceDeploymentStatusDecommissioned]+
+			d.Stats[DeviceDeploymentStatusAborted]) >= d.MaxDevices) {
 		return true
 	}
 

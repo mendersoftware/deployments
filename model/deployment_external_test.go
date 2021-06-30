@@ -378,7 +378,7 @@ func TestDeploymentGetStatus(t *testing.T) {
 			OutputStatus: "pending",
 		},
 		"Empty": {
-			OutputStatus: "finished",
+			OutputStatus: "pending",
 		},
 		//verify we count 'already-installed' towards 'inprogress'
 		"pending + already-installed": {
