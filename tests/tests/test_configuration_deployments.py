@@ -27,7 +27,15 @@ from urllib.parse import urlparse, parse_qs, urlencode, quote
 from bson.objectid import ObjectId
 from common import api_client_int, mongo, clean_db, Device
 
-from client import SimpleDeviceClient
+from client import SimpleDeviceClient, InventoryClient
+
+
+def inventory_add_dev(dev, tenant_id):
+    inv = InventoryClient()
+    inv.report_attributes(
+        dev.fake_token_mt(tenant_id),
+        [{"name": "device_type", "value": dev.device_type}],
+    )
 
 
 class TestInternalApiPostConfigurationDeployment:
@@ -36,9 +44,11 @@ class TestInternalApiPostConfigurationDeployment:
         _, r = api_client_int.create_tenant(tenant_id)
         assert r.status_code == 201
 
+        dev = Device()
+        inventory_add_dev(dev, tenant_id)
         deployment_id = "foo"
         deployment_id = str(uuid4())
-        device_id = "bar"
+        device_id = dev.devid
         url = api_client_int.make_api_url(
             "/tenants/{}/configuration/deployments/{}/devices/{}".format(
                 tenant_id, deployment_id, device_id
@@ -99,9 +109,11 @@ class TestInternalApiPostConfigurationDeployment:
         _, r = api_client_int.create_tenant(tenant_id)
         assert r.status_code == 201
 
+        dev = Device()
+        inventory_add_dev(dev, tenant_id)
         deployment_id = "foo"
         deployment_id = "baz"
-        device_id = "bar"
+        device_id = dev.devid
         url = api_client_int.make_api_url(
             "/tenants/{}/configuration/deployments/{}/devices/{}".format(
                 tenant_id, deployment_id, device_id
@@ -116,9 +128,11 @@ class TestInternalApiPostConfigurationDeployment:
         _, r = api_client_int.create_tenant(tenant_id)
         assert r.status_code == 201
 
+        dev = Device()
+        inventory_add_dev(dev, tenant_id)
         deployment_id = "foo"
         deployment_id = str(uuid4())
-        device_id = "bar"
+        device_id = dev.devid
         url = api_client_int.make_api_url(
             "/tenants/{}/configuration/deployments/{}/devices/{}".format(
                 tenant_id, deployment_id, device_id
@@ -163,6 +177,7 @@ class TestDevicesApiGetConfigurationDeploymentLink:
 
         dev = Device()
         dev.device_type = test_set["dev_type"]
+        inventory_add_dev(dev, tenant_id)
 
         configuration_deployment = {
             "name": test_set["name"],
@@ -191,10 +206,7 @@ class TestDevicesApiGetConfigurationDeploymentLink:
         assert nextdep.artifact["device_types_compatible"] == [test_set["dev_type"]]
 
         # get/verify download contents
-        r = requests.get(
-            nextdep.artifact["source"]["uri"],
-            verify=False,
-        )
+        r = requests.get(nextdep.artifact["source"]["uri"], verify=False)
         assert r.status_code == 200
 
         with open("/testing/out.mender", "wb+") as f:
@@ -218,6 +230,7 @@ class TestDevicesApiGetConfigurationDeploymentLink:
 
         deployment_id = str(uuid4())
         dev = Device()
+        inventory_add_dev(dev, tenant_id)
         configuration_deployment = {"name": "foo", "configuration": '{"foo":"bar"}'}
 
         make_deployment(
@@ -230,9 +243,7 @@ class TestDevicesApiGetConfigurationDeploymentLink:
 
         dc = SimpleDeviceClient()
         nextdep = dc.get_next_deployment(
-            dev.fake_token_mt(tenant_id),
-            artifact_name="dontcare",
-            device_type="hammer",
+            dev.fake_token_mt(tenant_id), artifact_name="dontcare", device_type="hammer"
         )
         uri = nextdep.artifact["source"]["uri"]
         qs = parse_qs(urlparse(uri).query)
@@ -241,10 +252,7 @@ class TestDevicesApiGetConfigurationDeploymentLink:
 
         # wrong deployment (signature error)
         uri_bad_depl = uri.replace(deployment_id, str(uuid4()))
-        r = requests.get(
-            uri_bad_depl,
-            verify=False,
-        )
+        r = requests.get(uri_bad_depl, verify=False)
         assert r.status_code == 403
 
         # wrong tenant in url (signature error)
@@ -253,54 +261,36 @@ class TestDevicesApiGetConfigurationDeploymentLink:
         assert r.status_code == 201
 
         uri_bad_tenant = uri.replace(tenant_id, other_tenant_id)
-        r = requests.get(
-            uri_bad_tenant,
-            verify=False,
-        )
+        r = requests.get(uri_bad_tenant, verify=False)
         assert r.status_code == 403
 
         # wrong dev type (signature error)
         other_dev = Device()
         other_dev.device_type = "foo"
         uri_bad_devtype = uri.replace(dev.device_type, other_dev.device_type)
-        r = requests.get(
-            uri_bad_devtype,
-            verify=False,
-        )
+        r = requests.get(uri_bad_devtype, verify=False)
         assert r.status_code == 403
 
         # wrong dev id (signature error)
         uri_bad_devid = uri.replace(dev.devid, other_dev.devid)
-        r = requests.get(
-            uri_bad_devid,
-            verify=False,
-        )
+        r = requests.get(uri_bad_devid, verify=False)
         assert r.status_code == 403
 
         # wrong x-men-signature
         uri_bad_sig = uri.replace(
             qs["x-men-signature"][0], "mftJRzBafnvMXhmMBH3THQertiEk0dZKP075bjBKccc"
         )
-        r = requests.get(
-            uri_bad_sig,
-            verify=False,
-        )
+        r = requests.get(uri_bad_sig, verify=False)
         assert r.status_code == 403
 
         # no x-men-signature
         uri_no_sig = uri.replace("&x-men-signature=", "")
-        r = requests.get(
-            uri_no_sig,
-            verify=False,
-        )
+        r = requests.get(uri_no_sig, verify=False)
         assert r.status_code == 400
 
         # no x-men-expire
         uri_no_exp = uri.replace("&x-men-expire=", "")
-        r = requests.get(
-            uri_no_exp,
-            verify=False,
-        )
+        r = requests.get(uri_no_exp, verify=False)
         assert r.status_code == 400
 
     def verify_artifact(self, fname, name, dtype, config):
@@ -345,6 +335,7 @@ class TestDeviceApiGetConfigurationDeploymentNext:
 
         deployment_id = str(uuid4())
         dev = Device()
+        inventory_add_dev(dev, tenant_id)
         configuration_deployment = {"name": "foo", "configuration": '{"foo":"bar"}'}
 
         make_deployment(

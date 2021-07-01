@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -32,10 +32,10 @@ import (
 )
 
 const (
-	healthURL      = "/api/internal/v1/inventory/health"
-	searchURL      = "/api/internal/v2/inventory/tenants/:tenantId/filters/search"
-	areInGroupURL  = "/api/internal/v1/inventory/devices/:tenantId/ingroup/:name"
-	defaultTimeout = 5 * time.Second
+	healthURL          = "/api/internal/v1/inventory/health"
+	searchURL          = "/api/internal/v2/inventory/tenants/:tenantId/filters/search"
+	getDeviceGroupsURL = "/api/internal/v1/inventory/tenants/:tenantId/devices/:deviceId/groups"
+	defaultTimeout     = 5 * time.Second
 )
 
 // Errors
@@ -48,7 +48,7 @@ var (
 type Client interface {
 	CheckHealth(ctx context.Context) error
 	Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error)
-	AreDevicesInGroup(ctx context.Context, devices []string, group string, tenantId string) bool
+	GetDeviceGroups(ctx context.Context, tenantId, deviceId string) ([]string, error)
 }
 
 // NewClient returns a new inventory client
@@ -146,32 +146,39 @@ func (c *client) Search(ctx context.Context, tenantId string, searchParams model
 	return devs, totalCount, nil
 }
 
-func (c *client) AreDevicesInGroup(ctx context.Context, devices []string, group string, tenantId string) bool {
-	l := log.FromContext(ctx)
-	l.Debugf("AreDevicesInGroup starting")
+func (c *client) GetDeviceGroups(ctx context.Context, tenantId, deviceId string) ([]string, error) {
+	repl := strings.NewReplacer(":tenantId", tenantId, ":deviceId", deviceId)
+	url := c.baseURL + repl.Replace(getDeviceGroupsURL)
 
-	repl := strings.NewReplacer(":tenantId", tenantId, ":name", group)
-	url := c.baseURL + repl.Replace(areInGroupURL)
-
-	deviceIds := model.DeviceIds{
-		Devices: devices,
+	if ctx == nil {
+		ctx = context.Background()
 	}
-	payload, _ := json.Marshal(deviceIds)
-	req, err := http.NewRequest("POST", url, strings.NewReader(string(payload)))
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
+		defer cancel()
+	}
+	req, err := http.NewRequestWithContext(
+		ctx, "GET", url, nil,
+	)
 	if err != nil {
-		return false
+		return nil, err
 	}
 
-	req.Header.Set("Content-Type", "application/json")
 	rsp, err := c.httpClient.Do(req)
 	if err != nil {
-		return false
+		return nil, errors.Wrap(err, "get device groups request failed")
 	}
 	defer rsp.Body.Close()
 
 	if rsp.StatusCode != http.StatusOK {
-		return false
+		return nil, errors.Errorf("get device groups request failed with unexpected status: %v", rsp.StatusCode)
 	}
 
-	return true
+	res := model.DeviceGroups{}
+	if err := json.NewDecoder(rsp.Body).Decode(&res); err != nil {
+		return nil, errors.Wrap(err, "error parsing device groups response")
+	}
+
+	return res.Groups, nil
 }

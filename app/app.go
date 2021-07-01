@@ -861,6 +861,12 @@ func (d *Deployments) CreateDeviceConfigurationDeployment(
 	deployment.Configuration = []byte(constructor.Configuration)
 	deployment.Type = model.DeploymentTypeConfiguration
 
+	groups, err := d.getDeploymentGroups(ctx, []string{deviceID})
+	if err != nil {
+		return "", err
+	}
+	deployment.Groups = groups
+
 	if err := d.db.InsertDeployment(ctx, deployment); err != nil {
 		if strings.Contains(err.Error(), "duplicate key error") {
 			return "", ErrDuplicateDeployment
@@ -916,12 +922,42 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 	deployment.DeviceList = constructor.Devices
 	deployment.MaxDevices = len(constructor.Devices)
 	deployment.Type = model.DeploymentTypeSoftware
+	deployment.Groups = []string{constructor.Group}
+
+	// single device deployment case
+	if len(deployment.Groups) == 0 && len(constructor.Devices) == 1 {
+		groups, err := d.getDeploymentGroups(ctx, constructor.Devices)
+		if err != nil {
+			return "", err
+		}
+		deployment.Groups = groups
+	}
 
 	if err := d.db.InsertDeployment(ctx, deployment); err != nil {
 		return "", errors.Wrap(err, "Storing deployment data")
 	}
 
 	return deployment.Id, nil
+}
+
+func (d *Deployments) getDeploymentGroups(ctx context.Context, devices []string) ([]string, error) {
+	id := identity.FromContext(ctx)
+
+	//only for single device deployment case
+	if len(devices) != 1 {
+		return nil, nil
+	}
+
+	if id == nil {
+		id = &identity.Identity{}
+	}
+
+	groups, err := d.inventoryClient.GetDeviceGroups(ctx, id.Tenant, devices[0])
+	if err != nil {
+		return nil, err
+	}
+	return groups, nil
+
 }
 
 // IsDeploymentFinished checks if there is unfinished deployment with given ID
