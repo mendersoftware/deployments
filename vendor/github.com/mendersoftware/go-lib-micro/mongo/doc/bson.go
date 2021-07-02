@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,6 +21,22 @@ import (
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 )
+
+// MarshallBSONOrDocumentFromStruct marshals a structure to BSON if it implements
+// the bson.Marshaler interface, otherwise invokes DocumentFromStruct on it.
+func MarshallBSONOrDocumentFromStruct(
+	sct interface{},
+	appendElements ...bson.E,
+) (doc bson.D) {
+	if marshaller, ok := sct.(bson.Marshaler); ok {
+		var doc bson.D
+		if data, err := marshaller.MarshalBSON(); err == nil {
+			_ = bson.Unmarshal(data, &doc)
+		}
+		return doc
+	}
+	return DocumentFromStruct(sct, appendElements...)
+}
 
 // DocumentFromStruct creates a bson document from a struct in the order of the
 // underlying data structure. Additional fields can be appended to the struct

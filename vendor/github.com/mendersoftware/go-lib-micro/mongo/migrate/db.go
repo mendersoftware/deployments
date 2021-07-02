@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -40,15 +40,17 @@ type MigrationEntry struct {
 func GetMigrationInfo(ctx context.Context, sess *mongo.Client, db string) ([]MigrationEntry, error) {
 	c := sess.Database(db).Collection(DbMigrationsColl)
 	findOpts := mopts.Find()
-	findOpts.SetSort(bson.M{
-		"version.major": -1,
-		"version.minor": -1,
-		"version.patch": -1,
-	})
+	findOpts.SetSort(bson.D{{
+		Key: "version.major", Value: -1,
+	}, {
+		Key: "version.minor", Value: -1,
+	}, {
+		Key: "version.patch", Value: -1,
+	}})
 
 	cursor, err := c.Find(ctx, bson.M{
 		"version": bson.M{"$exists": true},
-	})
+	}, findOpts)
 	if cursor == nil || err != nil {
 		return nil, errors.Wrap(err, "db: failed to get migration info")
 	}

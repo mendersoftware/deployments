@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,15 +19,18 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/mendersoftware/go-lib-micro/addons"
 	"github.com/pkg/errors"
 )
 
 type Identity struct {
-	Subject  string `json:"sub" valid:"required"`
-	Tenant   string `json:"mender.tenant,omitempty"`
-	IsUser   bool   `json:"mender.user,omitempty"`
-	IsDevice bool   `json:"mender.device,omitempty"`
-	Plan     string `json:"mender.plan,omitempty"`
+	Subject  string         `json:"sub" valid:"required"`
+	Tenant   string         `json:"mender.tenant,omitempty"`
+	IsUser   bool           `json:"mender.user,omitempty"`
+	IsDevice bool           `json:"mender.device,omitempty"`
+	Plan     string         `json:"mender.plan,omitempty"`
+	Addons   []addons.Addon `json:"mender.addons,omitempty"`
+	Trial    bool           `json:"mender.trial"`
 }
 
 // ExtractJWTFromHeader inspect the Authorization header for a Bearer token and
