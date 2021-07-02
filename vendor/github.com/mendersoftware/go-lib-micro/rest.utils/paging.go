@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -92,6 +92,9 @@ type PagingHints struct {
 	// HasNext instructs adding the "next" link header. This option
 	// has no effect if TotalCount is given.
 	HasNext *bool
+
+	// Pagination parameters
+	Page, PerPage *int64
 }
 
 func NewPagingHints() *PagingHints {
@@ -108,13 +111,19 @@ func (h *PagingHints) SetHasNext(hasNext bool) *PagingHints {
 	return h
 }
 
+func (h *PagingHints) SetPage(page int64) *PagingHints {
+	h.Page = &page
+	return h
+}
+
+func (h *PagingHints) SetPerPage(perPage int64) *PagingHints {
+	h.PerPage = &perPage
+	return h
+}
+
 func MakePagingHeaders(r *http.Request, hints ...*PagingHints) ([]string, error) {
-	page, perPage, err := ParsePagingParameters(r)
-	if err != nil {
-		return nil, err
-	}
 	// Parse hints
-	hint := &PagingHints{}
+	hint := new(PagingHints)
 	for _, h := range hints {
 		if h == nil {
 			continue
@@ -125,6 +134,19 @@ func MakePagingHeaders(r *http.Request, hints ...*PagingHints) ([]string, error)
 		if h.TotalCount != nil {
 			hint.TotalCount = h.TotalCount
 		}
+		if h.Page != nil {
+			hint.Page = h.Page
+		}
+		if h.PerPage != nil {
+			hint.PerPage = h.PerPage
+		}
+	}
+	if hint.Page == nil || hint.PerPage == nil {
+		page, perPage, err := ParsePagingParameters(r)
+		if err != nil {
+			return nil, err
+		}
+		hint.Page, hint.PerPage = &page, &perPage
 	}
 	locationURL := url.URL{
 		Path:     r.URL.Path,
@@ -133,15 +155,15 @@ func MakePagingHeaders(r *http.Request, hints ...*PagingHints) ([]string, error)
 	}
 	q := locationURL.Query()
 	// Ensure per_page is set
-	q.Set(perPageQueryParam, strconv.FormatInt(perPage, 10))
+	q.Set(perPageQueryParam, strconv.FormatInt(*hint.PerPage, 10))
 	links := make([]string, 0, 4)
 	q.Set(pageQueryParam, "1")
 	locationURL.RawQuery = q.Encode()
 	links = append(links, fmt.Sprintf(
 		"<%s>; rel=\"first\"", locationURL.String(),
 	))
-	if page > 1 {
-		q.Set(pageQueryParam, strconv.FormatInt(page-1, 10))
+	if (*hint.Page) > 1 {
+		q.Set(pageQueryParam, strconv.FormatInt(*hint.Page-1, 10))
 		locationURL.RawQuery = q.Encode()
 		links = append(links, fmt.Sprintf(
 			"<%s>; rel=\"prev\"", locationURL.String(),
@@ -150,23 +172,23 @@ func MakePagingHeaders(r *http.Request, hints ...*PagingHints) ([]string, error)
 
 	// TotalCount takes precedence over HasNext
 	if hint.TotalCount != nil && *hint.TotalCount > 0 {
-		idx := page * perPage
-		// 1st check for overflow, then check for next page
-		if idx > 0 && *hint.TotalCount > (page*perPage) {
-			q.Set(pageQueryParam, strconv.FormatUint(uint64(page)+1, 10))
+		lastPage := (*hint.TotalCount-1) / *hint.PerPage + 1
+		if *hint.Page < lastPage {
+			// Add "next" link
+			q.Set(pageQueryParam, strconv.FormatUint(uint64(*hint.Page)+1, 10))
 			locationURL.RawQuery = q.Encode()
 			links = append(links, fmt.Sprintf(
 				"<%s>; rel=\"next\"", locationURL.String(),
 			))
 		}
-		lastPage := (*hint.TotalCount/perPage - 1) + 1
+		// Add "last" link
 		q.Set(pageQueryParam, strconv.FormatInt(lastPage, 10))
 		locationURL.RawQuery = q.Encode()
 		links = append(links, fmt.Sprintf(
 			"<%s>; rel=\"last\"", locationURL.String(),
 		))
 	} else if hint.HasNext != nil && *hint.HasNext {
-		q.Set(pageQueryParam, strconv.FormatUint(uint64(page)+1, 10))
+		q.Set(pageQueryParam, strconv.FormatUint(uint64(*hint.Page)+1, 10))
 		locationURL.RawQuery = q.Encode()
 		links = append(links, fmt.Sprintf(
 			"<%s>; rel=\"next\"", locationURL.String(),
