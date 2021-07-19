@@ -1685,7 +1685,7 @@ func (db *DataStoreMongo) UpdateStats(ctx context.Context,
 	}
 
 	res, err := collDpl.UpdateOne(ctx, bson.M{"_id": id}, update)
-	if res.MatchedCount == 0 {
+	if res != nil && res.MatchedCount == 0 {
 		return ErrStorageInvalidID
 	}
 	return err
@@ -1919,7 +1919,7 @@ func (db *DataStoreMongo) SetDeploymentStatus(ctx context.Context, id string, st
 
 	res, err := collDpl.UpdateOne(ctx, bson.M{"_id": id}, update)
 
-	if res.MatchedCount == 0 {
+	if res != nil && res.MatchedCount == 0 {
 		return ErrStorageInvalidID
 	}
 
