@@ -43,7 +43,6 @@ func doMain(args []string) {
 
 	app := cli.NewApp()
 	app.Usage = "Deployments Service"
-	app.Version = CreateVersionString()
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -135,9 +134,7 @@ func cmdServer(args *cli.Context) error {
 		config.Config.Set(dconfig.SettingMiddleware, dconfig.EnvDev)
 	}
 
-	l.Printf("Deployments Service, version %s starting up",
-		CreateVersionString())
-
+	l.Print("Deployments Service starting up")
 	err := migrate("", args.Bool("automigrate"))
 	if err != nil {
 		return err
