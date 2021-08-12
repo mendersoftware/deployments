@@ -22,7 +22,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mendersoftware/go-lib-micro/accesslog"
 	"github.com/mendersoftware/go-lib-micro/config"
-	"github.com/mendersoftware/go-lib-micro/customheader"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
@@ -56,11 +55,6 @@ var defaultProdStack = []rest.Middleware{
 }
 
 func SetupMiddleware(c config.Reader, api *rest.Api) {
-
-	api.Use(&customheader.CustomHeaderMiddleware{
-		HeaderName:  "X-DEPLOYMENTS-VERSION",
-		HeaderValue: CreateVersionString(),
-	})
 
 	api.Use(commonLoggingAccessStack...)
 
