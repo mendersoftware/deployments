@@ -31,21 +31,6 @@ import (
 	dconfig "github.com/mendersoftware/deployments/config"
 )
 
-const (
-	HttpHeaderContentType                 string = "Content-type"
-	HttpHeaderOrigin                      string = "Origin"
-	HttpHeaderAuthorization               string = "Authorization"
-	HttpHeaderAcceptEncoding              string = "Accept-Encoding"
-	HttpHeaderAccessControlRequestHeaders string = "Access-Control-Request-Headers"
-	HttpHeaderAccessControlRequestMethod  string = "Access-Control-Request-Method"
-	HttpHeaderLastModified                string = "Last-Modified"
-	HttpHeaderExpires                     string = "Expires"
-	HttpHeaderLocation                    string = "Location"
-	HttpHeaderLink                        string = "Link"
-	HttpHeaderAllow                       string = "Allow"
-	HttpHeaderAccept                      string = "Accept"
-)
-
 var commonLoggingAccessStack = []rest.Middleware{
 	// logging
 	&requestlog.RequestLogMiddleware{},
@@ -121,48 +106,5 @@ func SetupMiddleware(c config.Reader, api *rest.Api) {
 			}
 		}),
 		IfFalse: &rest.ContentTypeCheckerMiddleware{},
-	})
-
-	api.Use(&rest.CorsMiddleware{
-		RejectNonCorsRequests: false,
-
-		// Should be tested with some list
-		OriginValidator: func(origin string, request *rest.Request) bool {
-			// Accept all requests
-			return true
-		},
-
-		// Preflight request cache length
-		AccessControlMaxAge: 60,
-
-		// Allow authentication requests
-		AccessControlAllowCredentials: true,
-
-		// Allowed headers
-		AllowedMethods: []string{
-			http.MethodGet,
-			http.MethodPost,
-			http.MethodPut,
-			http.MethodDelete,
-			http.MethodOptions,
-		},
-
-		// Allowed heardes
-		AllowedHeaders: []string{
-			HttpHeaderAccept,
-			HttpHeaderAllow,
-			HttpHeaderContentType,
-			HttpHeaderOrigin,
-			HttpHeaderAuthorization,
-			HttpHeaderAcceptEncoding,
-			HttpHeaderAccessControlRequestHeaders,
-			HttpHeaderAccessControlRequestMethod,
-		},
-
-		// Headers that can be exposed to JS
-		AccessControlExposeHeaders: []string{
-			HttpHeaderLocation,
-			HttpHeaderLink,
-		},
 	})
 }
