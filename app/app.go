@@ -36,6 +36,7 @@ import (
 	"github.com/mendersoftware/mender-artifact/handlers"
 
 	"github.com/mendersoftware/deployments/client/inventory"
+	"github.com/mendersoftware/deployments/client/reporting"
 	"github.com/mendersoftware/deployments/client/workflows"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/s3"
@@ -157,6 +158,7 @@ type Deployments struct {
 	imageContentType string
 	workflowsClient  workflows.Client
 	inventoryClient  inventory.Client
+	reportingClient  reporting.Client
 }
 
 func NewDeployments(storage store.DataStore, fileStorage s3.FileStorage, imageContentType string) *Deployments {
@@ -1634,4 +1636,9 @@ func (d *Deployments) SetStorageSettings(ctx context.Context, storageSettings *m
 	}
 
 	return nil
+}
+
+func (d *Deployments) WithReporting(c reporting.Client) *Deployments {
+	d.reportingClient = c
+	return d
 }
