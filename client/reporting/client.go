@@ -1,0 +1,114 @@
+// Copyright 2021 Northern.tech AS
+//
+//    All Rights Reserved
+
+package reporting
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/mendersoftware/go-lib-micro/rest_utils"
+	"github.com/pkg/errors"
+
+	"github.com/mendersoftware/deployments-enterprise/model"
+)
+
+const (
+	uriInternal       = "/api/internal/v1/reporting"
+	uriInternalSearch = uriInternal + "/inventory/tenants/:tenant_id/search"
+	uriIInternalAlive = uriInternal + "/alive"
+
+	defaultTimeout = 5 * time.Second
+)
+
+// Client is the reporting client
+type Client interface {
+	CheckHealth(ctx context.Context) error
+	Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error)
+}
+
+type client struct {
+	baseURL    string
+	httpClient *http.Client
+}
+
+// NewClient returns a new reporting client
+func NewClient(baseURL string) Client {
+	return &client{
+		baseURL:    baseURL,
+		httpClient: &http.Client{Timeout: defaultTimeout},
+	}
+}
+
+func (c *client) CheckHealth(ctx context.Context) error {
+	var (
+		apiErr rest_utils.ApiError
+		client http.Client
+	)
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
+		defer cancel()
+	}
+	req, _ := http.NewRequestWithContext(
+		ctx, "GET", c.baseURL+uriIInternalAlive, nil,
+	)
+
+	rsp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if rsp.StatusCode >= http.StatusOK && rsp.StatusCode < 300 {
+		return nil
+	}
+	decoder := json.NewDecoder(rsp.Body)
+	err = decoder.Decode(&apiErr)
+	if err != nil {
+		return errors.Errorf("health check HTTP error: %s", rsp.Status)
+	}
+	return &apiErr
+}
+
+func (c *client) Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error) {
+	repl := strings.NewReplacer(":tenant_id", tenantId)
+	url := c.baseURL + repl.Replace(uriInternalSearch)
+
+	payload, _ := json.Marshal(searchParams)
+	req, err := http.NewRequest("POST", url, strings.NewReader(string(payload)))
+	if err != nil {
+		return nil, -1, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	rsp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, -1, errors.Wrap(err, "search devices request failed")
+	}
+	defer rsp.Body.Close()
+
+	if rsp.StatusCode != http.StatusOK {
+		return nil, -1, errors.Errorf("search devices request failed with unexpected status %v", rsp.StatusCode)
+	}
+
+	devs := []model.InvDevice{}
+	if err := json.NewDecoder(rsp.Body).Decode(&devs); err != nil {
+		return nil, -1, errors.Wrap(err, "error parsing search devices response")
+	}
+
+	totalCountStr := rsp.Header.Get("X-Total-Count")
+	totalCount, err := strconv.Atoi(totalCountStr)
+	if err != nil {
+		return nil, -1, errors.Wrap(err, "error parsing X-Total-Count header")
+	}
+
+	return devs, totalCount, nil
+}
