@@ -819,7 +819,7 @@ func (d *Deployments) updateDeploymentConstructor(ctx context.Context,
 	}
 
 	for {
-		devices, count, err := d.inventoryClient.Search(ctx, id.Tenant, searchParams)
+		devices, count, err := d.search(ctx, id.Tenant, searchParams)
 		if err != nil {
 			l.Errorf("error searching for devices")
 			return nil, ErrModelInternal
@@ -956,7 +956,6 @@ func (d *Deployments) getDeploymentGroups(ctx context.Context, devices []string)
 		return nil, err
 	}
 	return groups, nil
-
 }
 
 // IsDeploymentFinished checks if there is unfinished deployment with given ID
@@ -1641,4 +1640,17 @@ func (d *Deployments) SetStorageSettings(ctx context.Context, storageSettings *m
 func (d *Deployments) WithReporting(c reporting.Client) *Deployments {
 	d.reportingClient = c
 	return d
+}
+
+func (d *Deployments) haveReporting() bool {
+	return d.reportingClient != nil
+}
+
+func (d *Deployments) search(ctx context.Context, tid string, parms model.SearchParams) ([]model.InvDevice, int, error) {
+
+	if d.haveReporting() {
+		return d.reportingClient.Search(ctx, tid, parms)
+	} else {
+		return d.inventoryClient.Search(ctx, tid, parms)
+	}
 }
