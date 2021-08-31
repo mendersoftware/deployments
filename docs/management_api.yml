@@ -503,31 +503,6 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
-  /deployments/devices/{id}:
-    delete:
-      operationId: Remove Device from Deployments
-      tags:
-        - Management API
-      security:
-        - ManagementJWT: []
-      summary: Remove device from all deployments
-      description: Set 'decommissioned' status to all pending device deployments for a given device
-      parameters:
-        - name: id
-          in: path
-          description: System wide device identifier
-          required: true
-          type: string
-      responses:
-        204:
-          description: Device was removed
-        401:
-          $ref: '#/responses/UnauthorizedError'
-        500:
-          description: Internal server error.
-          schema:
-              $ref: "#/definitions/Error"
-
   /deployments/releases:
     get:
       operationId: List Releases
