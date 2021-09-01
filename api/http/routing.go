@@ -51,7 +51,6 @@ const (
 	ApiUrlManagementDeploymentsDevices     = ApiUrlManagement + "/deployments/:id/devices"
 	ApiUrlManagementDeploymentsDevicesList = ApiUrlManagement + "/deployments/:id/devices/list"
 	ApiUrlManagementDeploymentsLog         = ApiUrlManagement + "/deployments/:id/devices/:devid/log"
-	ApiUrlManagementDeploymentsDeviceId    = ApiUrlManagement + "/deployments/devices/:id"
 	ApiUrlManagementDeploymentsDeviceList  = ApiUrlManagement + "/deployments/:id/device_list"
 
 	ApiUrlManagementReleases = ApiUrlManagement + "/deployments/releases"
@@ -67,6 +66,7 @@ const (
 	ApiUrlInternalHealth                         = ApiUrlInternal + "/health"
 	ApiUrlInternalTenants                        = ApiUrlInternal + "/tenants"
 	ApiUrlInternalTenantDeployments              = ApiUrlInternal + "/tenants/:tenant/deployments"
+	ApiUrlInternalTenantDeploymentsDevice        = ApiUrlInternal + "/tenants/:tenant/deployments/devices/:id"
 	ApiUrlInternalTenantArtifacts                = ApiUrlInternal + "/tenants/:tenant/artifacts"
 	ApiUrlInternalTenantStorageSettings          = ApiUrlInternal + "/tenants/:tenant/storage/settings"
 	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal + "/tenants/:tenant/configuration/deployments/:deployment_id/devices/:device_id"
@@ -192,8 +192,6 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 			controller.GetDevicesListForDeployment),
 		rest.Get(ApiUrlManagementDeploymentsLog,
 			controller.GetDeploymentLogForDevice),
-		rest.Delete(ApiUrlManagementDeploymentsDeviceId,
-			controller.DecommissionDevice),
 		rest.Get(ApiUrlManagementDeploymentsDeviceList,
 			controller.GetDeploymentDeviceList),
 
@@ -237,6 +235,7 @@ func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	return []*rest.Route{
 		rest.Post(ApiUrlInternalTenants, controller.ProvisionTenantsHandler),
 		rest.Get(ApiUrlInternalTenantDeployments, controller.DeploymentsPerTenantHandler),
+		rest.Delete(ApiUrlInternalTenantDeploymentsDevice, controller.DecommissionDevice),
 		rest.Post(ApiUrlInternalTenantArtifacts, controller.NewImageForTenantHandler),
 
 		// per-tenant storage settings

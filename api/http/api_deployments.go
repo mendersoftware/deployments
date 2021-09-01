@@ -1397,6 +1397,14 @@ func (d *DeploymentsApiHandlers) GetDeploymentLogForDevice(w rest.ResponseWriter
 
 func (d *DeploymentsApiHandlers) DecommissionDevice(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
+	tenantID := r.PathParam("tenantID")
+	if tenantID != "" {
+		ctx = identity.WithContext(r.Context(), &identity.Identity{
+			Tenant:   tenantID,
+			IsDevice: true,
+		})
+	}
+
 	l := requestlog.GetRequestLogger(r)
 
 	id := r.PathParam("id")
