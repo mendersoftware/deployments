@@ -404,6 +404,11 @@ paths:
           description: Deployment identifier.
           required: true
           type: string
+        - name: status
+          in: query
+          description: Filter devices by status within deployment
+          type: string
+          required: false
         - name: page
           in: query
           description: Starting page.

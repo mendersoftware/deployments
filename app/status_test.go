@@ -78,7 +78,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		model.DeviceDeploymentStatusInstalling).Return(nil)
 
 	// fake updated stats
-	fakeDeployment.Stats[model.DeviceDeploymentStatusInstalling] = 1
+	fakeDeployment.Stats.Set(model.DeviceDeploymentStatusInstalling, 1)
 
 	db.On("FindDeploymentByID", ctx, fakeDeployment.Id).Return(
 		fakeDeployment, nil)
@@ -161,7 +161,7 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 		model.DeviceDeploymentStatusAlreadyInst).Return(nil)
 
 	// fake updated stats
-	fakeDeployment.Stats[model.DeviceDeploymentStatusNoArtifact] = 1
+	fakeDeployment.Stats.Set(model.DeviceDeploymentStatusNoArtifact, 1)
 	db.On("FindDeploymentByID", ctx, fakeDeployment.Id).Return(
 		fakeDeployment, nil)
 

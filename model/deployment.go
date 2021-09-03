@@ -222,17 +222,17 @@ func (d *Deployment) MarshalJSON() ([]byte, error) {
 }
 
 func (d *Deployment) IsNotPending() bool {
-	if d.Stats[DeviceDeploymentStatusDownloading] > 0 ||
-		d.Stats[DeviceDeploymentStatusInstalling] > 0 ||
-		d.Stats[DeviceDeploymentStatusRebooting] > 0 ||
-		d.Stats[DeviceDeploymentStatusSuccess] > 0 ||
-		d.Stats[DeviceDeploymentStatusAlreadyInst] > 0 ||
-		d.Stats[DeviceDeploymentStatusFailure] > 0 ||
-		d.Stats[DeviceDeploymentStatusAborted] > 0 ||
-		d.Stats[DeviceDeploymentStatusNoArtifact] > 0 ||
-		d.Stats[DeviceDeploymentStatusPauseBeforeInstall] > 0 ||
-		d.Stats[DeviceDeploymentStatusPauseBeforeCommit] > 0 ||
-		d.Stats[DeviceDeploymentStatusPauseBeforeReboot] > 0 {
+	if d.Stats[DeviceDeploymentStatusDownloadingStr] > 0 ||
+		d.Stats[DeviceDeploymentStatusInstallingStr] > 0 ||
+		d.Stats[DeviceDeploymentStatusRebootingStr] > 0 ||
+		d.Stats[DeviceDeploymentStatusSuccessStr] > 0 ||
+		d.Stats[DeviceDeploymentStatusAlreadyInstStr] > 0 ||
+		d.Stats[DeviceDeploymentStatusFailureStr] > 0 ||
+		d.Stats[DeviceDeploymentStatusAbortedStr] > 0 ||
+		d.Stats[DeviceDeploymentStatusNoArtifactStr] > 0 ||
+		d.Stats[DeviceDeploymentStatusPauseBeforeInstallStr] > 0 ||
+		d.Stats[DeviceDeploymentStatusPauseBeforeCommitStr] > 0 ||
+		d.Stats[DeviceDeploymentStatusPauseBeforeRebootStr] > 0 {
 
 		return true
 	}
@@ -242,12 +242,12 @@ func (d *Deployment) IsNotPending() bool {
 
 func (d *Deployment) IsFinished() bool {
 	if d.Finished != nil ||
-		d.MaxDevices > 0 && ((d.Stats[DeviceDeploymentStatusAlreadyInst]+
-			d.Stats[DeviceDeploymentStatusSuccess]+
-			d.Stats[DeviceDeploymentStatusFailure]+
-			d.Stats[DeviceDeploymentStatusNoArtifact]+
-			d.Stats[DeviceDeploymentStatusDecommissioned]+
-			d.Stats[DeviceDeploymentStatusAborted]) >= d.MaxDevices) {
+		d.MaxDevices > 0 && ((d.Stats[DeviceDeploymentStatusAlreadyInstStr]+
+			d.Stats[DeviceDeploymentStatusSuccessStr]+
+			d.Stats[DeviceDeploymentStatusFailureStr]+
+			d.Stats[DeviceDeploymentStatusNoArtifactStr]+
+			d.Stats[DeviceDeploymentStatusDecommissionedStr]+
+			d.Stats[DeviceDeploymentStatusAbortedStr]) >= d.MaxDevices) {
 		return true
 	}
 

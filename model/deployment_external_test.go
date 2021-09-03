@@ -255,7 +255,7 @@ func TestDeploymentIs(t *testing.T) {
 	for _, as := range active {
 		t.Logf("checking in-progress deployment stat %s", as)
 		d.Stats = NewDeviceDeploymentStats()
-		d.Stats[as] = 1
+		d.Stats.Set(as, 1)
 		assert.True(t, d.IsNotPending())
 		assert.False(t, d.IsFinished())
 	}
@@ -270,7 +270,7 @@ func TestDeploymentIs(t *testing.T) {
 	for _, as := range finished {
 		t.Logf("checking finished deployment stat %s", as)
 		d.Stats = NewDeviceDeploymentStats()
-		d.Stats[as] = 1
+		d.Stats.Set(as, 1)
 		assert.True(t, d.IsFinished())
 		assert.True(t, d.IsNotPending())
 	}
@@ -281,7 +281,7 @@ func TestDeploymentIs(t *testing.T) {
 	for _, as := range pending {
 		t.Logf("checking pending deployment stat %s", as)
 		d.Stats = NewDeviceDeploymentStats()
-		d.Stats[as] = 1
+		d.Stats.Set(as, 1)
 		assert.False(t, d.IsFinished())
 		assert.False(t, d.IsNotPending())
 	}
@@ -295,85 +295,85 @@ func TestDeploymentGetStatus(t *testing.T) {
 	}{
 		"Single NoArtifact": {
 			Stats: Stats{
-				DeviceDeploymentStatusNoArtifact: 1,
+				DeviceDeploymentStatusNoArtifactStr: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Single Success": {
 			Stats: Stats{
-				DeviceDeploymentStatusSuccess: 1,
+				DeviceDeploymentStatusSuccessStr: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Success + NoArtifact": {
 			Stats: Stats{
-				DeviceDeploymentStatusSuccess:    1,
-				DeviceDeploymentStatusNoArtifact: 1,
+				DeviceDeploymentStatusSuccessStr:    1,
+				DeviceDeploymentStatusNoArtifactStr: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Failed + NoArtifact": {
 			Stats: Stats{
-				DeviceDeploymentStatusFailure:    1,
-				DeviceDeploymentStatusNoArtifact: 1,
+				DeviceDeploymentStatusFailureStr:    1,
+				DeviceDeploymentStatusNoArtifactStr: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Failed + AlreadyInst": {
 			Stats: Stats{
-				DeviceDeploymentStatusFailure:     1,
-				DeviceDeploymentStatusAlreadyInst: 1,
+				DeviceDeploymentStatusFailureStr:     1,
+				DeviceDeploymentStatusAlreadyInstStr: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Failed + Aborted": {
 			Stats: Stats{
-				DeviceDeploymentStatusFailure: 1,
-				DeviceDeploymentStatusAborted: 1,
+				DeviceDeploymentStatusFailureStr: 1,
+				DeviceDeploymentStatusAbortedStr: 1,
 			},
 			OutputStatus: "finished",
 		},
 		"Rebooting + NoArtifact": {
 			Stats: Stats{
-				DeviceDeploymentStatusRebooting:  1,
-				DeviceDeploymentStatusNoArtifact: 1,
+				DeviceDeploymentStatusRebootingStr:  1,
+				DeviceDeploymentStatusNoArtifactStr: 1,
 			},
 			OutputStatus: "inprogress",
 		},
 		"Rebooting + Installing": {
 			Stats: Stats{
-				DeviceDeploymentStatusRebooting:  1,
-				DeviceDeploymentStatusInstalling: 1,
+				DeviceDeploymentStatusRebootingStr:  1,
+				DeviceDeploymentStatusInstallingStr: 1,
 			},
 			OutputStatus: "inprogress",
 		},
 		"Rebooting + Pending": {
 			Stats: Stats{
-				DeviceDeploymentStatusRebooting: 1,
-				DeviceDeploymentStatusPending:   1,
+				DeviceDeploymentStatusRebootingStr: 1,
+				DeviceDeploymentStatusPendingStr:   1,
 			},
 			OutputStatus: "inprogress",
 		},
 		"All paused states": {
 			Stats: Stats{
-				DeviceDeploymentStatusPauseBeforeInstall: 1,
-				DeviceDeploymentStatusPauseBeforeCommit:  1,
-				DeviceDeploymentStatusPauseBeforeReboot:  1,
+				DeviceDeploymentStatusPauseBeforeInstallStr: 1,
+				DeviceDeploymentStatusPauseBeforeCommitStr:  1,
+				DeviceDeploymentStatusPauseBeforeRebootStr:  1,
 			},
 			OutputStatus: "inprogress",
 		},
 		"Some paused states": {
 			Stats: Stats{
-				DeviceDeploymentStatusInstalling:         1,
-				DeviceDeploymentStatusPauseBeforeInstall: 1,
-				DeviceDeploymentStatusPauseBeforeCommit:  0,
-				DeviceDeploymentStatusPauseBeforeReboot:  1,
+				DeviceDeploymentStatusInstallingStr:         1,
+				DeviceDeploymentStatusPauseBeforeInstallStr: 1,
+				DeviceDeploymentStatusPauseBeforeCommitStr:  0,
+				DeviceDeploymentStatusPauseBeforeRebootStr:  1,
 			},
 			OutputStatus: "inprogress",
 		},
 		"Pending": {
 			Stats: Stats{
-				DeviceDeploymentStatusPending: 1,
+				DeviceDeploymentStatusPendingStr: 1,
 			},
 			OutputStatus: "pending",
 		},
@@ -383,16 +383,16 @@ func TestDeploymentGetStatus(t *testing.T) {
 		//verify we count 'already-installed' towards 'inprogress'
 		"pending + already-installed": {
 			Stats: Stats{
-				DeviceDeploymentStatusPending:     1,
-				DeviceDeploymentStatusAlreadyInst: 1,
+				DeviceDeploymentStatusPendingStr:     1,
+				DeviceDeploymentStatusAlreadyInstStr: 1,
 			},
 			OutputStatus: "inprogress",
 		},
 		//verify we count 'already-installed' towards 'finished'
 		"already-installed + finished": {
 			Stats: Stats{
-				DeviceDeploymentStatusPending:     0,
-				DeviceDeploymentStatusAlreadyInst: 1,
+				DeviceDeploymentStatusPendingStr:     0,
+				DeviceDeploymentStatusAlreadyInstStr: 1,
 			},
 			OutputStatus: "finished",
 		},
@@ -428,16 +428,16 @@ func TestFuzzyGetStatus(t *testing.T) {
 		dep, err := NewDeployment()
 		assert.NoError(t, err)
 
-		dep.Stats[DeviceDeploymentStatusDownloading] = rand(0, max)
-		dep.Stats[DeviceDeploymentStatusInstalling] = rand(0, max)
-		dep.Stats[DeviceDeploymentStatusRebooting] = rand(0, max)
-		dep.Stats[DeviceDeploymentStatusPending] = rand(0, max)
-		dep.Stats[DeviceDeploymentStatusSuccess] = rand(0, max)
-		dep.Stats[DeviceDeploymentStatusFailure] = rand(0, max)
-		dep.Stats[DeviceDeploymentStatusNoArtifact] = rand(0, max)
-		dep.Stats[DeviceDeploymentStatusAlreadyInst] = rand(0, max)
-		dep.Stats[DeviceDeploymentStatusAborted] = rand(0, max)
-		dep.Stats[DeviceDeploymentStatusDecommissioned] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusDownloadingStr] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusInstallingStr] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusRebootingStr] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusPendingStr] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusSuccessStr] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusFailureStr] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusNoArtifactStr] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusAlreadyInstStr] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusAbortedStr] = rand(0, max)
+		dep.Stats[DeviceDeploymentStatusDecommissionedStr] = rand(0, max)
 
 		pending := 0
 		inprogress := 0
