@@ -170,11 +170,12 @@ func TestMigration126(t *testing.T) {
 			client := db.Client()
 			dbName := store.DbFromContext(tc.CTX, DbName)
 
-			collDevs := client.Database(dbName).
-				Collection(CollectionDevices)
-			collDevsOldCodec := client.Database(dbName).
-				Collection(CollectionDevices,
-					options.Collection().SetRegistry(oldBSONReg))
+			db := client.Database(dbName)
+			collDevs := db.Collection(CollectionDevices)
+			collDevsOldCodec := db.Collection(
+				CollectionDevices,
+				options.Collection().SetRegistry(oldBSONReg),
+			)
 			// Insert with old schema
 			_, err := collDevsOldCodec.InsertMany(tc.CTX, testSet126)
 			if err != nil {
@@ -209,6 +210,33 @@ func TestMigration126(t *testing.T) {
 			// If the migration was unsuccessful, there will
 			// be an error decoding the documents.
 			assert.NoError(t, err)
+
+			// Run explain on query from GetDevicesListForDeployment
+			// and check that the newly created index is used.
+			singleRes := db.RunCommand(tc.CTX, bson.D{{
+				Key: "explain", Value: bson.D{{
+					Key: "find", Value: CollectionDevices,
+				}, {
+					Key: "filter", Value: bson.D{{
+						Key:   StorageKeyDeviceDeploymentDeploymentID,
+						Value: "00000000-0000-0000-0000-000000000000",
+					}},
+				}, {
+					Key: "sort", Value: bson.D{
+						{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
+						{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+					},
+				}},
+			}, {
+				Key: "verbosity", Value: "queryPlanner",
+			}})
+			var explain map[string]interface{}
+			assert.NoError(t, singleRes.Decode(&explain))
+			queryPlanner := explain["queryPlanner"].(map[string]interface{})
+			winningPlan := queryPlanner["winningPlan"].(map[string]interface{})
+			inputStage := winningPlan["inputStage"].(map[string]interface{})
+			indexName := inputStage["indexName"].(string)
+			assert.Equal(t, IndexDeviceDeploymentStatusName, indexName)
 		})
 	}
 }

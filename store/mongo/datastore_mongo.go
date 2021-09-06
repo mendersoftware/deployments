@@ -41,6 +41,8 @@ const (
 	CollectionStorageSettings      = "settings"
 )
 
+const DefaultDocumentLimit = 20
+
 // Internal status codes from
 // https://github.com/mongodb/mongo/blob/4.4/src/mongo/base/error_codes.yml
 const (
@@ -70,6 +72,9 @@ var (
 
 	// Indexes (version: 1.2.4)
 	IndexDeploymentStatus = "deploymentStatus"
+
+	// Indexes 1.2.6
+	IndexDeviceDeploymentStatusName = "deploymentid_status_deviceid"
 
 	_false         = false
 	_true          = true
@@ -141,6 +146,15 @@ var (
 			Background: &_false,
 			Name:       &IndexDeploymentDeviceDeploymentIdName,
 		},
+	}
+	DeviceDeploymentIdStatus = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyDeviceDeploymentDeploymentID, Value: 1},
+			{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+		},
+		Options: mopts.Index().
+			SetName(IndexDeviceDeploymentStatusName),
 	}
 	DeploymentStatusFinishedIndex = mongo.IndexModel{
 		Keys: bson.D{
@@ -1275,13 +1289,18 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 	}
 
 	options := mopts.Find()
-	sortFieldQuery := bson.D{{Key: StorageKeyDeviceDeploymentDeploymentID, Value: 1}}
+	sortFieldQuery := bson.D{
+		{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
+		{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+	}
 	options.SetSort(sortFieldQuery)
 	if q.Skip > 0 {
 		options.SetSkip(int64(q.Skip))
 	}
 	if q.Limit > 0 {
 		options.SetLimit(int64(q.Limit))
+	} else {
+		options.SetLimit(DefaultDocumentLimit)
 	}
 
 	cursor, err := collDevs.Find(ctx, query, options)

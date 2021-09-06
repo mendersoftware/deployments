@@ -60,7 +60,11 @@ func (m *migration_1_2_6) Up(from migrate.Version) error {
 			return err
 		}
 	}
-	return nil
+	// TODO: Undo DeploymentIdIndexes ?
+
+	iw := coll.Indexes()
+	_, err := iw.CreateOne(ctx, DeviceDeploymentIdStatus)
+	return err
 }
 
 func (m *migration_1_2_6) Version() migrate.Version {
