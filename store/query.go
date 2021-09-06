@@ -14,8 +14,34 @@
 
 package store
 
+import (
+	"errors"
+
+	"github.com/mendersoftware/deployments/model"
+)
+
 type ListQuery struct {
 	Skip         int
 	Limit        int
 	DeploymentID string
+	Status       *string
+}
+
+func (l ListQuery) Validate() error {
+	if l.Limit <= 0 {
+		return errors.New("limit: must be a positive integer")
+	}
+	if l.DeploymentID == "" {
+		return errors.New("deployment_id: cannot be blank")
+	}
+	if l.Status != nil {
+		if *l.Status == "pause" {
+			return nil
+		}
+		stat := model.NewStatus(*l.Status)
+		if stat == model.DeviceDeploymentStatusNull {
+			return errors.New("status: must be a valid value")
+		}
+	}
+	return nil
 }

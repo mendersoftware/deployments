@@ -1284,8 +1284,31 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDevs := database.Collection(CollectionDevices)
 
-	query := bson.M{
-		StorageKeyDeviceDeploymentDeploymentID: q.DeploymentID,
+	query := bson.D{{
+		Key:   StorageKeyDeviceDeploymentDeploymentID,
+		Value: q.DeploymentID,
+	}}
+	if q.Status != nil {
+		if *q.Status == "pause" {
+			query = append(query, bson.E{
+				Key: "status", Value: bson.D{{
+					Key:   "$gte",
+					Value: model.DeviceDeploymentStatusPauseBeforeInstall,
+				}, {
+					Key:   "$lte",
+					Value: model.DeviceDeploymentStatusPauseBeforeReboot,
+				}},
+			})
+		} else {
+			var status model.DeviceDeploymentStatus
+			err := status.UnmarshalText([]byte(*q.Status))
+			if err != nil {
+				return nil, -1, errors.Wrap(err, "invalid status query")
+			}
+			query = append(query, bson.E{
+				Key: "status", Value: status,
+			})
+		}
 	}
 
 	options := mopts.Find()

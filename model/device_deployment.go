@@ -53,6 +53,7 @@ const (
 	// DeviceDeploymentStatusNew = (DeviceDeploymentStatusSuccess + DeviceDeploymentStatusNoArtifact) / 2
 
 	DeviceDeploymentStatusFailureStr            = "failure"
+	DeviceDeploymentStatusAbortedStr            = "aborted"
 	DeviceDeploymentStatusPauseBeforeInstallStr = "pause_before_installing"
 	DeviceDeploymentStatusPauseBeforeCommitStr  = "pause_before_committing"
 	DeviceDeploymentStatusPauseBeforeRebootStr  = "pause_before_rebooting"
@@ -61,12 +62,17 @@ const (
 	DeviceDeploymentStatusRebootingStr          = "rebooting"
 	DeviceDeploymentStatusPendingStr            = "pending"
 	DeviceDeploymentStatusSuccessStr            = "success"
-	DeviceDeploymentStatusAbortedStr            = "aborted"
 	DeviceDeploymentStatusNoArtifactStr         = "noartifact"
 	DeviceDeploymentStatusAlreadyInstStr        = "already-installed"
 	DeviceDeploymentStatusDecommissionedStr     = "decommissioned"
 	// DeviceDeploymentStatusNew = "lorem-ipsum"
 )
+
+func NewStatus(status string) DeviceDeploymentStatus {
+	var stat DeviceDeploymentStatus
+	_ = stat.UnmarshalText([]byte(status))
+	return stat
+}
 
 var allStatuses = []DeviceDeploymentStatus{
 	DeviceDeploymentStatusFailure,

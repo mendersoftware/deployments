@@ -357,7 +357,7 @@ paths:
   /deployments/{deployment_id}/devices:
     get:
       deprecated: true
-      operationId: List Devices in Deployment
+      operationId: List All Devices in Deployment
       tags:
         - Management API
       security:
@@ -390,7 +390,7 @@ paths:
 
   /deployments/{deployment_id}/devices/list:
     get:
-      operationId: List Devices in Deployment with pagination
+      operationId: List Devices in Deployment
       tags:
         - Management API
       security:
@@ -406,8 +406,24 @@ paths:
           type: string
         - name: status
           in: query
-          description: Filter devices by status within deployment
+          description: >-
+            Filter devices by status within deployment.
           type: string
+          enum: # Unfortunately swagger 2.0 does not support reuse of enums.
+            - "failure"
+            - "aborted"
+            - "pause_before_installing"
+            - "pause_before_committing"
+            - "pause_before_rebooting"
+            - "downloading"
+            - "installing"
+            - "rebooting"
+            - "pending"
+            - "success"
+            - "noartifact"
+            - "already-installed"
+            - "decommissioned"
+            - "pause"
           required: false
         - name: page
           in: query
@@ -422,7 +438,8 @@ paths:
           required: false
           type: number
           format: integer
-          default: 10
+          default: 20
+          maximum: 500
       produces:
         - application/json
       responses:
@@ -1135,21 +1152,7 @@ definitions:
         type: string
         format: date-time
       status:
-        type: string
-        enum:
-          - downloading
-          - installing
-          - pause_before_installing
-          - pause_before_rebooting
-          - pause_before_committing
-          - rebooting
-          - pending
-          - success
-          - failure
-          - noartifact
-          - already-installed
-          - aborted
-          - decommissioned
+        $ref: '#/definitions/DeviceStatus'
       created:
         type: string
         format: date-time
@@ -1336,6 +1339,24 @@ definitions:
     example:
       uri: http://mender.io/artifact.tar.gz.mender
       expire: 2016-10-29T10:45:34Z
+
+  DeviceStatus:
+    type: string
+    enum:
+      - "failure"
+      - "aborted"
+      - "pause_before_installing"
+      - "pause_before_committing"
+      - "pause_before_rebooting"
+      - "downloading"
+      - "installing"
+      - "rebooting"
+      - "pending"
+      - "success"
+      - "noartifact"
+      - "already-installed"
+      - "decommissioned"
+
   StorageLimit:
     description: Tenant account storage limit and storage usage.
     type: object
