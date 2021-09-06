@@ -140,7 +140,7 @@ class TestDeployment:
             assert dep.status == "pending"
 
             # fetch device status
-            depdevs = self.d.client.Management_API.List_Devices_in_Deployment(
+            depdevs = self.d.client.Management_API.List_All_Devices_in_Deployment(
                 Authorization="foo", deployment_id=depid
             ).result()[0]
             assert len(depdevs) == 1
@@ -165,7 +165,7 @@ class TestDeployment:
             self.d.verify_deployment_stats(depid, expected={"aborted": 1})
 
             # fetch device status
-            depdevs = self.d.client.Management_API.List_Devices_in_Deployment(
+            depdevs = self.d.client.Management_API.List_All_Devices_in_Deployment(
                 Authorization="foo", deployment_id=depid
             ).result()[0]
             self.d.log.debug("deployment devices: %s", depdevs)
@@ -236,20 +236,20 @@ class TestDeployment:
                 )
 
             # check default 'page' and 'per_page' values
-            res = self.d.client.Management_API.List_Devices_in_Deployment_with_pagination(
+            res = self.d.client.Management_API.List_Devices_in_Deployment(
                 Authorization="foo", deployment_id=dep_id
             ).result()[0]
             assert len(res) == default_per_page
 
             # check custom 'per_page'
-            res = self.d.client.Management_API.List_Devices_in_Deployment_with_pagination(
+            res = self.d.client.Management_API.List_Devices_in_Deployment(
                 Authorization="foo", deployment_id=dep_id, per_page=devices_qty
             ).result()[0]
             assert len(res) == devices_qty
 
             # check 2nd page
             devices_qty_on_second_page = devices_qty - default_per_page
-            res = self.d.client.Management_API.List_Devices_in_Deployment_with_pagination(
+            res = self.d.client.Management_API.List_Devices_in_Deployment(
                 Authorization="foo",
                 deployment_id=dep_id,
                 page=2,
