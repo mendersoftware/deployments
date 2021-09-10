@@ -178,21 +178,21 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputDeviceID:     "123",
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			OutputError:       ErrStorageInvalidInput,
-			OutputOldStatus:   "",
+			OutputOldStatus:   model.DeviceDeploymentStatusNull,
 		},
 		{
 			// null deployment ID
 			InputDeviceID:   "234",
-			InputStatus:     "",
+			InputStatus:     model.DeviceDeploymentStatusNull,
 			OutputError:     ErrStorageInvalidID,
-			OutputOldStatus: "",
+			OutputOldStatus: model.DeviceDeploymentStatusNull,
 		},
 		{
 			// null device ID
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputStatus:       model.DeviceDeploymentStatusInstalling,
 			OutputError:       ErrStorageInvalidID,
-			OutputOldStatus:   "",
+			OutputOldStatus:   model.DeviceDeploymentStatusNull,
 		},
 		{
 			// no deployment/device with this ID
@@ -200,7 +200,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			InputDeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			InputStatus:       model.DeviceDeploymentStatusAborted,
 			OutputError:       ErrStorageNotFound,
-			OutputOldStatus:   "",
+			OutputOldStatus:   model.DeviceDeploymentStatusNull,
 		},
 		{
 			InputDeviceID:     "456",
@@ -210,7 +210,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 				&deviceDeployments[0],
 			},
 			OutputError:     nil,
-			OutputOldStatus: "pending",
+			OutputOldStatus: model.DeviceDeploymentStatusPending,
 		},
 		{
 			InputDeviceID:     "567",
@@ -221,7 +221,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			},
 			InputFinishTime: &now,
 			OutputError:     nil,
-			OutputOldStatus: "pending",
+			OutputOldStatus: model.DeviceDeploymentStatusPending,
 		},
 		{
 			InputDeviceID:     "678",
@@ -231,7 +231,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 				&deviceDeployments[2],
 			},
 			InputTenant:     "acme",
-			OutputOldStatus: "pending",
+			OutputOldStatus: model.DeviceDeploymentStatusPending,
 		},
 		{
 			InputDeviceID:     "12345",
@@ -242,7 +242,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 				&deviceDeployments[3],
 			},
 			OutputError:     nil,
-			OutputOldStatus: "pending",
+			OutputOldStatus: model.DeviceDeploymentStatusPending,
 		},
 	}
 
@@ -507,19 +507,19 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 			},
 			OutputError: nil,
 			OutputStats: model.Stats{
-				model.DeviceDeploymentStatusPending:            1,
-				model.DeviceDeploymentStatusSuccess:            1,
-				model.DeviceDeploymentStatusFailure:            2,
-				model.DeviceDeploymentStatusRebooting:          1,
-				model.DeviceDeploymentStatusDownloading:        1,
-				model.DeviceDeploymentStatusInstalling:         0,
-				model.DeviceDeploymentStatusNoArtifact:         0,
-				model.DeviceDeploymentStatusAlreadyInst:        0,
-				model.DeviceDeploymentStatusAborted:            0,
-				model.DeviceDeploymentStatusDecommissioned:     0,
-				model.DeviceDeploymentStatusPauseBeforeCommit:  0,
-				model.DeviceDeploymentStatusPauseBeforeInstall: 0,
-				model.DeviceDeploymentStatusPauseBeforeReboot:  0,
+				model.DeviceDeploymentStatusPendingStr:            1,
+				model.DeviceDeploymentStatusSuccessStr:            1,
+				model.DeviceDeploymentStatusFailureStr:            2,
+				model.DeviceDeploymentStatusRebootingStr:          1,
+				model.DeviceDeploymentStatusDownloadingStr:        1,
+				model.DeviceDeploymentStatusInstallingStr:         0,
+				model.DeviceDeploymentStatusNoArtifactStr:         0,
+				model.DeviceDeploymentStatusAlreadyInstStr:        0,
+				model.DeviceDeploymentStatusAbortedStr:            0,
+				model.DeviceDeploymentStatusDecommissionedStr:     0,
+				model.DeviceDeploymentStatusPauseBeforeCommitStr:  0,
+				model.DeviceDeploymentStatusPauseBeforeInstallStr: 0,
+				model.DeviceDeploymentStatusPauseBeforeRebootStr:  0,
 			},
 		},
 		{
@@ -536,19 +536,19 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 			},
 			OutputError: nil,
 			OutputStats: model.Stats{
-				model.DeviceDeploymentStatusPending:            0,
-				model.DeviceDeploymentStatusSuccess:            0,
-				model.DeviceDeploymentStatusFailure:            0,
-				model.DeviceDeploymentStatusRebooting:          0,
-				model.DeviceDeploymentStatusDownloading:        0,
-				model.DeviceDeploymentStatusInstalling:         0,
-				model.DeviceDeploymentStatusNoArtifact:         0,
-				model.DeviceDeploymentStatusAlreadyInst:        0,
-				model.DeviceDeploymentStatusAborted:            0,
-				model.DeviceDeploymentStatusDecommissioned:     0,
-				model.DeviceDeploymentStatusPauseBeforeCommit:  1,
-				model.DeviceDeploymentStatusPauseBeforeInstall: 1,
-				model.DeviceDeploymentStatusPauseBeforeReboot:  1,
+				model.DeviceDeploymentStatusPendingStr:            0,
+				model.DeviceDeploymentStatusSuccessStr:            0,
+				model.DeviceDeploymentStatusFailureStr:            0,
+				model.DeviceDeploymentStatusRebootingStr:          0,
+				model.DeviceDeploymentStatusDownloadingStr:        0,
+				model.DeviceDeploymentStatusInstallingStr:         0,
+				model.DeviceDeploymentStatusNoArtifactStr:         0,
+				model.DeviceDeploymentStatusAlreadyInstStr:        0,
+				model.DeviceDeploymentStatusAbortedStr:            0,
+				model.DeviceDeploymentStatusDecommissionedStr:     0,
+				model.DeviceDeploymentStatusPauseBeforeCommitStr:  1,
+				model.DeviceDeploymentStatusPauseBeforeInstallStr: 1,
+				model.DeviceDeploymentStatusPauseBeforeRebootStr:  1,
 			},
 		},
 		{
@@ -561,8 +561,8 @@ func TestAggregateDeviceDeploymentByStatus(t *testing.T) {
 			},
 			InputTenant: "acme",
 			OutputStats: newTestStats(model.Stats{
-				model.DeviceDeploymentStatusSuccess: 1,
-				model.DeviceDeploymentStatusFailure: 1,
+				model.DeviceDeploymentStatusSuccessStr: 1,
+				model.DeviceDeploymentStatusFailureStr: 1,
 			}),
 		},
 	}
@@ -713,63 +713,141 @@ func TestGetDevicesListForDeployment(t *testing.T) {
 		t.Skip("skipping GetDevicesListForDeployment in short mode.")
 	}
 
-	input := []*model.DeviceDeployment{}
-
 	dds := []struct {
-		did   string
-		depid string
-	}{
-		{"device0001", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
-		{"device0002", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
-		{"device0003", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
-		{"device0004", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"},
-		{"device0005", "30b3e62c-9ec2-4312-a7fa-cff24cc7397b"},
-	}
-
-	for _, dd := range dds {
+		did    string
+		depid  string
+		status model.DeviceDeploymentStatus
+	}{{
+		did:    "device0001",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
+		status: model.DeviceDeploymentStatusSuccess,
+	}, {
+		did:    "device0002",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusFailure,
+	}, {
+		did:    "device0003",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusAborted,
+	}, {
+		did:    "device0004",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusPauseBeforeInstall,
+	}, {
+		did:    "device0005",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusPauseBeforeCommit,
+	}, {
+		did:    "device0006",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusPauseBeforeReboot,
+	}, {
+		did:    "device0007",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusDownloading,
+	}, {
+		did:    "device000a",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusInstalling,
+	}, {
+		did:    "device0009",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusRebooting,
+	}, {
+		did:    "device0008",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusPending,
+	}, {
+		did:    "device000b",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusSuccess,
+	}, {
+		did:    "device000e",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusNoArtifact,
+	}, {
+		did:    "device000d",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusAlreadyInst,
+	}, {
+		did:    "device000c",
+		depid:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+		status: model.DeviceDeploymentStatusDecommissioned,
+	}}
+	input := make([]model.DeviceDeployment, len(dds))
+	for i, dd := range dds {
 		newdd := model.NewDeviceDeployment(dd.did, dd.depid)
-		input = append(input, newdd)
+		// strip timezone and monotonic time (lost when writing to db)
+		notz := newdd.Created.UTC().Round(time.Millisecond)
+		newdd.Created = &notz
+		newdd.Status = dd.status
+		input[i] = *newdd
 	}
 
 	testCases := map[string]struct {
 		caseId string
-		tenant string
+		ctx    context.Context
 
 		inputListQuery store.ListQuery
-		outputStatuses []*model.DeviceDeployment
+		outputStatuses []model.DeviceDeployment
+		Error          error
 	}{
 		"existing deployments 1": {
 			inputListQuery: store.ListQuery{
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
 			},
-			outputStatuses: input[:3],
+			outputStatuses: input[:1],
 		},
 		"existing deployments 2": {
 			inputListQuery: store.ListQuery{
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
 			},
-			outputStatuses: input[3:],
+			outputStatuses: input[1:],
+		},
+		"filter by status": {
+			inputListQuery: store.ListQuery{
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+				Status: func() *string {
+					s := model.DeviceDeploymentStatusSuccess.String()
+					return &s
+				}(),
+			},
+			outputStatuses: input[10:11],
+		},
+		"range filter pause statuses": {
+			inputListQuery: store.ListQuery{
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+				Status: func() *string {
+					s := "pause"
+					return &s
+				}(),
+			},
+			outputStatuses: input[3:6],
 		},
 		"nonexistent deployment": {
 			inputListQuery: store.ListQuery{
 				DeploymentID: "aaaaaaaa-9ec2-4312-a7fa-cff24cc7397b",
 			},
-			outputStatuses: []*model.DeviceDeployment{},
+			outputStatuses: []model.DeviceDeployment{},
 		},
 		"tenant, existing deployments": {
 			inputListQuery: store.ListQuery{
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
 			},
-			tenant:         "acme",
-			outputStatuses: input[3:],
+			ctx: identity.WithContext(context.Background(), &identity.Identity{
+				Tenant: "acme",
+			}),
+			outputStatuses: input[1:],
 		},
 		"tenant, existing deployments + limit": {
 			inputListQuery: store.ListQuery{
 				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
 				Limit:        2,
 			},
-			tenant:         "acme",
-			outputStatuses: input[3:],
+			ctx: identity.WithContext(context.Background(), &identity.Identity{
+				Tenant: "acme",
+			}),
+			outputStatuses: input[1:3],
 		},
 		"tenant, existing deployments + limit + skip": {
 			inputListQuery: store.ListQuery{
@@ -777,47 +855,73 @@ func TestGetDevicesListForDeployment(t *testing.T) {
 				Limit:        2,
 				Skip:         1,
 			},
-			tenant:         "acme",
-			outputStatuses: input[3:],
+			ctx: identity.WithContext(context.Background(), &identity.Identity{
+				Tenant: "acme",
+			}),
+			outputStatuses: input[2:4],
+		},
+		"error: context canceled": {
+			ctx: func() context.Context {
+				ctx, cancel := context.WithCancel(context.TODO())
+				cancel()
+				return ctx
+			}(),
+			Error: context.Canceled,
+		},
+		"error: bad status filter": {
+			inputListQuery: store.ListQuery{
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+				Status: func() *string {
+					s := "foobar"
+					return &s
+				}(),
+			},
+			Error: errors.New("invalid status query"),
 		},
 	}
 
 	for testCaseName, tc := range testCases {
-		t.Run(fmt.Sprintf("test case %s", testCaseName), func(t *testing.T) {
+		t.Run(testCaseName, func(t *testing.T) {
 
-			// setup db - once for all cases
 			db.Wipe()
+			ctx := context.Background()
+			if tc.ctx == nil {
+				tc.ctx = ctx
+			}
+			if id := identity.FromContext(tc.ctx); id != nil {
+				ctx = identity.WithContext(ctx, id)
+			}
 
 			client := db.Client()
 			store := NewDataStoreMongoWithClient(client)
+			collDevs := client.Database(ctxstore.DbFromContext(ctx, DbName)).
+				Collection(CollectionDevices)
 
-			ctx := context.Background()
-			if tc.tenant != "" {
-				ctx = identity.WithContext(ctx, &identity.Identity{
-					Tenant: tc.tenant,
-				})
+			devFaces := make([]interface{}, len(input))
+			for i := range input {
+				devFaces[i] = &input[i]
 			}
-
-			err := store.InsertMany(ctx, input...)
+			_, err := collDevs.InsertMany(ctx, devFaces)
 			assert.NoError(t, err)
 
-			statuses, _, err := store.GetDevicesListForDeployment(ctx,
+			statuses, _, err := store.GetDevicesListForDeployment(tc.ctx,
 				tc.inputListQuery)
+			if tc.Error != nil {
+				if assert.Error(t, err) {
+					assert.Regexp(t, tc.Error.Error(), err.Error())
+				}
+				return
+			}
 			assert.NoError(t, err)
 
 			if tc.inputListQuery.Limit > 0 {
 				assert.Equal(t,
-					tc.inputListQuery.Limit-tc.inputListQuery.Skip,
+					tc.inputListQuery.Limit,
 					len(statuses))
 			}
+			assert.Equal(t, tc.outputStatuses, statuses)
 
-			counterAddition := 0
-			if tc.inputListQuery.Skip > 0 {
-				counterAddition = tc.inputListQuery.Skip
-			}
-			assert.Equal(t, len(tc.outputStatuses)-counterAddition, len(statuses))
-
-			if tc.tenant != "" {
+			if id := identity.FromContext(ctx); id != nil {
 				// deployment statuses are present in tenant's
 				// DB, verify that listing from default DB
 				// yields empty list
@@ -966,22 +1070,22 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 		"device deployment exists": {
 			deviceID:     "device0001",
 			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			status:       "pending",
+			status:       model.DeviceDeploymentStatusPending,
 		},
 		"deployment not exists": {
 			deviceID:     "device0003",
 			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
-			status:       "",
+			status:       model.DeviceDeploymentStatusNull,
 		},
 		"no deployment for device": {
 			deviceID:     "device0004",
 			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397c",
-			status:       "",
+			status:       model.DeviceDeploymentStatusNull,
 		},
 		"tenant, device deployment exists": {
 			deviceID:     "device0001",
 			deploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397a",
-			status:       "pending",
+			status:       model.DeviceDeploymentStatusPending,
 			tenant:       "acme",
 		},
 	}
@@ -1016,7 +1120,7 @@ func TestGetDeviceDeploymentStatus(t *testing.T) {
 				status, err := store.GetDeviceDeploymentStatus(context.Background(),
 					tc.deploymentID, tc.deviceID)
 				assert.NoError(t, err)
-				assert.Equal(t, model.DeviceDeploymentStatus(""), status)
+				assert.Equal(t, model.DeviceDeploymentStatus(model.DeviceDeploymentStatusNull), status)
 			}
 		})
 	}

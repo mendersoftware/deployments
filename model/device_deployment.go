@@ -23,44 +23,153 @@ import (
 	"github.com/pkg/errors"
 )
 
-type DeviceDeploymentStatus string
+// DeviceDeploymentStatus is an enumerated type showing the status of a device within a deployment
+type DeviceDeploymentStatus int32
 
 // Deployment statuses
 const (
-	DeviceDeploymentStatusDownloading        DeviceDeploymentStatus = "downloading"
-	DeviceDeploymentStatusInstalling         DeviceDeploymentStatus = "installing"
-	DeviceDeploymentStatusRebooting          DeviceDeploymentStatus = "rebooting"
-	DeviceDeploymentStatusPending            DeviceDeploymentStatus = "pending"
-	DeviceDeploymentStatusSuccess            DeviceDeploymentStatus = "success"
-	DeviceDeploymentStatusFailure            DeviceDeploymentStatus = "failure"
-	DeviceDeploymentStatusNoArtifact         DeviceDeploymentStatus = "noartifact"
-	DeviceDeploymentStatusAlreadyInst        DeviceDeploymentStatus = "already-installed"
-	DeviceDeploymentStatusAborted            DeviceDeploymentStatus = "aborted"
-	DeviceDeploymentStatusDecommissioned     DeviceDeploymentStatus = "decommissioned"
-	DeviceDeploymentStatusPauseBeforeInstall DeviceDeploymentStatus = "pause_before_installing"
-	DeviceDeploymentStatusPauseBeforeCommit  DeviceDeploymentStatus = "pause_before_committing"
-	DeviceDeploymentStatusPauseBeforeReboot  DeviceDeploymentStatus = "pause_before_rebooting"
+	// The following statuses are distributed evenly by incrementing the
+	// enum counter's second byte.
+	// NOTE: when adding new statuses into the list, use the mean value between the
+	//       neighbouring values and append the value AFTER the following list and extend
+	//       the DeviceDeploymentStatus<type>Str constant and allStatuses variable as well
+	//       as the MarshalText and UnmarshalText interface functions.
+	//       See example below.
+	// WARN: DO NOT CHANGE ANY OF THE FOLLOWING VALUES.
+	DeviceDeploymentStatusNull DeviceDeploymentStatus = iota << 8 // i=0... {i * 2^8}
+	DeviceDeploymentStatusFailure
+	DeviceDeploymentStatusAborted
+	DeviceDeploymentStatusPauseBeforeInstall
+	DeviceDeploymentStatusPauseBeforeCommit
+	DeviceDeploymentStatusPauseBeforeReboot
+	DeviceDeploymentStatusDownloading
+	DeviceDeploymentStatusInstalling
+	DeviceDeploymentStatusRebooting
+	DeviceDeploymentStatusPending
+	DeviceDeploymentStatusSuccess
+	DeviceDeploymentStatusNoArtifact
+	DeviceDeploymentStatusAlreadyInst
+	DeviceDeploymentStatusDecommissioned
+	// DeviceDeploymentStatusNew = (DeviceDeploymentStatusSuccess + DeviceDeploymentStatusNoArtifact) / 2
+
+	DeviceDeploymentStatusFailureStr            = "failure"
+	DeviceDeploymentStatusAbortedStr            = "aborted"
+	DeviceDeploymentStatusPauseBeforeInstallStr = "pause_before_installing"
+	DeviceDeploymentStatusPauseBeforeCommitStr  = "pause_before_committing"
+	DeviceDeploymentStatusPauseBeforeRebootStr  = "pause_before_rebooting"
+	DeviceDeploymentStatusDownloadingStr        = "downloading"
+	DeviceDeploymentStatusInstallingStr         = "installing"
+	DeviceDeploymentStatusRebootingStr          = "rebooting"
+	DeviceDeploymentStatusPendingStr            = "pending"
+	DeviceDeploymentStatusSuccessStr            = "success"
+	DeviceDeploymentStatusNoArtifactStr         = "noartifact"
+	DeviceDeploymentStatusAlreadyInstStr        = "already-installed"
+	DeviceDeploymentStatusDecommissionedStr     = "decommissioned"
+	// DeviceDeploymentStatusNew = "lorem-ipsum"
 )
 
-var allStatuses = []interface{}{ // NOTE: []DeviceDeploymentStatus
-	DeviceDeploymentStatusNoArtifact,
+func NewStatus(status string) DeviceDeploymentStatus {
+	var stat DeviceDeploymentStatus
+	_ = stat.UnmarshalText([]byte(status))
+	return stat
+}
+
+var allStatuses = []DeviceDeploymentStatus{
 	DeviceDeploymentStatusFailure,
-	DeviceDeploymentStatusSuccess,
-	DeviceDeploymentStatusPending,
-	DeviceDeploymentStatusRebooting,
-	DeviceDeploymentStatusInstalling,
-	DeviceDeploymentStatusDownloading,
-	DeviceDeploymentStatusAlreadyInst,
-	DeviceDeploymentStatusAborted,
-	DeviceDeploymentStatusDecommissioned,
 	DeviceDeploymentStatusPauseBeforeInstall,
 	DeviceDeploymentStatusPauseBeforeCommit,
 	DeviceDeploymentStatusPauseBeforeReboot,
+	DeviceDeploymentStatusDownloading,
+	DeviceDeploymentStatusInstalling,
+	DeviceDeploymentStatusRebooting,
+	DeviceDeploymentStatusPending,
+	DeviceDeploymentStatusSuccess,
+	DeviceDeploymentStatusAborted,
+	DeviceDeploymentStatusNoArtifact,
+	DeviceDeploymentStatusAlreadyInst,
+	DeviceDeploymentStatusDecommissioned,
+	// DeviceDeploymentStatusNew
 }
 
-func (stat DeviceDeploymentStatus) Validate() error {
-	return validation.In(allStatuses...).
-		Validate(stat)
+func (stat DeviceDeploymentStatus) MarshalText() ([]byte, error) {
+	switch stat {
+	case DeviceDeploymentStatusFailure:
+		return []byte(DeviceDeploymentStatusFailureStr), nil
+	case DeviceDeploymentStatusPauseBeforeInstall:
+		return []byte(DeviceDeploymentStatusPauseBeforeInstallStr), nil
+	case DeviceDeploymentStatusPauseBeforeCommit:
+		return []byte(DeviceDeploymentStatusPauseBeforeCommitStr), nil
+	case DeviceDeploymentStatusPauseBeforeReboot:
+		return []byte(DeviceDeploymentStatusPauseBeforeRebootStr), nil
+	case DeviceDeploymentStatusDownloading:
+		return []byte(DeviceDeploymentStatusDownloadingStr), nil
+	case DeviceDeploymentStatusInstalling:
+		return []byte(DeviceDeploymentStatusInstallingStr), nil
+	case DeviceDeploymentStatusRebooting:
+		return []byte(DeviceDeploymentStatusRebootingStr), nil
+	case DeviceDeploymentStatusPending:
+		return []byte(DeviceDeploymentStatusPendingStr), nil
+	case DeviceDeploymentStatusSuccess:
+		return []byte(DeviceDeploymentStatusSuccessStr), nil
+	case DeviceDeploymentStatusAborted:
+		return []byte(DeviceDeploymentStatusAbortedStr), nil
+	case DeviceDeploymentStatusNoArtifact:
+		return []byte(DeviceDeploymentStatusNoArtifactStr), nil
+	case DeviceDeploymentStatusAlreadyInst:
+		return []byte(DeviceDeploymentStatusAlreadyInstStr), nil
+	case DeviceDeploymentStatusDecommissioned:
+		return []byte(DeviceDeploymentStatusDecommissionedStr), nil
+	//case DeviceDeploymentStatusNew:
+	//	return []byte(DeviceDeploymentStatusNewStr), nil
+	case 0:
+		return nil, errors.New("invalid status: variable not initialized")
+	}
+	return nil, errors.New("invalid status")
+}
+
+func (stat DeviceDeploymentStatus) String() string {
+	ret, err := stat.MarshalText()
+	if err != nil {
+		return "invalid"
+	}
+	return string(ret)
+}
+
+func (stat *DeviceDeploymentStatus) UnmarshalText(b []byte) error {
+	s := string(b)
+	switch s {
+	case DeviceDeploymentStatusFailureStr:
+		*stat = DeviceDeploymentStatusFailure
+	case DeviceDeploymentStatusPauseBeforeInstallStr:
+		*stat = DeviceDeploymentStatusPauseBeforeInstall
+	case DeviceDeploymentStatusPauseBeforeCommitStr:
+		*stat = DeviceDeploymentStatusPauseBeforeCommit
+	case DeviceDeploymentStatusPauseBeforeRebootStr:
+		*stat = DeviceDeploymentStatusPauseBeforeReboot
+	case DeviceDeploymentStatusDownloadingStr:
+		*stat = DeviceDeploymentStatusDownloading
+	case DeviceDeploymentStatusInstallingStr:
+		*stat = DeviceDeploymentStatusInstalling
+	case DeviceDeploymentStatusRebootingStr:
+		*stat = DeviceDeploymentStatusRebooting
+	case DeviceDeploymentStatusPendingStr:
+		*stat = DeviceDeploymentStatusPending
+	case DeviceDeploymentStatusSuccessStr:
+		*stat = DeviceDeploymentStatusSuccess
+	case DeviceDeploymentStatusAbortedStr:
+		*stat = DeviceDeploymentStatusAborted
+	case DeviceDeploymentStatusNoArtifactStr:
+		*stat = DeviceDeploymentStatusNoArtifact
+	case DeviceDeploymentStatusAlreadyInstStr:
+		*stat = DeviceDeploymentStatusAlreadyInst
+	case DeviceDeploymentStatusDecommissionedStr:
+		*stat = DeviceDeploymentStatusDecommissioned
+	//case DeviceDeploymentStatusNewStr:
+	//	*stat = DeviceDeploymentStatusNew
+	default:
+		return errors.Errorf("invalid status for device '%s'", s)
+	}
+	return nil
 }
 
 // DeviceDeploymentStatus is a helper type for reporting status changes through
@@ -144,19 +253,36 @@ func (d DeviceDeployment) Validate() error {
 
 // Deployment statistics wrapper, each value carries a count of deployments
 // aggregated by state.
-type Stats map[DeviceDeploymentStatus]int
+type Stats map[string]int
 
 func NewDeviceDeploymentStats() Stats {
 
-	s := make(Stats)
+	s := make(Stats, len(allStatuses))
 
 	// populate statuses with 0s
-	for _, v := range allStatuses {
-		status := v.(DeviceDeploymentStatus)
-		s[status] = 0
+	for _, k := range allStatuses {
+		s[k.String()] = 0
 	}
 
 	return s
+}
+
+func (s Stats) Set(status DeviceDeploymentStatus, count int) {
+	key := status.String()
+	s[key] = count
+}
+
+func (s Stats) Inc(status DeviceDeploymentStatus) {
+	var count int
+	key := status.String()
+	count = s[key]
+	count++
+	s[key] = count
+}
+
+func (s Stats) Get(status DeviceDeploymentStatus) int {
+	key := status.String()
+	return s[key]
 }
 
 func IsDeviceDeploymentStatusFinished(status DeviceDeploymentStatus) bool {

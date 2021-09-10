@@ -1193,6 +1193,13 @@ func (d *DeploymentsApiHandlers) GetDevicesListForDeployment(w rest.ResponseWrit
 		Limit:        int(perPage),
 		DeploymentID: did,
 	}
+	if status := r.URL.Query().Get("status"); status != "" {
+		lq.Status = &status
+	}
+	if err = lq.Validate(); err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
 
 	statuses, totalCount, err := d.app.GetDevicesListForDeployment(ctx, lq)
 	if err != nil {

@@ -41,6 +41,8 @@ const (
 	CollectionStorageSettings      = "settings"
 )
 
+const DefaultDocumentLimit = 20
+
 // Internal status codes from
 // https://github.com/mongodb/mongo/blob/4.4/src/mongo/base/error_codes.yml
 const (
@@ -70,6 +72,9 @@ var (
 
 	// Indexes (version: 1.2.4)
 	IndexDeploymentStatus = "deploymentStatus"
+
+	// Indexes 1.2.6
+	IndexDeviceDeploymentStatusName = "deploymentid_status_deviceid"
 
 	_false         = false
 	_true          = true
@@ -141,6 +146,15 @@ var (
 			Background: &_false,
 			Name:       &IndexDeploymentDeviceDeploymentIdName,
 		},
+	}
+	DeviceDeploymentIdStatus = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyDeviceDeploymentDeploymentID, Value: 1},
+			{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+		},
+		Options: mopts.Index().
+			SetName(IndexDeviceDeploymentStatusName),
 	}
 	DeploymentStatusFinishedIndex = mongo.IndexModel{
 		Keys: bson.D{
@@ -1072,11 +1086,11 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(ctx context.Context,
 	// Verify ID formatting
 	if len(deviceID) == 0 ||
 		len(deploymentID) == 0 {
-		return "", ErrStorageInvalidID
+		return model.DeviceDeploymentStatusNull, ErrStorageInvalidID
 	}
 
 	if err := ddState.Validate(); err != nil {
-		return "", ErrStorageInvalidInput
+		return model.DeviceDeploymentStatusNull, ErrStorageInvalidInput
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -1110,9 +1124,9 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(ctx context.Context,
 	if err := collDevs.FindOneAndUpdate(ctx, query, update).
 		Decode(&old); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return "", ErrStorageNotFound
+			return model.DeviceDeploymentStatusNull, ErrStorageNotFound
 		}
-		return "", err
+		return model.DeviceDeploymentStatusNull, err
 
 	}
 
@@ -1231,7 +1245,7 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 
 	raw := model.NewDeviceDeploymentStats()
 	for _, res := range results {
-		raw[res.Status] = res.Count
+		raw.Set(res.Status, res.Count)
 	}
 	return raw, nil
 }
@@ -1270,18 +1284,46 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDevs := database.Collection(CollectionDevices)
 
-	query := bson.M{
-		StorageKeyDeviceDeploymentDeploymentID: q.DeploymentID,
+	query := bson.D{{
+		Key:   StorageKeyDeviceDeploymentDeploymentID,
+		Value: q.DeploymentID,
+	}}
+	if q.Status != nil {
+		if *q.Status == "pause" {
+			query = append(query, bson.E{
+				Key: "status", Value: bson.D{{
+					Key:   "$gte",
+					Value: model.DeviceDeploymentStatusPauseBeforeInstall,
+				}, {
+					Key:   "$lte",
+					Value: model.DeviceDeploymentStatusPauseBeforeReboot,
+				}},
+			})
+		} else {
+			var status model.DeviceDeploymentStatus
+			err := status.UnmarshalText([]byte(*q.Status))
+			if err != nil {
+				return nil, -1, errors.Wrap(err, "invalid status query")
+			}
+			query = append(query, bson.E{
+				Key: "status", Value: status,
+			})
+		}
 	}
 
 	options := mopts.Find()
-	sortFieldQuery := bson.D{{Key: StorageKeyDeviceDeploymentDeploymentID, Value: 1}}
+	sortFieldQuery := bson.D{
+		{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
+		{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+	}
 	options.SetSort(sortFieldQuery)
 	if q.Skip > 0 {
 		options.SetSkip(int64(q.Skip))
 	}
 	if q.Limit > 0 {
 		options.SetLimit(int64(q.Limit))
+	} else {
+		options.SetLimit(DefaultDocumentLimit)
 	}
 
 	cursor, err := collDevs.Find(ctx, query, options)
@@ -1346,9 +1388,9 @@ func (db *DataStoreMongo) GetDeviceDeploymentStatus(ctx context.Context,
 
 	if err := collDevs.FindOne(ctx, query).Decode(&dep); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return "", nil
+			return model.DeviceDeploymentStatusNull, nil
 		} else {
-			return "", err
+			return model.DeviceDeploymentStatusNull, err
 		}
 	}
 
@@ -1698,7 +1740,7 @@ func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 		return ErrStorageInvalidID
 	}
 
-	if err := stateTo.Validate(); err != nil {
+	if _, err := stateTo.MarshalText(); err != nil {
 		return ErrStorageInvalidInput
 	}
 
@@ -1711,21 +1753,21 @@ func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDpl := database.Collection(CollectionDeployments)
 
-	update := bson.M{}
+	var update bson.M
 
-	if len(stateFrom) == 0 {
+	if stateFrom == model.DeviceDeploymentStatusNull {
 		// note dot notation on embedded document
 		update = bson.M{
 			"$inc": bson.M{
-				"stats." + string(stateTo): 1,
+				"stats." + stateTo.String(): 1,
 			},
 		}
 	} else {
 		// note dot notation on embedded document
 		update = bson.M{
 			"$inc": bson.M{
-				"stats." + string(stateFrom): -1,
-				"stats." + string(stateTo):   1,
+				"stats." + stateFrom.String(): -1,
+				"stats." + stateTo.String():   1,
 			},
 		}
 	}

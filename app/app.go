@@ -1206,12 +1206,12 @@ func (d *Deployments) createDeviceDeploymentWithStatus(
 	// in the database and locally, and update deployment status
 	if err := d.db.UpdateStatsInc(
 		ctx, deployment.Id,
-		model.DeviceDeploymentStatus(""), status,
+		model.DeviceDeploymentStatusNull, status,
 	); err != nil {
 		return nil, err
 	}
 
-	deployment.Stats[status]++
+	deployment.Stats.Inc(status)
 
 	err := d.recalcDeploymentStatus(ctx, deployment)
 	if err != nil {

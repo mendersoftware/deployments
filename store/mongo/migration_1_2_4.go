@@ -134,10 +134,10 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 }
 
 func isFinished(d *model.Deployment) bool {
-	if d.Stats[model.DeviceDeploymentStatusPending] == 0 &&
-		d.Stats[model.DeviceDeploymentStatusDownloading] == 0 &&
-		d.Stats[model.DeviceDeploymentStatusInstalling] == 0 &&
-		d.Stats[model.DeviceDeploymentStatusRebooting] == 0 {
+	if d.Stats[model.DeviceDeploymentStatusPendingStr] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusDownloadingStr] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusInstallingStr] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusRebootingStr] == 0 {
 		return true
 	}
 
@@ -146,14 +146,14 @@ func isFinished(d *model.Deployment) bool {
 
 func isPending(d *model.Deployment) bool {
 	//pending > 0, evt else == 0
-	if d.Stats[model.DeviceDeploymentStatusPending] > 0 &&
-		d.Stats[model.DeviceDeploymentStatusDownloading] == 0 &&
-		d.Stats[model.DeviceDeploymentStatusInstalling] == 0 &&
-		d.Stats[model.DeviceDeploymentStatusRebooting] == 0 &&
-		d.Stats[model.DeviceDeploymentStatusSuccess] == 0 &&
-		d.Stats[model.DeviceDeploymentStatusAlreadyInst] == 0 &&
-		d.Stats[model.DeviceDeploymentStatusFailure] == 0 &&
-		d.Stats[model.DeviceDeploymentStatusNoArtifact] == 0 {
+	if d.Stats[model.DeviceDeploymentStatusPendingStr] > 0 &&
+		d.Stats[model.DeviceDeploymentStatusDownloadingStr] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusInstallingStr] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusRebootingStr] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusSuccessStr] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusAlreadyInstStr] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusFailureStr] == 0 &&
+		d.Stats[model.DeviceDeploymentStatusNoArtifactStr] == 0 {
 
 		return true
 	}
@@ -225,7 +225,7 @@ func (m *migration_1_2_4) aggregateDeviceStatuses(ctx context.Context) (map[stri
 			raw := model.NewDeviceDeploymentStats()
 			stats[res.ID.DeploymentID] = &raw
 		}
-		(*stats[res.ID.DeploymentID])[res.ID.Status] = res.Count
+		(*stats[res.ID.DeploymentID]).Set(res.ID.Status, res.Count)
 	}
 	return stats, nil
 }
