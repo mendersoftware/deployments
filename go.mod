@@ -9,7 +9,7 @@ require (
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/google/uuid v1.3.0
 	github.com/mendersoftware/go-lib-micro v0.0.0-20210816135556-ccefdb16795f
-	github.com/mendersoftware/mender-artifact v0.0.0-20210108142027-0d1536c0c4c7
+	github.com/mendersoftware/mender-artifact v0.0.0-20210906071412-2e25b81d10ad
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1

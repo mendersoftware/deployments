@@ -262,8 +262,12 @@ github.com/mendersoftware/go-lib-micro v0.0.0-20210816135556-ccefdb16795f h1:Mkf
 github.com/mendersoftware/go-lib-micro v0.0.0-20210816135556-ccefdb16795f/go.mod h1:wNWEMSAvY4mM9NoyDOjdb5J7fGJMvI4J5YkZACfhZvg=
 github.com/mendersoftware/mender-artifact v0.0.0-20210108142027-0d1536c0c4c7 h1:8wqxI6e5K14Kcy2z6DS0CUS+Eg63IOGCuQTBecjvmS0=
 github.com/mendersoftware/mender-artifact v0.0.0-20210108142027-0d1536c0c4c7/go.mod h1:jpM5MCFiZ2hSbmZAQJlccd0ShZ5+VdExrgLYersGNPc=
+github.com/mendersoftware/mender-artifact v0.0.0-20210906071412-2e25b81d10ad h1:N/VGRZqBU82VKAYfAW3nMvr3vetsExPNtH5IeOnJOTQ=
+github.com/mendersoftware/mender-artifact v0.0.0-20210906071412-2e25b81d10ad/go.mod h1:K2ee/Breld8qcB9JtHv/G3v9gdrDEbeJLLEPv25mSb4=
 github.com/mendersoftware/progressbar v0.0.2 h1:l2LZyCNmPekd/eZizs1C1fa4GCXueuXL15VsPlCZgWU=
 github.com/mendersoftware/progressbar v0.0.2/go.mod h1:NYaLNLhy3UXkRweGjhR3We3Q1ngmUmOWjC3+m8EzwjE=
+github.com/mendersoftware/progressbar v0.0.3 h1:AUdBGPvXO0l9i39rmXKZbEAPet2FzBeiG8b30D5/2Vc=
+github.com/mendersoftware/progressbar v0.0.3/go.mod h1:NYaLNLhy3UXkRweGjhR3We3Q1ngmUmOWjC3+m8EzwjE=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/minio/sha256-simd v0.1.1 h1:5QHSlgo3nt5yKOJrC7W8w7X+NFl8cMPZm96iu8kKUJU=
 github.com/minio/sha256-simd v0.1.1/go.mod h1:B5e1o+1/KgNmWrSQK08Y6Z1Vb5pwIktudl0J58iy0KM=
