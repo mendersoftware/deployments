@@ -4,16 +4,16 @@ go 1.14
 
 require (
 	github.com/ant0ine/go-json-rest v3.3.3-0.20170913041208-ebb33769ae01+incompatible
-	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
-	github.com/aws/aws-sdk-go v1.39.4
+	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
+	github.com/aws/aws-sdk-go v1.40.37
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
-	github.com/google/uuid v1.2.0
-	github.com/mendersoftware/go-lib-micro v0.0.0-20210702104141-3da9d4998db0
-	github.com/mendersoftware/mender-artifact v0.0.0-20210108142027-0d1536c0c4c7
+	github.com/google/uuid v1.3.0
+	github.com/mendersoftware/go-lib-micro v0.0.0-20210816135556-ccefdb16795f
+	github.com/mendersoftware/mender-artifact v0.0.0-20210906071412-2e25b81d10ad
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli v1.22.5
-	go.mongodb.org/mongo-driver v1.6.0
+	go.mongodb.org/mongo-driver v1.7.2
 )

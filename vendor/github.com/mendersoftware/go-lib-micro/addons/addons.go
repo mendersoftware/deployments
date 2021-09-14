@@ -16,12 +16,14 @@ package addons
 const (
 	MenderTroubleshoot = "troubleshoot"
 	MenderConfigure    = "configure"
+	MenderMonitor      = "monitor"
 )
 
 var (
 	KnownAddons = []string{
 		MenderTroubleshoot,
 		MenderConfigure,
+		MenderMonitor,
 	}
 
 	AllAddonsDisabled = []Addon{
@@ -33,6 +35,10 @@ var (
 			Name:    MenderTroubleshoot,
 			Enabled: false,
 		},
+		{
+			Name:    MenderMonitor,
+			Enabled: false,
+		},
 	}
 	AllAddonsEnabled = []Addon{
 		{
@@ -41,6 +47,10 @@ var (
 		},
 		{
 			Name:    MenderTroubleshoot,
+			Enabled: true,
+		},
+		{
+			Name:    MenderMonitor,
 			Enabled: true,
 		},
 	}

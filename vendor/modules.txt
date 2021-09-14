@@ -3,10 +3,10 @@
 github.com/ant0ine/go-json-rest/rest
 github.com/ant0ine/go-json-rest/rest/test
 github.com/ant0ine/go-json-rest/rest/trie
-# github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
+# github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 ## explicit
 github.com/asaskevich/govalidator
-# github.com/aws/aws-sdk-go v1.39.4
+# github.com/aws/aws-sdk-go v1.40.37
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -65,7 +65,7 @@ github.com/davecgh/go-spew/spew
 github.com/fsnotify/fsnotify
 # github.com/gin-contrib/sse v0.1.0
 github.com/gin-contrib/sse
-# github.com/gin-gonic/gin v1.7.2
+# github.com/gin-gonic/gin v1.7.4
 github.com/gin-gonic/gin
 github.com/gin-gonic/gin/binding
 github.com/gin-gonic/gin/internal/bytesconv
@@ -88,7 +88,7 @@ github.com/go-stack/stack
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
-# github.com/google/uuid v1.2.0
+# github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
 # github.com/hashicorp/hcl v1.0.0
@@ -121,12 +121,11 @@ github.com/leodido/go-urn
 github.com/magiconair/properties
 # github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
-# github.com/mendersoftware/go-lib-micro v0.0.0-20210702104141-3da9d4998db0
+# github.com/mendersoftware/go-lib-micro v0.0.0-20210816135556-ccefdb16795f
 ## explicit
 github.com/mendersoftware/go-lib-micro/accesslog
 github.com/mendersoftware/go-lib-micro/addons
 github.com/mendersoftware/go-lib-micro/config
-github.com/mendersoftware/go-lib-micro/customheader
 github.com/mendersoftware/go-lib-micro/identity
 github.com/mendersoftware/go-lib-micro/log
 github.com/mendersoftware/go-lib-micro/log/testing
@@ -141,7 +140,7 @@ github.com/mendersoftware/go-lib-micro/rest_utils
 github.com/mendersoftware/go-lib-micro/store
 github.com/mendersoftware/go-lib-micro/strings
 github.com/mendersoftware/go-lib-micro/testing
-# github.com/mendersoftware/mender-artifact v0.0.0-20210108142027-0d1536c0c4c7
+# github.com/mendersoftware/mender-artifact v0.0.0-20210906071412-2e25b81d10ad
 ## explicit
 github.com/mendersoftware/mender-artifact/areader
 github.com/mendersoftware/mender-artifact/artifact
@@ -149,7 +148,7 @@ github.com/mendersoftware/mender-artifact/artifact/stage
 github.com/mendersoftware/mender-artifact/awriter
 github.com/mendersoftware/mender-artifact/handlers
 github.com/mendersoftware/mender-artifact/utils
-# github.com/mendersoftware/progressbar v0.0.2
+# github.com/mendersoftware/progressbar v0.0.3
 github.com/mendersoftware/progressbar
 # github.com/minio/sha256-simd v0.1.1
 github.com/minio/sha256-simd
@@ -187,7 +186,7 @@ github.com/spf13/cast
 github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/spf13/viper v1.8.0
+# github.com/spf13/viper v1.8.1
 github.com/spf13/viper
 # github.com/stretchr/objx v0.1.1
 github.com/stretchr/objx
@@ -210,7 +209,7 @@ github.com/xdg-go/scram
 github.com/xdg-go/stringprep
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 github.com/youmark/pkcs8
-# go.mongodb.org/mongo-driver v1.6.0
+# go.mongodb.org/mongo-driver v1.7.2
 ## explicit
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
