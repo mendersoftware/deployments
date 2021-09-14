@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.40.37
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/google/uuid v1.3.0
-	github.com/mendersoftware/go-lib-micro v0.0.0-20210702104141-3da9d4998db0
+	github.com/mendersoftware/go-lib-micro v0.0.0-20210816135556-ccefdb16795f
 	github.com/mendersoftware/mender-artifact v0.0.0-20210108142027-0d1536c0c4c7
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0

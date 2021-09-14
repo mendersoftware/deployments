@@ -60,7 +60,7 @@ func DocumentFromStruct(
 
 	numAppends := len(appendElements)
 	numFields := s.NumField()
-	doc = make(bson.D, 0, numFields)
+	doc = make(bson.D, 0, numFields+numAppends)
 	fields := s.Type()
 	for i := 0; i < numFields; i++ {
 		field := fields.Field(i)
