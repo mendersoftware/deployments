@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@ type Release struct {
 	Artifacts []Image
 }
 
-type ReleaseFilter struct {
-	Name string `json:"name"`
+type ReleaseOrImageFilter struct {
+	Name    string `json:"name"`
+	Page    int    `json:"page"`
+	PerPage int    `json:"per_page"`
+	Sort    string `json:"sort"`
 }

@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/mendersoftware/go-lib-micro/identity"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -343,4 +343,162 @@ func TestArtifactUpdate(t *testing.T) {
 		img.ArtifactMeta.DeviceTypesCompatible[0])
 	assert.NoError(t, err)
 	assert.Equal(t, img.ImageMeta.Description, imgFromDB.ImageMeta.Description)
+}
+
+func TestListImages(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestListImages in short mode.")
+	}
+
+	// Make sure we start test with empty database
+	db.Wipe()
+
+	inputImgs := []*model.Image{
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d80",
+			ImageMeta: &model.ImageMeta{
+				Description: "description",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App1 v1.0",
+				DeviceTypesCompatible: []string{"foo"},
+				Updates:               []model.Update{},
+			},
+		},
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d81",
+			ImageMeta: &model.ImageMeta{
+				Description: "description",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App2 v0.1",
+				DeviceTypesCompatible: []string{"foo"},
+				Updates:               []model.Update{},
+			},
+		},
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d82",
+			ImageMeta: &model.ImageMeta{
+				Description: "description",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App1 v1.0",
+				DeviceTypesCompatible: []string{"bar, baz"},
+				Updates:               []model.Update{},
+			},
+		},
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d83",
+			ImageMeta: &model.ImageMeta{
+				Description: "description",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App1 v1.0",
+				DeviceTypesCompatible: []string{"bork"},
+				Updates:               []model.Update{},
+			},
+		},
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d84",
+			ImageMeta: &model.ImageMeta{
+				Description: "description",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App2 v0.1",
+				DeviceTypesCompatible: []string{"bar", "baz"},
+				Updates:               []model.Update{},
+			},
+		},
+	}
+
+	// setup test context
+	ctx := context.Background()
+	ds := NewDataStoreMongoWithClient(db.Client())
+	for _, img := range inputImgs {
+		err := ds.InsertImage(ctx, img)
+		assert.NoError(t, err)
+		if err != nil {
+			assert.FailNow(t, "error setting up image collection for testing")
+		}
+
+		// Convert Depends["device_type"] to bson.A for the sake of
+		// simplifying test case definitions.
+		img.ArtifactMeta.Depends = make(map[string]interface{})
+		img.ArtifactMeta.Depends["device_type"] = make(bson.A,
+			len(img.ArtifactMeta.DeviceTypesCompatible),
+		)
+		for i, devType := range img.ArtifactMeta.DeviceTypesCompatible {
+			img.ArtifactMeta.Depends["device_type"].(bson.A)[i] = devType
+		}
+	}
+
+	testCases := map[string]struct {
+		filter *model.ReleaseOrImageFilter
+
+		images      []*model.Image
+		imagesCount int
+		err         error
+	}{
+		"ok, all": {
+			filter: &model.ReleaseOrImageFilter{
+				Name: "App",
+			},
+			images: []*model.Image{
+				inputImgs[0],
+				inputImgs[2],
+				inputImgs[3],
+				inputImgs[1],
+				inputImgs[4],
+			},
+			imagesCount: 5,
+		},
+		"ok, by name": {
+			filter: &model.ReleaseOrImageFilter{
+				Name: "App2 v0.1",
+			},
+			images: []*model.Image{
+				inputImgs[1],
+				inputImgs[4],
+			},
+			imagesCount: 2,
+		},
+		"ok, by name desc, page 2": {
+			filter: &model.ReleaseOrImageFilter{
+				Name:    "App2 v0.1",
+				Sort:    "name:desc",
+				Page:    2,
+				PerPage: 1,
+			},
+			images: []*model.Image{
+				inputImgs[1],
+			},
+			imagesCount: 2,
+		},
+		"ok, not found": {
+			filter: &model.ReleaseOrImageFilter{
+				Name: "App3 v1.0",
+			},
+			images:      nil,
+			imagesCount: 0,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			images, count, err := ds.ListImages(ctx, tc.filter)
+
+			if tc.err != nil {
+				assert.EqualError(t, tc.err, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tc.images, images)
+			assert.Equal(t, tc.imagesCount, count)
+		})
+	}
 }

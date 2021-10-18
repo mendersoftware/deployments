@@ -109,8 +109,7 @@ type App interface {
 	SetStorageSettings(ctx context.Context, storageSettings *model.StorageSettings) error
 
 	// images
-	ListImages(ctx context.Context,
-		filters map[string]string) ([]*model.Image, error)
+	ListImages(ctx context.Context, filters *model.ReleaseOrImageFilter) ([]*model.Image, int, error)
 	DownloadLink(ctx context.Context, imageID string,
 		expire time.Duration) (*model.Link, error)
 	GetImage(ctx context.Context, id string) (*model.Image, error)
@@ -596,19 +595,17 @@ func (d *Deployments) DeleteImage(ctx context.Context, imageID string) error {
 }
 
 // ListImages according to specified filers.
-func (d *Deployments) ListImages(ctx context.Context,
-	filters map[string]string) ([]*model.Image, error) {
-
-	imageList, err := d.db.FindAll(ctx)
+func (d *Deployments) ListImages(ctx context.Context, filters *model.ReleaseOrImageFilter) ([]*model.Image, int, error) {
+	imageList, count, err := d.db.ListImages(ctx, filters)
 	if err != nil {
-		return nil, errors.Wrap(err, "Searching for image metadata")
+		return nil, 0, errors.Wrap(err, "Searching for image metadata")
 	}
 
 	if imageList == nil {
-		return make([]*model.Image, 0), nil
+		return make([]*model.Image, 0), 0, nil
 	}
 
-	return imageList, nil
+	return imageList, count, nil
 }
 
 // EditObject allows editing only if image have not been used yet in any deployment.

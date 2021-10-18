@@ -700,6 +700,7 @@ paths:
             - name:desc
             - modified:asc
             - modified:desc
+          default: "name:asc"
       produces:
         - application/json
       responses:
@@ -941,6 +942,7 @@ paths:
             - name:desc
             - modified:asc
             - modified:desc
+          default: "name:asc"
       produces:
         - application/json
       responses:

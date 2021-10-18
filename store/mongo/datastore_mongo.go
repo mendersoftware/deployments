@@ -16,6 +16,7 @@ package mongo
 import (
 	"context"
 	"crypto/tls"
+	"regexp"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
 
@@ -396,43 +398,56 @@ func (db *DataStoreMongo) Ping(ctx context.Context) error {
 	return res.Err()
 }
 
-func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error) {
+func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, error) {
 	var pipe []bson.D
 
-	match := db.matchFromFilt(filt)
+	pipe = []bson.D{}
+	if filt != nil && filt.Name != "" {
+		pipe = append(pipe, bson.D{
+			{Key: "$match", Value: bson.M{
+				StorageKeyImageName: bson.M{
+					"$regex": primitive.Regex{
+						Pattern: ".*" + regexp.QuoteMeta(filt.Name) + ".*",
+						Options: "i",
+					},
+				},
+			}},
+		})
+	}
 
-	project := bson.D{
+	pipe = append(pipe, bson.D{
 		// Remove (possibly expensive) sub-document from pipeline
 		{Key: "$project", Value: bson.M{StorageKeyImageDependsIdx: 0}},
-	}
+	})
 
-	group := bson.D{
+	pipe = append(pipe, bson.D{
 		{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$" + StorageKeyImageName},
-			{Key: "name", Value: bson.M{
-				"$first": "$" + StorageKeyImageName}},
-			{Key: "artifacts", Value: bson.M{"$push": "$$ROOT"}}},
-		},
-	}
+			{Key: "name", Value: bson.M{"$first": "$" + StorageKeyImageName}},
+			{Key: "artifacts", Value: bson.M{"$push": "$$ROOT"}},
+			{Key: "modified", Value: bson.M{"$max": "$modified"}},
+		}},
+	})
 
-	sort := bson.D{
-		{Key: "$sort", Value: bson.M{
-			"name": -1}},
+	sortField, sortOrder := getReleaseSortFieldAndOrder(filt)
+	if sortField == "" {
+		sortField = "name"
 	}
+	if sortOrder == 0 {
+		sortOrder = 1
+	}
+	pipe = append(pipe, bson.D{
+		{Key: "$sort", Value: bson.D{
+			{Key: sortField, Value: sortOrder},
+			{Key: "_id", Value: 1},
+		}},
+	})
 
-	if match != nil {
-		pipe = []bson.D{
-			match,
-			project,
-			group,
-			sort,
-		}
-	} else {
-		pipe = []bson.D{
-			project,
-			group,
-			sort,
-		}
+	if filt != nil && filt.Page > 0 && filt.PerPage > 0 {
+		pipe = append(pipe,
+			bson.D{{Key: "$skip", Value: int64((filt.Page - 1) * filt.PerPage)}},
+			bson.D{{Key: "$limit", Value: int64(filt.PerPage)}},
+		)
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -451,17 +466,6 @@ func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseFi
 		return nil, err
 	}
 	return results, nil
-}
-
-func (db *DataStoreMongo) matchFromFilt(f *model.ReleaseFilter) bson.D {
-	if f == nil {
-		return nil
-	}
-
-	return bson.D{
-		{Key: "$match", Value: bson.M{
-			StorageKeyImageName: f.Name}},
-	}
 }
 
 // limits
@@ -794,26 +798,75 @@ func (db *DataStoreMongo) DeleteImage(ctx context.Context, id string) error {
 	return nil
 }
 
-// FindAll lists all images
-func (db *DataStoreMongo) FindAll(ctx context.Context) ([]*model.Image, error) {
+func getReleaseSortFieldAndOrder(filt *model.ReleaseOrImageFilter) (string, int) {
+	if filt != nil && filt.Sort != "" {
+		sortParts := strings.SplitN(filt.Sort, ":", 2)
+		if len(sortParts) == 2 && (sortParts[0] == "name" || sortParts[1] == "modified") {
+			sortField := sortParts[0]
+			sortOrder := 1
+			if sortParts[1] == model.SortDirectionDescending {
+				sortOrder = -1
+			}
+			return sortField, sortOrder
+		}
+	}
+	return "", 0
+}
+
+// ListImages lists all images
+func (db *DataStoreMongo) ListImages(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]*model.Image, int, error) {
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
-	cursor, err := collImg.Find(ctx, bson.D{})
+
+	filters := bson.M{}
+	if filt != nil && filt.Name != "" {
+		filters[StorageKeyImageName] = bson.M{
+			"$regex": primitive.Regex{
+				Pattern: ".*" + regexp.QuoteMeta(filt.Name) + ".*",
+				Options: "i",
+			},
+		}
+	}
+
+	findOptions := &mopts.FindOptions{}
+	if filt != nil && filt.Page > 0 && filt.PerPage > 0 {
+		findOptions.SetSkip(int64((filt.Page - 1) * filt.PerPage))
+		findOptions.SetLimit(int64(filt.PerPage))
+	}
+
+	sortField, sortOrder := getReleaseSortFieldAndOrder(filt)
+	if sortField == "" || sortField == "name" {
+		sortField = StorageKeyImageName
+	}
+	if sortOrder == 0 {
+		sortOrder = 1
+	}
+	findOptions.SetSort(bson.D{
+		{Key: sortField, Value: sortOrder},
+		{Key: "_id", Value: sortOrder},
+	})
+
+	cursor, err := collImg.Find(ctx, filters, findOptions)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// NOTE: cursor.All closes the cursor before returning
 	var images []*model.Image
 	if err := cursor.All(ctx, &images); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, nil
+			return nil, 0, nil
 		}
-		return nil, err
+		return nil, 0, err
 	}
 
-	return images, nil
+	count, err := collImg.CountDocuments(ctx, filters)
+	if err != nil {
+		return nil, -1, ErrDevicesCountFailed
+	}
+
+	return images, int(count), nil
 }
 
 // device deployment log

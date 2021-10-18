@@ -43,13 +43,10 @@ func TestGetReleases(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestGetReleases in short mode.")
 	}
-	newID := func() string {
-		return uuid.NewV4().String()
-	}
 
 	inputImgs := []*model.Image{
 		{
-			Id: newID(),
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d80",
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
@@ -61,7 +58,7 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		{
-			Id: newID(),
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d81",
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
@@ -73,7 +70,7 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		{
-			Id: newID(),
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d82",
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
@@ -85,7 +82,7 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		{
-			Id: newID(),
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d83",
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
@@ -97,7 +94,7 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		{
-			Id: newID(),
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d84",
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
@@ -133,7 +130,7 @@ func TestGetReleases(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		releaseFilt *model.ReleaseFilter
+		releaseFilt *model.ReleaseOrImageFilter
 
 		releases []model.Release
 		err      error
@@ -141,12 +138,29 @@ func TestGetReleases(t *testing.T) {
 		"ok, all": {
 			releases: []model.Release{
 				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+				{
 					Name: "App2 v0.1",
 					Artifacts: []model.Image{
 						*inputImgs[1],
 						*inputImgs[4],
 					},
 				},
+			},
+		},
+		"ok, with sort and pagination": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort:    "name:desc",
+				Page:    2,
+				PerPage: 1,
+			},
+			releases: []model.Release{
 				{
 					Name: "App1 v1.0",
 					Artifacts: []model.Image{
@@ -158,7 +172,7 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		"ok, by name": {
-			releaseFilt: &model.ReleaseFilter{
+			releaseFilt: &model.ReleaseOrImageFilter{
 				Name: "App2 v0.1",
 			},
 			releases: []model.Release{
@@ -172,7 +186,7 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		"ok, not found": {
-			releaseFilt: &model.ReleaseFilter{
+			releaseFilt: &model.ReleaseOrImageFilter{
 				Name: "App3 v1.0",
 			},
 			releases: []model.Release{},

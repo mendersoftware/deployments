@@ -521,7 +521,7 @@ func TestListImages(t *testing.T) {
 	fakeFS := new(FakeFileStorage)
 
 	fakeIS := mocks.DataStore{}
-	fakeIS.On("FindAll",
+	fakeIS.On("ListImages",
 		mock.MatchedBy(
 			func(_ context.Context) bool {
 				return true
