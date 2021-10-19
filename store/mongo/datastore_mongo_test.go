@@ -154,6 +154,21 @@ func TestGetReleases(t *testing.T) {
 				},
 			},
 		},
+		"ok, device type": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				DeviceType: "bork",
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+			},
+		},
 		"ok, with sort and pagination": {
 			releaseFilt: &model.ReleaseOrImageFilter{
 				Sort:    "name:desc",

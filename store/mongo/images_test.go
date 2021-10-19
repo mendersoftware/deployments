@@ -457,6 +457,15 @@ func TestListImages(t *testing.T) {
 			},
 			imagesCount: 5,
 		},
+		"ok, by device type": {
+			filter: &model.ReleaseOrImageFilter{
+				DeviceType: "bork",
+			},
+			images: []*model.Image{
+				inputImgs[3],
+			},
+			imagesCount: 1,
+		},
 		"ok, by name": {
 			filter: &model.ReleaseOrImageFilter{
 				Name: "App2 v0.1",

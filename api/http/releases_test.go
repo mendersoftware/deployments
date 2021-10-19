@@ -273,6 +273,10 @@ func TestGetReleasesFilter(t *testing.T) {
 			queryString: "name=foo",
 			filter:      &dmodel.ReleaseOrImageFilter{Name: "foo"},
 		},
+		"ok, device type": {
+			queryString: "device_type=foo",
+			filter:      &dmodel.ReleaseOrImageFilter{DeviceType: "foo"},
+		},
 		"ok, paginated, empty": {
 			paginated: true,
 			filter: &dmodel.ReleaseOrImageFilter{

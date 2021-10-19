@@ -210,6 +210,9 @@ func getReleaseOrImageFilter(r *rest.Request, paginated bool) *model.ReleaseOrIm
 	if name := q.Get(ParamName); name != "" {
 		filter.Name = name
 	}
+	if deviceType := q.Get(ParamDeviceType); deviceType != "" {
+		filter.DeviceType = deviceType
+	}
 
 	if paginated {
 		if sort := q.Get(ParamSort); sort != "" {

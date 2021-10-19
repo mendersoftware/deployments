@@ -429,6 +429,14 @@ func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseOr
 		}},
 	})
 
+	if filt != nil && filt.DeviceType != "" {
+		pipe = append(pipe, bson.D{
+			{Key: "$match", Value: bson.M{
+				"artifacts." + StorageKeyImageDeviceTypes: filt.DeviceType,
+			}},
+		})
+	}
+
 	sortField, sortOrder := getReleaseSortFieldAndOrder(filt)
 	if sortField == "" {
 		sortField = "name"
@@ -820,13 +828,19 @@ func (db *DataStoreMongo) ListImages(ctx context.Context, filt *model.ReleaseOrI
 	collImg := database.Collection(CollectionImages)
 
 	filters := bson.M{}
-	if filt != nil && filt.Name != "" {
-		filters[StorageKeyImageName] = bson.M{
-			"$regex": primitive.Regex{
-				Pattern: ".*" + regexp.QuoteMeta(filt.Name) + ".*",
-				Options: "i",
-			},
+	if filt != nil {
+		if filt.Name != "" {
+			filters[StorageKeyImageName] = bson.M{
+				"$regex": primitive.Regex{
+					Pattern: ".*" + regexp.QuoteMeta(filt.Name) + ".*",
+					Options: "i",
+				},
+			}
 		}
+		if filt.DeviceType != "" {
+			filters[StorageKeyImageDeviceTypes] = filt.DeviceType
+		}
+
 	}
 
 	findOptions := &mopts.FindOptions{}
