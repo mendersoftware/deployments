@@ -445,7 +445,12 @@ func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseOr
 	if filt != nil && filt.DeviceType != "" {
 		pipe = append(pipe, bson.D{
 			{Key: "$match", Value: bson.M{
-				"artifacts." + StorageKeyImageDeviceTypes: filt.DeviceType,
+				"artifacts." + StorageKeyImageDeviceTypes: bson.M{
+					"$regex": primitive.Regex{
+						Pattern: ".*" + regexp.QuoteMeta(filt.DeviceType) + ".*",
+						Options: "i",
+					},
+				},
 			}},
 		})
 	}
@@ -859,7 +864,12 @@ func (db *DataStoreMongo) ListImages(ctx context.Context, filt *model.ReleaseOrI
 			}
 		}
 		if filt.DeviceType != "" {
-			filters[StorageKeyImageDeviceTypes] = filt.DeviceType
+			filters[StorageKeyImageDeviceTypes] = bson.M{
+				"$regex": primitive.Regex{
+					Pattern: ".*" + regexp.QuoteMeta(filt.DeviceType) + ".*",
+					Options: "i",
+				},
+			}
 		}
 
 	}
