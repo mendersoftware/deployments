@@ -106,7 +106,7 @@ func TestGetReleases(t *testing.T) {
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d84",
 			ImageMeta: &model.ImageMeta{
-				Description: "description",
+				Description: "extended description",
 			},
 
 			ArtifactMeta: &model.ArtifactMeta{
@@ -156,6 +156,42 @@ func TestGetReleases(t *testing.T) {
 						*inputImgs[3],
 					},
 				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, description partial": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Description: "description",
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, description exact": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Description: "extended description",
+			},
+			releases: []model.Release{
 				{
 					Name: "App2 v0.1",
 					Artifacts: []model.Image{

@@ -19,9 +19,10 @@ type Release struct {
 }
 
 type ReleaseOrImageFilter struct {
-	Name       string `json:"name"`
-	DeviceType string `json:"device_type"`
-	Page       int    `json:"page"`
-	PerPage    int    `json:"per_page"`
-	Sort       string `json:"sort"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	DeviceType  string `json:"device_type"`
+	Page        int    `json:"page"`
+	PerPage     int    `json:"per_page"`
+	Sort        string `json:"sort"`
 }

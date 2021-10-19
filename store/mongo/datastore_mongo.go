@@ -300,6 +300,7 @@ const (
 	StorageKeyImageSize        = "size"
 	StorageKeyImageDeviceTypes = "meta_artifact.device_types_compatible"
 	StorageKeyImageName        = "meta_artifact.name"
+	StorageKeyImageDescription = "meta.description"
 
 	StorageKeyDeviceDeploymentLogMessages = "messages"
 
@@ -429,6 +430,18 @@ func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseOr
 		}},
 	})
 
+	if filt != nil && filt.Description != "" {
+		pipe = append(pipe, bson.D{
+			{Key: "$match", Value: bson.M{
+				"artifacts." + StorageKeyImageDescription: bson.M{
+					"$regex": primitive.Regex{
+						Pattern: ".*" + regexp.QuoteMeta(filt.Description) + ".*",
+						Options: "i",
+					},
+				},
+			}},
+		})
+	}
 	if filt != nil && filt.DeviceType != "" {
 		pipe = append(pipe, bson.D{
 			{Key: "$match", Value: bson.M{
@@ -833,6 +846,14 @@ func (db *DataStoreMongo) ListImages(ctx context.Context, filt *model.ReleaseOrI
 			filters[StorageKeyImageName] = bson.M{
 				"$regex": primitive.Regex{
 					Pattern: ".*" + regexp.QuoteMeta(filt.Name) + ".*",
+					Options: "i",
+				},
+			}
+		}
+		if filt.Description != "" {
+			filters[StorageKeyImageDescription] = bson.M{
+				"$regex": primitive.Regex{
+					Pattern: ".*" + regexp.QuoteMeta(filt.Description) + ".*",
 					Options: "i",
 				},
 			}

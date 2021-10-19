@@ -547,6 +547,11 @@ paths:
           description: Release name filter.
           required: false
           type: string
+        - name: description
+          in: query
+          description: Release description filter.
+          required: false
+          type: string
         - name: device_type
           in: query
           description: Release device type filter.
@@ -667,6 +672,11 @@ paths:
         - name: name
           in: query
           description: Release name filter.
+          required: false
+          type: string
+        - name: description
+          in: query
+          description: Release description filter.
           required: false
           type: string
         - name: device_type
@@ -831,6 +841,11 @@ paths:
           description: Release name filter.
           required: false
           type: string
+        - name: description
+          in: query
+          description: Release description filter.
+          required: false
+          type: string
         - name: device_type
           in: query
           description: Release device type filter.
@@ -909,6 +924,11 @@ paths:
         - name: name
           in: query
           description: Artifact name filter.
+          required: false
+          type: string
+        - name: description
+          in: query
+          description: Artifact description filter.
           required: false
           type: string
         - name: device_type

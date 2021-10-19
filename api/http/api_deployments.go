@@ -67,6 +67,7 @@ const (
 	ParamDeviceID     = "device_id"
 	ParamTenantID     = "tenant_id"
 	ParamName         = "name"
+	ParamDescription  = "description"
 	ParamPage         = "page"
 	ParamPerPage      = "per_page"
 	ParamSort         = "sort"
@@ -209,6 +210,9 @@ func getReleaseOrImageFilter(r *rest.Request, paginated bool) *model.ReleaseOrIm
 
 	if name := q.Get(ParamName); name != "" {
 		filter.Name = name
+	}
+	if description := q.Get(ParamDescription); description != "" {
+		filter.Description = description
 	}
 	if deviceType := q.Get(ParamDeviceType); deviceType != "" {
 		filter.DeviceType = deviceType

@@ -409,7 +409,7 @@ func TestListImages(t *testing.T) {
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d84",
 			ImageMeta: &model.ImageMeta{
-				Description: "description",
+				Description: "extended description",
 			},
 
 			ArtifactMeta: &model.ArtifactMeta{
@@ -461,6 +461,28 @@ func TestListImages(t *testing.T) {
 				inputImgs[4],
 			},
 			imagesCount: 5,
+		},
+		"ok, description": {
+			filter: &model.ReleaseOrImageFilter{
+				Description: "description",
+			},
+			images: []*model.Image{
+				inputImgs[0],
+				inputImgs[2],
+				inputImgs[3],
+				inputImgs[1],
+				inputImgs[4],
+			},
+			imagesCount: 5,
+		},
+		"ok, description extended": {
+			filter: &model.ReleaseOrImageFilter{
+				Description: "extended description",
+			},
+			images: []*model.Image{
+				inputImgs[4],
+			},
+			imagesCount: 1,
 		},
 		"ok, sort by modified asc": {
 			filter: &model.ReleaseOrImageFilter{
