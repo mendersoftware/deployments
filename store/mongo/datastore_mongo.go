@@ -378,7 +378,7 @@ func NewMongoClient(ctx context.Context, c config.Reader) (*mongo.Client, error)
 	}
 
 	// Set 10s timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
