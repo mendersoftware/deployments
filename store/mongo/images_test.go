@@ -365,6 +365,7 @@ func TestListImages(t *testing.T) {
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:00:00+00:00"),
 		},
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d81",
@@ -377,6 +378,7 @@ func TestListImages(t *testing.T) {
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:02:00+00:00"),
 		},
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d82",
@@ -389,6 +391,7 @@ func TestListImages(t *testing.T) {
 				DeviceTypesCompatible: []string{"bar, baz"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:01:00+00:00"),
 		},
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d83",
@@ -401,6 +404,7 @@ func TestListImages(t *testing.T) {
 				DeviceTypesCompatible: []string{"bork"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:04:00+00:00"),
 		},
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d84",
@@ -413,6 +417,7 @@ func TestListImages(t *testing.T) {
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:03:00+00:00"),
 		},
 	}
 
@@ -454,6 +459,32 @@ func TestListImages(t *testing.T) {
 				inputImgs[3],
 				inputImgs[1],
 				inputImgs[4],
+			},
+			imagesCount: 5,
+		},
+		"ok, sort by modified asc": {
+			filter: &model.ReleaseOrImageFilter{
+				Sort: "modified:asc",
+			},
+			images: []*model.Image{
+				inputImgs[0],
+				inputImgs[2],
+				inputImgs[1],
+				inputImgs[4],
+				inputImgs[3],
+			},
+			imagesCount: 5,
+		},
+		"ok, sort by modified desc": {
+			filter: &model.ReleaseOrImageFilter{
+				Sort: "modified:desc",
+			},
+			images: []*model.Image{
+				inputImgs[3],
+				inputImgs[4],
+				inputImgs[1],
+				inputImgs[2],
+				inputImgs[0],
 			},
 			imagesCount: 5,
 		},

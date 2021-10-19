@@ -809,7 +809,7 @@ func (db *DataStoreMongo) DeleteImage(ctx context.Context, id string) error {
 func getReleaseSortFieldAndOrder(filt *model.ReleaseOrImageFilter) (string, int) {
 	if filt != nil && filt.Sort != "" {
 		sortParts := strings.SplitN(filt.Sort, ":", 2)
-		if len(sortParts) == 2 && (sortParts[0] == "name" || sortParts[1] == "modified") {
+		if len(sortParts) == 2 && (sortParts[0] == "name" || sortParts[0] == "modified") {
 			sortField := sortParts[0]
 			sortOrder := 1
 			if sortParts[1] == model.SortDirectionDescending {

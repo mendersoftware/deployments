@@ -39,6 +39,12 @@ func TestPing(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func timePtr(timeStr string) *time.Time {
+	t, _ := time.Parse(time.RFC3339, timeStr)
+	t = t.UTC()
+	return &t
+}
+
 func TestGetReleases(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestGetReleases in short mode.")
@@ -56,6 +62,7 @@ func TestGetReleases(t *testing.T) {
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:00:00+00:00"),
 		},
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d81",
@@ -68,6 +75,7 @@ func TestGetReleases(t *testing.T) {
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T23:02:00+00:00"),
 		},
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d82",
@@ -80,6 +88,7 @@ func TestGetReleases(t *testing.T) {
 				DeviceTypesCompatible: []string{"bar, baz"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:00:01+00:00"),
 		},
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d83",
@@ -92,6 +101,7 @@ func TestGetReleases(t *testing.T) {
 				DeviceTypesCompatible: []string{"bork"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:00:04+00:00"),
 		},
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d84",
@@ -104,6 +114,7 @@ func TestGetReleases(t *testing.T) {
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T23:00:00+00:00"),
 		},
 	}
 
@@ -150,6 +161,50 @@ func TestGetReleases(t *testing.T) {
 					Artifacts: []model.Image{
 						*inputImgs[1],
 						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, sort by modified asc": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort: "modified:asc",
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, sort by modified desc": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort: "modified:desc",
+			},
+			releases: []model.Release{
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
 					},
 				},
 			},
