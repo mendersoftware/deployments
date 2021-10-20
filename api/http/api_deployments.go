@@ -204,24 +204,17 @@ func (u *DeploymentsApiHandlers) HealthHandler(w rest.ResponseWriter, r *rest.Re
 }
 
 func getReleaseOrImageFilter(r *rest.Request, paginated bool) *model.ReleaseOrImageFilter {
-	filter := &model.ReleaseOrImageFilter{}
 
 	q := r.URL.Query()
 
-	if name := q.Get(ParamName); name != "" {
-		filter.Name = name
-	}
-	if description := q.Get(ParamDescription); description != "" {
-		filter.Description = description
-	}
-	if deviceType := q.Get(ParamDeviceType); deviceType != "" {
-		filter.DeviceType = deviceType
+	filter := &model.ReleaseOrImageFilter{
+		Name:        q.Get(ParamName),
+		Description: q.Get(ParamDescription),
+		DeviceType:  q.Get(ParamDeviceType),
 	}
 
 	if paginated {
-		if sort := q.Get(ParamSort); sort != "" {
-			filter.Sort = sort
-		}
+		filter.Sort = q.Get(ParamSort)
 		if page := q.Get(ParamPage); page != "" {
 			if i, err := strconv.Atoi(page); err == nil {
 				filter.Page = i
