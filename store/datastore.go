@@ -25,7 +25,7 @@ import (
 type DataStore interface {
 	Ping(ctx context.Context) error
 	//releases
-	GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error)
+	GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, int, error)
 
 	//limits
 	GetLimit(ctx context.Context, name string) (*model.Limit, error)
@@ -45,7 +45,7 @@ type DataStore interface {
 	IsArtifactUnique(ctx context.Context, artifactName string,
 		deviceTypesCompatible []string) (bool, error)
 	DeleteImage(ctx context.Context, id string) error
-	FindAll(ctx context.Context) ([]*model.Image, error)
+	ListImages(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]*model.Image, int, error)
 
 	//artifact getter
 	ImagesByName(ctx context.Context,

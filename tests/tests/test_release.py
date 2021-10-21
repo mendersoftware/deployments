@@ -38,7 +38,7 @@ class TestRelease:
         assert len(rsp[0]) == 0
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
-    def test_get_all_releses(self):
+    def test_get_all_releases(self):
         with artifacts_added_from_data(
             [
                 ("foo", "device-type-1"),
@@ -53,24 +53,25 @@ class TestRelease:
             assert len(res) == 2
             release1 = res[0]
             release2 = res[1]
-            assert release1.Name == "foo"
-            assert len(release1.Artifacts) == 2
 
-            r1a1 = release1.Artifacts[0]
-            r1a2 = release1.Artifacts[1]
-            assert r1a1["name"] == "foo"
-            assert r1a1["device_types_compatible"] == ["device-type-1"]
-            assert r1a2["name"] == "foo"
-            assert r1a2["device_types_compatible"] == ["device-type-2"]
+            assert release1.Name == "bar"
+            assert len(release1.Artifacts) == 1
+            r1a = release1.Artifacts[0]
+            assert r1a["name"] == "bar"
+            assert r1a["device_types_compatible"] == ["device-type-2"]
 
-            assert release2.Name == "bar"
-            assert len(release2.Artifacts) == 1
-            r2a = release2.Artifacts[0]
-            assert r2a["name"] == "bar"
-            assert r2a["device_types_compatible"] == ["device-type-2"]
+            assert release2.Name == "foo"
+            assert len(release2.Artifacts) == 2
+
+            r2a1 = release2.Artifacts[0]
+            r2a2 = release2.Artifacts[1]
+            assert r2a1["name"] == "foo"
+            assert r2a1["device_types_compatible"] == ["device-type-1"]
+            assert r2a2["name"] == "foo"
+            assert r2a2["device_types_compatible"] == ["device-type-2"]
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
-    def test_get_releses_by_name(self):
+    def test_get_releases_by_name(self):
         with artifacts_added_from_data(
             [
                 ("foo", "device-type-1"),
@@ -91,7 +92,7 @@ class TestRelease:
             assert artifact["device_types_compatible"] == ["device-type-2"]
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
-    def test_get_releses_by_name_no_result(self):
+    def test_get_releases_by_name_no_result(self):
         with artifacts_added_from_data(
             [
                 ("foo", "device-type-1"),

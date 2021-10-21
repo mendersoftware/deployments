@@ -498,11 +498,11 @@ func (_m *App) IsDeploymentFinished(ctx context.Context, deploymentID string) (b
 }
 
 // ListImages provides a mock function with given fields: ctx, filters
-func (_m *App) ListImages(ctx context.Context, filters map[string]string) ([]*model.Image, error) {
+func (_m *App) ListImages(ctx context.Context, filters *model.ReleaseOrImageFilter) ([]*model.Image, int, error) {
 	ret := _m.Called(ctx, filters)
 
 	var r0 []*model.Image
-	if rf, ok := ret.Get(0).(func(context.Context, map[string]string) []*model.Image); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *model.ReleaseOrImageFilter) []*model.Image); ok {
 		r0 = rf(ctx, filters)
 	} else {
 		if ret.Get(0) != nil {
@@ -510,14 +510,21 @@ func (_m *App) ListImages(ctx context.Context, filters map[string]string) ([]*mo
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, map[string]string) error); ok {
+	var r1 int
+	if rf, ok := ret.Get(1).(func(context.Context, *model.ReleaseOrImageFilter) int); ok {
 		r1 = rf(ctx, filters)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int)
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, *model.ReleaseOrImageFilter) error); ok {
+		r2 = rf(ctx, filters)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // LookupDeployment provides a mock function with given fields: ctx, query

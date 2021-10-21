@@ -27,10 +27,14 @@ import (
 	"github.com/mendersoftware/deployments/app"
 	app_mocks "github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
+	dmodel "github.com/mendersoftware/deployments/model"
 	store_mocks "github.com/mendersoftware/deployments/store/mocks"
 	store_mongo "github.com/mendersoftware/deployments/store/mongo"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
+	deployments_testing "github.com/mendersoftware/deployments/utils/testing"
 	h "github.com/mendersoftware/deployments/utils/testing"
+	"github.com/mendersoftware/go-lib-micro/requestid"
+	mt "github.com/mendersoftware/go-lib-micro/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -748,5 +752,188 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestGetImages(t *testing.T) {
+	testCases := map[string]struct {
+		filter   *dmodel.ReleaseOrImageFilter
+		images   []*model.Image
+		appError error
+		checker  mt.ResponseChecker
+	}{
+		"ok": {
+			filter: &dmodel.ReleaseOrImageFilter{},
+			images: []*dmodel.Image{
+				{
+					Id:   "1",
+					Size: 1000,
+				},
+			},
+			checker: mt.NewJSONResponse(
+				http.StatusOK,
+				nil,
+				[]*dmodel.Image{
+					{
+						Id:   "1",
+						Size: 1000,
+					},
+				},
+			),
+		},
+		"ok, empty": {
+			filter: &dmodel.ReleaseOrImageFilter{},
+			images: []*dmodel.Image{},
+			checker: mt.NewJSONResponse(
+				http.StatusOK,
+				nil,
+				[]*dmodel.Image{},
+			),
+		},
+		"ok, filter": {
+			filter: &dmodel.ReleaseOrImageFilter{Name: "foo"},
+			images: []*dmodel.Image{},
+			checker: mt.NewJSONResponse(
+				http.StatusOK,
+				nil,
+				[]*dmodel.Image{},
+			),
+		},
+		"error: generic": {
+			filter:   &dmodel.ReleaseOrImageFilter{},
+			images:   []*dmodel.Image{},
+			appError: errors.New("database error"),
+			checker: mt.NewJSONResponse(
+				http.StatusInternalServerError,
+				nil,
+				deployments_testing.RestError("internal error"),
+			),
+		},
+	}
+
+	for name := range testCases {
+		tc := testCases[name]
+
+		t.Run(name, func(t *testing.T) {
+			restView := new(view.RESTView)
+			app := &app_mocks.App{}
+			defer app.AssertExpectations(t)
+
+			app.On("ListImages",
+				deployments_testing.ContextMatcher(),
+				tc.filter,
+			).Return(tc.images, len(tc.images), tc.appError)
+
+			c := NewDeploymentsApiHandlers(nil, restView, app)
+
+			api := deployments_testing.SetUpTestApi("/api/management/v1/artifacts", rest.Get, c.GetImages)
+
+			reqUrl := "http://1.2.3.4/api/management/v1/artifacts"
+
+			if tc.filter != nil {
+				reqUrl += "?name=" + tc.filter.Name
+			}
+
+			req := test.MakeSimpleRequest("GET",
+				reqUrl,
+				nil)
+
+			req.Header.Add(requestid.RequestIdHeader, "test")
+
+			recorded := test.RunRequest(t, api, req)
+
+			mt.CheckResponse(t, tc.checker, recorded)
+		})
+	}
+}
+
+func TestListImages(t *testing.T) {
+	testCases := map[string]struct {
+		filter   *dmodel.ReleaseOrImageFilter
+		images   []*model.Image
+		appError error
+		checker  mt.ResponseChecker
+	}{
+		"ok": {
+			filter: &dmodel.ReleaseOrImageFilter{Page: 1, PerPage: 20},
+			images: []*dmodel.Image{
+				{
+					Id:   "1",
+					Size: 1000,
+				},
+			},
+			checker: mt.NewJSONResponse(
+				http.StatusOK,
+				nil,
+				[]*dmodel.Image{
+					{
+						Id:   "1",
+						Size: 1000,
+					},
+				},
+			),
+		},
+		"ok, empty": {
+			filter: &dmodel.ReleaseOrImageFilter{Page: 1, PerPage: 20},
+			images: []*dmodel.Image{},
+			checker: mt.NewJSONResponse(
+				http.StatusOK,
+				nil,
+				[]*dmodel.Image{},
+			),
+		},
+		"ok, filter": {
+			filter: &dmodel.ReleaseOrImageFilter{Name: "foo", Page: 1, PerPage: 20},
+			images: []*dmodel.Image{},
+			checker: mt.NewJSONResponse(
+				http.StatusOK,
+				nil,
+				[]*dmodel.Image{},
+			),
+		},
+		"error: generic": {
+			filter:   &dmodel.ReleaseOrImageFilter{Page: 1, PerPage: 20},
+			images:   []*dmodel.Image{},
+			appError: errors.New("database error"),
+			checker: mt.NewJSONResponse(
+				http.StatusInternalServerError,
+				nil,
+				deployments_testing.RestError("internal error"),
+			),
+		},
+	}
+
+	for name := range testCases {
+		tc := testCases[name]
+
+		t.Run(name, func(t *testing.T) {
+			restView := new(view.RESTView)
+			app := &app_mocks.App{}
+			defer app.AssertExpectations(t)
+
+			app.On("ListImages",
+				deployments_testing.ContextMatcher(),
+				tc.filter,
+			).Return(tc.images, len(tc.images), tc.appError)
+
+			c := NewDeploymentsApiHandlers(nil, restView, app)
+
+			api := deployments_testing.SetUpTestApi("/api/management/v1/artifacts/list", rest.Get, c.ListImages)
+
+			reqUrl := "http://1.2.3.4/api/management/v1/artifacts/list"
+
+			if tc.filter != nil {
+				reqUrl += "?name=" + tc.filter.Name
+			}
+
+			req := test.MakeSimpleRequest("GET",
+				reqUrl,
+				nil)
+
+			req.Header.Add(requestid.RequestIdHeader, "test")
+
+			recorded := test.RunRequest(t, api, req)
+
+			mt.CheckResponse(t, tc.checker, recorded)
+		})
+	}
 }

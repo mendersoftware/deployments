@@ -39,17 +39,20 @@ func TestPing(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func timePtr(timeStr string) *time.Time {
+	t, _ := time.Parse(time.RFC3339, timeStr)
+	t = t.UTC()
+	return &t
+}
+
 func TestGetReleases(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestGetReleases in short mode.")
 	}
-	newID := func() string {
-		return uuid.NewV4().String()
-	}
 
 	inputImgs := []*model.Image{
 		{
-			Id: newID(),
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d80",
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
@@ -59,9 +62,10 @@ func TestGetReleases(t *testing.T) {
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:00:00+00:00"),
 		},
 		{
-			Id: newID(),
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d81",
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
@@ -71,9 +75,10 @@ func TestGetReleases(t *testing.T) {
 				DeviceTypesCompatible: []string{"foo"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T23:02:00+00:00"),
 		},
 		{
-			Id: newID(),
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d82",
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
@@ -83,9 +88,10 @@ func TestGetReleases(t *testing.T) {
 				DeviceTypesCompatible: []string{"bar, baz"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:00:01+00:00"),
 		},
 		{
-			Id: newID(),
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d83",
 			ImageMeta: &model.ImageMeta{
 				Description: "description",
 			},
@@ -95,11 +101,12 @@ func TestGetReleases(t *testing.T) {
 				DeviceTypesCompatible: []string{"bork"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T22:00:04+00:00"),
 		},
 		{
-			Id: newID(),
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d84",
 			ImageMeta: &model.ImageMeta{
-				Description: "description",
+				Description: "extended description",
 			},
 
 			ArtifactMeta: &model.ArtifactMeta{
@@ -107,6 +114,7 @@ func TestGetReleases(t *testing.T) {
 				DeviceTypesCompatible: []string{"bar", "baz"},
 				Updates:               []model.Update{},
 			},
+			Modified: timePtr("2010-09-22T23:00:00+00:00"),
 		},
 	}
 
@@ -133,12 +141,92 @@ func TestGetReleases(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		releaseFilt *model.ReleaseFilter
+		releaseFilt *model.ReleaseOrImageFilter
 
 		releases []model.Release
 		err      error
 	}{
 		"ok, all": {
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, description partial": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Description: "description",
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, description exact": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Description: "extended description",
+			},
+			releases: []model.Release{
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, sort by modified asc": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort: "modified:asc",
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, sort by modified desc": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort: "modified:desc",
+			},
 			releases: []model.Release{
 				{
 					Name: "App2 v0.1",
@@ -157,8 +245,40 @@ func TestGetReleases(t *testing.T) {
 				},
 			},
 		},
+		"ok, device type": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				DeviceType: "bork",
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+			},
+		},
+		"ok, with sort and pagination": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort:    "name:desc",
+				Page:    2,
+				PerPage: 1,
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+			},
+		},
 		"ok, by name": {
-			releaseFilt: &model.ReleaseFilter{
+			releaseFilt: &model.ReleaseOrImageFilter{
 				Name: "App2 v0.1",
 			},
 			releases: []model.Release{
@@ -172,7 +292,7 @@ func TestGetReleases(t *testing.T) {
 			},
 		},
 		"ok, not found": {
-			releaseFilt: &model.ReleaseFilter{
+			releaseFilt: &model.ReleaseOrImageFilter{
 				Name: "App3 v1.0",
 			},
 			releases: []model.Release{},
@@ -182,7 +302,7 @@ func TestGetReleases(t *testing.T) {
 	for name, tc := range testCases {
 
 		t.Run(name, func(t *testing.T) {
-			releases, err := ds.GetReleases(ctx, tc.releaseFilt)
+			releases, count, err := ds.GetReleases(ctx, tc.releaseFilt)
 
 			if tc.err != nil {
 				assert.EqualError(t, tc.err, err.Error())
@@ -190,6 +310,7 @@ func TestGetReleases(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tc.releases, releases)
+			assert.GreaterOrEqual(t, count, len(tc.releases))
 		})
 	}
 }

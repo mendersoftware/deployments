@@ -39,6 +39,7 @@ const (
 	ApiUrlDevices    = "/api/devices/v1/deployments"
 
 	ApiUrlManagementArtifacts           = ApiUrlManagement + "/artifacts"
+	ApiUrlManagementArtifactsList       = ApiUrlManagement + "/artifacts/list"
 	ApiUrlManagementArtifactsGenerate   = ApiUrlManagement + "/artifacts/generate"
 	ApiUrlManagementArtifactsId         = ApiUrlManagement + "/artifacts/:id"
 	ApiUrlManagementArtifactsIdDownload = ApiUrlManagement + "/artifacts/:id/download"
@@ -53,7 +54,8 @@ const (
 	ApiUrlManagementDeploymentsLog         = ApiUrlManagement + "/deployments/:id/devices/:devid/log"
 	ApiUrlManagementDeploymentsDeviceList  = ApiUrlManagement + "/deployments/:id/device_list"
 
-	ApiUrlManagementReleases = ApiUrlManagement + "/deployments/releases"
+	ApiUrlManagementReleases     = ApiUrlManagement + "/deployments/releases"
+	ApiUrlManagementReleasesList = ApiUrlManagement + "/deployments/releases/list"
 
 	ApiUrlManagementLimitsName = ApiUrlManagement + "/limits/:name"
 
@@ -161,7 +163,8 @@ func NewImagesResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	return []*rest.Route{
 		rest.Post(ApiUrlManagementArtifacts, controller.NewImage),
 		rest.Post(ApiUrlManagementArtifactsGenerate, controller.GenerateImage),
-		rest.Get(ApiUrlManagementArtifacts, controller.ListImages),
+		rest.Get(ApiUrlManagementArtifacts, controller.GetImages),
+		rest.Get(ApiUrlManagementArtifactsList, controller.ListImages),
 
 		rest.Get(ApiUrlManagementArtifactsId, controller.GetImage),
 		rest.Delete(ApiUrlManagementArtifactsId, controller.DeleteImage),
@@ -251,6 +254,7 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 
 	return []*rest.Route{
 		rest.Get(ApiUrlManagementReleases, controller.GetReleases),
+		rest.Get(ApiUrlManagementReleasesList, controller.ListReleases),
 	}
 }
 

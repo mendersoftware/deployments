@@ -16,6 +16,7 @@ package mongo
 import (
 	"context"
 	"crypto/tls"
+	"regexp"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
 
@@ -260,6 +262,29 @@ var (
 			Unique:     &_true,
 		},
 	}
+
+	// Indexes 1.2.7
+	IndexImageMetaDescription      = "image_meta_description"
+	IndexImageMetaDescriptionModel = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyImageDescription, Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexImageMetaDescription,
+		},
+	}
+
+	IndexImageMetaArtifactDeviceTypeCompatible      = "image_meta_artifact_device_type_compatible"
+	IndexImageMetaArtifactDeviceTypeCompatibleModel = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyImageDeviceTypes, Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexImageMetaArtifactDeviceTypeCompatible,
+		},
+	}
 )
 
 // Errors
@@ -298,6 +323,7 @@ const (
 	StorageKeyImageSize        = "size"
 	StorageKeyImageDeviceTypes = "meta_artifact.device_types_compatible"
 	StorageKeyImageName        = "meta_artifact.name"
+	StorageKeyImageDescription = "meta.description"
 
 	StorageKeyDeviceDeploymentLogMessages = "messages"
 
@@ -376,7 +402,7 @@ func NewMongoClient(ctx context.Context, c config.Reader) (*mongo.Client, error)
 	}
 
 	// Set 10s timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
@@ -396,72 +422,115 @@ func (db *DataStoreMongo) Ping(ctx context.Context) error {
 	return res.Err()
 }
 
-func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error) {
+func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, int, error) {
 	var pipe []bson.D
 
-	match := db.matchFromFilt(filt)
+	pipe = []bson.D{}
+	if filt != nil && filt.Name != "" {
+		pipe = append(pipe, bson.D{
+			{Key: "$match", Value: bson.M{
+				StorageKeyImageName: bson.M{
+					"$regex": primitive.Regex{
+						Pattern: ".*" + regexp.QuoteMeta(filt.Name) + ".*",
+						Options: "i",
+					},
+				},
+			}},
+		})
+	}
 
-	project := bson.D{
+	pipe = append(pipe, bson.D{
 		// Remove (possibly expensive) sub-document from pipeline
 		{Key: "$project", Value: bson.M{StorageKeyImageDependsIdx: 0}},
-	}
+	})
 
-	group := bson.D{
+	pipe = append(pipe, bson.D{
 		{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$" + StorageKeyImageName},
-			{Key: "name", Value: bson.M{
-				"$first": "$" + StorageKeyImageName}},
-			{Key: "artifacts", Value: bson.M{"$push": "$$ROOT"}}},
-		},
+			{Key: "name", Value: bson.M{"$first": "$" + StorageKeyImageName}},
+			{Key: "artifacts", Value: bson.M{"$push": "$$ROOT"}},
+			{Key: "modified", Value: bson.M{"$max": "$modified"}},
+		}},
+	})
+
+	if filt != nil && filt.Description != "" {
+		pipe = append(pipe, bson.D{
+			{Key: "$match", Value: bson.M{
+				"artifacts." + StorageKeyImageDescription: bson.M{
+					"$regex": primitive.Regex{
+						Pattern: ".*" + regexp.QuoteMeta(filt.Description) + ".*",
+						Options: "i",
+					},
+				},
+			}},
+		})
+	}
+	if filt != nil && filt.DeviceType != "" {
+		pipe = append(pipe, bson.D{
+			{Key: "$match", Value: bson.M{
+				"artifacts." + StorageKeyImageDeviceTypes: bson.M{
+					"$regex": primitive.Regex{
+						Pattern: ".*" + regexp.QuoteMeta(filt.DeviceType) + ".*",
+						Options: "i",
+					},
+				},
+			}},
+		})
 	}
 
-	sort := bson.D{
-		{Key: "$sort", Value: bson.M{
-			"name": -1}},
+	sortField, sortOrder := getReleaseSortFieldAndOrder(filt)
+	if sortField == "" {
+		sortField = "name"
+	}
+	if sortOrder == 0 {
+		sortOrder = 1
 	}
 
-	if match != nil {
-		pipe = []bson.D{
-			match,
-			project,
-			group,
-			sort,
-		}
-	} else {
-		pipe = []bson.D{
-			project,
-			group,
-			sort,
-		}
+	page := 1
+	perPage := 100 // math.MaxInt64
+	if filt != nil && filt.Page > 0 && filt.PerPage > 0 {
+		page = filt.Page
+		perPage = filt.PerPage
 	}
+	pipe = append(pipe,
+		bson.D{{Key: "$facet", Value: bson.D{
+			{Key: "results", Value: []bson.D{
+				{
+					{Key: "$sort", Value: bson.D{
+						{Key: sortField, Value: sortOrder},
+						{Key: "_id", Value: 1},
+					}},
+				},
+				{{Key: "$skip", Value: int64((page - 1) * perPage)}},
+				{{Key: "$limit", Value: int64(perPage)}},
+			}},
+			{Key: "count", Value: []bson.D{
+				{{Key: "$count", Value: "count"}},
+			}},
+		}}},
+	)
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
-	results := []model.Release{}
 	cursor, err := collImg.Aggregate(ctx, pipe)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	// NOTE: Call to cursor.All will automatically close cursor
-	if err = cursor.All(ctx, &results); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return results, nil
-}
+	defer cursor.Close(ctx)
 
-func (db *DataStoreMongo) matchFromFilt(f *model.ReleaseFilter) bson.D {
-	if f == nil {
-		return nil
+	result := struct {
+		Results []model.Release       `bson:"results"`
+		Count   []struct{ Count int } `bson:"count"`
+	}{}
+	if !cursor.Next(ctx) {
+		return nil, 0, nil
+	} else if err = cursor.Decode(&result); err != nil {
+		return nil, 0, err
+	} else if len(result.Count) == 0 {
+		return []model.Release{}, 0, err
 	}
-
-	return bson.D{
-		{Key: "$match", Value: bson.M{
-			StorageKeyImageName: f.Name}},
-	}
+	return result.Results, result.Count[0].Count, nil
 }
 
 // limits
@@ -794,26 +863,94 @@ func (db *DataStoreMongo) DeleteImage(ctx context.Context, id string) error {
 	return nil
 }
 
-// FindAll lists all images
-func (db *DataStoreMongo) FindAll(ctx context.Context) ([]*model.Image, error) {
+func getReleaseSortFieldAndOrder(filt *model.ReleaseOrImageFilter) (string, int) {
+	if filt != nil && filt.Sort != "" {
+		sortParts := strings.SplitN(filt.Sort, ":", 2)
+		if len(sortParts) == 2 && (sortParts[0] == "name" || sortParts[0] == "modified") {
+			sortField := sortParts[0]
+			sortOrder := 1
+			if sortParts[1] == model.SortDirectionDescending {
+				sortOrder = -1
+			}
+			return sortField, sortOrder
+		}
+	}
+	return "", 0
+}
+
+// ListImages lists all images
+func (db *DataStoreMongo) ListImages(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]*model.Image, int, error) {
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
-	cursor, err := collImg.Find(ctx, bson.D{})
+
+	filters := bson.M{}
+	if filt != nil {
+		if filt.Name != "" {
+			filters[StorageKeyImageName] = bson.M{
+				"$regex": primitive.Regex{
+					Pattern: ".*" + regexp.QuoteMeta(filt.Name) + ".*",
+					Options: "i",
+				},
+			}
+		}
+		if filt.Description != "" {
+			filters[StorageKeyImageDescription] = bson.M{
+				"$regex": primitive.Regex{
+					Pattern: ".*" + regexp.QuoteMeta(filt.Description) + ".*",
+					Options: "i",
+				},
+			}
+		}
+		if filt.DeviceType != "" {
+			filters[StorageKeyImageDeviceTypes] = bson.M{
+				"$regex": primitive.Regex{
+					Pattern: ".*" + regexp.QuoteMeta(filt.DeviceType) + ".*",
+					Options: "i",
+				},
+			}
+		}
+
+	}
+
+	findOptions := &mopts.FindOptions{}
+	if filt != nil && filt.Page > 0 && filt.PerPage > 0 {
+		findOptions.SetSkip(int64((filt.Page - 1) * filt.PerPage))
+		findOptions.SetLimit(int64(filt.PerPage))
+	}
+
+	sortField, sortOrder := getReleaseSortFieldAndOrder(filt)
+	if sortField == "" || sortField == "name" {
+		sortField = StorageKeyImageName
+	}
+	if sortOrder == 0 {
+		sortOrder = 1
+	}
+	findOptions.SetSort(bson.D{
+		{Key: sortField, Value: sortOrder},
+		{Key: "_id", Value: sortOrder},
+	})
+
+	cursor, err := collImg.Find(ctx, filters, findOptions)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// NOTE: cursor.All closes the cursor before returning
 	var images []*model.Image
 	if err := cursor.All(ctx, &images); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, nil
+			return nil, 0, nil
 		}
-		return nil, err
+		return nil, 0, err
 	}
 
-	return images, nil
+	count, err := collImg.CountDocuments(ctx, filters)
+	if err != nil {
+		return nil, -1, ErrDevicesCountFailed
+	}
+
+	return images, int(count), nil
 }
 
 // device deployment log

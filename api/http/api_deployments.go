@@ -45,13 +45,15 @@ import (
 const (
 	// 15 minutes
 	DefaultDownloadLinkExpire = 15 * time.Minute
-
+	// 10 Mb
 	DefaultMaxMetaSize = 1024 * 1024 * 10
+	// Pagination
+	DefaultPerPage = 20
+	MaximumPerPage = 500
 )
 
 const (
 	// Header Constants
-
 	hdrTotalCount    = "X-Total-Count"
 	hdrForwardedHost = "X-Forwarded-Host"
 )
@@ -59,12 +61,16 @@ const (
 // storage keys
 const (
 	// Common HTTP form parameters
-
 	ParamArtifactName = "artifact_name"
 	ParamDeviceType   = "device_type"
 	ParamDeploymentID = "deployment_id"
 	ParamDeviceID     = "device_id"
 	ParamTenantID     = "tenant_id"
+	ParamName         = "name"
+	ParamDescription  = "description"
+	ParamPage         = "page"
+	ParamPerPage      = "per_page"
+	ParamSort         = "sort"
 )
 
 const Redacted = "REDACTED"
@@ -197,31 +203,78 @@ func (u *DeploymentsApiHandlers) HealthHandler(w rest.ResponseWriter, r *rest.Re
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (d *DeploymentsApiHandlers) GetReleases(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r)
-
-	var filt *model.ReleaseFilter
+func getReleaseOrImageFilter(r *rest.Request, paginated bool) *model.ReleaseOrImageFilter {
 
 	q := r.URL.Query()
-	name := q.Get("name")
 
-	if name != "" {
-		defer func() {
-			if q.Get("name") != "" {
-				q.Set("name", Redacted)
-				r.URL.RawQuery = q.Encode()
+	filter := &model.ReleaseOrImageFilter{
+		Name:        q.Get(ParamName),
+		Description: q.Get(ParamDescription),
+		DeviceType:  q.Get(ParamDeviceType),
+	}
+
+	if paginated {
+		filter.Sort = q.Get(ParamSort)
+		if page := q.Get(ParamPage); page != "" {
+			if i, err := strconv.Atoi(page); err == nil {
+				filter.Page = i
 			}
-		}()
-		filt = &model.ReleaseFilter{
-			Name: name,
+		}
+		if perPage := q.Get(ParamPerPage); perPage != "" {
+			if i, err := strconv.Atoi(perPage); err == nil {
+				filter.PerPage = i
+			}
+		}
+		if filter.Page <= 0 {
+			filter.Page = 1
+		}
+		if filter.PerPage <= 0 || filter.PerPage > MaximumPerPage {
+			filter.PerPage = DefaultPerPage
 		}
 	}
 
-	releases, err := d.store.GetReleases(r.Context(), filt)
+	return filter
+}
+
+func redactReleaseName(r *rest.Request) {
+	q := r.URL.Query()
+	if q.Get(ParamName) != "" {
+		q.Set(ParamName, Redacted)
+		r.URL.RawQuery = q.Encode()
+	}
+}
+
+func (d *DeploymentsApiHandlers) GetReleases(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r)
+
+	defer redactReleaseName(r)
+	filter := getReleaseOrImageFilter(r, false)
+	releases, _, err := d.store.GetReleases(r.Context(), filter)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
 	}
+
+	d.view.RenderSuccessGet(w, releases)
+}
+
+func (d *DeploymentsApiHandlers) ListReleases(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r)
+
+	defer redactReleaseName(r)
+	filter := getReleaseOrImageFilter(r, true)
+	releases, totalCount, err := d.store.GetReleases(r.Context(), filter)
+	if err != nil {
+		d.view.RenderInternalError(w, r, err, l)
+		return
+	}
+
+	hasNext := totalCount > int(filter.Page*filter.PerPage)
+	links := rest_utils.MakePageLinkHdrs(r, uint64(filter.Page), uint64(filter.PerPage), hasNext)
+	for _, l := range links {
+		w.Header().Add("Link", l)
+	}
+	w.Header().Add(hdrTotalCount, strconv.Itoa(totalCount))
 
 	d.view.RenderSuccessGet(w, releases)
 }
@@ -281,14 +334,39 @@ func (d *DeploymentsApiHandlers) GetImage(w rest.ResponseWriter, r *rest.Request
 	d.view.RenderSuccessGet(w, image)
 }
 
-func (d *DeploymentsApiHandlers) ListImages(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) GetImages(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
-	list, err := d.app.ListImages(r.Context(), r.PathParams)
+	defer redactReleaseName(r)
+	filter := getReleaseOrImageFilter(r, false)
+
+	list, _, err := d.app.ListImages(r.Context(), filter)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
 	}
+
+	d.view.RenderSuccessGet(w, list)
+}
+
+func (d *DeploymentsApiHandlers) ListImages(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r)
+
+	defer redactReleaseName(r)
+	filter := getReleaseOrImageFilter(r, true)
+
+	list, totalCount, err := d.app.ListImages(r.Context(), filter)
+	if err != nil {
+		d.view.RenderInternalError(w, r, err, l)
+		return
+	}
+
+	hasNext := totalCount > int(filter.Page*filter.PerPage)
+	links := rest_utils.MakePageLinkHdrs(r, uint64(filter.Page), uint64(filter.PerPage), hasNext)
+	for _, l := range links {
+		w.Header().Add("Link", l)
+	}
+	w.Header().Add(hdrTotalCount, strconv.Itoa(totalCount))
 
 	d.view.RenderSuccessGet(w, list)
 }
@@ -1218,7 +1296,7 @@ func (d *DeploymentsApiHandlers) GetDevicesListForDeployment(w rest.ResponseWrit
 	for _, l := range links {
 		w.Header().Add("Link", l)
 	}
-	w.Header().Add("X-Total-Count", strconv.Itoa(totalCount))
+	w.Header().Add(hdrTotalCount, strconv.Itoa(totalCount))
 	d.view.RenderSuccessGet(w, statuses)
 }
 

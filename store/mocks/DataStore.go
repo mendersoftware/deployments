@@ -267,29 +267,6 @@ func (_m *DataStore) Find(ctx context.Context, query model.Query) ([]*model.Depl
 	return r0, r1, r2
 }
 
-// FindAll provides a mock function with given fields: ctx
-func (_m *DataStore) FindAll(ctx context.Context) ([]*model.Image, error) {
-	ret := _m.Called(ctx)
-
-	var r0 []*model.Image
-	if rf, ok := ret.Get(0).(func(context.Context) []*model.Image); ok {
-		r0 = rf(ctx)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.Image)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // FindAllDeploymentsForDeviceIDWithStatuses provides a mock function with given fields: ctx, deviceID, statuses
 func (_m *DataStore) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...string) ([]model.DeviceDeployment, error) {
 	_va := make([]interface{}, len(statuses))
@@ -616,11 +593,11 @@ func (_m *DataStore) GetLimit(ctx context.Context, name string) (*model.Limit, e
 }
 
 // GetReleases provides a mock function with given fields: ctx, filt
-func (_m *DataStore) GetReleases(ctx context.Context, filt *model.ReleaseFilter) ([]model.Release, error) {
+func (_m *DataStore) GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, int, error) {
 	ret := _m.Called(ctx, filt)
 
 	var r0 []model.Release
-	if rf, ok := ret.Get(0).(func(context.Context, *model.ReleaseFilter) []model.Release); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *model.ReleaseOrImageFilter) []model.Release); ok {
 		r0 = rf(ctx, filt)
 	} else {
 		if ret.Get(0) != nil {
@@ -628,14 +605,21 @@ func (_m *DataStore) GetReleases(ctx context.Context, filt *model.ReleaseFilter)
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *model.ReleaseFilter) error); ok {
+	var r1 int
+	if rf, ok := ret.Get(1).(func(context.Context, *model.ReleaseOrImageFilter) int); ok {
 		r1 = rf(ctx, filt)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int)
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, *model.ReleaseOrImageFilter) error); ok {
+		r2 = rf(ctx, filt)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // GetStorageSettings provides a mock function with given fields: ctx
@@ -847,6 +831,36 @@ func (_m *DataStore) IsArtifactUnique(ctx context.Context, artifactName string, 
 	}
 
 	return r0, r1
+}
+
+// ListImages provides a mock function with given fields: ctx, filt
+func (_m *DataStore) ListImages(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]*model.Image, int, error) {
+	ret := _m.Called(ctx, filt)
+
+	var r0 []*model.Image
+	if rf, ok := ret.Get(0).(func(context.Context, *model.ReleaseOrImageFilter) []*model.Image); ok {
+		r0 = rf(ctx, filt)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Image)
+		}
+	}
+
+	var r1 int
+	if rf, ok := ret.Get(1).(func(context.Context, *model.ReleaseOrImageFilter) int); ok {
+		r1 = rf(ctx, filt)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, *model.ReleaseOrImageFilter) error); ok {
+		r2 = rf(ctx, filt)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // Ping provides a mock function with given fields: ctx

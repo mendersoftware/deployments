@@ -11,18 +11,26 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-package model
+package mongo
 
-type Release struct {
-	Name      string
-	Artifacts []Image
+import (
+	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+type migration_1_2_7 struct {
+	client *mongo.Client
+	db     string
 }
 
-type ReleaseOrImageFilter struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	DeviceType  string `json:"device_type"`
-	Page        int    `json:"page"`
-	PerPage     int    `json:"per_page"`
-	Sort        string `json:"sort"`
+func (m *migration_1_2_7) Up(from migrate.Version) error {
+	storage := NewDataStoreMongoWithClient(m.client)
+	return storage.EnsureIndexes(m.db, CollectionImages,
+		IndexImageMetaDescriptionModel,
+		IndexImageMetaArtifactDeviceTypeCompatibleModel,
+	)
+}
+
+func (m *migration_1_2_7) Version() migrate.Version {
+	return migrate.MakeVersion(1, 2, 7)
 }

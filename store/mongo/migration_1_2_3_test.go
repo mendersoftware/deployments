@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -187,7 +187,7 @@ func TestMigration_1_2_3_DeviceTypeNameIndexReplaced(t *testing.T) {
 			assert.NoError(t, err)
 		}
 
-		all, _ := store.FindAll(ctx)
+		all, _, _ := store.ListImages(ctx, nil)
 		for _, a := range all {
 			assert.NotNil(t, a.ArtifactMeta.Depends)
 		}
