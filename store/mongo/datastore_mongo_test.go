@@ -302,7 +302,7 @@ func TestGetReleases(t *testing.T) {
 	for name, tc := range testCases {
 
 		t.Run(name, func(t *testing.T) {
-			releases, err := ds.GetReleases(ctx, tc.releaseFilt)
+			releases, count, err := ds.GetReleases(ctx, tc.releaseFilt)
 
 			if tc.err != nil {
 				assert.EqualError(t, tc.err, err.Error())
@@ -310,6 +310,7 @@ func TestGetReleases(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tc.releases, releases)
+			assert.GreaterOrEqual(t, count, len(tc.releases))
 		})
 	}
 }

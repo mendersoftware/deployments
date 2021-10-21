@@ -117,7 +117,7 @@ func TestGetReleases(t *testing.T) {
 			store := &store_mocks.DataStore{}
 
 			store.On("GetReleases", deployments_testing.ContextMatcher(), tc.filter).
-				Return(tc.storeReleases, tc.storeErr)
+				Return(tc.storeReleases, len(tc.storeReleases), tc.storeErr)
 
 			fileStorage := &fs_mocks.FileStorage{}
 
@@ -230,7 +230,7 @@ func TestListReleases(t *testing.T) {
 			store := &store_mocks.DataStore{}
 
 			store.On("GetReleases", deployments_testing.ContextMatcher(), tc.filter).
-				Return(tc.storeReleases, tc.storeErr)
+				Return(tc.storeReleases, len(tc.storeReleases), tc.storeErr)
 
 			fileStorage := &fs_mocks.FileStorage{}
 

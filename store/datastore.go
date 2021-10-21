@@ -25,7 +25,7 @@ import (
 type DataStore interface {
 	Ping(ctx context.Context) error
 	//releases
-	GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, error)
+	GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, int, error)
 
 	//limits
 	GetLimit(ctx context.Context, name string) (*model.Limit, error)

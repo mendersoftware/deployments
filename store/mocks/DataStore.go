@@ -593,7 +593,7 @@ func (_m *DataStore) GetLimit(ctx context.Context, name string) (*model.Limit, e
 }
 
 // GetReleases provides a mock function with given fields: ctx, filt
-func (_m *DataStore) GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, error) {
+func (_m *DataStore) GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, int, error) {
 	ret := _m.Called(ctx, filt)
 
 	var r0 []model.Release
@@ -605,14 +605,21 @@ func (_m *DataStore) GetReleases(ctx context.Context, filt *model.ReleaseOrImage
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *model.ReleaseOrImageFilter) error); ok {
+	var r1 int
+	if rf, ok := ret.Get(1).(func(context.Context, *model.ReleaseOrImageFilter) int); ok {
 		r1 = rf(ctx, filt)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int)
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, *model.ReleaseOrImageFilter) error); ok {
+		r2 = rf(ctx, filt)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // GetStorageSettings provides a mock function with given fields: ctx

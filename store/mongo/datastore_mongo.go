@@ -399,7 +399,7 @@ func (db *DataStoreMongo) Ping(ctx context.Context) error {
 	return res.Err()
 }
 
-func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, error) {
+func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, int, error) {
 	var pipe []bson.D
 
 	pipe = []bson.D{}
@@ -462,36 +462,52 @@ func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseOr
 	if sortOrder == 0 {
 		sortOrder = 1
 	}
-	pipe = append(pipe, bson.D{
-		{Key: "$sort", Value: bson.D{
-			{Key: sortField, Value: sortOrder},
-			{Key: "_id", Value: 1},
-		}},
-	})
 
+	page := 1
+	perPage := 100 // math.MaxInt64
 	if filt != nil && filt.Page > 0 && filt.PerPage > 0 {
-		pipe = append(pipe,
-			bson.D{{Key: "$skip", Value: int64((filt.Page - 1) * filt.PerPage)}},
-			bson.D{{Key: "$limit", Value: int64(filt.PerPage)}},
-		)
+		page = filt.Page
+		perPage = filt.PerPage
 	}
+	pipe = append(pipe,
+		bson.D{{Key: "$facet", Value: bson.D{
+			{Key: "results", Value: []bson.D{
+				{
+					{Key: "$sort", Value: bson.D{
+						{Key: sortField, Value: sortOrder},
+						{Key: "_id", Value: 1},
+					}},
+				},
+				{{Key: "$skip", Value: int64((page - 1) * perPage)}},
+				{{Key: "$limit", Value: int64(perPage)}},
+			}},
+			{Key: "count", Value: []bson.D{
+				{{Key: "$count", Value: "count"}},
+			}},
+		}}},
+	)
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
-	results := []model.Release{}
 	cursor, err := collImg.Aggregate(ctx, pipe)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	// NOTE: Call to cursor.All will automatically close cursor
-	if err = cursor.All(ctx, &results); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
-		return nil, err
+	defer cursor.Close(ctx)
+
+	result := struct {
+		Results []model.Release       `bson:"results"`
+		Count   []struct{ Count int } `bson:"count"`
+	}{}
+	if !cursor.Next(ctx) {
+		return nil, 0, nil
+	} else if err = cursor.Decode(&result); err != nil {
+		return nil, 0, err
+	} else if len(result.Count) == 0 {
+		return []model.Release{}, 0, err
 	}
-	return results, nil
+	return result.Results, result.Count[0].Count, nil
 }
 
 // limits

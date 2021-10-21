@@ -249,7 +249,7 @@ func (d *DeploymentsApiHandlers) GetReleases(w rest.ResponseWriter, r *rest.Requ
 
 	defer redactReleaseName(r)
 	filter := getReleaseOrImageFilter(r, false)
-	releases, err := d.store.GetReleases(r.Context(), filter)
+	releases, _, err := d.store.GetReleases(r.Context(), filter)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
@@ -263,11 +263,18 @@ func (d *DeploymentsApiHandlers) ListReleases(w rest.ResponseWriter, r *rest.Req
 
 	defer redactReleaseName(r)
 	filter := getReleaseOrImageFilter(r, true)
-	releases, err := d.store.GetReleases(r.Context(), filter)
+	releases, totalCount, err := d.store.GetReleases(r.Context(), filter)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
 	}
+
+	hasNext := totalCount > int(filter.Page*filter.PerPage)
+	links := rest_utils.MakePageLinkHdrs(r, uint64(filter.Page), uint64(filter.PerPage), hasNext)
+	for _, l := range links {
+		w.Header().Add("Link", l)
+	}
+	w.Header().Add(hdrTotalCount, strconv.Itoa(totalCount))
 
 	d.view.RenderSuccessGet(w, releases)
 }
