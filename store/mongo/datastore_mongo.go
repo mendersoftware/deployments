@@ -262,6 +262,29 @@ var (
 			Unique:     &_true,
 		},
 	}
+
+	// Indexes 1.2.7
+	IndexImageMetaDescription      = "image_meta_description"
+	IndexImageMetaDescriptionModel = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyImageDescription, Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexImageMetaDescription,
+		},
+	}
+
+	IndexImageMetaArtifactDeviceTypeCompatible      = "image_meta_artifact_device_type_compatible"
+	IndexImageMetaArtifactDeviceTypeCompatibleModel = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyImageDeviceTypes, Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexImageMetaArtifactDeviceTypeCompatible,
+		},
+	}
 )
 
 // Errors
