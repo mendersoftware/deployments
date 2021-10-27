@@ -15,7 +15,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/deployments-enterprise/model"
+	"github.com/mendersoftware/deployments/model"
 )
 
 const (
