@@ -205,6 +205,13 @@ func (d *Deployments) HealthCheck(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "Inventory service unhealthy")
 	}
+
+	if d.reportingClient != nil {
+		err = d.reportingClient.CheckHealth(ctx)
+		if err != nil {
+			return errors.Wrap(err, "Reporting service unhealthy")
+		}
+	}
 	return nil
 }
 

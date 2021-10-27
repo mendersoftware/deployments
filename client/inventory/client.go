@@ -35,7 +35,10 @@ const (
 	healthURL          = "/api/internal/v1/inventory/health"
 	searchURL          = "/api/internal/v2/inventory/tenants/:tenantId/filters/search"
 	getDeviceGroupsURL = "/api/internal/v1/inventory/tenants/:tenantId/devices/:deviceId/groups"
-	defaultTimeout     = 5 * time.Second
+
+	defaultTimeout = 5 * time.Second
+
+	hdrTotalCount = "X-Total-Count"
 )
 
 // Errors
@@ -137,10 +140,10 @@ func (c *client) Search(ctx context.Context, tenantId string, searchParams model
 		return nil, -1, errors.Wrap(err, "error parsing search devices response")
 	}
 
-	totalCountStr := rsp.Header.Get("X-Total-Count")
+	totalCountStr := rsp.Header.Get(hdrTotalCount)
 	totalCount, err := strconv.Atoi(totalCountStr)
 	if err != nil {
-		return nil, -1, errors.Wrap(err, "error parsing X-Total-Count header")
+		return nil, -1, errors.Wrap(err, "error parsing "+hdrTotalCount+" header")
 	}
 
 	return devs, totalCount, nil

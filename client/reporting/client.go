@@ -22,8 +22,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
+
+	"github.com/mendersoftware/go-lib-micro/rest_utils"
 
 	"github.com/mendersoftware/deployments/model"
 )
@@ -34,9 +35,12 @@ const (
 	uriIInternalAlive = uriInternal + "/alive"
 
 	defaultTimeout = 5 * time.Second
+
+	hdrTotalCount = "X-Total-Count"
 )
 
 // Client is the reporting client
+//go:generate ../../utils/mockgen.sh
 type Client interface {
 	CheckHealth(ctx context.Context) error
 	Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error)
@@ -106,7 +110,7 @@ func (c *client) Search(ctx context.Context, tenantId string, searchParams model
 	defer rsp.Body.Close()
 
 	if rsp.StatusCode != http.StatusOK {
-		return nil, -1, errors.Errorf("search devices request failed with unexpected status %v", rsp.StatusCode)
+		return nil, -1, errors.Errorf("search devices request failed with unexpected status: %v", rsp.StatusCode)
 	}
 
 	devs := []model.InvDevice{}
@@ -114,10 +118,10 @@ func (c *client) Search(ctx context.Context, tenantId string, searchParams model
 		return nil, -1, errors.Wrap(err, "error parsing search devices response")
 	}
 
-	totalCountStr := rsp.Header.Get("X-Total-Count")
+	totalCountStr := rsp.Header.Get(hdrTotalCount)
 	totalCount, err := strconv.Atoi(totalCountStr)
 	if err != nil {
-		return nil, -1, errors.Wrap(err, "error parsing X-Total-Count header")
+		return nil, -1, errors.Wrap(err, "error parsing "+hdrTotalCount+" header")
 	}
 
 	return devs, totalCount, nil
