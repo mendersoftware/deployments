@@ -26,6 +26,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/config"
 
 	"github.com/mendersoftware/deployments/app"
+	"github.com/mendersoftware/deployments/client/reporting"
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/s3"
 	mstore "github.com/mendersoftware/deployments/store/mongo"
@@ -116,6 +117,11 @@ func NewRouter(ctx context.Context, c config.Reader,
 	mongoStorage := mstore.NewDataStoreMongoWithClient(mongoClient)
 
 	app := app.NewDeployments(mongoStorage, fileStorage, app.ArtifactContentType)
+
+	if addr := c.GetString(dconfig.SettingReportingAddr); addr != "" {
+		c := reporting.NewClient(addr)
+		app = app.WithReporting(c)
+	}
 
 	// Create and configure API handlers
 	//

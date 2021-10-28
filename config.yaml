@@ -233,3 +233,8 @@ presign:
   # Overwrite with environment variable: DEPLOYMENTS_PRESIGN_URL_SCHEME
   url_scheme: "https"
 
+# mender-reporting addr 
+# Defaults to: "" (disabled by default; searches go to inventory)
+# Overwrite with environment variable: DEPLOYMENTS_REPORTING_ADDR
+
+#reporting_addr: "http://mender-reporting:8080"

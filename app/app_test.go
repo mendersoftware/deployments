@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	inventory_mocks "github.com/mendersoftware/deployments/client/inventory/mocks"
+	reporting_mocks "github.com/mendersoftware/deployments/client/reporting/mocks"
 	workflows_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
@@ -49,6 +50,7 @@ func TestHealthCheck(t *testing.T) {
 		FileStoreError error
 		WorkflowsError error
 		InventoryError error
+		ReportingError error
 	}{{
 		Name: "ok",
 	}, {
@@ -63,6 +65,9 @@ func TestHealthCheck(t *testing.T) {
 	}, {
 		Name:           "error: inventory",
 		InventoryError: errors.New("connection error"),
+	}, {
+		Name:           "error: reporting",
+		ReportingError: errors.New("connection error"),
 	}}
 
 	for _, tc := range testCases {
@@ -72,14 +77,20 @@ func TestHealthCheck(t *testing.T) {
 			mFStore := &fs_mocks.FileStorage{}
 			mWorkflows := &workflows_mocks.Client{}
 			mInventory := &inventory_mocks.Client{}
+			mReporting := &reporting_mocks.Client{}
 			dep := &Deployments{
 				db:              mDStore,
 				fileStorage:     mFStore,
 				workflowsClient: mWorkflows,
 				inventoryClient: mInventory,
 			}
+			dep = dep.WithReporting(mReporting)
 			switch {
 			default:
+				mReporting.On("CheckHealth", ctx).
+					Return(tc.ReportingError)
+				fallthrough
+			case tc.InventoryError != nil:
 				mInventory.On("CheckHealth", ctx).
 					Return(tc.InventoryError)
 				fallthrough
@@ -128,6 +139,12 @@ func TestHealthCheck(t *testing.T) {
 					"Inventory service unhealthy: "+
 						tc.InventoryError.Error(),
 				)
+
+			case tc.ReportingError != nil:
+				assert.EqualError(t, err,
+					"Reporting service unhealthy: "+
+						tc.ReportingError.Error(),
+				)
 			default:
 				assert.NoError(t, err)
 			}
@@ -150,6 +167,8 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		TotalCount        int
 		SearchError       error
 		GetFilterError    error
+
+		ReportingService bool
 
 		OutputError error
 		OutputBody  bool
@@ -213,6 +232,24 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 
 			OutputBody: true,
 		},
+		"ok with group, reeporting": {
+			InputConstructor: &model.DeploymentConstructor{
+				Name:         "group",
+				ArtifactName: "App 123",
+				Group:        "group",
+			},
+
+			InvDevices: []model.InvDevice{
+				{
+					ID: "b532b01a-9313-404f-8d19-e7fcbe5cc347",
+				},
+			},
+			TotalCount: 1,
+
+			ReportingService: true,
+
+			OutputBody: true,
+		},
 		"ko, with group, no device found": {
 			InputConstructor: &model.DeploymentConstructor{
 				Name:         "group",
@@ -267,34 +304,13 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			ds := NewDeployments(&db, fs, "")
 
 			mockInventoryClient := &inventory_mocks.Client{}
+			mockReportingClient := &reporting_mocks.Client{}
 			if testCase.InputConstructor != nil && testCase.InputConstructor.Group != "" && len(testCase.InputConstructor.Devices) == 0 {
-				mockInventoryClient.On("Search", ctx,
-					"tenant_id",
-					model.SearchParams{
-						Page:    1,
-						PerPage: PerPageInventoryDevices,
-						Filters: []model.FilterPredicate{
-							{
-								Scope:     InventoryIdentityScope,
-								Attribute: InventoryStatusAttributeName,
-								Type:      "$eq",
-								Value:     InventoryStatusAccepted,
-							},
-							{
-								Scope:     InventoryGroupScope,
-								Attribute: InventoryGroupAttributeName,
-								Type:      "$eq",
-								Value:     testCase.InputConstructor.Group,
-							},
-						},
-					},
-				).Return(testCase.InvDevices, testCase.TotalCount, testCase.SearchError)
-
-				if testCase.TotalCount > len(testCase.InvDevices) {
-					mockInventoryClient.On("Search", ctx,
+				if testCase.ReportingService {
+					mockReportingClient.On("Search", ctx,
 						"tenant_id",
 						model.SearchParams{
-							Page:    2,
+							Page:    1,
 							PerPage: PerPageInventoryDevices,
 							Filters: []model.FilterPredicate{
 								{
@@ -311,11 +327,60 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 								},
 							},
 						},
-					).Return(testCase.InvDevicesPageTwo, testCase.TotalCount, testCase.SearchError)
+					).Return(testCase.InvDevices, testCase.TotalCount, testCase.SearchError)
+				} else {
+					mockInventoryClient.On("Search", ctx,
+						"tenant_id",
+						model.SearchParams{
+							Page:    1,
+							PerPage: PerPageInventoryDevices,
+							Filters: []model.FilterPredicate{
+								{
+									Scope:     InventoryIdentityScope,
+									Attribute: InventoryStatusAttributeName,
+									Type:      "$eq",
+									Value:     InventoryStatusAccepted,
+								},
+								{
+									Scope:     InventoryGroupScope,
+									Attribute: InventoryGroupAttributeName,
+									Type:      "$eq",
+									Value:     testCase.InputConstructor.Group,
+								},
+							},
+						},
+					).Return(testCase.InvDevices, testCase.TotalCount, testCase.SearchError)
+
+					if testCase.TotalCount > len(testCase.InvDevices) {
+						mockInventoryClient.On("Search", ctx,
+							"tenant_id",
+							model.SearchParams{
+								Page:    2,
+								PerPage: PerPageInventoryDevices,
+								Filters: []model.FilterPredicate{
+									{
+										Scope:     InventoryIdentityScope,
+										Attribute: InventoryStatusAttributeName,
+										Type:      "$eq",
+										Value:     InventoryStatusAccepted,
+									},
+									{
+										Scope:     InventoryGroupScope,
+										Attribute: InventoryGroupAttributeName,
+										Type:      "$eq",
+										Value:     testCase.InputConstructor.Group,
+									},
+								},
+							},
+						).Return(testCase.InvDevicesPageTwo, testCase.TotalCount, testCase.SearchError)
+					}
 				}
 			}
 
 			ds.SetInventoryClient(mockInventoryClient)
+			if testCase.ReportingService {
+				ds.WithReporting(mockReportingClient)
+			}
 
 			out, err := ds.CreateDeployment(ctx, testCase.InputConstructor)
 			if testCase.OutputError != nil {

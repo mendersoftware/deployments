@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package inventory
+package reporting
 
 import (
 	"context"
@@ -22,60 +22,41 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mendersoftware/go-lib-micro/config"
-	"github.com/mendersoftware/go-lib-micro/log"
-	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
 
-	dconfig "github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/go-lib-micro/rest_utils"
+
 	"github.com/mendersoftware/deployments/model"
 )
 
 const (
-	healthURL          = "/api/internal/v1/inventory/health"
-	searchURL          = "/api/internal/v2/inventory/tenants/:tenantId/filters/search"
-	getDeviceGroupsURL = "/api/internal/v1/inventory/tenants/:tenantId/devices/:deviceId/groups"
+	uriInternal       = "/api/internal/v1/reporting"
+	uriInternalSearch = uriInternal + "/inventory/tenants/:tenant_id/search"
+	uriIInternalAlive = uriInternal + "/alive"
 
 	defaultTimeout = 5 * time.Second
 
 	hdrTotalCount = "X-Total-Count"
 )
 
-// Errors
-var (
-	ErrFilterNotFound = errors.New("Filter with given ID not found in the inventory.")
-)
-
-// Client is the inventory client
+// Client is the reporting client
 //go:generate ../../utils/mockgen.sh
 type Client interface {
 	CheckHealth(ctx context.Context) error
 	Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error)
-	GetDeviceGroups(ctx context.Context, tenantId, deviceId string) ([]string, error)
-}
-
-// NewClient returns a new inventory client
-func NewClient() Client {
-	var timeout time.Duration
-	baseURL := config.Config.GetString(dconfig.SettingInventoryAddr)
-	timeoutStr := config.Config.GetString(dconfig.SettingInventoryTimeout)
-
-	t, err := strconv.Atoi(timeoutStr)
-	if err != nil {
-		timeout = defaultTimeout
-	} else {
-		timeout = time.Duration(t) * time.Second
-	}
-
-	return &client{
-		baseURL:    baseURL,
-		httpClient: &http.Client{Timeout: timeout},
-	}
 }
 
 type client struct {
 	baseURL    string
 	httpClient *http.Client
+}
+
+// NewClient returns a new reporting client
+func NewClient(baseURL string) Client {
+	return &client{
+		baseURL:    baseURL,
+		httpClient: &http.Client{Timeout: defaultTimeout},
+	}
 }
 
 func (c *client) CheckHealth(ctx context.Context) error {
@@ -93,7 +74,7 @@ func (c *client) CheckHealth(ctx context.Context) error {
 		defer cancel()
 	}
 	req, _ := http.NewRequestWithContext(
-		ctx, "GET", c.baseURL+healthURL, nil,
+		ctx, "GET", c.baseURL+uriIInternalAlive, nil,
 	)
 
 	rsp, err := client.Do(req)
@@ -112,11 +93,8 @@ func (c *client) CheckHealth(ctx context.Context) error {
 }
 
 func (c *client) Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error) {
-	l := log.FromContext(ctx)
-	l.Debugf("Search")
-
-	repl := strings.NewReplacer(":tenantId", tenantId)
-	url := c.baseURL + repl.Replace(searchURL)
+	repl := strings.NewReplacer(":tenant_id", tenantId)
+	url := c.baseURL + repl.Replace(uriInternalSearch)
 
 	payload, _ := json.Marshal(searchParams)
 	req, err := http.NewRequest("POST", url, strings.NewReader(string(payload)))
@@ -132,7 +110,7 @@ func (c *client) Search(ctx context.Context, tenantId string, searchParams model
 	defer rsp.Body.Close()
 
 	if rsp.StatusCode != http.StatusOK {
-		return nil, -1, errors.Errorf("search devices request failed with unexpected status %v", rsp.StatusCode)
+		return nil, -1, errors.Errorf("search devices request failed with unexpected status: %v", rsp.StatusCode)
 	}
 
 	devs := []model.InvDevice{}
@@ -147,41 +125,4 @@ func (c *client) Search(ctx context.Context, tenantId string, searchParams model
 	}
 
 	return devs, totalCount, nil
-}
-
-func (c *client) GetDeviceGroups(ctx context.Context, tenantId, deviceId string) ([]string, error) {
-	repl := strings.NewReplacer(":tenantId", tenantId, ":deviceId", deviceId)
-	url := c.baseURL + repl.Replace(getDeviceGroupsURL)
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if _, ok := ctx.Deadline(); !ok {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
-		defer cancel()
-	}
-	req, err := http.NewRequestWithContext(
-		ctx, "GET", url, nil,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	rsp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "get device groups request failed")
-	}
-	defer rsp.Body.Close()
-
-	if rsp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("get device groups request failed with unexpected status: %v", rsp.StatusCode)
-	}
-
-	res := model.DeviceGroups{}
-	if err := json.NewDecoder(rsp.Body).Decode(&res); err != nil {
-		return nil, errors.Wrap(err, "error parsing device groups response")
-	}
-
-	return res.Groups, nil
 }

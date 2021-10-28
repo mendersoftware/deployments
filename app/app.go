@@ -36,6 +36,7 @@ import (
 	"github.com/mendersoftware/mender-artifact/handlers"
 
 	"github.com/mendersoftware/deployments/client/inventory"
+	"github.com/mendersoftware/deployments/client/reporting"
 	"github.com/mendersoftware/deployments/client/workflows"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/s3"
@@ -157,6 +158,7 @@ type Deployments struct {
 	imageContentType string
 	workflowsClient  workflows.Client
 	inventoryClient  inventory.Client
+	reportingClient  reporting.Client
 }
 
 func NewDeployments(storage store.DataStore, fileStorage s3.FileStorage, imageContentType string) *Deployments {
@@ -202,6 +204,13 @@ func (d *Deployments) HealthCheck(ctx context.Context) error {
 	err = d.inventoryClient.CheckHealth(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Inventory service unhealthy")
+	}
+
+	if d.reportingClient != nil {
+		err = d.reportingClient.CheckHealth(ctx)
+		if err != nil {
+			return errors.Wrap(err, "Reporting service unhealthy")
+		}
 	}
 	return nil
 }
@@ -817,7 +826,7 @@ func (d *Deployments) updateDeploymentConstructor(ctx context.Context,
 	}
 
 	for {
-		devices, count, err := d.inventoryClient.Search(ctx, id.Tenant, searchParams)
+		devices, count, err := d.search(ctx, id.Tenant, searchParams)
 		if err != nil {
 			l.Errorf("error searching for devices")
 			return nil, ErrModelInternal
@@ -954,7 +963,6 @@ func (d *Deployments) getDeploymentGroups(ctx context.Context, devices []string)
 		return nil, err
 	}
 	return groups, nil
-
 }
 
 // IsDeploymentFinished checks if there is unfinished deployment with given ID
@@ -1634,4 +1642,22 @@ func (d *Deployments) SetStorageSettings(ctx context.Context, storageSettings *m
 	}
 
 	return nil
+}
+
+func (d *Deployments) WithReporting(c reporting.Client) *Deployments {
+	d.reportingClient = c
+	return d
+}
+
+func (d *Deployments) haveReporting() bool {
+	return d.reportingClient != nil
+}
+
+func (d *Deployments) search(ctx context.Context, tid string, parms model.SearchParams) ([]model.InvDevice, int, error) {
+
+	if d.haveReporting() {
+		return d.reportingClient.Search(ctx, tid, parms)
+	} else {
+		return d.inventoryClient.Search(ctx, tid, parms)
+	}
 }
