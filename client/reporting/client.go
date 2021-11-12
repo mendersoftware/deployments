@@ -43,7 +43,11 @@ const (
 //go:generate ../../utils/mockgen.sh
 type Client interface {
 	CheckHealth(ctx context.Context) error
-	Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error)
+	Search(
+		ctx context.Context,
+		tenantId string,
+		searchParams model.SearchParams,
+	) ([]model.InvDevice, int, error)
 }
 
 type client struct {
@@ -81,6 +85,7 @@ func (c *client) CheckHealth(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer rsp.Body.Close()
 	if rsp.StatusCode >= http.StatusOK && rsp.StatusCode < 300 {
 		return nil
 	}
@@ -92,7 +97,11 @@ func (c *client) CheckHealth(ctx context.Context) error {
 	return &apiErr
 }
 
-func (c *client) Search(ctx context.Context, tenantId string, searchParams model.SearchParams) ([]model.InvDevice, int, error) {
+func (c *client) Search(
+	ctx context.Context,
+	tenantId string,
+	searchParams model.SearchParams,
+) ([]model.InvDevice, int, error) {
 	repl := strings.NewReplacer(":tenant_id", tenantId)
 	url := c.baseURL + repl.Replace(uriInternalSearch)
 
@@ -110,7 +119,10 @@ func (c *client) Search(ctx context.Context, tenantId string, searchParams model
 	defer rsp.Body.Close()
 
 	if rsp.StatusCode != http.StatusOK {
-		return nil, -1, errors.Errorf("search devices request failed with unexpected status: %v", rsp.StatusCode)
+		return nil, -1, errors.Errorf(
+			"search devices request failed with unexpected status: %v",
+			rsp.StatusCode,
+		)
 	}
 
 	devs := []model.InvDevice{}

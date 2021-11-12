@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -41,20 +41,34 @@ type RESTView struct {
 }
 
 func (p *RESTView) RenderSuccessPost(w rest.ResponseWriter, r *rest.Request, id string) {
-	w.Header().Add(HttpHeaderLocation, fmt.Sprintf("./%s/%s", strings.TrimLeft(r.URL.Path, "/api/0.0.1/"), id))
+	w.Header().Add(
+		HttpHeaderLocation,
+		fmt.Sprintf(".%s/%s", strings.TrimPrefix(strings.TrimPrefix(r.URL.Path, "."), "/api"), id),
+	)
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (p *RESTView) RenderSuccessGet(w rest.ResponseWriter, object interface{}) {
-	w.WriteJson(object)
+	_ = w.WriteJson(object)
 }
 
-func (p *RESTView) RenderError(w rest.ResponseWriter, r *rest.Request, err error, status int, l *log.Logger) {
+func (p *RESTView) RenderError(
+	w rest.ResponseWriter,
+	r *rest.Request,
+	err error,
+	status int,
+	l *log.Logger,
+) {
 	l.Error(err.Error())
 	renderErrorWithMsg(w, r, status, err.Error())
 }
 
-func (p *RESTView) RenderInternalError(w rest.ResponseWriter, r *rest.Request, err error, l *log.Logger) {
+func (p *RESTView) RenderInternalError(
+	w rest.ResponseWriter,
+	r *rest.Request,
+	err error,
+	l *log.Logger,
+) {
 	l.F(log.Ctx{}).Error(err.Error())
 	renderErrorWithMsg(w, r, http.StatusInternalServerError, "internal error")
 }
@@ -99,9 +113,9 @@ func (p *RESTView) RenderDeploymentLog(w rest.ResponseWriter, dlog model.Deploym
 
 	for _, m := range dlog.Messages {
 		as := m.String()
-		h.Write([]byte(as))
+		_, _ = h.Write([]byte(as))
 		if !strings.HasSuffix(as, "\n") {
-			h.Write([]byte("\n"))
+			_, _ = h.Write([]byte("\n"))
 		}
 	}
 }

@@ -52,8 +52,9 @@ const (
 	ApiUrlManagementDeploymentsStatus      = ApiUrlManagement + "/deployments/:id/status"
 	ApiUrlManagementDeploymentsDevices     = ApiUrlManagement + "/deployments/:id/devices"
 	ApiUrlManagementDeploymentsDevicesList = ApiUrlManagement + "/deployments/:id/devices/list"
-	ApiUrlManagementDeploymentsLog         = ApiUrlManagement + "/deployments/:id/devices/:devid/log"
-	ApiUrlManagementDeploymentsDeviceList  = ApiUrlManagement + "/deployments/:id/device_list"
+	ApiUrlManagementDeploymentsLog         = ApiUrlManagement +
+		"/deployments/:id/devices/:devid/log"
+	ApiUrlManagementDeploymentsDeviceList = ApiUrlManagement + "/deployments/:id/device_list"
 
 	ApiUrlManagementReleases     = ApiUrlManagement + "/deployments/releases"
 	ApiUrlManagementReleasesList = ApiUrlManagement + "/deployments/releases/list"
@@ -63,16 +64,20 @@ const (
 	ApiUrlDevicesDeploymentsNext  = ApiUrlDevices + "/device/deployments/next"
 	ApiUrlDevicesDeploymentStatus = ApiUrlDevices + "/device/deployments/:id/status"
 	ApiUrlDevicesDeploymentsLog   = ApiUrlDevices + "/device/deployments/:id/log"
-	ApiUrlDevicesDownloadConfig   = ApiUrlDevices + "/download/configuration/:deployment_id/:device_type/:device_id"
+	ApiUrlDevicesDownloadConfig   = ApiUrlDevices +
+		"/download/configuration/:deployment_id/:device_type/:device_id"
 
-	ApiUrlInternalAlive                          = ApiUrlInternal + "/alive"
-	ApiUrlInternalHealth                         = ApiUrlInternal + "/health"
-	ApiUrlInternalTenants                        = ApiUrlInternal + "/tenants"
-	ApiUrlInternalTenantDeployments              = ApiUrlInternal + "/tenants/:tenant/deployments"
-	ApiUrlInternalTenantDeploymentsDevice        = ApiUrlInternal + "/tenants/:tenant/deployments/devices/:id"
-	ApiUrlInternalTenantArtifacts                = ApiUrlInternal + "/tenants/:tenant/artifacts"
-	ApiUrlInternalTenantStorageSettings          = ApiUrlInternal + "/tenants/:tenant/storage/settings"
-	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal + "/tenants/:tenant/configuration/deployments/:deployment_id/devices/:device_id"
+	ApiUrlInternalAlive                   = ApiUrlInternal + "/alive"
+	ApiUrlInternalHealth                  = ApiUrlInternal + "/health"
+	ApiUrlInternalTenants                 = ApiUrlInternal + "/tenants"
+	ApiUrlInternalTenantDeployments       = ApiUrlInternal + "/tenants/:tenant/deployments"
+	ApiUrlInternalTenantDeploymentsDevice = ApiUrlInternal +
+		"/tenants/:tenant/deployments/devices/:id"
+	ApiUrlInternalTenantArtifacts       = ApiUrlInternal + "/tenants/:tenant/artifacts"
+	ApiUrlInternalTenantStorageSettings = ApiUrlInternal +
+		"/tenants/:tenant/storage/settings"
+	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal +
+		"/tenants/:tenant/configuration/deployments/:deployment_id/devices/:device_id"
 )
 
 func SetupS3(c config.Reader) (s3.FileStorage, error) {
@@ -80,7 +85,10 @@ func SetupS3(c config.Reader) (s3.FileStorage, error) {
 	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
 	region := c.GetString(dconfig.SettingAwsS3Region)
 
-	if c.IsSet(dconfig.SettingsAwsAuth) || (c.IsSet(dconfig.SettingAwsAuthKeyId) && c.IsSet(dconfig.SettingAwsAuthSecret) && c.IsSet(dconfig.SettingAwsURI)) {
+	if c.IsSet(dconfig.SettingsAwsAuth) ||
+		(c.IsSet(dconfig.SettingAwsAuthKeyId) &&
+			c.IsSet(dconfig.SettingAwsAuthSecret) &&
+			c.IsSet(dconfig.SettingAwsURI)) {
 		return s3.NewSimpleStorageServiceStatic(
 			bucket,
 			c.GetString(dconfig.SettingAwsAuthKeyId),

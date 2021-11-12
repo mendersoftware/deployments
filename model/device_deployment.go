@@ -50,7 +50,8 @@ const (
 	DeviceDeploymentStatusNoArtifact
 	DeviceDeploymentStatusAlreadyInst
 	DeviceDeploymentStatusDecommissioned
-	// DeviceDeploymentStatusNew = (DeviceDeploymentStatusSuccess + DeviceDeploymentStatusNoArtifact) / 2
+	// DeviceDeploymentStatusNew = (DeviceDeploymentStatusSuccess +
+	// DeviceDeploymentStatusNoArtifact) / 2
 
 	DeviceDeploymentStatusFailureStr            = "failure"
 	DeviceDeploymentStatusAbortedStr            = "aborted"

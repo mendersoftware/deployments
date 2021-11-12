@@ -77,7 +77,17 @@ type SimpleStorageService struct {
 
 // NewSimpleStorageServiceStatic create new S3 client model.
 // AWS authentication keys are automatically reloaded from env variables.
-func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri string, tag_artifact, forcePathStyle bool, useAccelerate bool) (*SimpleStorageService, error) {
+func NewSimpleStorageServiceStatic(
+	bucket,
+	key,
+	secret,
+	region,
+	token,
+	uri string,
+	tag_artifact,
+	forcePathStyle bool,
+	useAccelerate bool,
+) (*SimpleStorageService, error) {
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
 
@@ -96,7 +106,13 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 	// requests. Requests not compatible will fall back to normal S3 requests.
 	config.S3UseAccelerate = aws.Bool(useAccelerate)
 
-	sess := session.New(config)
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: *config,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	client := s3.New(sess)
 
 	return &SimpleStorageService{
@@ -110,8 +126,14 @@ func NewSimpleStorageServiceStatic(bucket, key, secret, region, token, uri strin
 // Use default authentication provides which looks at env variables,
 // Aws profile file and ec2 iam role
 func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageService, error) {
-
-	sess := session.New(aws.NewConfig().WithRegion(region))
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Region: aws.String(region),
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
 	client := s3.New(sess)
 
 	return &SimpleStorageService{
@@ -121,7 +143,10 @@ func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageServi
 }
 
 func NewSimpleStorageService(bucket, region string) (*SimpleStorageService, error) {
-	sess := session.New(aws.NewConfig().WithRegion(region))
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, err
+	}
 	client := s3.New(sess)
 
 	return &SimpleStorageService{
@@ -516,7 +541,10 @@ func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) er
 
 // LastModified returns last file modification time.
 // If object not found return ErrFileStorageFileNotFound
-func (s *SimpleStorageService) LastModified(ctx context.Context, objectID string) (time.Time, error) {
+func (s *SimpleStorageService) LastModified(
+	ctx context.Context,
+	objectID string,
+) (time.Time, error) {
 
 	objectID = getArtifactByTenant(ctx, objectID)
 

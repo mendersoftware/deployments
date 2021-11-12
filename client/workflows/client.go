@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -41,7 +41,10 @@ const (
 //go:generate ../../utils/mockgen.sh
 type Client interface {
 	CheckHealth(ctx context.Context) error
-	StartGenerateArtifact(ctx context.Context, multipartGenerateImageMsg *model.MultipartGenerateImageMsg) error
+	StartGenerateArtifact(
+		ctx context.Context,
+		multipartGenerateImageMsg *model.MultipartGenerateImageMsg,
+	) error
 }
 
 // NewClient returns a new workflows client
@@ -80,6 +83,7 @@ func (c *client) CheckHealth(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer rsp.Body.Close()
 	if rsp.StatusCode >= http.StatusOK && rsp.StatusCode < 300 {
 		return nil
 	}
@@ -91,7 +95,10 @@ func (c *client) CheckHealth(ctx context.Context) error {
 	return &apiErr
 }
 
-func (c *client) StartGenerateArtifact(ctx context.Context, multipartGenerateImageMsg *model.MultipartGenerateImageMsg) error {
+func (c *client) StartGenerateArtifact(
+	ctx context.Context,
+	multipartGenerateImageMsg *model.MultipartGenerateImageMsg,
+) error {
 	l := log.FromContext(ctx)
 	l.Debugf("Submit generate artifact: tenantID=%s, artifactID=%s",
 		multipartGenerateImageMsg.TenantID, multipartGenerateImageMsg.ArtifactID)
@@ -108,6 +115,7 @@ func (c *client) StartGenerateArtifact(ctx context.Context, multipartGenerateIma
 	if err != nil {
 		return errors.Wrapf(err, "failed to start workflow: generate_artifact")
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusCreated {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {

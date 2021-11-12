@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -34,7 +34,9 @@ func RunServer(c config.Reader) error {
 	if err != nil {
 		return err
 	}
-	defer dbClient.Disconnect(ctx)
+	defer func() {
+		_ = dbClient.Disconnect(ctx)
+	}()
 
 	router, err := api_http.NewRouter(ctx, c, dbClient)
 	if err != nil {

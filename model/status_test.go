@@ -36,9 +36,3 @@ func TestStatusUnmarshal(t *testing.T) {
 		StatusReport{Status: DeviceDeploymentStatusInstalling},
 		report)
 }
-
-func TestContainsString(t *testing.T) {
-	assert.True(t, containsString("foo", []string{"bar", "foo", "baz"}))
-	assert.False(t, containsString("foo", []string{"bar", "baz"}))
-	assert.False(t, containsString("foo", []string{}))
-}

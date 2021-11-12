@@ -17,10 +17,11 @@ package mongo
 import (
 	"context"
 
-	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/mendersoftware/deployments/model"
 )
 
 type migration_1_2_6 struct {

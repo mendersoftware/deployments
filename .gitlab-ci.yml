@@ -9,7 +9,7 @@ stages:
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-golang-static.yml'
+    file: '.gitlab-ci-check-golang-lint.yml'
   - project: 'Northern.tech/Mender/mendertesting'
     file: '.gitlab-ci-check-golang-unittests.yml'
   - project: 'Northern.tech/Mender/mendertesting'

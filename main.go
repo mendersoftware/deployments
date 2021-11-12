@@ -46,8 +46,9 @@ func doMain(args []string) {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:        "config",
-			Usage:       "Configuration `FILE`. Supports JSON, TOML, YAML and HCL formatted configs.",
+			Name: "config",
+			Usage: "Configuration `FILE`." +
+				" Supports JSON, TOML, YAML and HCL formatted configs.",
 			Destination: &configPath,
 		},
 	}
@@ -162,7 +163,9 @@ func migrate(tenant string, automigrate bool) error {
 			fmt.Sprintf("failed to connect to db: %v", err),
 			3)
 	}
-	defer dbClient.Disconnect(ctx)
+	defer func() {
+		_ = dbClient.Disconnect(ctx)
+	}()
 
 	if tenant != "" {
 		db := mstore.DbNameForTenant(tenant, mongo.DbName)

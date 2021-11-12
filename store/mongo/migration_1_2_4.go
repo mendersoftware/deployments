@@ -40,7 +40,7 @@ func (m *migration_1_2_4) Up(from migrate.Version) error {
 	coll := m.client.Database(m.db).Collection(CollectionDeployments)
 
 	// update all deployments with finished timestamp to status "finished"
-	coll.UpdateMany(ctx, bson.M{
+	_, _ = coll.UpdateMany(ctx, bson.M{
 		StorageKeyDeploymentFinished: bson.M{
 			"$ne": nil,
 		},
@@ -179,7 +179,9 @@ func (m *migration_1_2_4) getStatus(deployment *model.Deployment) model.Deployme
 // it's implementation in case it changes/is removed
 // note that device statuses are the best bet as a single source of
 // truth on deployment status (used for all GETs at the time of writing this migration)
-func (m *migration_1_2_4) aggregateDeviceStatuses(ctx context.Context) (map[string]*model.Stats, error) {
+func (m *migration_1_2_4) aggregateDeviceStatuses(
+	ctx context.Context,
+) (map[string]*model.Stats, error) {
 	deviceDeployments := m.client.Database(m.db).Collection(CollectionDevices)
 
 	group := bson.D{
@@ -247,8 +249,4 @@ func (m *migration_1_2_4) deviceCountByDeployment(ctx context.Context, id string
 
 func (m *migration_1_2_4) Version() migrate.Version {
 	return migrate.MakeVersion(1, 2, 4)
-}
-
-func statKey(counter string) string {
-	return StorageKeyDeploymentStats + "." + counter
 }

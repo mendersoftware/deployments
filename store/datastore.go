@@ -72,8 +72,12 @@ type DataStore interface {
 		deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error)
 	FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
 		deviceID string, statuses ...string) ([]model.DeviceDeployment, error)
-	UpdateDeviceDeploymentStatus(ctx context.Context, deviceID string,
-		deploymentID string, state model.DeviceDeploymentState) (model.DeviceDeploymentStatus, error)
+	UpdateDeviceDeploymentStatus(
+		ctx context.Context,
+		deviceID string,
+		deploymentID string,
+		state model.DeviceDeploymentState,
+	) (model.DeviceDeploymentStatus, error)
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
 	AssignArtifact(ctx context.Context, deviceID string,
@@ -99,12 +103,22 @@ type DataStore interface {
 	FindDeploymentByID(ctx context.Context, id string) (*model.Deployment, error)
 	FindUnfinishedByID(ctx context.Context,
 		id string) (*model.Deployment, error)
-	UpdateStatsInc(ctx context.Context, id string, stateFrom, stateTo model.DeviceDeploymentStatus) error
+	UpdateStatsInc(
+		ctx context.Context,
+		id string,
+		stateFrom,
+		stateTo model.DeviceDeploymentStatus,
+	) error
 	UpdateStats(ctx context.Context,
 		id string, stats model.Stats) error
 	Find(ctx context.Context,
 		query model.Query) ([]*model.Deployment, int64, error)
-	SetDeploymentStatus(ctx context.Context, id string, status model.DeploymentStatus, now time.Time) error
+	SetDeploymentStatus(
+		ctx context.Context,
+		id string,
+		status model.DeploymentStatus,
+		now time.Time,
+	) error
 	FindNewerActiveDeployments(ctx context.Context,
 		createdAfter *time.Time, skip, limit int) ([]*model.Deployment, error)
 	ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error)

@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
-	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
@@ -38,6 +37,7 @@ import (
 	"github.com/mendersoftware/deployments/client/inventory"
 	"github.com/mendersoftware/deployments/client/reporting"
 	"github.com/mendersoftware/deployments/client/workflows"
+	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/s3"
 	"github.com/mendersoftware/deployments/store"
@@ -75,9 +75,11 @@ var (
 	ErrModelInvalidMetadata             = errors.New("Metadata invalid")
 	ErrModelArtifactNotUnique           = errors.New("Artifact not unique")
 	ErrModelArtifactFileTooLarge        = errors.New("Artifact file too large")
-	ErrModelImageInActiveDeployment     = errors.New("Image is used in active deployment and cannot be removed")
-	ErrModelImageUsedInAnyDeployment    = errors.New("Image has already been used in deployment")
-	ErrModelParsingArtifactFailed       = errors.New("Cannot parse artifact file")
+	ErrModelImageInActiveDeployment     = errors.New(
+		"Image is used in active deployment and cannot be removed",
+	)
+	ErrModelImageUsedInAnyDeployment = errors.New("Image has already been used in deployment")
+	ErrModelParsingArtifactFailed    = errors.New("Cannot parse artifact file")
 
 	ErrMsgArtifactConflict = "An artifact with the same name has conflicting dependencies"
 
@@ -110,7 +112,10 @@ type App interface {
 	SetStorageSettings(ctx context.Context, storageSettings *model.StorageSettings) error
 
 	// images
-	ListImages(ctx context.Context, filters *model.ReleaseOrImageFilter) ([]*model.Image, int, error)
+	ListImages(
+		ctx context.Context,
+		filters *model.ReleaseOrImageFilter,
+	) ([]*model.Image, int, error)
 	DownloadLink(ctx context.Context, imageID string,
 		expire time.Duration) (*model.Link, error)
 	GetImage(ctx context.Context, id string) (*model.Image, error)
@@ -119,7 +124,11 @@ type App interface {
 		multipartUploadMsg *model.MultipartUploadMsg) (string, error)
 	GenerateImage(ctx context.Context,
 		multipartUploadMsg *model.MultipartGenerateImageMsg) (string, error)
-	GenerateConfigurationImage(ctx context.Context, deviceType string, deploymentID string) (io.Reader, error)
+	GenerateConfigurationImage(
+		ctx context.Context,
+		deviceType string,
+		deploymentID string,
+	) (io.Reader, error)
 	EditImage(ctx context.Context, id string,
 		constructorData *model.ImageMeta) (bool, error)
 
@@ -161,7 +170,11 @@ type Deployments struct {
 	reportingClient  reporting.Client
 }
 
-func NewDeployments(storage store.DataStore, fileStorage s3.FileStorage, imageContentType string) *Deployments {
+func NewDeployments(
+	storage store.DataStore,
+	fileStorage s3.FileStorage,
+	imageContentType string,
+) *Deployments {
 	return &Deployments{
 		db:               storage,
 		fileStorage:      fileStorage,
@@ -365,7 +378,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	_, err = io.Copy(ioutil.Discard, tee)
 	if err != nil {
 		// CloseWithError will cause the reading end to abort upload.
-		pW.CloseWithError(err)
+		_ = pW.CloseWithError(err)
 		<-ch
 		return artifactID, err
 	}
@@ -431,7 +444,13 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 	if err != nil {
 		return "", err
 	}
-	link, err := fileStorage.GetRequest(ctx, imgID, DefaultImageGenerationLinkExpire, ArtifactContentType, "")
+	link, err := fileStorage.GetRequest(
+		ctx,
+		imgID,
+		DefaultImageGenerationLinkExpire,
+		ArtifactContentType,
+		"",
+	)
 	if err != nil {
 		return "", err
 	}
@@ -561,9 +580,11 @@ func (d *Deployments) GetImage(ctx context.Context, id string) (*model.Image, er
 
 // DeleteImage removes metadata and image file
 // Noop for not existing images
-// Allowed to remove image only if image is not scheduled or in progress for an updates - then image file is needed
-// In case of already finished updates only image file is not needed, metadata is attached directly to device deployment
-// therefore we still have some information about image that have been used (but not the file)
+// Allowed to remove image only if image is not scheduled or in progress for an updates - then image
+// file is needed
+// In case of already finished updates only image file is not needed, metadata is attached directly
+// to device deployment therefore we still have some information about image that have been used
+// (but not the file)
 func (d *Deployments) DeleteImage(ctx context.Context, imageID string) error {
 	found, err := d.GetImage(ctx, imageID)
 
@@ -604,7 +625,10 @@ func (d *Deployments) DeleteImage(ctx context.Context, imageID string) error {
 }
 
 // ListImages according to specified filers.
-func (d *Deployments) ListImages(ctx context.Context, filters *model.ReleaseOrImageFilter) ([]*model.Image, int, error) {
+func (d *Deployments) ListImages(
+	ctx context.Context,
+	filters *model.ReleaseOrImageFilter,
+) ([]*model.Image, int, error) {
 	imageList, count, err := d.db.ListImages(ctx, filters)
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "Searching for image metadata")
@@ -857,7 +881,10 @@ func (d *Deployments) CreateDeviceConfigurationDeployment(
 		return "", ErrModelMissingInput
 	}
 
-	deployment, err := model.NewDeploymentFromConfigurationDeploymentConstructor(constructor, deploymentID)
+	deployment, err := model.NewDeploymentFromConfigurationDeploymentConstructor(
+		constructor,
+		deploymentID,
+	)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create deployment")
 	}
@@ -946,7 +973,10 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 	return deployment.Id, nil
 }
 
-func (d *Deployments) getDeploymentGroups(ctx context.Context, devices []string) ([]string, error) {
+func (d *Deployments) getDeploymentGroups(
+	ctx context.Context,
+	devices []string,
+) ([]string, error) {
 	id := identity.FromContext(ctx)
 
 	//only for single device deployment case
@@ -966,8 +996,10 @@ func (d *Deployments) getDeploymentGroups(ctx context.Context, devices []string)
 }
 
 // IsDeploymentFinished checks if there is unfinished deployment with given ID
-func (d *Deployments) IsDeploymentFinished(ctx context.Context, deploymentID string) (bool, error) {
-
+func (d *Deployments) IsDeploymentFinished(
+	ctx context.Context,
+	deploymentID string,
+) (bool, error) {
 	deployment, err := d.db.FindUnfinishedByID(ctx, deploymentID)
 	if err != nil {
 		return false, errors.Wrap(err, "Searching for unfinished deployment by ID")
@@ -995,8 +1027,8 @@ func (d *Deployments) GetDeployment(ctx context.Context,
 	return deployment, nil
 }
 
-// ImageUsedInActiveDeployment checks if specified image is in use by deployments
-// Image is considered to be in use if it's participating in at lest one non success/error deployment.
+// ImageUsedInActiveDeployment checks if specified image is in use by deployments Image is
+// considered to be in use if it's participating in at lest one non success/error deployment.
 func (d *Deployments) ImageUsedInActiveDeployment(ctx context.Context,
 	imageID string) (bool, error) {
 
@@ -1070,13 +1102,21 @@ func (d *Deployments) assignArtifact(
 	// It is possible that there is old deployment structure in the system.
 	// In such case we need to select artifact using name and device type.
 	if deployment.Artifacts == nil || len(deployment.Artifacts) == 0 {
-		artifact, err = d.db.ImageByNameAndDeviceType(ctx, installed.ArtifactName, installed.DeviceType)
+		artifact, err = d.db.ImageByNameAndDeviceType(
+			ctx,
+			installed.ArtifactName,
+			installed.DeviceType,
+		)
 		if err != nil {
 			return errors.Wrap(err, "assigning artifact to device deployment")
 		}
 	} else {
 		// Select artifact for the device deployment from artifacts assigned to the deployment.
-		artifact, err = d.db.ImageByIdsAndDeviceType(ctx, deployment.Artifacts, installed.DeviceType)
+		artifact, err = d.db.ImageByIdsAndDeviceType(
+			ctx,
+			deployment.Artifacts,
+			installed.DeviceType,
+		)
 		if err != nil {
 			return errors.Wrap(err, "assigning artifact to device deployment")
 		}
@@ -1226,7 +1266,11 @@ func (d *Deployments) createDeviceDeploymentWithStatus(
 	return deviceDeployment, nil
 }
 
-func (d *Deployments) isDevicePartOfDeployment(ctx context.Context, deviceID string, deployment *model.Deployment) (bool, error) {
+func (d *Deployments) isDevicePartOfDeployment(
+	ctx context.Context,
+	deviceID string,
+	deployment *model.Deployment,
+) (bool, error) {
 	for _, id := range deployment.DeviceList {
 		if id == deviceID {
 			return true, nil
@@ -1275,7 +1319,8 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		}, nil
 	}
 
-	// assign artifact only if the artifact was not assigned previously or the device type has changed
+	// assign artifact only if the artifact was not assigned previously or the device type has
+	// changed
 	if deviceDeployment.Image == nil ||
 		len(deviceDeployment.DeviceType) == 0 ||
 		deviceDeployment.DeviceType != installed.DeviceType {
@@ -1446,7 +1491,10 @@ func (d *Deployments) GetDevicesListForDeployment(ctx context.Context,
 	return statuses, totalCount, nil
 }
 
-func (d *Deployments) setDeploymentDeviceCountIfUnset(ctx context.Context, deployment *model.Deployment) error {
+func (d *Deployments) setDeploymentDeviceCountIfUnset(
+	ctx context.Context,
+	deployment *model.Deployment,
+) error {
 	if deployment.DeviceCount == nil {
 		deviceCount, err := d.db.DeviceCountByDeployment(ctx, deployment.Id)
 		if err != nil {
@@ -1632,7 +1680,10 @@ func (d *Deployments) GetStorageSettings(ctx context.Context) (*model.StorageSet
 	return settings, nil
 }
 
-func (d *Deployments) SetStorageSettings(ctx context.Context, storageSettings *model.StorageSettings) error {
+func (d *Deployments) SetStorageSettings(
+	ctx context.Context,
+	storageSettings *model.StorageSettings,
+) error {
 	if err := storageSettings.Validate(); err != nil {
 		return errors.Wrap(err, "Invalid input data")
 	}
@@ -1653,8 +1704,11 @@ func (d *Deployments) haveReporting() bool {
 	return d.reportingClient != nil
 }
 
-func (d *Deployments) search(ctx context.Context, tid string, parms model.SearchParams) ([]model.InvDevice, int, error) {
-
+func (d *Deployments) search(
+	ctx context.Context,
+	tid string,
+	parms model.SearchParams,
+) ([]model.InvDevice, int, error) {
 	if d.haveReporting() {
 		return d.reportingClient.Search(ctx, tid, parms)
 	} else {
