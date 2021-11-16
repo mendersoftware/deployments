@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -32,7 +32,8 @@ type migration_1_2_3 struct {
 	db     string
 }
 
-// Up intrduces a unique index on artifact depends_idx and name to ensure unique depends in a release, also:
+// Up intrduces a unique index on artifact depends_idx and name to ensure unique depends in a
+// release, also:
 // - drops index on DeviceTypesCompatible, superseded by the above
 // - rewrites DeviceTypesCompatible to 'depends.device_type' - even for v1, v2 artifacts
 func (m *migration_1_2_3) Up(from migrate.Version) error {
@@ -61,7 +62,7 @@ func (m *migration_1_2_3) Up(from migrate.Version) error {
 		return err
 	}
 	var artifacts []*model.Image
-	if cursor.All(ctx, &artifacts); err != nil {
+	if err = cursor.All(ctx, &artifacts); err != nil {
 		return err
 	}
 

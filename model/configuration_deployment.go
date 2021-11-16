@@ -17,11 +17,12 @@ package model
 import (
 	"time"
 
-	"github.com/go-ozzo/ozzo-validation/v4"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/pkg/errors"
 )
 
-// ConfigurationDeploymentConstructor represent input data needed for creating new Configuraiont Deployment
+// ConfigurationDeploymentConstructor represent input data needed for creating new Configuration
+// Deployment
 type ConfigurationDeploymentConstructor struct {
 	// Deployment name, required
 	Name string `json:"name"`
@@ -45,7 +46,7 @@ func (c ConfigurationDeploymentConstructor) Validate() error {
 	)
 }
 
-// NewConfigurationDeployment creates new configuration deployment object, sets create data by default.
+// NewDeploymentWithID creates new configuration deployment object, sets create data by default.
 func NewDeploymentWithID(ID string) (*Deployment, error) {
 	now := time.Now()
 
@@ -57,8 +58,12 @@ func NewDeploymentWithID(ID string) (*Deployment, error) {
 	}, nil
 }
 
-// NewConfigurationDeploymentFromConstructor creates new Deployments object based onconfiguration deployment constructor data
-func NewDeploymentFromConfigurationDeploymentConstructor(constructor *ConfigurationDeploymentConstructor, deploymentID string) (*Deployment, error) {
+// NewConfigurationDeploymentFromConstructor creates new Deployments object based onconfiguration
+// deployment constructor data
+func NewDeploymentFromConfigurationDeploymentConstructor(
+	constructor *ConfigurationDeploymentConstructor,
+	deploymentID string,
+) (*Deployment, error) {
 
 	deployment, err := NewDeploymentWithID(deploymentID)
 	if err != nil {
@@ -68,7 +73,7 @@ func NewDeploymentFromConfigurationDeploymentConstructor(constructor *Configurat
 	deployment.DeploymentConstructor = &DeploymentConstructor{
 		Name: constructor.Name,
 		// save constructor name as artifact name just to make deployment valid;
-		// this field will be overwtritten by the name of the auto-generated
+		// this field will be overwritten by the name of the auto-generated
 		// configuration artifact
 		ArtifactName: constructor.Name,
 	}

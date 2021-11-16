@@ -27,11 +27,18 @@ import (
 
 // Errors
 var (
-	ErrInvalidDeviceID                            = errors.New("Invalid device ID")
-	ErrInvalidDeploymentDefinition                = errors.New("Invalid deployments definition")
-	ErrInvalidDeploymentDefinitionNoDevices       = errors.New("Invalid deployments definition: provide list of devices or set all_devices flag")
-	ErrInvalidDeploymentDefinitionConflict        = errors.New("Invalid deployments definition: list of devices provided togheter with all_devices flag")
-	ErrInvalidDeploymentToGroupDefinitionConflict = errors.New("The deployment for group constructor should have neither list of devices nor all_devices flag set")
+	ErrInvalidDeviceID                      = errors.New("Invalid device ID")
+	ErrInvalidDeploymentDefinition          = errors.New("Invalid deployments definition")
+	ErrInvalidDeploymentDefinitionNoDevices = errors.New(
+		"Invalid deployments definition: provide list of devices or set all_devices flag",
+	)
+	ErrInvalidDeploymentDefinitionConflict = errors.New(
+		"Invalid deployments definition: list of devices provided togheter with all_devices flag",
+	)
+	ErrInvalidDeploymentToGroupDefinitionConflict = errors.New(
+		"The deployment for group constructor should have neither list of devices" +
+			" nor all_devices flag set",
+	)
 )
 
 type DeploymentStatus string
@@ -59,7 +66,8 @@ func (typ DeploymentType) Validate() error {
 		DeploymentTypeConfiguration).Validate(typ)
 }
 
-// DeploymentConstructor represent input data needed for creating new Deployment (they differ in fields)
+// DeploymentConstructor represent input data needed for creating new Deployment (they differ in
+// fields)
 type DeploymentConstructor struct {
 	// Deployment name, required
 	Name string `json:"name,omitempty"`

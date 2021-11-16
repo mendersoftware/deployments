@@ -87,13 +87,19 @@ const (
 
 // Errors
 var (
-	ErrIDNotUUID                            = errors.New("ID is not a valid UUID")
-	ErrArtifactUsedInActiveDeployment       = errors.New("Artifact is used in active deployment")
-	ErrInvalidExpireParam                   = errors.New("Invalid expire parameter")
-	ErrArtifactNameMissing                  = errors.New("request does not contain the name of the artifact")
-	ErrArtifactTypeMissing                  = errors.New("request does not contain the type of artifact")
-	ErrArtifactDeviceTypesCompatibleMissing = errors.New("request does not contain the list of compatible device types")
-	ErrArtifactFileMissing                  = errors.New("request does not contain the artifact file")
+	ErrIDNotUUID                      = errors.New("ID is not a valid UUID")
+	ErrArtifactUsedInActiveDeployment = errors.New("Artifact is used in active deployment")
+	ErrInvalidExpireParam             = errors.New("Invalid expire parameter")
+	ErrArtifactNameMissing            = errors.New(
+		"request does not contain the name of the artifact",
+	)
+	ErrArtifactTypeMissing = errors.New(
+		"request does not contain the type of artifact",
+	)
+	ErrArtifactDeviceTypesCompatibleMissing = errors.New(
+		"request does not contain the list of compatible device types",
+	)
+	ErrArtifactFileMissing = errors.New("request does not contain the artifact file")
 
 	ErrInternal                   = errors.New("Internal error")
 	ErrDeploymentAlreadyFinished  = errors.New("Deployment already finished")
@@ -515,7 +521,13 @@ func (d *DeploymentsApiHandlers) EditImage(w rest.ResponseWriter, r *rest.Reques
 
 	constructor, err := getImageMetaFromBody(r)
 	if err != nil {
-		d.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
+		d.view.RenderError(
+			w,
+			r,
+			errors.Wrap(err, "Validating request body"),
+			http.StatusBadRequest,
+			l,
+		)
 		return
 	}
 
@@ -566,7 +578,13 @@ func (d *DeploymentsApiHandlers) NewImageForTenantHandler(w rest.ResponseWriter,
 	tenantID := r.PathParam("tenant")
 
 	if tenantID == "" {
-		rest_utils.RestErrWithLog(w, r, l, fmt.Errorf("missing tenant id in path"), http.StatusBadRequest)
+		rest_utils.RestErrWithLog(
+			w,
+			r,
+			l,
+			fmt.Errorf("missing tenant id in path"),
+			http.StatusBadRequest,
+		)
 		return
 	}
 
@@ -581,7 +599,11 @@ func (d *DeploymentsApiHandlers) NewImageForTenantHandler(w rest.ResponseWriter,
 	d.newImageWithContext(ctx, w, r)
 }
 
-func (d *DeploymentsApiHandlers) newImageWithContext(ctx context.Context, w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) newImageWithContext(
+	ctx context.Context,
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
 	l := requestlog.GetRequestLogger(r)
 
 	formReader, err := r.MultipartReader()
@@ -696,7 +718,9 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 }
 
 // ParseMultipart parses multipart/form-data message.
-func (d *DeploymentsApiHandlers) ParseMultipart(r *multipart.Reader) (*model.MultipartUploadMsg, error) {
+func (d *DeploymentsApiHandlers) ParseMultipart(
+	r *multipart.Reader,
+) (*model.MultipartUploadMsg, error) {
 
 	uploadMsg := &model.MultipartUploadMsg{
 		MetaConstructor: &model.ImageMeta{},
@@ -768,7 +792,9 @@ func (d *DeploymentsApiHandlers) ParseMultipart(r *multipart.Reader) (*model.Mul
 }
 
 // ParseGenerateImageMultipart parses multipart/form-data message.
-func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(r *multipart.Reader) (*model.MultipartGenerateImageMsg, error) {
+func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(
+	r *multipart.Reader,
+) (*model.MultipartGenerateImageMsg, error) {
 	msg := &model.MultipartGenerateImageMsg{}
 
 ParseLoop:
@@ -840,17 +866,30 @@ ParseLoop:
 }
 
 // deployments
-func (d *DeploymentsApiHandlers) createDeployment(w rest.ResponseWriter, r *rest.Request, ctx context.Context, l *log.Logger, group string) {
+func (d *DeploymentsApiHandlers) createDeployment(
+	w rest.ResponseWriter,
+	r *rest.Request,
+	ctx context.Context,
+	l *log.Logger,
+	group string,
+) {
 	constructor, err := d.getDeploymentConstructorFromBody(r, group)
 	if err != nil {
-		d.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
+		d.view.RenderError(
+			w,
+			r,
+			errors.Wrap(err, "Validating request body"),
+			http.StatusBadRequest,
+			l,
+		)
 		return
 	}
 
 	id, err := d.app.CreateDeployment(ctx, constructor)
 	switch err {
 	case nil:
-		// in case of deployment to group remove "/group/{name}" from path before creating location haeder
+		// in case of deployment to group remove "/group/{name}" from path before creating location
+		// haeder
 		r.URL.Path = strings.TrimSuffix(r.URL.Path, "/group/"+constructor.Group)
 		d.view.RenderSuccessPost(w, r, id)
 	case app.ErrNoArtifact:
@@ -914,7 +953,10 @@ func getConfigurationDeploymentConstructorFromBody(r *rest.Request) (
 }
 
 // device configuration deployment handler
-func (d *DeploymentsApiHandlers) PostDeviceConfigurationDeployment(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) PostDeviceConfigurationDeployment(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
 	l := requestlog.GetRequestLogger(r)
 
 	// get path params
@@ -929,7 +971,13 @@ func (d *DeploymentsApiHandlers) PostDeviceConfigurationDeployment(w rest.Respon
 
 	constructor, err := getConfigurationDeploymentConstructorFromBody(r)
 	if err != nil {
-		d.view.RenderError(w, r, errors.Wrap(err, "Validating request body"), http.StatusBadRequest, l)
+		d.view.RenderError(
+			w,
+			r,
+			errors.Wrap(err, "Validating request body"),
+			http.StatusBadRequest,
+			l,
+		)
 		return
 	}
 
@@ -945,11 +993,12 @@ func (d *DeploymentsApiHandlers) PostDeviceConfigurationDeployment(w rest.Respon
 	case app.ErrInvalidDeploymentID:
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 	}
-
-	return
 }
 
-func (d *DeploymentsApiHandlers) getDeploymentConstructorFromBody(r *rest.Request, group string) (*model.DeploymentConstructor, error) {
+func (d *DeploymentsApiHandlers) getDeploymentConstructorFromBody(
+	r *rest.Request,
+	group string,
+) (*model.DeploymentConstructor, error) {
 	var constructor *model.DeploymentConstructor
 	if err := r.DecodeJsonPayload(&constructor); err != nil {
 		return nil, err
@@ -1182,7 +1231,10 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 	d.view.RenderSuccessGet(w, deployment)
 }
 
-func (d *DeploymentsApiHandlers) PutDeploymentStatusForDevice(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) PutDeploymentStatusForDevice(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
 	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)
 
@@ -1223,7 +1275,10 @@ func (d *DeploymentsApiHandlers) PutDeploymentStatusForDevice(w rest.ResponseWri
 	d.view.RenderEmptySuccessResponse(w)
 }
 
-func (d *DeploymentsApiHandlers) GetDeviceStatusesForDeployment(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) GetDeviceStatusesForDeployment(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
 	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)
 
@@ -1249,7 +1304,10 @@ func (d *DeploymentsApiHandlers) GetDeviceStatusesForDeployment(w rest.ResponseW
 	d.view.RenderSuccessGet(w, statuses)
 }
 
-func (d *DeploymentsApiHandlers) GetDevicesListForDeployment(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) GetDevicesListForDeployment(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
 	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)
 
@@ -1529,7 +1587,10 @@ func (d *DeploymentsApiHandlers) ProvisionTenantsHandler(w rest.ResponseWriter, 
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
 	tenantID := r.PathParam("tenant")
 	if tenantID == "" {
 		l := requestlog.GetRequestLogger(r)
@@ -1544,7 +1605,10 @@ func (d *DeploymentsApiHandlers) DeploymentsPerTenantHandler(w rest.ResponseWrit
 	d.LookupDeployment(w, r)
 }
 
-func (d *DeploymentsApiHandlers) GetTenantStorageSettingsHandler(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) GetTenantStorageSettingsHandler(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
 	l := requestlog.GetRequestLogger(r)
 
 	tenantID := r.PathParam("tenant")
@@ -1563,7 +1627,10 @@ func (d *DeploymentsApiHandlers) GetTenantStorageSettingsHandler(w rest.Response
 	d.view.RenderSuccessGet(w, settings)
 }
 
-func (d *DeploymentsApiHandlers) PutTenantStorageSettingsHandler(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) PutTenantStorageSettingsHandler(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
 	l := requestlog.GetRequestLogger(r)
 
 	defer r.Body.Close()

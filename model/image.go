@@ -68,6 +68,7 @@ type ArtifactMeta struct {
 	Name string `json:"name" bson:"name" valid:"length(1|4096),required"`
 
 	// Compatible device types for the application
+	//nolint:lll
 	DeviceTypesCompatible []string `json:"device_types_compatible" bson:"device_types_compatible" valid:"length(1|4096),required"`
 
 	// Artifact version info
@@ -89,6 +90,7 @@ type ArtifactMeta struct {
 
 	// ClearsProvides is a list of strings (JSON) of clears_artifact_provides used
 	// for clearing already-installed artifact (version 3) provides.
+	//nolint:lll
 	ClearsProvides []string `json:"clears_artifact_provides,omitempty" bson:"clears_provides,omitempty" valid:"-"`
 }
 

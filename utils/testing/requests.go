@@ -1,4 +1,4 @@
-// Copyright 2018 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -30,7 +30,12 @@ type Part struct {
 }
 
 // MakeMultipartRequest returns a http.Request.
-func MakeMultipartRequest(method string, urlStr string, contentType string, payload []Part) *http.Request {
+func MakeMultipartRequest(
+	method string,
+	urlStr string,
+	contentType string,
+	payload []Part,
+) *http.Request {
 	body_buf := new(bytes.Buffer)
 	body_writer := multipart.NewWriter(body_buf)
 	for _, part := range payload {
@@ -39,7 +44,10 @@ func MakeMultipartRequest(method string, urlStr string, contentType string, payl
 		if part.ContentType == "" && part.ImageData == nil {
 			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"")
 		} else {
-			mh.Set("Content-Disposition", "form-data; name=\""+part.FieldName+"\"; filename=\"artifact-213.tar.gz\"")
+			mh.Set(
+				"Content-Disposition", "form-data; name=\""+
+					part.FieldName+"\"; filename=\"artifact-213.tar.gz\"",
+			)
 		}
 		part_writer, err := body_writer.CreatePart(mh)
 		if nil != err {
@@ -47,9 +55,9 @@ func MakeMultipartRequest(method string, urlStr string, contentType string, payl
 		}
 		if part.ContentType == "" && part.ImageData == nil {
 			b := []byte(part.FieldValue)
-			io.Copy(part_writer, bytes.NewReader(b))
+			_, _ = io.Copy(part_writer, bytes.NewReader(b))
 		} else {
-			io.Copy(part_writer, bytes.NewReader(part.ImageData))
+			_, _ = io.Copy(part_writer, bytes.NewReader(part.ImageData))
 		}
 	}
 	body_writer.Close()

@@ -329,14 +329,15 @@ const (
 	StorageKeyDeviceDeploymentLogMessages = "messages"
 
 	StorageKeyDeviceDeploymentAssignedImage   = "image"
-	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage + "." + StorageKeyId
-	StorageKeyDeviceDeploymentDeviceId        = "deviceid"
-	StorageKeyDeviceDeploymentStatus          = "status"
-	StorageKeyDeviceDeploymentSubState        = "substate"
-	StorageKeyDeviceDeploymentDeploymentID    = "deploymentid"
-	StorageKeyDeviceDeploymentFinished        = "finished"
-	StorageKeyDeviceDeploymentIsLogAvailable  = "log"
-	StorageKeyDeviceDeploymentArtifact        = "image"
+	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage +
+		"." + StorageKeyId
+	StorageKeyDeviceDeploymentDeviceId       = "deviceid"
+	StorageKeyDeviceDeploymentStatus         = "status"
+	StorageKeyDeviceDeploymentSubState       = "substate"
+	StorageKeyDeviceDeploymentDeploymentID   = "deploymentid"
+	StorageKeyDeviceDeploymentFinished       = "finished"
+	StorageKeyDeviceDeploymentIsLogAvailable = "log"
+	StorageKeyDeviceDeploymentArtifact       = "image"
 
 	StorageKeyDeploymentName         = "deploymentconstructor.name"
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
@@ -423,7 +424,10 @@ func (db *DataStoreMongo) Ping(ctx context.Context) error {
 	return res.Err()
 }
 
-func (db *DataStoreMongo) GetReleases(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]model.Release, int, error) {
+func (db *DataStoreMongo) GetReleases(
+	ctx context.Context,
+	filt *model.ReleaseOrImageFilter,
+) ([]model.Release, int, error) {
 	var pipe []bson.D
 
 	pipe = []bson.D{}
@@ -561,21 +565,6 @@ func (db *DataStoreMongo) ProvisionTenant(ctx context.Context, tenantId string) 
 }
 
 //images
-
-// Ensure required indexes exists; create if not.
-func (db *DataStoreMongo) ensureIndexing(ctx context.Context, client *mongo.Client) error {
-
-	// Build index upfront - make sure this index is always on.
-	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
-	collImg := database.Collection(CollectionImages)
-	indexes := collImg.Indexes()
-	// NOTE: CreateIndex (CreateOne) doesn't create duplicates for mongodb
-	//       version > 3.0, db.collection.ensureIndexing is an alias for
-	//       db.collection.createIndex
-	_, err := indexes.CreateOne(ctx, UniqueNameVersionIndex)
-
-	return err
-}
 
 // Exists checks if object with ID exists
 func (db *DataStoreMongo) Exists(ctx context.Context, id string) (bool, error) {
@@ -721,7 +710,7 @@ func (db *DataStoreMongo) ImagesByName(
 		return nil, err
 	}
 	// Both we lookup unique object, should be one or none.
-	if cursor.All(ctx, &images); err != nil {
+	if err = cursor.All(ctx, &images); err != nil {
 		return nil, err
 	}
 
@@ -880,7 +869,10 @@ func getReleaseSortFieldAndOrder(filt *model.ReleaseOrImageFilter) (string, int)
 }
 
 // ListImages lists all images
-func (db *DataStoreMongo) ListImages(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]*model.Image, int, error) {
+func (db *DataStoreMongo) ListImages(
+	ctx context.Context,
+	filt *model.ReleaseOrImageFilter,
+) ([]*model.Image, int, error) {
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
@@ -1014,7 +1006,10 @@ func (db *DataStoreMongo) GetDeviceDeploymentLog(ctx context.Context,
 // device deployments
 
 // Insert persists device deployment object
-func (db *DataStoreMongo) InsertDeviceDeployment(ctx context.Context, deviceDeployment *model.DeviceDeployment) error {
+func (db *DataStoreMongo) InsertDeviceDeployment(
+	ctx context.Context,
+	deviceDeployment *model.DeviceDeployment,
+) error {
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	c := database.Collection(CollectionDevices)
 
@@ -1065,7 +1060,11 @@ func (db *DataStoreMongo) InsertMany(ctx context.Context,
 	}
 
 	for deploymentID := range deviceCountIncrements {
-		err := db.IncrementDeploymentDeviceCount(ctx, deploymentID, deviceCountIncrements[deploymentID])
+		err := db.IncrementDeploymentDeviceCount(
+			ctx,
+			deploymentID,
+			deviceCountIncrements[deploymentID],
+		)
 		if err != nil {
 			return err
 		}
@@ -1106,7 +1105,8 @@ func (db *DataStoreMongo) ExistAssignedImageWithIDAndStatuses(ctx context.Contex
 	return true, nil
 }
 
-// FindOldestDeploymentForDeviceIDWithStatuses find oldest deployment matching device id and one of specified statuses.
+// FindOldestDeploymentForDeviceIDWithStatuses find oldest deployment matching device id and one of
+// specified statuses.
 func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
 	deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error) {
 
@@ -1182,7 +1182,8 @@ func (db *DataStoreMongo) FindLatestDeploymentForDeviceIDWithStatuses(ctx contex
 	return deployment, nil
 }
 
-// FindAllDeploymentsForDeviceIDWithStatuses finds all deployments matching device id and one of specified statuses.
+// FindAllDeploymentsForDeviceIDWithStatuses finds all deployments matching device id and one of
+// specified statuses.
 func (db *DataStoreMongo) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
 	deviceID string, statuses ...string) ([]model.DeviceDeployment, error) {
 
@@ -1218,8 +1219,12 @@ func (db *DataStoreMongo) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.
 	return deployments, nil
 }
 
-func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(ctx context.Context,
-	deviceID string, deploymentID string, ddState model.DeviceDeploymentState) (model.DeviceDeploymentStatus, error) {
+func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(
+	ctx context.Context,
+	deviceID string,
+	deploymentID string,
+	ddState model.DeviceDeploymentState,
+) (model.DeviceDeploymentStatus, error) {
 
 	// Verify ID formatting
 	if len(deviceID) == 0 ||
@@ -1686,7 +1691,10 @@ func (db *DataStoreMongo) hasIndexing(ctx context.Context, client *mongo.Client)
 }
 
 // Insert persists object
-func (db *DataStoreMongo) InsertDeployment(ctx context.Context, deployment *model.Deployment) error {
+func (db *DataStoreMongo) InsertDeployment(
+	ctx context.Context,
+	deployment *model.Deployment,
+) error {
 
 	if deployment == nil {
 		return ErrDeploymentStorageInvalidDeployment
@@ -1723,7 +1731,10 @@ func (db *DataStoreMongo) DeleteDeployment(ctx context.Context, id string) error
 	return nil
 }
 
-func (db *DataStoreMongo) FindDeploymentByID(ctx context.Context, id string) (*model.Deployment, error) {
+func (db *DataStoreMongo) FindDeploymentByID(
+	ctx context.Context,
+	id string,
+) (*model.Deployment, error) {
 
 	if len(id) == 0 {
 		return nil, ErrStorageInvalidID
@@ -1770,7 +1781,11 @@ func (db *DataStoreMongo) FindUnfinishedByID(ctx context.Context,
 	return deployment, nil
 }
 
-func (db *DataStoreMongo) IncrementDeploymentDeviceCount(ctx context.Context, deploymentID string, increment int) error {
+func (db *DataStoreMongo) IncrementDeploymentDeviceCount(
+	ctx context.Context,
+	deploymentID string,
+	increment int,
+) error {
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collection := database.Collection(CollectionDeployments)
 
@@ -1791,7 +1806,11 @@ func (db *DataStoreMongo) IncrementDeploymentDeviceCount(ctx context.Context, de
 	return err
 }
 
-func (db *DataStoreMongo) SetDeploymentDeviceCount(ctx context.Context, deploymentID string, count int) error {
+func (db *DataStoreMongo) SetDeploymentDeviceCount(
+	ctx context.Context,
+	deploymentID string,
+	count int,
+) error {
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collection := database.Collection(CollectionDeployments)
 
@@ -2073,7 +2092,12 @@ func (db *DataStoreMongo) FindNewerActiveDeployments(ctx context.Context,
 
 // SetDeploymentStatus simply sets the status field
 // optionally sets 'finished time' if deployment is indeed finished
-func (db *DataStoreMongo) SetDeploymentStatus(ctx context.Context, id string, status model.DeploymentStatus, now time.Time) error {
+func (db *DataStoreMongo) SetDeploymentStatus(
+	ctx context.Context,
+	id string,
+	status model.DeploymentStatus,
+	now time.Time,
+) error {
 	if len(id) == 0 {
 		return ErrStorageInvalidID
 	}
@@ -2178,7 +2202,10 @@ func (db *DataStoreMongo) GetStorageSettings(ctx context.Context) (*model.Storag
 	return settings, nil
 }
 
-func (db *DataStoreMongo) SetStorageSettings(ctx context.Context, storageSettings *model.StorageSettings) error {
+func (db *DataStoreMongo) SetStorageSettings(
+	ctx context.Context,
+	storageSettings *model.StorageSettings,
+) error {
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collection := database.Collection(CollectionStorageSettings)
 

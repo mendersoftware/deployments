@@ -1,4 +1,4 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -44,6 +44,6 @@ func CheckRecordedResponse(t *testing.T, recorded *test.Recorded, params JSONRes
 	}
 
 	for name, value := range params.OutputHeaders {
-		assert.Equal(t, value, recorded.Recorder.HeaderMap.Get(name))
+		assert.Equal(t, value, recorded.Recorder.Result().Header.Get(name))
 	}
 }

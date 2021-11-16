@@ -30,17 +30,6 @@ type StatusReport struct {
 	SubState string                 `json:"substate"`
 }
 
-func containsString(what string, in []string) bool {
-	found := false
-	for _, v := range in {
-		if what == v {
-			found = true
-			break
-		}
-	}
-	return found
-}
-
 func (s StatusReport) Validate() error {
 	return validation.ValidateStruct(&s,
 		validation.Field(&s.SubState, lengthIn0To200),
