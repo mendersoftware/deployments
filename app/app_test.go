@@ -168,6 +168,10 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		SearchError       error
 		GetFilterError    error
 
+		CallGetDeviceGroups  bool
+		InventoryGroups      []string
+		GetDeviceGroupsError error
+
 		ReportingService bool
 
 		OutputError error
@@ -183,6 +187,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
 			InputDeploymentStorageInsertError: errors.New("insert error"),
+			CallGetDeviceGroups:               true,
 
 			OutputError: errors.New("Storing deployment data: insert error"),
 		},
@@ -192,6 +197,8 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 				ArtifactName: "App 123",
 				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 			},
+			CallGetDeviceGroups: true,
+			InventoryGroups:     []string{"foo", "bar"},
 
 			OutputBody: true,
 		},
@@ -304,6 +311,14 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 			ds := NewDeployments(&db, fs, "")
 
 			mockInventoryClient := &inventory_mocks.Client{}
+			if testCase.CallGetDeviceGroups {
+				mockInventoryClient.On("GetDeviceGroups",
+					ctx,
+					mock.AnythingOfType("string"),
+					mock.AnythingOfType("string")).
+					Return(testCase.InventoryGroups, testCase.GetDeviceGroupsError)
+			}
+
 			mockReportingClient := &reporting_mocks.Client{}
 			if testCase.InputConstructor != nil && testCase.InputConstructor.Group != "" && len(testCase.InputConstructor.Devices) == 0 {
 				if testCase.ReportingService {
