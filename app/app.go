@@ -955,7 +955,9 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 	deployment.DeviceList = constructor.Devices
 	deployment.MaxDevices = len(constructor.Devices)
 	deployment.Type = model.DeploymentTypeSoftware
-	deployment.Groups = []string{constructor.Group}
+	if len(constructor.Group) > 0 {
+		deployment.Groups = []string{constructor.Group}
+	}
 
 	// single device deployment case
 	if len(deployment.Groups) == 0 && len(constructor.Devices) == 1 {
