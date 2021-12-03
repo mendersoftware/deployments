@@ -441,6 +441,9 @@ definitions:
       uri:
         type: string
         description: Endpoint URI.
+      external_uri:
+        type: string
+        description: External Endpoint URI (default: uri).
       key:
         type: string
         description: Access key id (for S3 - AWS_ACCESS_KEY_ID).
@@ -464,7 +467,8 @@ definitions:
     example:
       region: us-east-1
       bucket: mender-artifacts-unique-bucket-name
-      uri: example.com
+      uri: example.internal:9000
+      external_uri: example.com
       key: <key>
       secret: <secret>
       token: <token>

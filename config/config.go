@@ -41,6 +41,7 @@ const (
 	SettingAwsS3UseAccelerate         = SettingsAws + ".use_accelerate"
 	SettingAwsS3UseAccelerateDefault  = false
 	SettingAwsURI                     = SettingsAws + ".uri"
+	SettingAwsExternalURI             = SettingsAws + ".external_uri"
 	SettingsAwsTagArtifact            = SettingsAws + ".tag_artifact"
 	SettingsAwsTagArtifactDefault     = false
 

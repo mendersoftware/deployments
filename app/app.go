@@ -197,7 +197,7 @@ func (d *Deployments) HealthCheck(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "error reaching MongoDB")
 	}
-	fileStorage, err := d.getFileStorage(ctx)
+	fileStorage, err := d.getFileStorage(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func (d *Deployments) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-func (d *Deployments) getFileStorage(ctx context.Context) (s3.FileStorage, error) {
+func (d *Deployments) getFileStorage(ctx context.Context, external bool) (s3.FileStorage, error) {
 	settings, err := d.db.GetStorageSettings(ctx)
 	if err != nil {
 		return nil, err
@@ -236,9 +236,11 @@ func (d *Deployments) getFileStorage(ctx context.Context) (s3.FileStorage, error
 		region := config.Config.GetString(dconfig.SettingAwsS3Region)
 		key := config.Config.GetString(dconfig.SettingAwsAuthKeyId)
 		secret := config.Config.GetString(dconfig.SettingAwsAuthSecret)
-		uri := config.Config.GetString(dconfig.SettingAwsURI)
+		internalUri := config.Config.GetString(dconfig.SettingAwsURI)
+		externalUri := config.Config.GetString(dconfig.SettingAwsExternalURI)
 		token := config.Config.GetString(dconfig.SettingAwsAuthToken)
 		tagArtifact := config.Config.GetBool(dconfig.SettingsAwsTagArtifact)
+
 		if settings.Region != "" {
 			region = settings.Region
 		}
@@ -249,10 +251,15 @@ func (d *Deployments) getFileStorage(ctx context.Context) (s3.FileStorage, error
 			secret = settings.Secret
 		}
 		if settings.Uri != "" {
-			uri = settings.Uri
+			internalUri = settings.Uri
 		}
 		if settings.Token != "" {
 			token = settings.Token
+		}
+
+		uri := internalUri
+		if external && externalUri != "" {
+			uri = externalUri
 		}
 
 		return s3.NewSimpleStorageServiceStatic(
@@ -268,6 +275,21 @@ func (d *Deployments) getFileStorage(ctx context.Context) (s3.FileStorage, error
 		)
 	}
 
+	externalUri := config.Config.GetString(dconfig.SettingAwsExternalURI)
+
+	if external && externalUri != "" {
+		return s3.NewSimpleStorageServiceStatic(
+			config.Config.GetString(dconfig.SettingAwsS3Bucket),
+			config.Config.GetString(dconfig.SettingAwsAuthKeyId),
+			config.Config.GetString(dconfig.SettingAwsAuthSecret),
+			config.Config.GetString(dconfig.SettingAwsS3Region),
+			config.Config.GetString(dconfig.SettingAwsAuthToken),
+			externalUri,
+			config.Config.GetBool(dconfig.SettingsAwsTagArtifact),
+			config.Config.GetBool(dconfig.SettingAwsS3ForcePathStyle),
+			config.Config.GetBool(dconfig.SettingAwsS3UseAccelerate),
+		)
+	}
 	return d.fileStorage, nil
 }
 
@@ -306,7 +328,7 @@ func (d *Deployments) CreateImage(ctx context.Context,
 	artifactID, err := d.handleArtifact(ctx, multipartUploadMsg)
 	// try to remove artifact file from file storage on error
 	if err != nil {
-		fileStorage, err := d.getFileStorage(ctx)
+		fileStorage, err := d.getFileStorage(ctx, false)
 		if err != nil {
 			return "", err
 		}
@@ -351,7 +373,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	//nolint:errcheck
 	go func() (err error) {
 		defer func() { ch <- err }()
-		fileStorage, err := d.getFileStorage(ctx)
+		fileStorage, err := d.getFileStorage(ctx, false)
 		if err != nil {
 			return err
 		}
@@ -440,10 +462,11 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 		multipartGenerateImageMsg.TenantID = id.Tenant
 	}
 
-	fileStorage, err := d.getFileStorage(ctx)
+	fileStorage, err := d.getFileStorage(ctx, false)
 	if err != nil {
 		return "", err
 	}
+
 	link, err := fileStorage.GetRequest(
 		ctx,
 		imgID,
@@ -548,7 +571,7 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 		LimitError: ErrModelArtifactFileTooLarge,
 	}
 
-	fileStorage, err := d.getFileStorage(ctx)
+	fileStorage, err := d.getFileStorage(ctx, false)
 	if err != nil {
 		return "", err
 	}
@@ -608,7 +631,7 @@ func (d *Deployments) DeleteImage(ctx context.Context, imageID string) error {
 
 	// Delete image file (call to external service)
 	// Noop for not existing file
-	fileStorage, err := d.getFileStorage(ctx)
+	fileStorage, err := d.getFileStorage(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -692,7 +715,7 @@ func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 		return nil, nil
 	}
 
-	fileStorage, err := d.getFileStorage(ctx)
+	fileStorage, err := d.getFileStorage(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -709,6 +732,7 @@ func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 	fileName := image.ArtifactMeta.Name + ".mender"
 	link, err := fileStorage.GetRequest(ctx, imageID,
 		expire, ArtifactContentType, fileName)
+
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
 	}
@@ -1336,7 +1360,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		return nil, nil
 	}
 
-	fileStorage, err := d.getFileStorage(ctx)
+	fileStorage, err := d.getFileStorage(ctx, true)
 	if err != nil {
 		return nil, err
 	}
