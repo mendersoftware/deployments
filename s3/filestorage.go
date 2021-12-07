@@ -164,6 +164,19 @@ func getArtifactByTenant(ctx context.Context, objectID string) string {
 }
 
 func (s *SimpleStorageService) InitBucket(ctx context.Context, bucket string) error {
+	hparams := &s3.HeadBucketInput{
+		Bucket: aws.String(bucket),
+	}
+
+	headBucketCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	_, err := s.client.HeadBucketWithContext(headBucketCtx, hparams)
+	if nil == err {
+		// bucket exists and have permission to access it
+		return nil
+	}
+
 	// minio requires explicit bucket creation
 	cparams := &s3.CreateBucketInput{
 		Bucket: aws.String(bucket), // Required
@@ -174,7 +187,7 @@ func (s *SimpleStorageService) InitBucket(ctx context.Context, bucket string) er
 	ctxWithTimeout, cancelFn := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelFn()
 
-	_, err := s.client.CreateBucketWithContext(ctxWithTimeout, cparams)
+	_, err = s.client.CreateBucketWithContext(ctxWithTimeout, cparams)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
