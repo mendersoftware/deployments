@@ -525,6 +525,32 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /deployments/devices/{id}:
+    delete:
+      operationId: Abort Deployments for a Device
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: Abort all the active and pending Deployments for a Device
+      description: |
+        Abort all the active and pending Deployments for the specified Device.
+      parameters:
+        - name: id
+          in: path
+          description: System wide device identifier
+          required: true
+          type: string
+      responses:
+        204:
+          description: Operation completed successfully.
+        401:
+          $ref: '#/responses/UnauthorizedError'
+        500:
+          description: Internal server error.
+          schema:
+              $ref: "#/definitions/Error"
+
   /deployments/releases:
     get:
       deprecated: true

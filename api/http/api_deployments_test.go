@@ -1660,3 +1660,54 @@ func TestLookupDeployment(t *testing.T) {
 		})
 	}
 }
+
+func TestAbortDeviceDeployments(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		deviceID                  string
+		abortDeviceDeploymentsErr error
+		responseCode              int
+	}{
+		"ok": {
+			deviceID:     "1",
+			responseCode: http.StatusNoContent,
+		},
+		"ok, not found": {
+			deviceID:                  "1",
+			abortDeviceDeploymentsErr: app.ErrStorageNotFound,
+			responseCode:              http.StatusNoContent,
+		},
+		"ko": {
+			deviceID:                  "1",
+			abortDeviceDeploymentsErr: errors.New("internal error"),
+			responseCode:              http.StatusInternalServerError,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			app := &mapp.App{}
+			app.On("AbortDeviceDeployments",
+				mock.MatchedBy(func(ctx context.Context) bool {
+					return true
+				}),
+				tc.deviceID,
+			).Return(tc.abortDeviceDeploymentsErr)
+
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlManagementDeploymentsDeviceId,
+				rest.Delete,
+				d.AbortDeviceDeployments,
+			)
+			url := "http://localhost" + ApiUrlManagementDeploymentsDeviceId
+			url = strings.Replace(url, ":id", tc.deviceID, 1)
+			req := test.MakeSimpleRequest("DELETE", url, "")
+
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.responseCode)
+		})
+	}
+}

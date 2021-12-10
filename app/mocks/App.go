@@ -48,6 +48,20 @@ func (_m *App) AbortDeployment(ctx context.Context, deploymentID string) error {
 	return r0
 }
 
+// AbortDeviceDeployments provides a mock function with given fields: ctx, deviceID
+func (_m *App) AbortDeviceDeployments(ctx context.Context, deviceID string) error {
+	ret := _m.Called(ctx, deviceID)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, deviceID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CreateDeployment provides a mock function with given fields: ctx, constructor
 func (_m *App) CreateDeployment(ctx context.Context, constructor *model.DeploymentConstructor) (string, error) {
 	ret := _m.Called(ctx, constructor)
