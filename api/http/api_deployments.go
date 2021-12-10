@@ -1538,6 +1538,21 @@ func (d *DeploymentsApiHandlers) GetDeploymentLogForDevice(w rest.ResponseWriter
 	d.view.RenderDeploymentLog(w, *depl)
 }
 
+func (d *DeploymentsApiHandlers) AbortDeviceDeployments(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	id := r.PathParam("id")
+	err := d.app.AbortDeviceDeployments(ctx, id)
+
+	switch err {
+	case nil, app.ErrStorageNotFound:
+		d.view.RenderEmptySuccessResponse(w)
+	default:
+		d.view.RenderInternalError(w, r, err, l)
+	}
+}
+
 func (d *DeploymentsApiHandlers) DecommissionDevice(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	tenantID := r.PathParam("tenantID")

@@ -184,7 +184,7 @@ func intPtr(i int) *int {
 	return &i
 }
 
-func TestDecommission(t *testing.T) {
+func TestDecommissionDevice(t *testing.T) {
 	testCases := map[string]struct {
 		inputDeviceId       string
 		inputDeploymentId   string
@@ -327,8 +327,10 @@ func TestDecommission(t *testing.T) {
 			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
 				0, 100).Return(
 				tc.findNewerActiveDeploymentsDeployments, tc.findNewerActiveDeploymentsError)
+
 			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
 				100, 100).Return(nil, nil)
+
 			db.On("InsertDeviceDeployment", ctx, mock.AnythingOfType("*model.DeviceDeployment")).Return(
 				tc.insertDeviceDeploymentError)
 
@@ -345,6 +347,7 @@ func TestDecommission(t *testing.T) {
 				mock.AnythingOfType("time.Time")).
 				Return(tc.setDeploymentStatusError).
 				Once()
+
 			db.On("SetDeploymentStatus", ctx,
 				"pending",
 				model.DeploymentStatusPending,
@@ -355,6 +358,209 @@ func TestDecommission(t *testing.T) {
 			ds := NewDeployments(&db, nil, "")
 
 			err := ds.DecommissionDevice(ctx, tc.inputDeviceId)
+			if tc.outputError != nil {
+				assert.EqualError(t, err, tc.outputError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestAbortDeviceDeployments(t *testing.T) {
+	testCases := map[string]struct {
+		inputDeviceId       string
+		inputDeploymentId   string
+		inputDeploymentName string
+		inputArtifactName   string
+		inputMaxDevices     int
+		inputStats          model.Stats
+		inputDevices        []string
+
+		deviceDeployments                                     []model.DeviceDeployment
+		findOldestDeploymentForDeviceIDWithStatusesDeployment *model.DeviceDeployment
+		findOldestDeploymentForDeviceIDWithStatusesError      error
+		getDeviceDeploymentDeployment                         *model.DeviceDeployment
+		getDeviceDeploymentError                              error
+		updateDeviceDeploymentStatusStatus                    model.DeviceDeploymentStatus
+		updateDeviceDeploymentStatusError                     error
+		findLatestDeploymentForDeviceIDWithStatusesDeployment *model.DeviceDeployment
+		findLatestDeploymentForDeviceIDWithStatusesError      error
+		findNewerActiveDeploymentsDeployments                 []*model.Deployment
+		findNewerActiveDeploymentsError                       error
+		findDeploymentByIDDeployment                          *model.Deployment
+		findDeploymentByIDError                               error
+		insertDeviceDeploymentError                           error
+		updateStatsIncError                                   error
+		setDeploymentStatusError                              error
+		isDeploymentInProgress                                bool
+
+		outputError error
+	}{
+		"ok": {
+			inputDeviceId:       "foo",
+			inputDeploymentId:   "bar",
+			inputDeploymentName: "foo",
+			inputDevices:        []string{"baz"},
+
+			findOldestDeploymentForDeviceIDWithStatusesDeployment: &model.DeviceDeployment{
+				Id:           "bar",
+				DeploymentId: "bar",
+				Status:       model.DeviceDeploymentStatusDownloading,
+			},
+			getDeviceDeploymentDeployment: &model.DeviceDeployment{
+				Id:           "bar",
+				DeploymentId: "bar",
+				Status:       model.DeviceDeploymentStatusDownloading,
+			},
+			updateDeviceDeploymentStatusStatus: model.DeviceDeploymentStatusDownloading,
+			findDeploymentByIDDeployment: &model.Deployment{
+				Id:         "bar",
+				MaxDevices: 1,
+				Stats:      model.Stats{"decommissioned": 1},
+			},
+		},
+		"ok 1": {
+			findLatestDeploymentForDeviceIDWithStatusesDeployment: &model.DeviceDeployment{
+				Id:           "bar",
+				DeploymentId: "bar",
+				Status:       model.DeviceDeploymentStatusSuccess,
+				Created:      timePtr(time.Now()),
+			},
+		},
+		"ok 2": {},
+		"ok 3": {
+			findNewerActiveDeploymentsDeployments: []*model.Deployment{
+				{},
+			},
+		},
+		"ok 4": {
+			inputDeviceId:     "foo",
+			inputDeploymentId: "foo",
+			findNewerActiveDeploymentsDeployments: []*model.Deployment{
+				{
+					DeviceList:  []string{"foo"},
+					Id:          "foo",
+					Created:     timePtr(time.Now()),
+					DeviceCount: intPtr(0),
+					MaxDevices:  1,
+					Stats:       model.Stats{},
+				},
+			},
+		},
+		"ok, pending": {
+			inputDeviceId:     "foo",
+			inputDeploymentId: "pending",
+			findNewerActiveDeploymentsDeployments: []*model.Deployment{
+				{
+					DeviceList:  []string{"foo"},
+					Id:          "pending",
+					Created:     timePtr(time.Now()),
+					DeviceCount: intPtr(0),
+					MaxDevices:  1,
+					Stats:       model.Stats{},
+				},
+			},
+		},
+		"ok, pending with max devices = 2": {
+			inputDeviceId:     "foo",
+			inputDeploymentId: "pending",
+			findNewerActiveDeploymentsDeployments: []*model.Deployment{
+				{
+					DeviceList:  []string{"foo"},
+					Id:          "pending",
+					Created:     timePtr(time.Now()),
+					DeviceCount: intPtr(0),
+					MaxDevices:  2,
+					Stats:       model.Stats{},
+				},
+			},
+			isDeploymentInProgress: true,
+		},
+		"FindOldestDeploymentForDeviceIDWithStatuses error": {
+			inputDeviceId:       "foo",
+			inputDeploymentId:   "bar",
+			inputDeploymentName: "foo",
+			inputDevices:        []string{"baz"},
+
+			findOldestDeploymentForDeviceIDWithStatusesError: errors.New("foo"),
+
+			outputError: errors.New("Searching for active deployment for the device: foo"),
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.TODO()
+			db := mocks.DataStore{}
+
+			call := db.On("FindOldestDeploymentForDeviceIDWithStatuses",
+				ctx, tc.inputDeviceId).
+				Return(
+					tc.findOldestDeploymentForDeviceIDWithStatusesDeployment,
+					tc.findOldestDeploymentForDeviceIDWithStatusesError,
+				)
+			// Add variadic arguments
+			for _, status := range model.ActiveDeploymentStatuses() {
+				call.Arguments = append(call.Arguments, status)
+			}
+
+			db.On("GetDeviceDeployment", ctx, tc.inputDeploymentId,
+				tc.inputDeviceId).Return(
+				tc.getDeviceDeploymentDeployment, tc.getDeviceDeploymentError)
+
+			db.On("UpdateDeviceDeploymentStatus", ctx, tc.inputDeviceId,
+				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentState")).Return(
+				tc.updateDeviceDeploymentStatusStatus, tc.updateDeviceDeploymentStatusError)
+
+			call = db.On("FindLatestDeploymentForDeviceIDWithStatuses",
+				ctx, tc.inputDeviceId,
+			).Return(
+				tc.findLatestDeploymentForDeviceIDWithStatusesDeployment,
+				tc.findLatestDeploymentForDeviceIDWithStatusesError,
+			)
+			// Add variadic arguments
+			for _, status := range model.InactiveDeploymentStatuses() {
+				call.Arguments = append(call.Arguments, status)
+			}
+
+			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
+				0, 100).Return(
+				tc.findNewerActiveDeploymentsDeployments, tc.findNewerActiveDeploymentsError)
+
+			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
+				100, 100).Return(nil, nil)
+
+			db.On("InsertDeviceDeployment", ctx, mock.AnythingOfType("*model.DeviceDeployment")).Return(
+				tc.insertDeviceDeploymentError)
+
+			db.On("FindDeploymentByID", ctx, tc.inputDeploymentId).Return(
+				tc.findDeploymentByIDDeployment, tc.findDeploymentByIDError)
+
+			db.On("UpdateStatsInc", ctx, tc.inputDeploymentId,
+				tc.updateDeviceDeploymentStatusStatus,
+				model.DeviceDeploymentStatusAborted).Return(tc.updateStatsIncError)
+
+			status := model.DeploymentStatusFinished
+			if tc.isDeploymentInProgress {
+				status = model.DeploymentStatusInProgress
+			}
+			db.On("SetDeploymentStatus", ctx,
+				tc.inputDeploymentId,
+				status,
+				mock.AnythingOfType("time.Time")).
+				Return(tc.setDeploymentStatusError).
+				Once()
+
+			db.On("SetDeploymentStatus", ctx,
+				"pending",
+				model.DeploymentStatusPending,
+				mock.AnythingOfType("time.Time")).
+				Return(tc.setDeploymentStatusError).
+				Once()
+
+			ds := NewDeployments(&db, nil, "")
+
+			err := ds.AbortDeviceDeployments(ctx, tc.inputDeviceId)
 			if tc.outputError != nil {
 				assert.EqualError(t, err, tc.outputError.Error())
 			} else {
