@@ -176,6 +176,29 @@ class TestDeployment:
             # deleting artifact should succeed
             ac.delete_artifact(artid)
 
+    def test_single_device_deployment_device_not_in_inventory(self):
+        """Try to create single device deployment for a device wich is not
+        in the inventory"""
+        dev = Device()
+
+        self.d.log.info("fake device with ID: %s", dev.devid)
+
+        data = b"foo_bar"
+        artifact_name = "hammer-update-" + str(uuid4())
+        # come up with an artifact
+        with artifact_from_data(
+            name=artifact_name, data=data, devicetype=dev.device_type
+        ) as art:
+            ac = SimpleArtifactsClient()
+            artid = ac.add_artifact(
+                description="some description", size=art.size, data=art
+            )
+
+            newdep = self.d.make_new_deployment(
+                name="fake deployment", artifact_name=artifact_name, devices=[dev.devid]
+            )
+            depid = self.d.add_deployment(newdep)
+
     def test_deployments_new_no_artifact(self):
         """Try to add deployment without an artifact, verify that it failed with 422"""
         dev = Device()
@@ -215,15 +238,15 @@ class TestDeployment:
         artifact_name = "pagination-test-" + str(uuid4())
         # come up with an artifact
         with artifact_from_data(
-                name=artifact_name, data=data, devicetype=device_type
+            name=artifact_name, data=data, devicetype=device_type
         ) as art:
             ac = SimpleArtifactsClient()
-            ac.add_artifact(
-                description="some description", size=art.size, data=art
-            )
+            ac.add_artifact(description="some description", size=art.size, data=art)
 
             new_dep = self.d.make_new_deployment(
-                name="pagination deployment", artifact_name=artifact_name, devices=device_ids
+                name="pagination deployment",
+                artifact_name=artifact_name,
+                devices=device_ids,
             )
             dep_id = self.d.add_deployment(new_dep)
 
@@ -253,7 +276,7 @@ class TestDeployment:
                 Authorization="foo",
                 deployment_id=dep_id,
                 page=2,
-                per_page=default_per_page
+                per_page=default_per_page,
             ).result()[0]
             assert len(res) == devices_qty_on_second_page
 

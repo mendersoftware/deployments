@@ -992,7 +992,7 @@ func (d *Deployments) getDeploymentGroups(
 	}
 
 	groups, err := d.inventoryClient.GetDeviceGroups(ctx, id.Tenant, devices[0])
-	if err != nil {
+	if err != nil && err != inventory.ErrDevNotFound {
 		return nil, err
 	}
 	return groups, nil
