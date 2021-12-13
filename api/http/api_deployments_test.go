@@ -501,8 +501,22 @@ func TestControllerPostConfigurationDeployment(t *testing.T) {
 	}{
 		"ok": {
 			InputBodyObject: &model.ConfigurationDeploymentConstructor{
-				Name:          "name",
-				Configuration: "configuration",
+				Name:          "NYC Production",
+				Configuration: []byte("App 123"),
+			},
+			InputTenantID:     "foo",
+			InputDeviceID:     "bar",
+			InputDeploymentID: "baz",
+			JSONResponseParams: h.JSONResponseParams{
+				OutputStatus:     http.StatusCreated,
+				OutputBodyObject: nil,
+				OutputHeaders:    map[string]string{"Location": "./deployments/baz"},
+			},
+		},
+		"ok, object configuration encoding": {
+			InputBodyObject: map[string]interface{}{
+				"name":          "NYC Production",
+				"configuration": map[string]interface{}{"App": "123"},
 			},
 			InputTenantID:     "foo",
 			InputDeviceID:     "bar",
@@ -536,7 +550,7 @@ func TestControllerPostConfigurationDeployment(t *testing.T) {
 		"ko, internal error": {
 			InputBodyObject: &model.ConfigurationDeploymentConstructor{
 				Name:          "foo",
-				Configuration: "bar",
+				Configuration: []byte("bar"),
 			},
 			InputTenantID:                           "foo",
 			InputDeviceID:                           "bar",
@@ -550,7 +564,7 @@ func TestControllerPostConfigurationDeployment(t *testing.T) {
 		"ko, conflict": {
 			InputBodyObject: &model.ConfigurationDeploymentConstructor{
 				Name:          "foo",
-				Configuration: "bar",
+				Configuration: []byte("bar"),
 			},
 			InputTenantID:                           "foo",
 			InputDeviceID:                           "bar",

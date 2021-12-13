@@ -32,12 +32,13 @@ func TestConfigurationDeploymentValidate(t *testing.T) {
 		"ok": {
 			inputConstructor: ConfigurationDeploymentConstructor{
 				Name:          "foo",
-				Configuration: "foo",
+				Configuration: []byte("foo"),
 			},
 		},
 		"ko, missing name": {
 			inputConstructor: ConfigurationDeploymentConstructor{
-				Configuration: "foo"},
+				Configuration: []byte("foo"),
+			},
 			outputError: errors.New("name: cannot be blank."),
 		},
 		"ko, missing configuration": {
@@ -77,7 +78,7 @@ func TestNewDeploymentFromConfigurationDeploymentConstructor(t *testing.T) {
 		"ok": {
 			inputConstructor: &ConfigurationDeploymentConstructor{
 				Name:          "foo",
-				Configuration: "bar",
+				Configuration: []byte("bar"),
 			},
 			inputDeploymentID: "baz",
 		},

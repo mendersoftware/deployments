@@ -434,7 +434,7 @@ func TestCreateDeviceConfigurationDeployment(t *testing.T) {
 		"ok": {
 			inputConstructor: &model.ConfigurationDeploymentConstructor{
 				Name:          "foo",
-				Configuration: "bar",
+				Configuration: []byte("bar"),
 			},
 			inputDeviceID:     "foo-device",
 			inputDeploymentID: "foo-deployment",
@@ -449,7 +449,7 @@ func TestCreateDeviceConfigurationDeployment(t *testing.T) {
 		"insert error": {
 			inputConstructor: &model.ConfigurationDeploymentConstructor{
 				Name:          "foo",
-				Configuration: "bar",
+				Configuration: []byte("bar"),
 			},
 			inputDeploymentStorageInsertError: errors.New("insert error"),
 			callInventory:                     true,
@@ -460,7 +460,7 @@ func TestCreateDeviceConfigurationDeployment(t *testing.T) {
 		"inventory error": {
 			inputConstructor: &model.ConfigurationDeploymentConstructor{
 				Name:          "foo",
-				Configuration: "bar",
+				Configuration: []byte("bar"),
 			},
 			inventoryError: errors.New("inventory error"),
 			callInventory:  true,
