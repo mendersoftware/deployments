@@ -44,6 +44,7 @@ const (
 // Errors
 var (
 	ErrFilterNotFound = errors.New("Filter with given ID not found in the inventory.")
+	ErrDevNotFound    = errors.New("Device with given ID not found in the inventory.")
 )
 
 // Client is the inventory client
@@ -188,6 +189,9 @@ func (c *client) GetDeviceGroups(ctx context.Context, tenantId, deviceId string)
 	defer rsp.Body.Close()
 
 	if rsp.StatusCode != http.StatusOK {
+		if rsp.StatusCode == http.StatusNotFound {
+			return []string{}, nil
+		}
 		return nil, errors.Errorf(
 			"get device groups request failed with unexpected status: %v",
 			rsp.StatusCode,

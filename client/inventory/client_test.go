@@ -145,12 +145,18 @@ func TestGetDeviceGroups(t *testing.T) {
 			responseBody:   model.DeviceGroups{Groups: []string{"foo"}},
 			expectedGroups: []string{"foo"},
 		},
-		"not found": {
+		"ok, not found": {
+
+			ctx:            context.TODO(),
+			responseCode:   http.StatusNotFound,
+			expectedGroups: []string{},
+		},
+		"some error": {
 
 			ctx:          context.TODO(),
-			responseCode: http.StatusNotFound,
+			responseCode: http.StatusInternalServerError,
 
-			outError: errors.New("get device groups request failed with unexpected status: 404"),
+			outError: errors.New("get device groups request failed with unexpected status: 500"),
 		},
 	}
 
