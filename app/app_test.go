@@ -107,12 +107,13 @@ func TestHealthCheck(t *testing.T) {
 					Return(tc.DataStoreError)
 				mDStore.On("GetStorageSettings", ctx).
 					Return(&model.StorageSettings{
-						Region: config.Config.GetString(dconfig.SettingAwsS3Region),
-						Uri:    config.Config.GetString(dconfig.SettingAwsURI),
-						Bucket: config.Config.GetString(dconfig.SettingAwsS3Bucket),
-						Key:    config.Config.GetString(dconfig.SettingAwsAuthKeyId),
-						Secret: config.Config.GetString(dconfig.SettingAwsAuthSecret),
-						Token:  config.Config.GetString(dconfig.SettingAwsAuthToken)}, nil)
+						Region:      config.Config.GetString(dconfig.SettingAwsS3Region),
+						ExternalUri: config.Config.GetString(dconfig.SettingAwsExternalURI),
+						Uri:         config.Config.GetString(dconfig.SettingAwsURI),
+						Bucket:      config.Config.GetString(dconfig.SettingAwsS3Bucket),
+						Key:         config.Config.GetString(dconfig.SettingAwsAuthKeyId),
+						Secret:      config.Config.GetString(dconfig.SettingAwsAuthSecret),
+						Token:       config.Config.GetString(dconfig.SettingAwsAuthToken)}, nil)
 			}
 			err := dep.HealthCheck(ctx)
 			switch {

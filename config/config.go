@@ -43,6 +43,7 @@ const (
 	SettingAwsS3MaxImageSize          = SettingsAws + ".max_image_size"
 	SettingAwsS3MaxImageSizeDefault   = 10737418240
 	SettingAwsURI                     = SettingsAws + ".uri"
+	SettingAwsExternalURI             = SettingsAws + ".external_uri"
 	SettingsAwsTagArtifact            = SettingsAws + ".tag_artifact"
 	SettingsAwsTagArtifactDefault     = false
 
