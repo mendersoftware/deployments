@@ -15,11 +15,38 @@
 package model
 
 import (
+	"bytes"
+	"encoding/json"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/pkg/errors"
 )
+
+// configuration saves the configuration as a binary blob
+// It unmarshals any JSON type into a binary blob. Strings
+// are escaped as it's decoded.
+// The value marshals into a JSON string.
+type configuration []byte
+
+func (c *configuration) UnmarshalJSON(b []byte) error {
+	if b == nil {
+		return errors.New("error decoding configuration: received nil pointer buffer")
+	} else if len(b) >= 2 {
+		// Check if JSON value is string
+		bs := bytes.Trim(b, " ")
+		if bs[0] == '"' && bs[len(b)-1] == '"' {
+			var str string
+			err := json.Unmarshal(b, &str)
+			if err == nil {
+				*c = []byte(str)
+				return nil
+			}
+		}
+	}
+	*c = append((*c)[0:0], b...)
+	return nil
+}
 
 // ConfigurationDeploymentConstructor represent input data needed for creating new Configuration
 // Deployment
@@ -32,7 +59,7 @@ type ConfigurationDeploymentConstructor struct {
 	// artifact for the device.
 	// The artifact will be generated when the device will ask
 	// for an update.
-	Configuration string `json:"configuration"`
+	Configuration configuration `json:"configuration,omitempty"`
 
 	// Retries represents the number of retries in case of deployment failures
 	Retries uint `json:"retries,omitempty"`
