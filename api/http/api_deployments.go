@@ -192,7 +192,7 @@ func NewDeploymentsApiHandlers(
 }
 
 func (u *DeploymentsApiHandlers) AliveHandler(w rest.ResponseWriter, r *rest.Request) {
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (u *DeploymentsApiHandlers) HealthHandler(w rest.ResponseWriter, r *rest.Request) {
@@ -206,7 +206,7 @@ func (u *DeploymentsApiHandlers) HealthHandler(w rest.ResponseWriter, r *rest.Re
 		rest_utils.RestErrWithLog(w, r, l, err, http.StatusServiceUnavailable)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 }
 
 func getReleaseOrImageFilter(r *rest.Request, paginated bool) *model.ReleaseOrImageFilter {

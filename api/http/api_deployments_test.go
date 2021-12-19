@@ -51,7 +51,7 @@ func TestAlive(t *testing.T) {
 	d := NewDeploymentsApiHandlers(nil, nil, nil)
 	api := setUpRestTest(ApiUrlInternalAlive, rest.Get, d.AliveHandler)
 	recorded := test.RunRequest(t, api.MakeHandler(), req)
-	recorded.CodeIs(http.StatusNoContent)
+	recorded.CodeIs(http.StatusOk)
 }
 
 func TestHealthCheck(t *testing.T) {
@@ -65,7 +65,7 @@ func TestHealthCheck(t *testing.T) {
 		ResponseBody interface{}
 	}{{
 		Name:         "ok",
-		ResponseCode: http.StatusNoContent,
+		ResponseCode: http.StatusOk,
 	}, {
 		Name:         "error: app unhealthy",
 		AppError:     errors.New("*COUGH! COUGH!*"),
@@ -1347,7 +1347,7 @@ func TestGetDeploymentForDevice(t *testing.T) {
 			return app
 		}(),
 
-		StatusCode: http.StatusNoContent,
+		StatusCode: http.StatusOK,
 	}}
 	for i := range testCases {
 		tc := testCases[i]
