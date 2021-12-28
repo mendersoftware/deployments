@@ -132,6 +132,12 @@ aws:
 
     # uri: example.com
 
+    # Maximum image size
+    # Defaults to: 10GB
+    # Overwrite with environment variable: DEPLOYMENTS_AWS_MAX_IMAGE_SIZE
+
+    # max_image_size: 10737418240
+
     # Download link expiry duration
     # Number of second a presigned download URL is valid
     # Defaults to: 900 (15 minutes)

@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 	"time"
 
@@ -41,6 +42,7 @@ const (
 	ExpireMaxLimit                 = 7 * 24 * time.Hour
 	ExpireMinLimit                 = 1 * time.Minute
 	ErrCodeBucketAlreadyOwnedByYou = "BucketAlreadyOwnedByYou"
+	mib                            = 1024 * 1024
 )
 
 // Errors specific to interface
@@ -73,6 +75,7 @@ type SimpleStorageService struct {
 	client      *s3.S3
 	bucket      string
 	tagArtifact bool
+	partSize    int64
 }
 
 // NewSimpleStorageServiceStatic create new S3 client model.
@@ -88,6 +91,11 @@ func NewSimpleStorageServiceStatic(
 	forcePathStyle bool,
 	useAccelerate bool,
 ) (*SimpleStorageService, error) {
+	// NOTE: This size along with the 10000 part limit sets the ultimate
+	//       limit on the upload size.
+	maxImageSize := config.Config.GetInt64(dconfig.SettingAwsS3MaxImageSize)
+	partSize := int64(math.Max(5*mib, float64(((maxImageSize-1)/(10000*mib)+1)*mib)))
+	// configuration
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
 
@@ -119,6 +127,7 @@ func NewSimpleStorageServiceStatic(
 		client:      client,
 		bucket:      bucket,
 		tagArtifact: tag_artifact,
+		partSize:    partSize,
 	}, nil
 }
 
@@ -423,13 +432,9 @@ func (s *SimpleStorageService) UploadArtifact(
 	artifact io.Reader,
 	contentType string,
 ) error {
-	// NOTE: This size along with the 10000 part limit sets the ultimate
-	//       limit on the upload size. (currently at ~97.5GiB)
-	const multipartSize = 10 * 1024 * 1024 // 10MiB (must be at least 5MiB)
-
 	objectID = getArtifactByTenant(ctx, objectID)
 
-	buf := make([]byte, multipartSize)
+	buf := make([]byte, s.partSize)
 	n, err := fillBuffer(buf, artifact)
 
 	// If only one part, use PutObject API.

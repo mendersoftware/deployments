@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2021 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,9 +18,12 @@ import (
 	"io/ioutil"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/sirupsen/logrus"
+
+	dconfig "github.com/mendersoftware/deployments/config"
 )
 
 func setUpRestTest(route string, routeType routerTypeHandler,
@@ -37,4 +40,8 @@ func setUpRestTest(route string, routeType routerTypeHandler,
 	api.SetApp(router)
 
 	return api
+}
+
+func init() {
+	config.Config.SetDefault(dconfig.SettingAwsS3MaxImageSize, 10*1024*1024*1024)
 }

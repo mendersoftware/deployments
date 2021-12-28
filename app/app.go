@@ -61,10 +61,6 @@ const (
 	InventoryStatusAccepted          = "accepted"
 )
 
-// maximum image size is 10G
-// NOTE: If this size increase, the buffer size in s3 client must be increased.
-const MaxImageSize = 1024 * 1024 * 1024 * 10
-
 // Errors expected from App interface
 var (
 	// images
@@ -165,6 +161,7 @@ type App interface {
 type Deployments struct {
 	db               store.DataStore
 	fileStorage      s3.FileStorage
+	maxImageSize     int64
 	imageContentType string
 	workflowsClient  workflows.Client
 	inventoryClient  inventory.Client
@@ -176,10 +173,12 @@ func NewDeployments(
 	fileStorage s3.FileStorage,
 	imageContentType string,
 ) *Deployments {
+	maxImageSize := config.Config.GetInt64(dconfig.SettingAwsS3MaxImageSize)
 	return &Deployments{
 		db:               storage,
 		fileStorage:      fileStorage,
 		imageContentType: imageContentType,
+		maxImageSize:     maxImageSize,
 		workflowsClient:  workflows.NewClient(),
 		inventoryClient:  inventory.NewClient(),
 	}
@@ -299,8 +298,7 @@ func (d *Deployments) ProvisionTenant(ctx context.Context, tenant_id string) err
 // Returns image ID and nil on success.
 func (d *Deployments) CreateImage(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
-
-	if multipartUploadMsg.ArtifactSize > MaxImageSize {
+	if multipartUploadMsg.ArtifactSize > d.maxImageSize {
 		return "", ErrModelArtifactFileTooLarge
 	}
 
@@ -545,7 +543,7 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 
 	file := &utils.LimitedReader{
 		R:          multipartMsg.FileReader,
-		N:          MaxImageSize + 1,
+		N:          d.maxImageSize + 1,
 		LimitError: ErrModelArtifactFileTooLarge,
 	}
 
