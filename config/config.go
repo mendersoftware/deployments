@@ -40,6 +40,8 @@ const (
 	SettingAwsS3ForcePathStyleDefault = true
 	SettingAwsS3UseAccelerate         = SettingsAws + ".use_accelerate"
 	SettingAwsS3UseAccelerateDefault  = false
+	SettingAwsS3MaxImageSize          = SettingsAws + ".max_image_size"
+	SettingAwsS3MaxImageSizeDefault   = 10737418240
 	SettingAwsURI                     = SettingsAws + ".uri"
 	SettingsAwsTagArtifact            = SettingsAws + ".tag_artifact"
 	SettingsAwsTagArtifactDefault     = false
@@ -170,6 +172,7 @@ var (
 		{Key: SettingAwsS3Bucket, Value: SettingAwsS3BucketDefault},
 		{Key: SettingAwsS3ForcePathStyle, Value: SettingAwsS3ForcePathStyleDefault},
 		{Key: SettingAwsS3UseAccelerate, Value: SettingAwsS3UseAccelerateDefault},
+		{Key: SettingAwsS3MaxImageSize, Value: SettingAwsS3MaxImageSizeDefault},
 		{Key: SettingsAwsDownloadExpireSeconds, Value: SettingsAwsDownloadExpireSecondsDefault},
 		{Key: SettingsAwsUploadExpireSeconds, Value: SettingsAwsUploadExpireSecondsDefault},
 		{Key: SettingMongo, Value: SettingMongoDefault},

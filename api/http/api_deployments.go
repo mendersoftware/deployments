@@ -123,12 +123,16 @@ type Config struct {
 	PresignHostname string
 	// PresignScheme is the URL scheme used for generating signed URLs.
 	PresignScheme string
+	// MaxImageSize is the maximum image size
+	MaxImageSize int64
 }
 
 func NewConfig() *Config {
+	maxImageSize := config.Config.GetInt64(dconfig.SettingAwsS3MaxImageSize)
 	return &Config{
 		PresignExpire: DefaultDownloadLinkExpire,
 		PresignScheme: "https",
+		MaxImageSize:  maxImageSize,
 	}
 }
 
@@ -721,10 +725,9 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 func (d *DeploymentsApiHandlers) ParseMultipart(
 	r *multipart.Reader,
 ) (*model.MultipartUploadMsg, error) {
-
 	uploadMsg := &model.MultipartUploadMsg{
 		MetaConstructor: &model.ImageMeta{},
-		ArtifactSize:    app.MaxImageSize,
+		ArtifactSize:    d.config.MaxImageSize,
 	}
 	// Parse the multipart form sequentially. To remain backward compatible
 	// all form names that are not part of the API are ignored.
@@ -759,7 +762,7 @@ func (d *DeploymentsApiHandlers) ParseMultipart(
 			}
 			// Add one since this will impose the upper limit on the
 			// artifact size.
-			if size > app.MaxImageSize {
+			if size > d.config.MaxImageSize {
 				return nil, app.ErrModelArtifactFileTooLarge
 			}
 			uploadMsg.ArtifactSize = size
