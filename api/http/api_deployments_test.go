@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -28,6 +28,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/mendersoftware/deployments/app"
 	mapp "github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
@@ -36,9 +40,6 @@ import (
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
@@ -1722,6 +1723,76 @@ func TestAbortDeviceDeployments(t *testing.T) {
 
 			recorded := test.RunRequest(t, api.MakeHandler(), req)
 			recorded.CodeIs(tc.responseCode)
+		})
+	}
+}
+
+func TestGetDeploymentsStats(t *testing.T) {
+	t.Parallel()
+
+	testSHA := uuid.NewSHA1(uuid.NameSpaceOID, []byte("deploymentid1")).String()
+
+	testCases := map[string]struct {
+		deploymentIDs         model.DeploymentIDs
+		responseCode          int
+		mockedDeploymentStats []*model.DeploymentStats
+		mockedError           error
+	}{
+		"OK - default success case": {
+			deploymentIDs: model.DeploymentIDs{[]string{testSHA}},
+			responseCode:  http.StatusOK,
+			mockedDeploymentStats: []*model.DeploymentStats{
+				&model.DeploymentStats{
+					ID:    testSHA,
+					Stats: model.NewDeviceDeploymentStats(),
+				},
+			},
+		},
+		"Error - malformed UUID": {
+			deploymentIDs: model.DeploymentIDs{[]string{"imnotauuid"}},
+			responseCode:  http.StatusBadRequest,
+			mockedError:   nil,
+		},
+		"Error - database error": {
+			deploymentIDs: model.DeploymentIDs{[]string{testSHA}},
+			responseCode:  http.StatusInternalServerError,
+			mockedError:   errors.New("checking deployment statistics for IDs"),
+		},
+		"Error - no deploymentStats found": {
+			deploymentIDs: model.DeploymentIDs{[]string{testSHA}},
+			responseCode:  http.StatusNotFound,
+			mockedError:   app.ErrModelDeploymentNotFound,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			app := &mapp.App{}
+			app.On("GetDeploymentsStats",
+				mock.MatchedBy(func(ctx context.Context) bool {
+					return true
+				}),
+				tc.deploymentIDs.IDs[0],
+			).Return(tc.mockedDeploymentStats, tc.mockedError)
+
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlManagementMultipleDeploymentsStatistics,
+				rest.Post,
+				d.GetDeploymentsStats,
+			)
+			url := "http://localhost" + ApiUrlManagementMultipleDeploymentsStatistics
+			req := test.MakeSimpleRequest("POST", url, tc.deploymentIDs)
+
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.responseCode)
+			recorded.ContentTypeIsJson()
+			res := []*model.DeploymentStats{}
+			recorded.DecodeJsonPayload(&res)
+			if tc.responseCode == http.StatusOK {
+				assert.Equal(t, tc.mockedDeploymentStats, res, "Unexpected response body")
+			}
 		})
 	}
 }

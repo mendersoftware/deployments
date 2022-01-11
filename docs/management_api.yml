@@ -183,6 +183,77 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+
+  /deployments/statistics/list:
+    post:
+      operationId: Deployment Status Statistics
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: |
+        Get status count for all devices in the listed deployments (plural).
+      parameters:
+        - name: deployment_ids
+          in: body
+          description: Deployment identifier
+          required: true
+          schema:
+            type: array
+            items:
+                type: string
+                description: >-
+                    The list of deployment IDs
+            maximum: 100
+      produces:
+        - application/json
+      responses:
+        200:
+          description: OK
+          examples:
+            application/json:
+              - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                stats:
+                  success: 3
+                  pending: 1
+                  failure: 0
+                  downloading: 1
+                  installing: 2
+                  rebooting: 3
+                  noartifact: 0
+                  already-installed: 0
+                  aborted: 0
+              - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                stats:
+                  success: 3
+                  pending: 1
+                  failure: 0
+                  downloading: 1
+                  installing: 2
+                  rebooting: 3
+                  noartifact: 0
+                  already-installed: 0
+                  aborted: 0
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: "The deployment ID"
+                stats:
+                  $ref: "#/definitions/DeploymentStatistics"
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
+        404:
+          $ref: "#/responses/NotFoundError"
+        500:
+          $ref: "#/responses/InternalServerError"
+
+
   /deployments/group/{name}:
 
     post:

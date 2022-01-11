@@ -108,6 +108,7 @@ type DataStore interface {
 	InsertDeployment(ctx context.Context, deployment *model.Deployment) error
 	DeleteDeployment(ctx context.Context, id string) error
 	FindDeploymentByID(ctx context.Context, id string) (*model.Deployment, error)
+	FindDeploymentStatsByIDs(ctx context.Context, ids ...string) ([]*model.DeploymentStats, error)
 	FindUnfinishedByID(ctx context.Context,
 		id string) (*model.Deployment, error)
 	UpdateStatsInc(

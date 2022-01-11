@@ -137,6 +137,8 @@ type App interface {
 	IsDeploymentFinished(ctx context.Context, deploymentID string) (bool, error)
 	AbortDeployment(ctx context.Context, deploymentID string) error
 	GetDeploymentStats(ctx context.Context, deploymentID string) (model.Stats, error)
+	GetDeploymentsStats(ctx context.Context,
+		deploymentIDs ...string) ([]*model.DeploymentStats, error)
 	GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
 		current *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error)
 	HasDeploymentForDevice(ctx context.Context, deploymentID string,
@@ -1475,6 +1477,21 @@ func (d *Deployments) GetDeploymentStats(ctx context.Context,
 	}
 
 	return deployment.Stats, nil
+}
+func (d *Deployments) GetDeploymentsStats(ctx context.Context,
+	deploymentIDs ...string) (deploymentStats []*model.DeploymentStats, err error) {
+
+	deploymentStats, err = d.db.FindDeploymentStatsByIDs(ctx, deploymentIDs...)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "checking deployment statistics for IDs")
+	}
+
+	if deploymentStats == nil {
+		return nil, ErrModelDeploymentNotFound
+	}
+
+	return deploymentStats, nil
 }
 
 //GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.

@@ -1066,6 +1066,43 @@ func (d *DeploymentsApiHandlers) GetDeploymentStats(w rest.ResponseWriter, r *re
 	d.view.RenderSuccessGet(w, stats)
 }
 
+func (d *DeploymentsApiHandlers) GetDeploymentsStats(w rest.ResponseWriter, r *rest.Request) {
+
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	ids := model.DeploymentIDs{}
+	if err := r.DecodeJsonPayload(&ids); err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+
+	if len(ids.IDs) == 0 {
+		w.WriteHeader(http.StatusOK)
+		_ = w.WriteJson(struct{}{})
+		return
+	}
+
+	if err := ids.Validate(); err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+
+	stats, err := d.app.GetDeploymentsStats(ctx, ids.IDs...)
+	if err != nil {
+		if errors.Is(err, app.ErrModelDeploymentNotFound) {
+			d.view.RenderError(w, r, err, http.StatusNotFound, l)
+			return
+		}
+		d.view.RenderInternalError(w, r, err, l)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	_ = w.WriteJson(stats)
+}
+
 func (d *DeploymentsApiHandlers) GetDeploymentDeviceList(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)

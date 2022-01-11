@@ -290,6 +290,36 @@ func (_m *DataStore) FindDeploymentByID(ctx context.Context, id string) (*model.
 	return r0, r1
 }
 
+// FindDeploymentStatsByIDs provides a mock function with given fields: ctx, ids
+func (_m *DataStore) FindDeploymentStatsByIDs(ctx context.Context, ids ...string) ([]*model.DeploymentStats, error) {
+	_va := make([]interface{}, len(ids))
+	for _i := range ids {
+		_va[_i] = ids[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 []*model.DeploymentStats
+	if rf, ok := ret.Get(0).(func(context.Context, ...string) []*model.DeploymentStats); ok {
+		r0 = rf(ctx, ids...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.DeploymentStats)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, ...string) error); ok {
+		r1 = rf(ctx, ids...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FindImageByID provides a mock function with given fields: ctx, id
 func (_m *DataStore) FindImageByID(ctx context.Context, id string) (*model.Image, error) {
 	ret := _m.Called(ctx, id)
