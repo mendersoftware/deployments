@@ -42,7 +42,7 @@ func doMain(args []string) {
 	var configPath string
 
 	app := cli.NewApp()
-	app.Usage = "Deployments Service"
+	app.Usage = "The Deployments Service"
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
