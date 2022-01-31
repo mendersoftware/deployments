@@ -129,7 +129,6 @@ github.com/mendersoftware/go-lib-micro/addons
 github.com/mendersoftware/go-lib-micro/config
 github.com/mendersoftware/go-lib-micro/identity
 github.com/mendersoftware/go-lib-micro/log
-github.com/mendersoftware/go-lib-micro/log/testing
 github.com/mendersoftware/go-lib-micro/mongo/dbtest
 github.com/mendersoftware/go-lib-micro/mongo/doc
 github.com/mendersoftware/go-lib-micro/mongo/migrate

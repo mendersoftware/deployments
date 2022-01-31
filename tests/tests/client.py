@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -12,18 +12,20 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-import os.path
+
 import logging
+import os.path
 import random
-import subprocess
+import socket
 
 from datetime import datetime
 from collections import OrderedDict
 from contextlib import contextmanager
 
-import requests
-import pytest
+import docker
+import pytest  # noqa
 import pytz
+import requests
 
 from bravado.swagger_model import load_file
 from bravado.client import SwaggerClient, RequestsClient
@@ -241,9 +243,7 @@ class DeploymentsClient(SwaggerApiClient):
     def abort_deployment(self, depid):
         """Abort deployment with `ID `depid`"""
         self.client.Management_API.Abort_Deployment(
-            Authorization="foo",
-            deployment_id=depid,
-            Status={"status": "aborted"},
+            Authorization="foo", deployment_id=depid, Status={"status": "aborted"},
         ).result()
 
     @contextmanager
@@ -297,9 +297,7 @@ class DeviceClient(SwaggerApiClient):
         """Obtain next deployment"""
         auth = "Bearer " + token
         res = self.client.Device_API.Check_Update(
-            Authorization=auth,
-            artifact_name=artifact_name,
-            device_type=device_type,
+            Authorization=auth, artifact_name=artifact_name, device_type=device_type,
         ).result()
 
         return res[0]
@@ -369,15 +367,31 @@ class InventoryClient(BaseApiClient, RequestsApiClient):
 
 
 class CliClient:
-    cmd = "/testing/deployments"
+    exec_path = "/usr/bin/deployments"
 
-    def migrate(self, tenant=None):
-        args = [self.cmd, "migrate"]
+    def __init__(self):
+        self.docker = docker.from_env()
+        _self = self.docker.containers.list(filters={"id": socket.gethostname()})[0]
+
+        project = _self.labels.get("com.docker.compose.project")
+        self.container = self.docker.containers.list(
+            filters={
+                "label": [
+                    f"com.docker.compose.project={project}",
+                    "com.docker.compose.service=mender-deployments",
+                ]
+            },
+            limit=1,
+        )[0]
+
+    def migrate(self, tenant=None, **kwargs):
+        cmd = [self.exec_path, "migrate"]
 
         if tenant is not None:
-            args.extend(["--tenant", tenant])
+            cmd.extend(["--tenant", tenant])
 
-        subprocess.run(args, check=True)
+        code, (stdout, stderr) = self.container.exec_run(cmd, demux=True, **kwargs)
+        return code, stdout, stderr
 
 
 class InternalApiClient(SwaggerApiClient):
