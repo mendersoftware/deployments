@@ -1,4 +1,4 @@
-FROM golang:1.16.5-alpine3.12 as builder
+FROM golang:1.17.6-alpine3.15 as builder
 RUN apk add --no-cache \
      xz-dev \
      musl-dev \
