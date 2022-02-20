@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -390,7 +390,8 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 						Name:         "NYC Production",
 						ArtifactName: "App 123",
 					},
-					Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Id:     "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Active: true,
 				},
 			},
 		},
@@ -412,6 +413,7 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 						Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
 					},
 					Id:      "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Active:  true,
 					Created: TimePtr(now.Add(time.Hour * 24)),
 				},
 			},
@@ -426,7 +428,8 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 						Name:         "NYC Production",
 						ArtifactName: "App 123",
 					},
-					Id: "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Id:     "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Active: true,
 				},
 			},
 		},

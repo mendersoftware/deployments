@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -321,7 +321,8 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 					ArtifactName: "App 123",
 					//Devices is not kept around!
 				},
-				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				Id:     "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				Active: true,
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloadingStr: 0,
 					model.DeviceDeploymentStatusInstallingStr:  0,
@@ -356,8 +357,9 @@ func TestDeploymentStorageFindByID(t *testing.T) {
 					ArtifactName: "App 123",
 					//Devices is not kept around!
 				},
-				Id:    "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
-				Stats: model.Stats{},
+				Id:     "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				Active: true,
+				Stats:  model.Stats{},
 			},
 		},
 	}
@@ -508,7 +510,8 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 					ArtifactName: "App 123",
 					//Devices is not kept around!
 				},
-				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				Id:     "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				Active: true,
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusDownloadingStr: 0,
 					model.DeviceDeploymentStatusInstallingStr:  0,
@@ -571,7 +574,8 @@ func TestDeploymentStorageFindUnfinishedByID(t *testing.T) {
 					ArtifactName: "App 123",
 					//Devices is not kept around!
 				},
-				Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				Id:     "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				Active: true,
 				Stats: model.Stats{
 					model.DeviceDeploymentStatusPendingStr: 10,
 					model.DeviceDeploymentStatusSuccessStr: 15,
