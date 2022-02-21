@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -286,6 +286,21 @@ var (
 			Name:       &IndexImageMetaArtifactDeviceTypeCompatible,
 		},
 	}
+
+	// Indexes 1.2.8
+	IndexDeploymentsActiveCreated      = "active_created"
+	IndexDeploymentsActiveCreatedModel = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyDeploymentCreated, Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexDeploymentsActiveCreated,
+			PartialFilterExpression: bson.M{
+				StorageKeyDeploymentActive: true,
+			},
+		},
+	}
 )
 
 // Errors
@@ -342,6 +357,7 @@ const (
 	StorageKeyDeploymentName         = "deploymentconstructor.name"
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
 	StorageKeyDeploymentStats        = "stats"
+	StorageKeyDeploymentActive       = "active"
 	StorageKeyDeploymentStatus       = "status"
 	StorageKeyDeploymentCreated      = "created"
 	StorageKeyDeploymentStatsCreated = "created"
@@ -2063,8 +2079,7 @@ func (db *DataStoreMongo) FindNewerActiveDeployments(ctx context.Context,
 	c := database.Collection(CollectionDeployments)
 
 	queryFilters := make([]bson.M, 0)
-	queryFilters = append(queryFilters,
-		bson.M{StorageKeyDeploymentStatus: bson.M{"$ne": model.DeploymentStatusFinished}})
+	queryFilters = append(queryFilters, bson.M{StorageKeyDeploymentActive: true})
 	queryFilters = append(queryFilters,
 		bson.M{StorageKeyDeploymentCreated: bson.M{"$gt": createdAfter}})
 	findQuery := bson.M{}
@@ -2109,6 +2124,7 @@ func (db *DataStoreMongo) SetDeploymentStatus(
 	if status == model.DeploymentStatusFinished {
 		update = bson.M{
 			"$set": bson.M{
+				StorageKeyDeploymentActive:   false,
 				StorageKeyDeploymentStatus:   status,
 				StorageKeyDeploymentFinished: &now,
 			},
@@ -2116,6 +2132,7 @@ func (db *DataStoreMongo) SetDeploymentStatus(
 	} else {
 		update = bson.M{
 			"$set": bson.M{
+				StorageKeyDeploymentActive: true,
 				StorageKeyDeploymentStatus: status,
 			},
 		}

@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
@@ -139,6 +140,9 @@ type Deployment struct {
 	// Status is the overall deployment status
 	Status DeploymentStatus `json:"status" bson:"status"`
 
+	// Active is true for unfinished deployments
+	Active bool `json:"-" bson:"active"`
+
 	// Number of devices being part of the deployment
 	DeviceCount *int `json:"device_count" bson:"device_count"`
 
@@ -205,6 +209,12 @@ func (d Deployment) Validate() error {
 		validation.Field(&d.Artifacts, validation.Each(validation.Required)),
 		validation.Field(&d.DeviceList, validation.Each(validation.Required)),
 	)
+}
+
+func (r *Deployment) MarshalBSON() ([]byte, error) {
+	type Alias Deployment
+	r.Active = r.Status != DeploymentStatusFinished
+	return bson.Marshal((*Alias)(r))
 }
 
 // To be able to hide devices field, from API output provide custom marshaler

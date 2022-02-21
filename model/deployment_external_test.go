@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestDeploymentConstructorValidate(t *testing.T) {
@@ -233,6 +234,26 @@ func TestDeploymentMarshalJSON(t *testing.T) {
     }`
 
 	assert.JSONEq(t, expectedJSON, string(j))
+}
+
+func TestDeploymentMarshalBSON(t *testing.T) {
+	dep, err := NewDeployment()
+	assert.NoError(t, err)
+	dep.Name = "Region: NYC"
+	dep.ArtifactName = "App 123"
+	dep.Devices = []string{"Device 123"}
+	dep.Id = "14ddec54-30be-49bf-aa6b-97ce271d71f5"
+	deviceCount := 1337
+	dep.DeviceCount = &deviceCount
+	dep.Status = DeploymentStatusInProgress
+
+	j, err := dep.MarshalBSON()
+	assert.NoError(t, err)
+
+	deployment := &Deployment{}
+	bson.Unmarshal(j, deployment)
+
+	assert.True(t, deployment.Active)
 }
 
 func TestDeploymentIs(t *testing.T) {
