@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
@@ -334,9 +334,9 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	}
 	tee := io.TeeReader(lr, pW)
 
-	uid, err := uuid.FromString(multipartUploadMsg.ArtifactID)
+	uid, err := uuid.Parse(multipartUploadMsg.ArtifactID)
 	if err != nil {
-		uid = uuid.NewV4()
+		uid, _ = uuid.NewRandom()
 	}
 	artifactID := uid.String()
 
@@ -524,7 +524,7 @@ func (d *Deployments) GenerateConfigurationImage(
 func (d *Deployments) handleRawFile(ctx context.Context,
 	multipartMsg *model.MultipartGenerateImageMsg) (string, error) {
 
-	uid := uuid.NewV4()
+	uid, _ := uuid.NewRandom()
 	artifactID := uid.String()
 
 	// check if artifact is unique
