@@ -23,7 +23,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
 
 // Errors
@@ -172,7 +172,7 @@ type Deployment struct {
 func NewDeployment() (*Deployment, error) {
 	now := time.Now()
 
-	uid := uuid.NewV4()
+	uid, _ := uuid.NewRandom()
 	id := uid.String()
 
 	return &Deployment{

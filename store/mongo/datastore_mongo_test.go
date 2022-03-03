@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -603,12 +603,15 @@ func TestSortDeployments(t *testing.T) {
 	// Make sure we start test with empty database
 	db.Wipe()
 
-	deploymentOneID := uuid.NewV4().String()
-	deploymentTwoID := uuid.NewV4().String()
+	uuidVal, _ := uuid.NewRandom()
+	deploymentOneID := uuidVal.String()
+	uuidVal, _ = uuid.NewRandom()
+	deploymentTwoID := uuidVal.String()
 	now := time.Now()
 	startDate := now.AddDate(0, -1, 0)
 	deviceCount := 1
-	devicesList := []string{uuid.NewV4().String()}
+	uuidVal, _ = uuid.NewRandom()
+	devicesList := []string{uuidVal.String()}
 	config := make([]byte, 0)
 	inputDeployments := []*model.Deployment{
 		{

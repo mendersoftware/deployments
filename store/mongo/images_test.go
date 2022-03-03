@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,10 +18,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mendersoftware/go-lib-micro/identity"
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
+
+	"github.com/mendersoftware/go-lib-micro/identity"
 
 	"github.com/mendersoftware/deployments/model"
 )
@@ -31,7 +32,8 @@ func TestImagesStorageImageByNameAndDeviceType(t *testing.T) {
 		t.Skip("skipping TestDeploymentStorageImageByNameAndDeviceType in short mode.")
 	}
 	newID := func() string {
-		return uuid.NewV4().String()
+		val, _ := uuid.NewRandom()
+		return val.String()
 	}
 
 	//image dataset - common for all cases
@@ -189,7 +191,8 @@ func TestIsArtifactUnique(t *testing.T) {
 		t.Skip("skipping TestIsArtifactUnique in short mode.")
 	}
 	newID := func() string {
-		return uuid.NewV4().String()
+		val, _ := uuid.NewRandom()
+		return val.String()
 	}
 
 	//image dataset - common for all cases
