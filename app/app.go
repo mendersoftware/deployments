@@ -1284,6 +1284,8 @@ func (d *Deployments) isDevicePartOfDeployment(
 func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
 	installed *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
 
+	l := log.FromContext(ctx)
+
 	deployment, deviceDeployment, err := d.getDeploymentForDevice(ctx, deviceID)
 	if err != nil {
 		return nil, ErrModelInternal
@@ -1294,18 +1296,30 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	}
 
 	if installed.ArtifactName != "" && deployment.ArtifactName == installed.ArtifactName {
+		// if the device reported same artifact name as the one in the device deployment,
+		// and this is a new device deployment - indicated by device deployment
+		// status "pending",
 		// pretend there is no deployment for this device, but update
 		// its status to already installed first
+		if deviceDeployment.Status == model.DeviceDeploymentStatusPending {
 
-		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
-			model.DeviceDeploymentState{
-				Status: model.DeviceDeploymentStatusAlreadyInst,
-			}); err != nil {
+			if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
+				model.DeviceDeploymentState{
+					Status: model.DeviceDeploymentStatusAlreadyInst,
+				}); err != nil {
 
-			return nil, errors.Wrap(err, "Failed to update deployment status")
+				return nil, errors.Wrap(err, "Failed to update deployment status")
+			}
+
+			return nil, nil
+		} else {
+			// the device reported same artifact name as the one in the device deployment
+			// for ongoing device deployment, which should never happen;
+			// the best we can do is to log the error and continue
+			l.Errorf(
+				"Device with id %s reported new artifact name: %s before finishing the deployment",
+				deviceID, installed.ArtifactName)
 		}
-
-		return nil, nil
 	}
 	if deployment.Type == model.DeploymentTypeConfiguration {
 		// There's nothing more we need to do, the link must be filled
