@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -64,6 +64,7 @@ func init() {
 	}
 	Log.Level = logrus.InfoLevel
 	Log.Hooks.Add(ContextHook{})
+	Log.ExitFunc = func(int) {}
 }
 
 // Setup allows to override the global logger setup.
