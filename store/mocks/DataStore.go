@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -69,13 +69,13 @@ func (_m *DataStore) AggregateDeviceDeploymentByStatus(ctx context.Context, id s
 	return r0, r1
 }
 
-// AssignArtifact provides a mock function with given fields: ctx, deviceID, deploymentID, artifact
-func (_m *DataStore) AssignArtifact(ctx context.Context, deviceID string, deploymentID string, artifact *model.Image) error {
-	ret := _m.Called(ctx, deviceID, deploymentID, artifact)
+// AssignArtifact provides a mock function with given fields: ctx, deviceID, deploymentID, artifact, deviceType
+func (_m *DataStore) AssignArtifact(ctx context.Context, deviceID string, deploymentID string, artifact *model.Image, deviceType string) error {
+	ret := _m.Called(ctx, deviceID, deploymentID, artifact, deviceType)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.Image) error); ok {
-		r0 = rf(ctx, deviceID, deploymentID, artifact)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.Image, string) error); ok {
+		r0 = rf(ctx, deviceID, deploymentID, artifact, deviceType)
 	} else {
 		r0 = ret.Error(0)
 	}

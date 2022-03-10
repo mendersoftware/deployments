@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -81,7 +81,7 @@ type DataStore interface {
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
 	AssignArtifact(ctx context.Context, deviceID string,
-		deploymentID string, artifact *model.Image) error
+		deploymentID string, artifact *model.Image, deviceType string) error
 	AggregateDeviceDeploymentByStatus(ctx context.Context,
 		id string) (model.Stats, error)
 	GetDeviceStatusesForDeployment(ctx context.Context,
