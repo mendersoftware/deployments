@@ -353,6 +353,7 @@ const (
 	StorageKeyDeviceDeploymentFinished       = "finished"
 	StorageKeyDeviceDeploymentIsLogAvailable = "log"
 	StorageKeyDeviceDeploymentArtifact       = "image"
+	StorageKeyDeviceDeploymentDeviceType     = "devicetype"
 
 	StorageKeyDeploymentName         = "deploymentconstructor.name"
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
@@ -1328,7 +1329,7 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentLogAvailability(ctx context.Cont
 
 // AssignArtifact assigns artifact to the device deployment
 func (db *DataStoreMongo) AssignArtifact(ctx context.Context,
-	deviceID string, deploymentID string, artifact *model.Image) error {
+	deviceID string, deploymentID string, artifact *model.Image, deviceType string) error {
 
 	// Verify ID formatting
 	if len(deviceID) == 0 ||
@@ -1348,11 +1349,11 @@ func (db *DataStoreMongo) AssignArtifact(ctx context.Context,
 
 	update := bson.D{
 		{Key: "$set", Value: bson.M{
-			StorageKeyDeviceDeploymentArtifact: artifact}},
+			StorageKeyDeviceDeploymentArtifact:   artifact,
+			StorageKeyDeviceDeploymentDeviceType: deviceType}},
 	}
 
-	// NOTE <Review> Perhaps this should be UpdateOne ?
-	if res, err := collDevs.UpdateMany(ctx, selector, update); err != nil {
+	if res, err := collDevs.UpdateOne(ctx, selector, update); err != nil {
 		return err
 	} else if res.MatchedCount == 0 {
 		return ErrStorageNotFound

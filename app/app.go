@@ -1136,12 +1136,16 @@ func (d *Deployments) assignArtifact(
 	}
 
 	if err := d.db.AssignArtifact(
-		ctx, deviceDeployment.DeviceId, deviceDeployment.DeploymentId, artifact); err != nil {
+		ctx,
+		deviceDeployment.DeviceId,
+		deviceDeployment.DeploymentId,
+		artifact,
+		installed.DeviceType,
+	); err != nil {
 		return errors.Wrap(err, "Assigning artifact to the device deployment")
 	}
 
 	deviceDeployment.Image = artifact
-	deviceDeployment.DeviceType = installed.DeviceType
 
 	return nil
 }
@@ -1334,12 +1338,11 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		}, nil
 	}
 
-	// assign artifact only if the artifact was not assigned previously or the device type has
-	// changed
+	// assign artifact only if the artifact was not assigned previously
+	// or the deployment is not in progress yet and device type has changed
 	if deviceDeployment.Image == nil ||
-		len(deviceDeployment.DeviceType) == 0 ||
-		deviceDeployment.DeviceType != installed.DeviceType {
-
+		(deviceDeployment.Status == model.DeviceDeploymentStatusPending &&
+			deviceDeployment.DeviceType != installed.DeviceType) {
 		if err := d.assignArtifact(ctx, deployment, deviceDeployment, installed); err != nil {
 			return nil, err
 		}
