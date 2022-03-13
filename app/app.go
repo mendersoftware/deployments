@@ -1339,10 +1339,8 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	}
 
 	// assign artifact only if the artifact was not assigned previously
-	// or the deployment is not in progress yet and device type has changed
-	if deviceDeployment.Image == nil ||
-		(deviceDeployment.Status == model.DeviceDeploymentStatusPending &&
-			deviceDeployment.DeviceType != installed.DeviceType) {
+	// or the device type has changed
+	if deviceDeployment.Image == nil || deviceDeployment.DeviceType != installed.DeviceType {
 		if err := d.assignArtifact(ctx, deployment, deviceDeployment, installed); err != nil {
 			return nil, err
 		}
