@@ -1338,9 +1338,18 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		}, nil
 	}
 
+	if deviceDeployment.Image != nil && deviceDeployment.DeviceType != installed.DeviceType {
+		// the device reported different device type during the update process,
+		// which should never happen;
+		// the best we can do is to log the error and continue
+		l.Errorf(
+			"Device with id %s reported new device type: %s"+
+				" after artifact has been assigned to the device",
+			deviceID, installed.DeviceType)
+	}
+
 	// assign artifact only if the artifact was not assigned previously
-	// or the device type has changed
-	if deviceDeployment.Image == nil || deviceDeployment.DeviceType != installed.DeviceType {
+	if deviceDeployment.Image == nil {
 		if err := d.assignArtifact(ctx, deployment, deviceDeployment, installed); err != nil {
 			return nil, err
 		}
