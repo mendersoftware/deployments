@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -52,6 +52,10 @@ const (
 	DeviceDeploymentStatusDecommissioned
 	// DeviceDeploymentStatusNew = (DeviceDeploymentStatusSuccess +
 	// DeviceDeploymentStatusNoArtifact) / 2
+
+	// Values within this range are active / in progress deployments
+	DeviceDeploymentStatusActiveLow  = DeviceDeploymentStatusPauseBeforeInstall
+	DeviceDeploymentStatusActiveHigh = DeviceDeploymentStatusPending
 
 	DeviceDeploymentStatusFailureStr            = "failure"
 	DeviceDeploymentStatusAbortedStr            = "aborted"

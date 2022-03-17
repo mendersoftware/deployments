@@ -66,10 +66,14 @@ type DataStore interface {
 		deployment ...*model.DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(ctx context.Context,
 		id string, statuses ...model.DeviceDeploymentStatus) (bool, error)
-	FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-		deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error)
-	FindLatestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-		deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error)
+	FindOldestActiveDeviceDeployment(
+		ctx context.Context,
+		deviceID string,
+	) (*model.DeviceDeployment, error)
+	FindLatestInactiveDeviceDeployment(
+		ctx context.Context,
+		deviceID string,
+	) (*model.DeviceDeployment, error)
 	FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
 		deviceID string, statuses ...string) ([]model.DeviceDeployment, error)
 	UpdateDeviceDeploymentStatus(

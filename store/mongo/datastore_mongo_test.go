@@ -671,3 +671,282 @@ func TestSortDeployments(t *testing.T) {
 	assert.Equal(t, deploymentsQty, count)
 	assert.Equal(t, deploymentTwoID, deployments[0].Id)
 }
+
+func TestFindOldestActiveDeviceDeployment(t *testing.T) {
+	db.Wipe()
+	const (
+		TenantID       = "123456789012345678901234"
+		TenantDeviceID = "27d5d258-b880-4157-8eb7-8d68aeb1663d"
+		DeviceID       = "1140bc78-b898-4b2a-a4a2-551cb7bd9ac8"
+	)
+	// Initialize dataset
+	ds := NewDataStoreMongoWithClient(db.Client())
+	now := time.Now()
+	for _, env := range []struct {
+		tenantID string
+		deviceID string
+	}{
+		{tenantID: TenantID, deviceID: TenantDeviceID},
+		{deviceID: DeviceID},
+	} {
+		ctx := context.Background()
+		if env.tenantID != "" {
+			ctx = identity.WithContext(ctx, &identity.Identity{
+				Tenant: env.tenantID,
+			})
+		}
+		if err := ds.ProvisionTenant(ctx, env.tenantID); err != nil {
+			panic(err)
+		}
+		for _, depl := range []*model.DeviceDeployment{{
+			Id: "0",
+			Created: func() *time.Time {
+				ret := now.Add(-2 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusSuccess,
+			DeviceId:     env.deviceID,
+			DeploymentId: uuid.New().String(),
+		}, {
+			Id: "1",
+			Created: func() *time.Time {
+				ret := now.Add(-3 * time.Hour / 2)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusAlreadyInst,
+			DeviceId:     env.deviceID,
+			DeploymentId: uuid.New().String(),
+		}, {
+			Id: "2",
+			Created: func() *time.Time {
+				ret := now.Add(-time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusDownloading,
+			DeviceId:     env.deviceID,
+			DeploymentId: uuid.New().String(),
+		}, {
+			Id: "3",
+			Created: func() *time.Time {
+				ret := now.Add(-time.Minute)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusPending,
+			DeviceId:     env.deviceID,
+			DeploymentId: uuid.New().String(),
+		}} {
+			if err := ds.InsertDeviceDeployment(ctx, depl); err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	testCases := []struct {
+		Name string
+
+		CTX      context.Context
+		TenantID string
+		DeviceID string
+
+		ExpectedID *string
+		Error      error
+	}{{
+		Name: "ok",
+
+		CTX:      context.Background(),
+		DeviceID: DeviceID,
+
+		ExpectedID: func() *string { s := "2"; return &s }(),
+	}, {
+		Name: "ok, multi-tenant mode",
+
+		CTX: identity.WithContext(context.Background(), &identity.Identity{
+			Tenant: TenantID,
+		}),
+		DeviceID: TenantDeviceID,
+
+		ExpectedID: func() *string { s := "2"; return &s }(),
+	}, {
+		Name: "ok, no document",
+
+		CTX: identity.WithContext(context.Background(), &identity.Identity{
+			Tenant: TenantID,
+		}),
+		DeviceID: DeviceID, // NOTE: We're using the tenant database
+	}, {
+		Name: "error, context canceled",
+
+		CTX: func() context.Context {
+			ctx, ccl := context.WithCancel(context.Background())
+			ccl()
+			return ctx
+		}(),
+		DeviceID: DeviceID, // NOTE: We're using the tenant database
+
+		Error: context.Canceled,
+	}, {
+		Name:  "error, empty device id",
+		Error: ErrStorageInvalidID,
+	}}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			d, err := ds.FindOldestActiveDeviceDeployment(tc.CTX, tc.DeviceID)
+			if tc.Error != nil {
+				if assert.Error(t, err) {
+					assert.Regexp(t, tc.Error.Error(), err.Error())
+				}
+			} else {
+				if assert.NoError(t, err) {
+					if tc.ExpectedID != nil && assert.NotNil(t, d) {
+						assert.Equal(t, *tc.ExpectedID, d.Id,
+							"did not receive the expected device deployment id",
+						)
+					} else {
+						assert.Nil(t, d, "did not expect to find a deployment")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestFindLatestInactiveDeviceDeployment(t *testing.T) {
+	db.Wipe()
+	const (
+		TenantID       = "123456789012345678901234"
+		TenantDeviceID = "27d5d258-b880-4157-8eb7-8d68aeb1663d"
+		DeviceID       = "1140bc78-b898-4b2a-a4a2-551cb7bd9ac8"
+	)
+	// Initialize dataset
+	ds := NewDataStoreMongoWithClient(db.Client())
+	now := time.Now()
+	for _, env := range []struct {
+		tenantID string
+		deviceID string
+	}{
+		{tenantID: TenantID, deviceID: TenantDeviceID},
+		{deviceID: DeviceID},
+	} {
+		ctx := context.Background()
+		if env.tenantID != "" {
+			ctx = identity.WithContext(ctx, &identity.Identity{
+				Tenant: env.tenantID,
+			})
+		}
+		if err := ds.ProvisionTenant(ctx, env.tenantID); err != nil {
+			panic(err)
+		}
+		for _, depl := range []*model.DeviceDeployment{{
+			Id: "0",
+			Created: func() *time.Time {
+				ret := now.Add(-2 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusSuccess,
+			DeviceId:     env.deviceID,
+			DeploymentId: uuid.New().String(),
+		}, {
+			Id: "1",
+			Created: func() *time.Time {
+				ret := now.Add(-3 * time.Hour / 2)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusAlreadyInst,
+			DeviceId:     env.deviceID,
+			DeploymentId: uuid.New().String(),
+		}, {
+			Id: "2",
+			Created: func() *time.Time {
+				ret := now.Add(-time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusDownloading,
+			DeviceId:     env.deviceID,
+			DeploymentId: uuid.New().String(),
+		}, {
+			Id: "3",
+			Created: func() *time.Time {
+				ret := now.Add(-time.Minute)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusPending,
+			DeviceId:     env.deviceID,
+			DeploymentId: uuid.New().String(),
+		}} {
+			if err := ds.InsertDeviceDeployment(ctx, depl); err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	testCases := []struct {
+		Name string
+
+		CTX      context.Context
+		TenantID string
+		DeviceID string
+
+		ExpectedID *string
+		Error      error
+	}{{
+		Name: "ok",
+
+		CTX:      context.Background(),
+		DeviceID: DeviceID,
+
+		ExpectedID: func() *string { s := "1"; return &s }(),
+	}, {
+		Name: "ok, multi-tenant mode",
+
+		CTX: identity.WithContext(context.Background(), &identity.Identity{
+			Tenant: TenantID,
+		}),
+		DeviceID: TenantDeviceID,
+
+		ExpectedID: func() *string { s := "1"; return &s }(),
+	}, {
+		Name: "ok, no document",
+
+		CTX: identity.WithContext(context.Background(), &identity.Identity{
+			Tenant: TenantID,
+		}),
+		DeviceID: DeviceID, // NOTE: We're using the tenant database
+	}, {
+		Name: "error, context canceled",
+
+		CTX: func() context.Context {
+			ctx, ccl := context.WithCancel(context.Background())
+			ccl()
+			return ctx
+		}(),
+		DeviceID: DeviceID, // NOTE: We're using the tenant database
+
+		Error: context.Canceled,
+	}, {
+		Name:  "error, empty device id",
+		Error: ErrStorageInvalidID,
+	}}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			d, err := ds.FindLatestInactiveDeviceDeployment(tc.CTX, tc.DeviceID)
+			if tc.Error != nil {
+				if assert.Error(t, err) {
+					assert.Regexp(t, tc.Error.Error(), err.Error())
+				}
+			} else {
+				if assert.NoError(t, err) {
+					if tc.ExpectedID != nil && assert.NotNil(t, d) {
+						assert.Equal(t, *tc.ExpectedID, d.Id,
+							"did not receive the expected device deployment id",
+						)
+					} else {
+						assert.Nil(t, d, "did not expect to find a deployment")
+					}
+				}
+			}
+		})
+	}
+}

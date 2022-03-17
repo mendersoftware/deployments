@@ -1122,10 +1122,11 @@ func (db *DataStoreMongo) ExistAssignedImageWithIDAndStatuses(ctx context.Contex
 	return true, nil
 }
 
-// FindOldestDeploymentForDeviceIDWithStatuses find oldest deployment matching device id and one of
-// specified statuses.
-func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-	deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error) {
+// FindOldestActiveDeviceDeployment finds the oldest deployment that has not finished yet.
+func (db *DataStoreMongo) FindOldestActiveDeviceDeployment(
+	ctx context.Context,
+	deviceID string,
+) (*model.DeviceDeployment, error) {
 
 	// Verify ID formatting
 	if len(deviceID) == 0 {
@@ -1137,19 +1138,25 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 
 	// Device should know only about deployments that are not finished
 	query := bson.D{
-		{Key: StorageKeyDeviceDeploymentDeviceId,
-			Value: deviceID},
-		{Key: StorageKeyDeviceDeploymentStatus,
-			Value: bson.M{"$in": statuses}},
+		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentStatus, Value: bson.D{
+			{Key: "$gte", Value: model.DeviceDeploymentStatusActiveLow},
+			{Key: "$lte", Value: model.DeviceDeploymentStatusActiveHigh},
+		}},
 	}
 
 	// Find the oldest one by sorting the creation timestamp
 	// in ascending order.
-	findOptions := mopts.FindOne()
-	findOptions.SetSort(bson.D{{Key: "created", Value: 1}})
+	findOptions := mopts.FindOne().
+		SetSort(bson.D{{Key: "created", Value: 1}}).
+		SetHint(bson.D{
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+			{Key: "created", Value: 1},
+			{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
+		})
 
 	// Select only the oldest one that have not been finished yet.
-	var deployment *model.DeviceDeployment
+	var deployment model.DeviceDeployment
 	if err := collDevs.FindOne(ctx, query, findOptions).
 		Decode(&deployment); err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -1158,13 +1165,15 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 		return nil, err
 	}
 
-	return deployment, nil
+	return &deployment, nil
 }
 
-// FindLatestDeploymentForDeviceIDWithStatuses finds latest deployment
+// FindLatestInactiveDeviceDeployment finds the latest device deployment
 // matching device id and one of specified statuses.
-func (db *DataStoreMongo) FindLatestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-	deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error) {
+func (db *DataStoreMongo) FindLatestInactiveDeviceDeployment(
+	ctx context.Context,
+	deviceID string,
+) (*model.DeviceDeployment, error) {
 
 	// Verify ID formatting
 	if len(deviceID) == 0 {
@@ -1175,16 +1184,26 @@ func (db *DataStoreMongo) FindLatestDeploymentForDeviceIDWithStatuses(ctx contex
 	collDevs := database.Collection(CollectionDevices)
 
 	query := bson.D{
-		{Key: StorageKeyDeviceDeploymentDeviceId,
-			Value: deviceID},
-		{Key: StorageKeyDeviceDeploymentStatus,
-			Value: bson.M{"$in": statuses}},
+		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
+		{Key: "$or", Value: bson.A{bson.D{
+			{Key: StorageKeyDeviceDeploymentStatus, Value: bson.D{
+				{Key: "$lt", Value: model.DeviceDeploymentStatusActiveLow},
+			}}}, bson.D{
+			{Key: StorageKeyDeviceDeploymentStatus, Value: bson.D{
+				{Key: "$gt", Value: model.DeviceDeploymentStatusActiveHigh},
+			}},
+		}}},
 	}
 
 	// Find the latest one by sorting by the creation timestamp
 	// in ascending order.
-	findOptions := mopts.FindOne()
-	findOptions.SetSort(bson.D{{Key: "created", Value: -1}})
+	findOptions := mopts.FindOne().
+		SetSort(bson.D{{Key: "created", Value: -1}}).
+		SetHint(bson.D{
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+			{Key: "created", Value: 1},
+			{Key: StorageKeyDeviceDeploymentStatus, Value: 1},
+		})
 
 	// Select only the latest one that have not been finished yet.
 	var deployment *model.DeviceDeployment

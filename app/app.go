@@ -1156,10 +1156,7 @@ func (d *Deployments) getDeploymentForDevice(ctx context.Context,
 	deviceID string) (*model.Deployment, *model.DeviceDeployment, error) {
 
 	// Retrieve device deployment
-	deviceDeployment, err := d.db.FindOldestDeploymentForDeviceIDWithStatuses(
-		ctx,
-		deviceID,
-		model.ActiveDeploymentStatuses()...)
+	deviceDeployment, err := d.db.FindOldestActiveDeviceDeployment(ctx, deviceID)
 
 	if err != nil {
 		return nil, nil, errors.Wrap(err,
@@ -1191,10 +1188,7 @@ func (d *Deployments) getNewDeploymentForDevice(ctx context.Context,
 
 	var lastDeployment *time.Time
 	//get latest device deployment for the device;
-	deviceDeployment, err := d.db.FindLatestDeploymentForDeviceIDWithStatuses(
-		ctx,
-		deviceID,
-		model.InactiveDeploymentStatuses()...)
+	deviceDeployment, err := d.db.FindLatestInactiveDeviceDeployment(ctx, deviceID)
 	if err != nil {
 		return nil, nil, errors.Wrap(err,
 			"Searching for latest active deployment for the device")
@@ -1637,10 +1631,7 @@ func (d *Deployments) updateDeviceDeploymentsStatus(
 ) error {
 	var latestDeployment *time.Time
 	// Retrieve active device deployment for the device
-	deviceDeployment, err := d.db.FindOldestDeploymentForDeviceIDWithStatuses(
-		ctx,
-		deviceId,
-		model.ActiveDeploymentStatuses()...)
+	deviceDeployment, err := d.db.FindOldestActiveDeviceDeployment(ctx, deviceId)
 	if err != nil {
 		return errors.Wrap(err, "Searching for active deployment for the device")
 	} else if deviceDeployment != nil {
@@ -1656,10 +1647,7 @@ func (d *Deployments) updateDeviceDeploymentsStatus(
 		latestDeployment = deviceDeployment.Created
 	} else {
 		// get latest device deployment for the device
-		deviceDeployment, err := d.db.FindLatestDeploymentForDeviceIDWithStatuses(
-			ctx,
-			deviceId,
-			model.InactiveDeploymentStatuses()...)
+		deviceDeployment, err := d.db.FindLatestInactiveDeviceDeployment(ctx, deviceId)
 		if err != nil {
 			return errors.Wrap(err, "Searching for latest active deployment for the device")
 		} else if deviceDeployment == nil {
