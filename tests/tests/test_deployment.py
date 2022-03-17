@@ -343,9 +343,7 @@ class TestDeployment:
                         device_type="other {}".format(dev.device_type),
                     )
                     self.d.log.info("device next: %s", nextdep)
-                    assert nextdep == None
-                    # verify that device status was properly recorded
-                    self.d.verify_deployment_stats(depid, expected={"noartifact": 1})
+                    assert nextdep is not None
 
     def test_device_deployments_already_installed(self):
         """Check case with already installed artifact"""
