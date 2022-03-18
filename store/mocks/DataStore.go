@@ -343,20 +343,13 @@ func (_m *DataStore) FindImageByID(ctx context.Context, id string) (*model.Image
 	return r0, r1
 }
 
-// FindLatestDeploymentForDeviceIDWithStatuses provides a mock function with given fields: ctx, deviceID, statuses
-func (_m *DataStore) FindLatestDeploymentForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error) {
-	_va := make([]interface{}, len(statuses))
-	for _i := range statuses {
-		_va[_i] = statuses[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, deviceID)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
+// FindLatestInactiveDeviceDeployment provides a mock function with given fields: ctx, deviceID
+func (_m *DataStore) FindLatestInactiveDeviceDeployment(ctx context.Context, deviceID string) (*model.DeviceDeployment, error) {
+	ret := _m.Called(ctx, deviceID)
 
 	var r0 *model.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...model.DeviceDeploymentStatus) *model.DeviceDeployment); ok {
-		r0 = rf(ctx, deviceID, statuses...)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.DeviceDeployment); ok {
+		r0 = rf(ctx, deviceID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.DeviceDeployment)
@@ -364,8 +357,8 @@ func (_m *DataStore) FindLatestDeploymentForDeviceIDWithStatuses(ctx context.Con
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, ...model.DeviceDeploymentStatus) error); ok {
-		r1 = rf(ctx, deviceID, statuses...)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, deviceID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -396,20 +389,13 @@ func (_m *DataStore) FindNewerActiveDeployments(ctx context.Context, createdAfte
 	return r0, r1
 }
 
-// FindOldestDeploymentForDeviceIDWithStatuses provides a mock function with given fields: ctx, deviceID, statuses
-func (_m *DataStore) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error) {
-	_va := make([]interface{}, len(statuses))
-	for _i := range statuses {
-		_va[_i] = statuses[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, deviceID)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
+// FindOldestActiveDeviceDeployment provides a mock function with given fields: ctx, deviceID
+func (_m *DataStore) FindOldestActiveDeviceDeployment(ctx context.Context, deviceID string) (*model.DeviceDeployment, error) {
+	ret := _m.Called(ctx, deviceID)
 
 	var r0 *model.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...model.DeviceDeploymentStatus) *model.DeviceDeployment); ok {
-		r0 = rf(ctx, deviceID, statuses...)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.DeviceDeployment); ok {
+		r0 = rf(ctx, deviceID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.DeviceDeployment)
@@ -417,8 +403,8 @@ func (_m *DataStore) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Con
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, ...model.DeviceDeploymentStatus) error); ok {
-		r1 = rf(ctx, deviceID, statuses...)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, deviceID)
 	} else {
 		r1 = ret.Error(1)
 	}

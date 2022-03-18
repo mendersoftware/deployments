@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package model
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -105,22 +106,24 @@ func TestDeviceDeploymentValidate(t *testing.T) {
 		},
 	}
 
-	for _, test := range testCases {
+	for i := range testCases {
+		test := testCases[i]
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			dd := NewDeviceDeployment("", "")
 
-		dd := NewDeviceDeployment("", "")
+			dd.Created = test.InputCreated
+			dd.Id = test.InputID
+			dd.DeviceId = test.InputDeviceID
+			dd.DeploymentId = test.InputDeploymentID
 
-		dd.Created = test.InputCreated
-		dd.Id = test.InputID
-		dd.DeviceId = test.InputDeviceID
-		dd.DeploymentId = test.InputDeploymentID
+			err := dd.Validate()
 
-		err := dd.Validate()
-
-		if !test.IsValid {
-			assert.Error(t, err)
-		} else {
-			assert.NoError(t, err)
-		}
+			if !test.IsValid {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 
 }

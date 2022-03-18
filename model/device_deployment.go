@@ -251,6 +251,7 @@ func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
 	id := uid.String()
 
 	return &DeviceDeployment{
+		Active:         true,
 		Status:         DeviceDeploymentStatusPending,
 		DeviceId:       deviceId,
 		DeploymentId:   deploymentId,
