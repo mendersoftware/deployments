@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -127,12 +127,8 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 	fs := &fs_mocks.FileStorage{}
 	db := mocks.DataStore{}
 
-	call := db.On("FindOldestDeploymentForDeviceIDWithStatuses", ctx, devId).Return(
+	db.On("FindOldestActiveDeviceDeployment", ctx, devId).Return(
 		fakeDeviceDeployment, nil)
-	// Add variadic arguments
-	for _, status := range model.ActiveDeploymentStatuses() {
-		call.Arguments = append(call.Arguments, interface{}(status))
-	}
 
 	db.On("FindDeploymentByID", ctx, fakeDeployment.Id).Return(
 		fakeDeployment, nil).Once()
@@ -278,7 +274,7 @@ func TestDecommissionDevice(t *testing.T) {
 				},
 			},
 		},
-		"FindOldestDeploymentForDeviceIDWithStatuses error": {
+		"FindOldestActiveDeviceDeployment error": {
 			inputDeviceId:       "foo",
 			inputDeploymentId:   "bar",
 			inputDeploymentName: "foo",
@@ -294,16 +290,12 @@ func TestDecommissionDevice(t *testing.T) {
 			ctx := context.TODO()
 			db := mocks.DataStore{}
 
-			call := db.On("FindOldestDeploymentForDeviceIDWithStatuses",
+			db.On("FindOldestActiveDeviceDeployment",
 				ctx, tc.inputDeviceId).
 				Return(
 					tc.findOldestDeploymentForDeviceIDWithStatusesDeployment,
 					tc.findOldestDeploymentForDeviceIDWithStatusesError,
 				)
-			// Add variadic arguments
-			for _, status := range model.ActiveDeploymentStatuses() {
-				call.Arguments = append(call.Arguments, status)
-			}
 
 			db.On("GetDeviceDeployment", ctx, tc.inputDeploymentId,
 				tc.inputDeviceId).Return(
@@ -313,16 +305,12 @@ func TestDecommissionDevice(t *testing.T) {
 				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentState")).Return(
 				tc.updateDeviceDeploymentStatusStatus, tc.updateDeviceDeploymentStatusError)
 
-			call = db.On("FindLatestDeploymentForDeviceIDWithStatuses",
+			db.On("FindLatestInactiveDeviceDeployment",
 				ctx, tc.inputDeviceId,
 			).Return(
 				tc.findLatestDeploymentForDeviceIDWithStatusesDeployment,
 				tc.findLatestDeploymentForDeviceIDWithStatusesError,
 			)
-			// Add variadic arguments
-			for _, status := range model.InactiveDeploymentStatuses() {
-				call.Arguments = append(call.Arguments, status)
-			}
 
 			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
 				0, 100).Return(
@@ -493,16 +481,12 @@ func TestAbortDeviceDeployments(t *testing.T) {
 			ctx := context.TODO()
 			db := mocks.DataStore{}
 
-			call := db.On("FindOldestDeploymentForDeviceIDWithStatuses",
+			db.On("FindOldestActiveDeviceDeployment",
 				ctx, tc.inputDeviceId).
 				Return(
 					tc.findOldestDeploymentForDeviceIDWithStatusesDeployment,
 					tc.findOldestDeploymentForDeviceIDWithStatusesError,
 				)
-			// Add variadic arguments
-			for _, status := range model.ActiveDeploymentStatuses() {
-				call.Arguments = append(call.Arguments, status)
-			}
 
 			db.On("GetDeviceDeployment", ctx, tc.inputDeploymentId,
 				tc.inputDeviceId).Return(
@@ -512,16 +496,12 @@ func TestAbortDeviceDeployments(t *testing.T) {
 				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentState")).Return(
 				tc.updateDeviceDeploymentStatusStatus, tc.updateDeviceDeploymentStatusError)
 
-			call = db.On("FindLatestDeploymentForDeviceIDWithStatuses",
+			db.On("FindLatestInactiveDeviceDeployment",
 				ctx, tc.inputDeviceId,
 			).Return(
 				tc.findLatestDeploymentForDeviceIDWithStatusesDeployment,
 				tc.findLatestDeploymentForDeviceIDWithStatusesError,
 			)
-			// Add variadic arguments
-			for _, status := range model.InactiveDeploymentStatuses() {
-				call.Arguments = append(call.Arguments, status)
-			}
 
 			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
 				0, 100).Return(

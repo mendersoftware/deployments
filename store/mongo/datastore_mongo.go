@@ -301,6 +301,18 @@ var (
 			},
 		},
 	}
+
+	// Index 1.2.9
+	IndexDeviceDeploymentsActiveCreated      = "active_deviceid_created"
+	IndexDeviceDeploymentsActiveCreatedModel = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyDeviceDeploymentActive, Value: 1},
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+			{Key: StorageKeyDeviceDeploymentCreated, Value: 1},
+		},
+		Options: mopts.Index().
+			SetName(IndexDeviceDeploymentsActiveCreated),
+	}
 )
 
 // Errors
@@ -346,6 +358,9 @@ const (
 	StorageKeyDeviceDeploymentAssignedImage   = "image"
 	StorageKeyDeviceDeploymentAssignedImageId = StorageKeyDeviceDeploymentAssignedImage +
 		"." + StorageKeyId
+
+	StorageKeyDeviceDeploymentActive         = "active"
+	StorageKeyDeviceDeploymentCreated        = "created"
 	StorageKeyDeviceDeploymentDeviceId       = "deviceid"
 	StorageKeyDeviceDeploymentStatus         = "status"
 	StorageKeyDeviceDeploymentSubState       = "substate"
@@ -1122,10 +1137,11 @@ func (db *DataStoreMongo) ExistAssignedImageWithIDAndStatuses(ctx context.Contex
 	return true, nil
 }
 
-// FindOldestDeploymentForDeviceIDWithStatuses find oldest deployment matching device id and one of
-// specified statuses.
-func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-	deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error) {
+// FindOldestActiveDeviceDeployment finds the oldest deployment that has not finished yet.
+func (db *DataStoreMongo) FindOldestActiveDeviceDeployment(
+	ctx context.Context,
+	deviceID string,
+) (*model.DeviceDeployment, error) {
 
 	// Verify ID formatting
 	if len(deviceID) == 0 {
@@ -1137,10 +1153,8 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 
 	// Device should know only about deployments that are not finished
 	query := bson.D{
-		{Key: StorageKeyDeviceDeploymentDeviceId,
-			Value: deviceID},
-		{Key: StorageKeyDeviceDeploymentStatus,
-			Value: bson.M{"$in": statuses}},
+		{Key: StorageKeyDeviceDeploymentActive, Value: true},
+		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
 	}
 
 	// Find the oldest one by sorting the creation timestamp
@@ -1149,9 +1163,9 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 	findOptions.SetSort(bson.D{{Key: "created", Value: 1}})
 
 	// Select only the oldest one that have not been finished yet.
-	var deployment *model.DeviceDeployment
+	deployment := new(model.DeviceDeployment)
 	if err := collDevs.FindOne(ctx, query, findOptions).
-		Decode(&deployment); err != nil {
+		Decode(deployment); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
@@ -1161,10 +1175,12 @@ func (db *DataStoreMongo) FindOldestDeploymentForDeviceIDWithStatuses(ctx contex
 	return deployment, nil
 }
 
-// FindLatestDeploymentForDeviceIDWithStatuses finds latest deployment
-// matching device id and one of specified statuses.
-func (db *DataStoreMongo) FindLatestDeploymentForDeviceIDWithStatuses(ctx context.Context,
-	deviceID string, statuses ...model.DeviceDeploymentStatus) (*model.DeviceDeployment, error) {
+// FindLatestInactiveDeviceDeployment finds the latest device deployment
+// matching device id that has not finished yet.
+func (db *DataStoreMongo) FindLatestInactiveDeviceDeployment(
+	ctx context.Context,
+	deviceID string,
+) (*model.DeviceDeployment, error) {
 
 	// Verify ID formatting
 	if len(deviceID) == 0 {
@@ -1175,10 +1191,8 @@ func (db *DataStoreMongo) FindLatestDeploymentForDeviceIDWithStatuses(ctx contex
 	collDevs := database.Collection(CollectionDevices)
 
 	query := bson.D{
-		{Key: StorageKeyDeviceDeploymentDeviceId,
-			Value: deviceID},
-		{Key: StorageKeyDeviceDeploymentStatus,
-			Value: bson.M{"$in": statuses}},
+		{Key: StorageKeyDeviceDeploymentActive, Value: false},
+		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
 	}
 
 	// Find the latest one by sorting by the creation timestamp
@@ -1197,43 +1211,6 @@ func (db *DataStoreMongo) FindLatestDeploymentForDeviceIDWithStatuses(ctx contex
 	}
 
 	return deployment, nil
-}
-
-// FindAllDeploymentsForDeviceIDWithStatuses finds all deployments matching device id and one of
-// specified statuses.
-func (db *DataStoreMongo) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context,
-	deviceID string, statuses ...string) ([]model.DeviceDeployment, error) {
-
-	// Verify ID formatting
-	if len(deviceID) == 0 {
-		return nil, ErrStorageInvalidID
-	}
-
-	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
-	collDevs := database.Collection(CollectionDevices)
-
-	// Device should know only about deployments that are not finished
-	query := bson.D{
-		{Key: StorageKeyDeviceDeploymentDeviceId,
-			Value: deviceID},
-		{Key: StorageKeyDeviceDeploymentStatus,
-			Value: bson.M{
-				"$in": statuses,
-			}},
-	}
-
-	var deployments []model.DeviceDeployment
-	if cursor, err := collDevs.Find(ctx, query); err != nil {
-		return nil, err
-	} else {
-		if err = cursor.All(ctx, &deployments); err != nil {
-			if err == mongo.ErrNoDocuments {
-				return nil, nil
-			}
-		}
-	}
-
-	return deployments, nil
 }
 
 func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(
@@ -1265,6 +1242,7 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(
 	// update status field
 	set := bson.M{
 		StorageKeyDeviceDeploymentStatus: ddState.Status,
+		StorageKeyDeviceDeploymentActive: ddState.Status.Active(),
 	}
 	// and finish time if provided
 	if ddState.FinishTime != nil {
@@ -1567,21 +1545,14 @@ func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDevs := database.Collection(CollectionDevices)
 	selector := bson.M{
-		"$and": []bson.M{
-			{
-				StorageKeyDeviceDeploymentDeploymentID: deploymentId,
-			},
-			{
-				StorageKeyDeviceDeploymentStatus: bson.M{
-					"$in": model.ActiveDeploymentStatuses(),
-				},
-			},
-		},
+		StorageKeyDeviceDeploymentDeploymentID: deploymentId,
+		StorageKeyDeviceDeploymentActive:       true,
 	}
 
 	update := bson.M{
 		"$set": bson.M{
 			StorageKeyDeviceDeploymentStatus: model.DeviceDeploymentStatusAborted,
+			StorageKeyDeviceDeploymentActive: false,
 		},
 	}
 
@@ -1602,21 +1573,14 @@ func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDevs := database.Collection(CollectionDevices)
 	selector := bson.M{
-		"$and": []bson.M{
-			{
-				StorageKeyDeviceDeploymentDeviceId: deviceId,
-			},
-			{
-				StorageKeyDeviceDeploymentStatus: bson.M{
-					"$in": model.ActiveDeploymentStatuses(),
-				},
-			},
-		},
+		StorageKeyDeviceDeploymentDeviceId: deviceId,
+		StorageKeyDeviceDeploymentActive:   true,
 	}
 
 	update := bson.M{
 		"$set": bson.M{
 			StorageKeyDeviceDeploymentStatus: model.DeviceDeploymentStatusDecommissioned,
+			StorageKeyDeviceDeploymentActive: false,
 		},
 	}
 

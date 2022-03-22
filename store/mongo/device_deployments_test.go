@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -464,6 +464,7 @@ func newDeviceDeploymentWithStatus(t *testing.T, deviceID string, deploymentID s
 	d := model.NewDeviceDeployment(deviceID, deploymentID)
 
 	d.Status = status
+	d.Active = status.Active()
 	return d
 }
 

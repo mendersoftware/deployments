@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,6 +21,12 @@ import (
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+)
+
+var (
+	ErrDeviceDeploymentStatusMismatch = errors.New(
+		"model active state does not match status",
+	)
 )
 
 // DeviceDeploymentStatus is an enumerated type showing the status of a device within a deployment
@@ -52,6 +58,9 @@ const (
 	DeviceDeploymentStatusDecommissioned
 	// DeviceDeploymentStatusNew = (DeviceDeploymentStatusSuccess +
 	// DeviceDeploymentStatusNoArtifact) / 2
+
+	DeviceDeploymentStatusActiveLow  = DeviceDeploymentStatusPauseBeforeInstall
+	DeviceDeploymentStatusActiveHigh = DeviceDeploymentStatusPending
 
 	DeviceDeploymentStatusFailureStr            = "failure"
 	DeviceDeploymentStatusAbortedStr            = "aborted"
@@ -173,6 +182,11 @@ func (stat *DeviceDeploymentStatus) UnmarshalText(b []byte) error {
 	return nil
 }
 
+func (stat DeviceDeploymentStatus) Active() bool {
+	return stat >= DeviceDeploymentStatusActiveLow &&
+		stat <= DeviceDeploymentStatusActiveHigh
+}
+
 // DeviceDeploymentStatus is a helper type for reporting status changes through
 // the layers
 type DeviceDeploymentState struct {
@@ -191,6 +205,10 @@ func (state DeviceDeploymentState) Validate() error {
 }
 
 type DeviceDeployment struct {
+	// Active says whether the device's deployment status is in an active
+	// state - in progress or pending.
+	Active bool `json:"-" bson:"active"`
+
 	// Internal field of initial creation of deployment
 	Created *time.Time `json:"created" bson:"created"`
 
@@ -233,6 +251,7 @@ func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
 	id := uid.String()
 
 	return &DeviceDeployment{
+		Active:         true,
 		Status:         DeviceDeploymentStatusPending,
 		DeviceId:       deviceId,
 		DeploymentId:   deploymentId,
@@ -243,13 +262,24 @@ func NewDeviceDeployment(deviceId, deploymentId string) *DeviceDeployment {
 }
 
 func (d DeviceDeployment) Validate() error {
-	return validation.ValidateStruct(&d,
+	err := validation.ValidateStruct(&d,
 		validation.Field(&d.Created, validation.Required),
-		validation.Field(&d.Status, validation.Required),
+		validation.Field(&d.Status, validation.Required, deviceDeploymentStatusValidator{}),
 		validation.Field(&d.DeviceId, validation.Required),
 		validation.Field(&d.DeploymentId, validation.Required, is.UUID),
 		validation.Field(&d.Id, validation.Required, is.UUID),
 	)
+	if err != nil {
+		return err
+	}
+	if d.Status.Active() {
+		if !d.Active {
+			return ErrDeviceDeploymentStatusMismatch
+		}
+	} else if d.Active {
+		return ErrDeviceDeploymentStatusMismatch
+	}
+	return nil
 }
 
 // Deployment statistics wrapper, each value carries a count of deployments
