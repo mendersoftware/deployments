@@ -231,7 +231,7 @@ type DeviceDeployment struct {
 	Image *Image `json:"-"`
 
 	// Target device type
-	DeviceType string `json:"device_type,omitempty" bson:"devicetype"`
+	Request *InstalledDeviceDeployment `json:"-" bson:"request,omitempty"`
 
 	// Presence of deployment log
 	IsLogAvailable bool `json:"log" bson:"log"`

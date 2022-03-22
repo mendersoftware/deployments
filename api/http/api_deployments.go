@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -1189,7 +1189,11 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 
 	deployment, err := d.app.GetDeploymentForDeviceWithCurrent(ctx, idata.Subject, installed)
 	if err != nil {
-		d.view.RenderInternalError(w, r, err, l)
+		if err == app.ErrConflictingRequestData {
+			d.view.RenderError(w, r, err, http.StatusConflict, l)
+		} else {
+			d.view.RenderInternalError(w, r, err, l)
+		}
 		return
 	}
 

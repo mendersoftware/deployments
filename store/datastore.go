@@ -82,8 +82,13 @@ type DataStore interface {
 	) (model.DeviceDeploymentStatus, error)
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error
-	AssignArtifact(ctx context.Context, deviceID string,
-		deploymentID string, artifact *model.Image, deviceType string) error
+	AssignArtifact(
+		ctx context.Context,
+		deviceID string,
+		deploymentID string,
+		artifact *model.Image,
+		installed *model.InstalledDeviceDeployment,
+	) error
 	AggregateDeviceDeploymentByStatus(ctx context.Context,
 		id string) (model.Stats, error)
 	GetDeviceStatusesForDeployment(ctx context.Context,

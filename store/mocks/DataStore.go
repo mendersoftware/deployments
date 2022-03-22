@@ -69,13 +69,13 @@ func (_m *DataStore) AggregateDeviceDeploymentByStatus(ctx context.Context, id s
 	return r0, r1
 }
 
-// AssignArtifact provides a mock function with given fields: ctx, deviceID, deploymentID, artifact, deviceType
-func (_m *DataStore) AssignArtifact(ctx context.Context, deviceID string, deploymentID string, artifact *model.Image, deviceType string) error {
-	ret := _m.Called(ctx, deviceID, deploymentID, artifact, deviceType)
+// AssignArtifact provides a mock function with given fields: ctx, deviceID, deploymentID, artifact, installed
+func (_m *DataStore) AssignArtifact(ctx context.Context, deviceID string, deploymentID string, artifact *model.Image, installed *model.InstalledDeviceDeployment) error {
+	ret := _m.Called(ctx, deviceID, deploymentID, artifact, installed)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.Image, string) error); ok {
-		r0 = rf(ctx, deviceID, deploymentID, artifact, deviceType)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.Image, *model.InstalledDeviceDeployment) error); ok {
+		r0 = rf(ctx, deviceID, deploymentID, artifact, installed)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -265,36 +265,6 @@ func (_m *DataStore) Find(ctx context.Context, query model.Query) ([]*model.Depl
 	}
 
 	return r0, r1, r2
-}
-
-// FindAllDeploymentsForDeviceIDWithStatuses provides a mock function with given fields: ctx, deviceID, statuses
-func (_m *DataStore) FindAllDeploymentsForDeviceIDWithStatuses(ctx context.Context, deviceID string, statuses ...string) ([]model.DeviceDeployment, error) {
-	_va := make([]interface{}, len(statuses))
-	for _i := range statuses {
-		_va[_i] = statuses[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, deviceID)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 []model.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...string) []model.DeviceDeployment); ok {
-		r0 = rf(ctx, deviceID, statuses...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]model.DeviceDeployment)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, ...string) error); ok {
-		r1 = rf(ctx, deviceID, statuses...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
 }
 
 // FindDeploymentByID provides a mock function with given fields: ctx, id

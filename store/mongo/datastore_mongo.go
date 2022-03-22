@@ -368,7 +368,7 @@ const (
 	StorageKeyDeviceDeploymentFinished       = "finished"
 	StorageKeyDeviceDeploymentIsLogAvailable = "log"
 	StorageKeyDeviceDeploymentArtifact       = "image"
-	StorageKeyDeviceDeploymentDeviceType     = "devicetype"
+	StorageKeyDeviceDeploymentRequest        = "request"
 
 	StorageKeyDeploymentName         = "deploymentconstructor.name"
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
@@ -1306,8 +1306,13 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentLogAvailability(ctx context.Cont
 }
 
 // AssignArtifact assigns artifact to the device deployment
-func (db *DataStoreMongo) AssignArtifact(ctx context.Context,
-	deviceID string, deploymentID string, artifact *model.Image, deviceType string) error {
+func (db *DataStoreMongo) AssignArtifact(
+	ctx context.Context,
+	deviceID string,
+	deploymentID string,
+	artifact *model.Image,
+	installed *model.InstalledDeviceDeployment,
+) error {
 
 	// Verify ID formatting
 	if len(deviceID) == 0 ||
@@ -1327,8 +1332,8 @@ func (db *DataStoreMongo) AssignArtifact(ctx context.Context,
 
 	update := bson.D{
 		{Key: "$set", Value: bson.M{
-			StorageKeyDeviceDeploymentArtifact:   artifact,
-			StorageKeyDeviceDeploymentDeviceType: deviceType}},
+			StorageKeyDeviceDeploymentArtifact: artifact,
+			StorageKeyDeviceDeploymentRequest:  installed}},
 	}
 
 	if res, err := collDevs.UpdateOne(ctx, selector, update); err != nil {
