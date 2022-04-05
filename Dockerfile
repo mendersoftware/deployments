@@ -1,18 +1,19 @@
-FROM golang:1.17.6-alpine3.15 as builder
+FROM golang:1.17.8-alpine3.15 as builder
 RUN apk add --no-cache \
      xz-dev \
      musl-dev \
-     gcc
+     gcc \
+     ca-certificates
 WORKDIR /go/src/github.com/mendersoftware/deployments
 COPY ./ .
-RUN env CGO_ENABLED=1 go build
+RUN env CGO_ENABLED=0 go build
 
-FROM alpine:3.15.0
-RUN apk add --no-cache ca-certificates xz
-RUN mkdir -p /etc/deployments
+FROM scratch
+WORKDIR /etc/deployments
 EXPOSE 8080
-COPY ./config.yaml /etc/deployments
+COPY ./config.yaml .
 COPY ./entrypoint.sh /entrypoint.sh
-COPY --from=builder /go/src/github.com/mendersoftware/deployments/deployments /usr/bin
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /go/src/github.com/mendersoftware/deployments/deployments /usr/bin/
 CMD ["./entrypoint.sh"]  
 ENTRYPOINT ["/entrypoint.sh", "--config", "/etc/deployments/config.yaml"]
