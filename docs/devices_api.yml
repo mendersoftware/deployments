@@ -86,6 +86,10 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         404:
           $ref: "#/responses/NotFoundError"
+        409:
+          description: Conflicting request data provided.
+          schema:
+            $ref: "#/definitions/Error"
         500:
           $ref: "#/responses/InternalServerError"
 

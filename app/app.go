@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"reflect"
 	"strings"
 	"time"
 
@@ -92,6 +93,7 @@ var (
 	ErrNoDevices               = errors.New("No devices for the deployment")
 	ErrDuplicateDeployment     = errors.New("Deployment with given ID already exists")
 	ErrInvalidDeploymentID     = errors.New("Deployment ID must be a valid UUID")
+	ErrConflictingRequestData  = errors.New("Device provided conflicting request data")
 )
 
 //deployments
@@ -1140,7 +1142,7 @@ func (d *Deployments) assignArtifact(
 		deviceDeployment.DeviceId,
 		deviceDeployment.DeploymentId,
 		artifact,
-		installed.DeviceType,
+		installed,
 	); err != nil {
 		return errors.Wrap(err, "Assigning artifact to the device deployment")
 	}
@@ -1294,32 +1296,47 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		return nil, nil
 	}
 
-	if installed.ArtifactName != "" && deployment.ArtifactName == installed.ArtifactName {
-		// if the device reported same artifact name as the one in the device deployment,
-		// and this is a new device deployment - indicated by device deployment
-		// status "pending",
-		// pretend there is no deployment for this device, but update
-		// its status to already installed first
-		if deviceDeployment.Status == model.DeviceDeploymentStatusPending {
+	if deviceDeployment.Request != nil && !reflect.DeepEqual(deviceDeployment.Request, installed) {
+		// the device reported different device type and/or artifact name
+		// during the update process, which should never happen;
+		// mark deployment for this device as failed to force client to rollback
+		l.Errorf(
+			"Device with id %s reported new data during update process - "+
+				"device type: %s, artifact name: %s "+
+				"old data - device type %s, artifact name: %s",
+			deviceID, installed.DeviceType, installed.ArtifactName,
+			deviceDeployment.Request.DeviceType, deviceDeployment.Request.ArtifactName)
 
-			if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
-				model.DeviceDeploymentState{
-					Status: model.DeviceDeploymentStatusAlreadyInst,
-				}); err != nil {
+		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
+			model.DeviceDeploymentState{
+				Status: model.DeviceDeploymentStatusFailure,
+			}); err != nil {
 
-				return nil, errors.Wrap(err, "Failed to update deployment status")
-			}
-
-			return nil, nil
-		} else {
-			// the device reported same artifact name as the one in the device deployment
-			// for ongoing device deployment, which should never happen;
-			// the best we can do is to log the error and continue
-			l.Errorf(
-				"Device with id %s reported new artifact name: %s before finishing the deployment",
-				deviceID, installed.ArtifactName)
+			return nil, errors.Wrap(err, "Failed to update deployment status")
 		}
+		return nil, ErrConflictingRequestData
 	}
+
+	// if the device reported same artifact name as the one in the device deployment,
+	// and this is a new device deployment - indicated by device deployment
+	// status "pending",
+	// pretend there is no deployment for this device, but update
+	// its status to already installed first
+	if installed.ArtifactName != "" &&
+		deployment.ArtifactName == installed.ArtifactName &&
+		deviceDeployment.Status == model.DeviceDeploymentStatusPending {
+
+		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
+			model.DeviceDeploymentState{
+				Status: model.DeviceDeploymentStatusAlreadyInst,
+			}); err != nil {
+
+			return nil, errors.Wrap(err, "Failed to update deployment status")
+		}
+
+		return nil, nil
+	}
+
 	if deployment.Type == model.DeploymentTypeConfiguration {
 		// There's nothing more we need to do, the link must be filled
 		// in by the API layer.
@@ -1331,16 +1348,6 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 			},
 			Type: model.DeploymentTypeConfiguration,
 		}, nil
-	}
-
-	if deviceDeployment.Image != nil && deviceDeployment.DeviceType != installed.DeviceType {
-		// the device reported different device type during the update process,
-		// which should never happen;
-		// the best we can do is to log the error and continue
-		l.Errorf(
-			"Device with id %s reported new device type: %s"+
-				" after artifact has been assigned to the device",
-			deviceID, installed.DeviceType)
 	}
 
 	// assign artifact only if the artifact was not assigned previously

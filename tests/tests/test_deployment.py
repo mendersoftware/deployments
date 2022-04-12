@@ -336,14 +336,20 @@ class TestDeployment:
                         dev.device_type in nextdep.artifact["device_types_compatible"]
                     )
 
-                    # pretend our device type is different than expected
-                    nextdep = dc.get_next_deployment(
-                        dev.fake_token,
-                        artifact_name="different {}".format(artifact_name),
-                        device_type="other {}".format(dev.device_type),
-                    )
-                    self.d.log.info("device next: %s", nextdep)
-                    assert nextdep is not None
+                    try:
+                        # pretend our device type is different than expected
+                        nextdep = dc.get_next_deployment(
+                            dev.fake_token,
+                            artifact_name="different {}".format(artifact_name),
+                            device_type="other {}".format(dev.device_type),
+                        )
+                    except bravado.exception.HTTPError as err:
+                        assert err.response.status_code == 409
+                    else:
+                        raise AssertionError("expected to fail")
+
+                    # verify that device status was properly set
+                    self.d.verify_deployment_stats(depid, expected={"failure": 1})
 
     def test_device_deployments_already_installed(self):
         """Check case with already installed artifact"""
