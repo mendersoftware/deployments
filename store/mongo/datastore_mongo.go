@@ -21,13 +21,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mendersoftware/go-lib-micro/config"
-	mstore "github.com/mendersoftware/go-lib-micro/store"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/mendersoftware/go-lib-micro/config"
+	mstore "github.com/mendersoftware/go-lib-micro/store"
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
@@ -1739,6 +1740,56 @@ func (db *DataStoreMongo) FindDeploymentByID(
 	}
 
 	return deployment, nil
+}
+
+func (db *DataStoreMongo) FindDeploymentStatsByIDs(
+	ctx context.Context,
+	ids ...string,
+) (deploymentStats []*model.DeploymentStats, err error) {
+
+	if len(ids) == 0 {
+		return nil, errors.New("no IDs passed into the function. At least one is required")
+	}
+
+	for _, id := range ids {
+		if len(id) == 0 {
+			return nil, ErrStorageInvalidID
+		}
+	}
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
+
+	query := bson.M{
+		"_id": bson.M{
+			"$in": ids,
+		},
+	}
+	statsProjection := &mopts.FindOptions{
+		Projection: bson.M{"stats": 1},
+	}
+
+	results, err := collDpl.Find(
+		ctx,
+		query,
+		statsProjection,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for results.Next(context.Background()) {
+		depl := new(model.DeploymentStats)
+		if err = results.Decode(&depl); err != nil {
+			if err == mongo.ErrNoDocuments {
+				return nil, nil
+			}
+			return nil, err
+		}
+		deploymentStats = append(deploymentStats, depl)
+	}
+
+	return deploymentStats, nil
 }
 
 func (db *DataStoreMongo) FindUnfinishedByID(ctx context.Context,

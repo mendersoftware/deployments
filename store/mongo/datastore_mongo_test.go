@@ -954,3 +954,78 @@ func TestFindLatestInactiveDeviceDeployment(t *testing.T) {
 		})
 	}
 }
+
+func TestFindDeploymentStatsByIDs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestFindDeploymentStatsByIDs in short mode.")
+	}
+
+	now := time.Now()
+
+	deployments := []*model.Deployment{
+		&model.Deployment{
+			Id:      "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+			Created: &now,
+			DeploymentConstructor: &model.DeploymentConstructor{
+				Name:         "name",
+				ArtifactName: "artifact",
+				Devices:      []string{"device-1"},
+			},
+			Stats: model.Stats{},
+		},
+		&model.Deployment{
+			Id:      "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
+			Created: &now,
+			DeploymentConstructor: &model.DeploymentConstructor{
+				Name:         "name",
+				ArtifactName: "artifact",
+				Devices:      []string{"device-1"},
+			},
+			Stats: model.NewDeviceDeploymentStats(),
+		},
+		&model.Deployment{
+			Id:      "d50eda0d-2cea-4de1-8d42-9cd3e7e86703",
+			Created: &now,
+			DeploymentConstructor: &model.DeploymentConstructor{
+				Name:         "name",
+				ArtifactName: "artifact",
+				Devices:      []string{"device-1"},
+			},
+			Stats: model.NewDeviceDeploymentStats(),
+		},
+	}
+
+	ctx := context.Background()
+	ds := NewDataStoreMongoWithClient(db.Client())
+
+	for _, deployment := range deployments {
+		assert.NoError(t, ds.InsertDeployment(ctx, deployment))
+	}
+
+	testCases := map[string]struct {
+		deployments []*model.Deployment
+	}{
+		"OK - single": {
+			deployments: []*model.Deployment{
+				deployments[0],
+			},
+		},
+		"OK - multiple": {
+			deployments: deployments,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			var ids []string
+			for _, d := range tc.deployments {
+				ids = append(ids, d.Id)
+			}
+			depStats, err := ds.FindDeploymentStatsByIDs(ctx, ids...)
+			assert.Nil(t, err)
+			assert.NotNil(t, depStats)
+			assert.Equal(t, len(depStats), len(tc.deployments))
+		})
+	}
+
+}

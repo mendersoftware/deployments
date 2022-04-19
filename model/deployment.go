@@ -314,3 +314,20 @@ type Query struct {
 	// sort values by creation date
 	Sort string
 }
+
+type DeploymentIDs struct {
+	IDs []string `json:"deployment_ids"`
+}
+
+func (d DeploymentIDs) Validate() error {
+	return validation.Validate(d.IDs,
+		validation.Required,
+		validation.Length(1, 100),
+		validation.Each(is.UUID),
+	)
+}
+
+type DeploymentStats struct {
+	ID    string `json:"id" bson:"_id"`
+	Stats Stats  `json:"stats" bson:"stats"`
+}

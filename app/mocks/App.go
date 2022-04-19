@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -303,6 +303,36 @@ func (_m *App) GetDeploymentStats(ctx context.Context, deploymentID string) (mod
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, deploymentID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetDeploymentsStats provides a mock function with given fields: ctx, deploymentIDs
+func (_m *App) GetDeploymentsStats(ctx context.Context, deploymentIDs ...string) ([]*model.DeploymentStats, error) {
+	_va := make([]interface{}, len(deploymentIDs))
+	for _i := range deploymentIDs {
+		_va[_i] = deploymentIDs[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 []*model.DeploymentStats
+	if rf, ok := ret.Get(0).(func(context.Context, ...string) []*model.DeploymentStats); ok {
+		r0 = rf(ctx, deploymentIDs...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.DeploymentStats)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, ...string) error); ok {
+		r1 = rf(ctx, deploymentIDs...)
 	} else {
 		r1 = ret.Error(1)
 	}
