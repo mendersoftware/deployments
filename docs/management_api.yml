@@ -186,7 +186,7 @@ paths:
 
   /deployments/statistics/list:
     post:
-      operationId: Deployment Status Statistics
+      operationId: Deployment Status Statistics List
       tags:
         - Management API
       security:
