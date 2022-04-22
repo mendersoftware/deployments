@@ -15,6 +15,7 @@
 package model
 
 import (
+	"encoding/json"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -230,8 +231,8 @@ type DeviceDeployment struct {
 	// Assigned software image
 	Image *Image `json:"-"`
 
-	// Target device type
-	Request *InstalledDeviceDeployment `json:"-" bson:"request,omitempty"`
+	// deployments/next request from the device
+	Request *DeploymentNextRequest `json:"-"`
 
 	// Presence of deployment log
 	IsLogAvailable bool `json:"log" bson:"log"`
@@ -353,8 +354,31 @@ func InactiveDeploymentStatuses() []DeviceDeploymentStatus {
 // InstalledDeviceDeployment describes a deployment currently installed on the
 // device, usually reported by a device
 type InstalledDeviceDeployment struct {
-	ArtifactName string `json:"artifact_name"`
-	DeviceType   string `json:"device_type"`
+	ArtifactName string            `json:"artifact_name"`
+	DeviceType   string            `json:"device_type"`
+	Provides     map[string]string `json:"artifact_provides,omitempty"`
+}
+
+// DeploymentNextRequest holds a deployments/next request
+type DeploymentNextRequest struct {
+	DeviceProvides   *InstalledDeviceDeployment `json:"device_provides"`
+	UpdateControlMap bool                       `json:"update_control_map"`
+}
+
+func (i *DeploymentNextRequest) Validate() error {
+	return validation.ValidateStruct(i,
+		validation.Field(&i.DeviceProvides,
+			validation.Required,
+		),
+	)
+}
+
+func (i *DeploymentNextRequest) String() string {
+	j, err := json.Marshal(i)
+	if err != nil {
+		return "invalid request format"
+	}
+	return string(j)
 }
 
 func (i *InstalledDeviceDeployment) Validate() error {
@@ -365,5 +389,6 @@ func (i *InstalledDeviceDeployment) Validate() error {
 		validation.Field(&i.DeviceType,
 			validation.Required, lengthIn1To4096,
 		),
+		validation.Field(&i.Provides, validation.Each(lengthIn1To4096)),
 	)
 }

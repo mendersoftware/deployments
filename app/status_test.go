@@ -105,9 +105,11 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 	depName := "foo"
 	depArtifact := "bar"
 
-	installed := model.InstalledDeviceDeployment{
-		ArtifactName: depArtifact,
-		DeviceType:   devType,
+	request := &model.DeploymentNextRequest{
+		DeviceProvides: &model.InstalledDeviceDeployment{
+			ArtifactName: depArtifact,
+			DeviceType:   devType,
+		},
 	}
 
 	fakeDeployment, err := model.NewDeploymentFromConstructor(
@@ -166,9 +168,13 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 		model.DeploymentStatusFinished,
 		mock.AnythingOfType("time.Time")).Return(nil)
 
+	db.On("SaveDeviceDeploymentRequest", ctx,
+		mock.AnythingOfType("string"),
+		request).Return(nil)
+
 	ds := NewDeployments(&db, fs, "")
 
-	_, err = ds.GetDeploymentForDeviceWithCurrent(ctx, devId, &installed)
+	_, err = ds.GetDeploymentForDeviceWithCurrent(ctx, devId, request)
 	assert.NoError(t, err)
 }
 
