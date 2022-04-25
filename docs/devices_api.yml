@@ -263,6 +263,8 @@ definitions:
       artifact:
         type: object
         properties:
+          id:
+            type: string
           source:
             type: object
             properties:

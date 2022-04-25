@@ -1345,6 +1345,9 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		return &model.DeploymentInstructions{
 			ID: deployment.Id,
 			Artifact: model.ArtifactDeploymentInstructions{
+				// configuration artifacts are created on demand, so they do not have IDs
+				// use deployment ID togheter with device ID as artifact ID
+				ID:                    deployment.Id + deviceID,
 				ArtifactName:          deployment.ArtifactName,
 				DeviceTypesCompatible: []string{installed.DeviceType},
 			},
@@ -1377,6 +1380,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	instructions := &model.DeploymentInstructions{
 		ID: deviceDeployment.DeploymentId,
 		Artifact: model.ArtifactDeploymentInstructions{
+			ID: deviceDeployment.Image.Id,
 			ArtifactName: deviceDeployment.Image.
 				ArtifactMeta.Name,
 			Source: *link,
