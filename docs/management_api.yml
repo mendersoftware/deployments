@@ -573,6 +573,9 @@ paths:
       security:
         - ManagementJWT: []
       summary: Get the log of a selected device's deployment
+      description: |
+        The response body for this endpoint include the device's deployment logs
+        in text/plain format.
       parameters:
         - name: deployment_id
           in: path
@@ -588,7 +591,7 @@ paths:
         - text/plain
       responses:
         200:
-          description: Successful response.
+          description: Successful response, including the logs in text/plain format.
         401:
           $ref: '#/responses/UnauthorizedError'
         404:
