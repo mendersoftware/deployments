@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package model
 
 type ArtifactDeploymentInstructions struct {
+	ID                    string   `json:"id"`
 	ArtifactName          string   `json:"artifact_name"`
 	Source                Link     `json:"source"`
 	DeviceTypesCompatible []string `json:"device_types_compatible"`
