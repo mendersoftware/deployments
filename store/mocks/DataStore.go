@@ -69,13 +69,13 @@ func (_m *DataStore) AggregateDeviceDeploymentByStatus(ctx context.Context, id s
 	return r0, r1
 }
 
-// AssignArtifact provides a mock function with given fields: ctx, deviceID, deploymentID, artifact, installed
-func (_m *DataStore) AssignArtifact(ctx context.Context, deviceID string, deploymentID string, artifact *model.Image, installed *model.InstalledDeviceDeployment) error {
-	ret := _m.Called(ctx, deviceID, deploymentID, artifact, installed)
+// AssignArtifact provides a mock function with given fields: ctx, deviceID, deploymentID, artifact
+func (_m *DataStore) AssignArtifact(ctx context.Context, deviceID string, deploymentID string, artifact *model.Image) error {
+	ret := _m.Called(ctx, deviceID, deploymentID, artifact)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.Image, *model.InstalledDeviceDeployment) error); ok {
-		r0 = rf(ctx, deviceID, deploymentID, artifact, installed)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.Image) error); ok {
+		r0 = rf(ctx, deviceID, deploymentID, artifact)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -884,6 +884,20 @@ func (_m *DataStore) SaveDeviceDeploymentLog(ctx context.Context, log model.Depl
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, model.DeploymentLog) error); ok {
 		r0 = rf(ctx, log)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SaveDeviceDeploymentRequest provides a mock function with given fields: ctx, ID, request
+func (_m *DataStore) SaveDeviceDeploymentRequest(ctx context.Context, ID string, request *model.DeploymentNextRequest) error {
+	ret := _m.Called(ctx, ID, request)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.DeploymentNextRequest) error); ok {
+		r0 = rf(ctx, ID, request)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -1302,3 +1302,86 @@ func TestDecommissionDeviceDeployments(t *testing.T) {
 		})
 	}
 }
+
+func TestSaveDeviceDeploymentRequest(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("skipping TestSaveDeviceDeploymentRequest in short mode.")
+	}
+
+	dd := model.NewDeviceDeployment("456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a")
+
+	testCases := map[string]struct {
+		deviceDeployments []*model.DeviceDeployment
+		tenant            string
+		request           *model.DeploymentNextRequest
+
+		err error
+	}{
+		"ok": {
+			deviceDeployments: []*model.DeviceDeployment{dd},
+			request: &model.DeploymentNextRequest{
+				DeviceProvides: &model.InstalledDeviceDeployment{
+					ArtifactName: "foo",
+					DeviceType:   "bar",
+				},
+			},
+		},
+		"ok, tenant": {
+			deviceDeployments: []*model.DeviceDeployment{dd},
+			request: &model.DeploymentNextRequest{
+				DeviceProvides: &model.InstalledDeviceDeployment{
+					ArtifactName: "foo",
+					DeviceType:   "bar",
+				},
+			},
+			tenant: "foo",
+		},
+		"no device deployments": {
+			request: &model.DeploymentNextRequest{
+				DeviceProvides: &model.InstalledDeviceDeployment{
+					ArtifactName: "foo",
+					DeviceType:   "bar",
+				},
+			},
+			err: ErrStorageNotFound,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", name), func(t *testing.T) {
+
+			// Make sure we start test with empty database
+			db.Wipe()
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+			if tc.tenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: tc.tenant,
+				})
+			}
+
+			err := store.InsertMany(ctx, tc.deviceDeployments...)
+			assert.NoError(t, err)
+
+			err = store.SaveDeviceDeploymentRequest(ctx, dd.Id, tc.request)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.NoError(t, err)
+				var deployment *model.DeviceDeployment
+				collDevs := client.Database(ctxstore.
+					DbFromContext(ctx, DatabaseName)).
+					Collection(CollectionDevices)
+				query := bson.M{
+					StorageKeyId: dd.Id,
+				}
+				err := collDevs.FindOne(ctx, query).Decode(&deployment)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.request, deployment.Request)
+			}
+		})
+	}
+}

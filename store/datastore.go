@@ -87,7 +87,6 @@ type DataStore interface {
 		deviceID string,
 		deploymentID string,
 		artifact *model.Image,
-		installed *model.InstalledDeviceDeployment,
 	) error
 	AggregateDeviceDeploymentByStatus(ctx context.Context,
 		id string) (model.Stats, error)
@@ -103,6 +102,11 @@ type DataStore interface {
 	DecommissionDeviceDeployments(ctx context.Context, deviceId string) error
 	GetDeviceDeployment(ctx context.Context,
 		deploymentID string, deviceID string) (*model.DeviceDeployment, error)
+	SaveDeviceDeploymentRequest(
+		ctx context.Context,
+		ID string,
+		request *model.DeploymentNextRequest,
+	) error
 
 	// deployments
 	InsertDeployment(ctx context.Context, deployment *model.Deployment) error

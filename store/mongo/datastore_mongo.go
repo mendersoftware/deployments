@@ -1296,13 +1296,36 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentLogAvailability(ctx context.Cont
 			StorageKeyDeviceDeploymentIsLogAvailable: log}},
 	}
 
-	// NOTE <Review> Perhaps this should be UpdateOne ?
-	if res, err := collDevs.UpdateMany(ctx, selector, update); err != nil {
+	if res, err := collDevs.UpdateOne(ctx, selector, update); err != nil {
 		return err
 	} else if res.MatchedCount == 0 {
 		return ErrStorageNotFound
 	}
 
+	return nil
+}
+
+// SaveDeviceDeploymentRequest saves device deployment request
+// with the device deployment object
+func (db *DataStoreMongo) SaveDeviceDeploymentRequest(
+	ctx context.Context,
+	ID string,
+	request *model.DeploymentNextRequest,
+) error {
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
+
+	res, err := collDevs.UpdateOne(
+		ctx,
+		bson.D{{Key: StorageKeyId, Value: ID}},
+		bson.D{{Key: "$set", Value: bson.M{StorageKeyDeviceDeploymentRequest: request}}},
+	)
+	if err != nil {
+		return err
+	} else if res.MatchedCount == 0 {
+		return ErrStorageNotFound
+	}
 	return nil
 }
 
@@ -1312,7 +1335,6 @@ func (db *DataStoreMongo) AssignArtifact(
 	deviceID string,
 	deploymentID string,
 	artifact *model.Image,
-	installed *model.InstalledDeviceDeployment,
 ) error {
 
 	// Verify ID formatting
@@ -1334,7 +1356,7 @@ func (db *DataStoreMongo) AssignArtifact(
 	update := bson.D{
 		{Key: "$set", Value: bson.M{
 			StorageKeyDeviceDeploymentArtifact: artifact,
-			StorageKeyDeviceDeploymentRequest:  installed}},
+		}},
 	}
 
 	if res, err := collDevs.UpdateOne(ctx, selector, update); err != nil {

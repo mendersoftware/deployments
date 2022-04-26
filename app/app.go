@@ -140,7 +140,7 @@ type App interface {
 	GetDeploymentsStats(ctx context.Context,
 		deploymentIDs ...string) ([]*model.DeploymentStats, error)
 	GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
-		current *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error)
+		request *model.DeploymentNextRequest) (*model.DeploymentInstructions, error)
 	HasDeploymentForDevice(ctx context.Context, deploymentID string,
 		deviceID string) (bool, error)
 	UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
@@ -1144,7 +1144,6 @@ func (d *Deployments) assignArtifact(
 		deviceDeployment.DeviceId,
 		deviceDeployment.DeploymentId,
 		artifact,
-		installed,
 	); err != nil {
 		return errors.Wrap(err, "Assigning artifact to the device deployment")
 	}
@@ -1285,38 +1284,42 @@ func (d *Deployments) isDevicePartOfDeployment(
 
 // GetDeploymentForDeviceWithCurrent returns deployment for the device
 func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
-	installed *model.InstalledDeviceDeployment) (*model.DeploymentInstructions, error) {
+	request *model.DeploymentNextRequest) (*model.DeploymentInstructions, error) {
 
 	l := log.FromContext(ctx)
 
 	deployment, deviceDeployment, err := d.getDeploymentForDevice(ctx, deviceID)
 	if err != nil {
 		return nil, ErrModelInternal
-	}
-
-	if deployment == nil {
+	} else if deployment == nil {
 		return nil, nil
 	}
 
-	if deviceDeployment.Request != nil && !reflect.DeepEqual(deviceDeployment.Request, installed) {
-		// the device reported different device type and/or artifact name
-		// during the update process, which should never happen;
-		// mark deployment for this device as failed to force client to rollback
-		l.Errorf(
-			"Device with id %s reported new data during update process - "+
-				"device type: %s, artifact name: %s "+
-				"old data - device type %s, artifact name: %s",
-			deviceID, installed.DeviceType, installed.ArtifactName,
-			deviceDeployment.Request.DeviceType, deviceDeployment.Request.ArtifactName)
+	if deviceDeployment.Request != nil {
+		if !reflect.DeepEqual(deviceDeployment.Request, request) {
+			// the device reported different device type and/or artifact name
+			// during the update process, which should never happen;
+			// mark deployment for this device as failed to force client to rollback
+			l.Errorf(
+				"Device with id %s reported new data: %s during update process;"+
+					"old data: %s",
+				deviceID, request, deviceDeployment.Request)
 
-		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
-			model.DeviceDeploymentState{
-				Status: model.DeviceDeploymentStatusFailure,
-			}); err != nil {
+			if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
+				model.DeviceDeploymentState{
+					Status: model.DeviceDeploymentStatusFailure,
+				}); err != nil {
 
-			return nil, errors.Wrap(err, "Failed to update deployment status")
+				return nil, errors.Wrap(err, "Failed to update deployment status")
+			}
+			return nil, ErrConflictingRequestData
 		}
-		return nil, ErrConflictingRequestData
+	} else {
+		// save the request
+		if err := d.db.SaveDeviceDeploymentRequest(
+			ctx, deviceDeployment.Id, request); err != nil {
+			return nil, err
+		}
 	}
 
 	// if the device reported same artifact name as the one in the device deployment,
@@ -1324,8 +1327,8 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	// status "pending",
 	// pretend there is no deployment for this device, but update
 	// its status to already installed first
-	if installed.ArtifactName != "" &&
-		deployment.ArtifactName == installed.ArtifactName &&
+	if request.DeviceProvides.ArtifactName != "" &&
+		deployment.ArtifactName == request.DeviceProvides.ArtifactName &&
 		deviceDeployment.Status == model.DeviceDeploymentStatusPending {
 
 		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
@@ -1346,7 +1349,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 			ID: deployment.Id,
 			Artifact: model.ArtifactDeploymentInstructions{
 				ArtifactName:          deployment.ArtifactName,
-				DeviceTypesCompatible: []string{installed.DeviceType},
+				DeviceTypesCompatible: []string{request.DeviceProvides.DeviceType},
 			},
 			Type: model.DeploymentTypeConfiguration,
 		}, nil
@@ -1354,7 +1357,8 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 
 	// assign artifact only if the artifact was not assigned previously
 	if deviceDeployment.Image == nil {
-		if err := d.assignArtifact(ctx, deployment, deviceDeployment, installed); err != nil {
+		if err := d.assignArtifact(
+			ctx, deployment, deviceDeployment, request.DeviceProvides); err != nil {
 			return nil, err
 		}
 	}

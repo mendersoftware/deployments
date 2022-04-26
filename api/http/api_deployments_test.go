@@ -998,9 +998,11 @@ func TestGetDeploymentForDevice(t *testing.T) {
 			app.On("GetDeploymentForDeviceWithCurrent",
 				contextMatcher(),
 				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
-				&model.InstalledDeviceDeployment{
-					ArtifactName: "bagelOS1.0.1",
-					DeviceType:   "bagelShins",
+				&model.DeploymentNextRequest{
+					DeviceProvides: &model.InstalledDeviceDeployment{
+						ArtifactName: "bagelOS1.0.1",
+						DeviceType:   "bagelShins",
+					},
 				},
 			).Return(&model.DeploymentInstructions{
 				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
@@ -1043,9 +1045,11 @@ func TestGetDeploymentForDevice(t *testing.T) {
 			app.On("GetDeploymentForDeviceWithCurrent",
 				contextMatcher(),
 				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
-				&model.InstalledDeviceDeployment{
-					ArtifactName: "bagelOS1.0.1",
-					DeviceType:   "bagelBone",
+				&model.DeploymentNextRequest{
+					DeviceProvides: &model.InstalledDeviceDeployment{
+						ArtifactName: "bagelOS1.0.1",
+						DeviceType:   "bagelBone",
+					},
 				},
 			).Return(&model.DeploymentInstructions{
 				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
@@ -1084,9 +1088,11 @@ func TestGetDeploymentForDevice(t *testing.T) {
 			app.On("GetDeploymentForDeviceWithCurrent",
 				contextMatcher(),
 				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
-				&model.InstalledDeviceDeployment{
-					ArtifactName: "bagelOS1.0.1",
-					DeviceType:   "bagelShins",
+				&model.DeploymentNextRequest{
+					DeviceProvides: &model.InstalledDeviceDeployment{
+						ArtifactName: "bagelOS1.0.1",
+						DeviceType:   "bagelShins",
+					},
 				},
 			).Return(&model.DeploymentInstructions{
 				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
@@ -1125,9 +1131,11 @@ func TestGetDeploymentForDevice(t *testing.T) {
 
 				contextMatcher(),
 				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
-				&model.InstalledDeviceDeployment{
-					ArtifactName: "bagelOS1.0.1",
-					DeviceType:   "bagelShins",
+				&model.DeploymentNextRequest{
+					DeviceProvides: &model.InstalledDeviceDeployment{
+						ArtifactName: "bagelOS1.0.1",
+						DeviceType:   "bagelShins",
+					},
 				},
 			).Return(&model.DeploymentInstructions{
 				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
@@ -1168,9 +1176,11 @@ func TestGetDeploymentForDevice(t *testing.T) {
 
 				contextMatcher(),
 				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
-				&model.InstalledDeviceDeployment{
-					ArtifactName: "bagelOS1.0.1",
-					DeviceType:   "bagelShins",
+				&model.DeploymentNextRequest{
+					DeviceProvides: &model.InstalledDeviceDeployment{
+						ArtifactName: "bagelOS1.0.1",
+						DeviceType:   "bagelShins",
+					},
 				},
 			).Return(&model.DeploymentInstructions{
 				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
@@ -1210,9 +1220,11 @@ func TestGetDeploymentForDevice(t *testing.T) {
 
 				contextMatcher(),
 				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
-				&model.InstalledDeviceDeployment{
-					ArtifactName: "bagelOS1.0.1",
-					DeviceType:   "bagelShins",
+				&model.DeploymentNextRequest{
+					DeviceProvides: &model.InstalledDeviceDeployment{
+						ArtifactName: "bagelOS1.0.1",
+						DeviceType:   "bagelShins",
+					},
 				},
 			).Return(&model.DeploymentInstructions{
 				ID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("deployment")).String(),
@@ -1307,9 +1319,11 @@ func TestGetDeploymentForDevice(t *testing.T) {
 
 				contextMatcher(),
 				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
-				&model.InstalledDeviceDeployment{
-					ArtifactName: "bagelOS1.0.1",
-					DeviceType:   "bagelShins",
+				&model.DeploymentNextRequest{
+					DeviceProvides: &model.InstalledDeviceDeployment{
+						ArtifactName: "bagelOS1.0.1",
+						DeviceType:   "bagelShins",
+					},
 				},
 			).Return(nil, errors.New("mongo: internal error"))
 			return app
@@ -1340,9 +1354,11 @@ func TestGetDeploymentForDevice(t *testing.T) {
 
 				contextMatcher(),
 				uuid.NewSHA1(uuid.NameSpaceOID, []byte("device")).String(),
-				&model.InstalledDeviceDeployment{
-					ArtifactName: "bagelOS1.0.1",
-					DeviceType:   "bagelShins",
+				&model.DeploymentNextRequest{
+					DeviceProvides: &model.InstalledDeviceDeployment{
+						ArtifactName: "bagelOS1.0.1",
+						DeviceType:   "bagelShins",
+					},
 				},
 			).Return(nil, nil)
 			return app

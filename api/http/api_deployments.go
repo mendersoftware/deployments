@@ -1224,7 +1224,23 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 		return
 	}
 
-	deployment, err := d.app.GetDeploymentForDeviceWithCurrent(ctx, idata.Subject, installed)
+	request := &model.DeploymentNextRequest{
+		DeviceProvides: installed,
+	}
+
+	d.getDeploymentForDevice(w, r, idata, request)
+}
+
+func (d *DeploymentsApiHandlers) getDeploymentForDevice(
+	w rest.ResponseWriter,
+	r *rest.Request,
+	idata *identity.Identity,
+	request *model.DeploymentNextRequest,
+) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	deployment, err := d.app.GetDeploymentForDeviceWithCurrent(ctx, idata.Subject, request)
 	if err != nil {
 		if err == app.ErrConflictingRequestData {
 			d.view.RenderError(w, r, err, http.StatusConflict, l)
@@ -1253,7 +1269,7 @@ func (d *DeploymentsApiHandlers) GetDeploymentForDevice(w rest.ResponseWriter, r
 			http.MethodGet,
 			FMTConfigURL(
 				d.config.PresignScheme, hostName,
-				deployment.ID, installed.DeviceType,
+				deployment.ID, request.DeviceProvides.DeviceType,
 				idata.Subject,
 			),
 			nil,
