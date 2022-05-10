@@ -16,7 +16,6 @@ package mongo
 import (
 	"context"
 	"crypto/tls"
-	"math"
 	"regexp"
 	"strings"
 	"time"
@@ -525,7 +524,7 @@ func (db *DataStoreMongo) GetReleases(
 	}
 
 	page := 1
-	perPage := math.MaxInt64
+	perPage := DefaultDocumentLimit
 	if filt != nil && filt.Page > 0 && filt.PerPage > 0 {
 		page = filt.Page
 		perPage = filt.PerPage

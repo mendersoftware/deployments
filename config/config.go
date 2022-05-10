@@ -41,7 +41,7 @@ const (
 	SettingAwsS3UseAccelerate         = SettingsAws + ".use_accelerate"
 	SettingAwsS3UseAccelerateDefault  = false
 	SettingAwsS3MaxImageSize          = SettingsAws + ".max_image_size"
-	SettingAwsS3MaxImageSizeDefault   = 10737418240
+	SettingAwsS3MaxImageSizeDefault   = int64(10737418240)
 	SettingAwsURI                     = SettingsAws + ".uri"
 	SettingsAwsTagArtifact            = SettingsAws + ".tag_artifact"
 	SettingsAwsTagArtifactDefault     = false
