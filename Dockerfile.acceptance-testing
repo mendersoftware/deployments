@@ -1,16 +1,23 @@
 FROM golang:1.18.2-alpine3.15 as builder
 WORKDIR /go/src/github.com/mendersoftware/deployments
+RUN mkdir -p /etc_extra
+RUN echo "nobody:x:65534:" > /etc_extra/group
+RUN echo "nobody:!::0:::::" > /etc_extra/shadow
+RUN echo "nobody:x:65534:65534:Nobody:/:" > /etc_extra/passwd
+RUN chown -R nobody:nobody /etc_extra
 COPY ./ .
 RUN env CGO_ENABLED=0 go test -c -o deployments -tags main \
     -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,)
 
 FROM alpine:3.15.0
 RUN apk add --no-cache ca-certificates xz-dev
-RUN mkdir /etc/deployments
 EXPOSE 8080
+COPY --from=builder /etc_extra/ /etc/
+USER 65534
+WORKDIR /etc/deployments
 
-COPY ./entrypoint.sh /usr/bin/
-COPY  --from=builder /go/src/github.com/mendersoftware/deployments/deployments /usr/bin/deployments
+COPY --chown=nobody ./entrypoint.sh /usr/bin/
+COPY  --from=builder --chown=nobody /go/src/github.com/mendersoftware/deployments/deployments /usr/bin/deployments
 COPY ./config.yaml /usr/bin/
 
 ENV DEPLOYMENTS_MENDER_GATEWAY http://mender-inventory:8080
