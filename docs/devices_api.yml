@@ -259,7 +259,7 @@ definitions:
     properties:
       id:
         type: string
-        description: Deployment ID (device unique)
+        description: Deployment ID
       artifact:
         type: object
         properties:
