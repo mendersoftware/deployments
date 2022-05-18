@@ -9,7 +9,7 @@ COPY ./ .
 RUN env CGO_ENABLED=0 go test -c -o deployments -tags main \
     -coverpkg $(go list ./... | grep -v vendor | grep -v mock | grep -v test | tr  '\n' ,)
 
-FROM alpine:3.15.0
+FROM alpine:3.15.4
 RUN apk add --no-cache ca-certificates xz-dev
 EXPOSE 8080
 COPY --from=builder /etc_extra/ /etc/
