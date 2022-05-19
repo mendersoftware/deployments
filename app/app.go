@@ -1412,7 +1412,9 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 	}
 
 	dd, err := d.db.GetDeviceDeployment(ctx, deploymentID, deviceID)
-	if err != nil {
+	if err == mongo.ErrStorageNotFound {
+		return ErrStorageNotFound
+	} else if err != nil {
 		return err
 	}
 

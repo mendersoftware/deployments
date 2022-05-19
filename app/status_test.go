@@ -26,6 +26,7 @@ import (
 	"github.com/mendersoftware/deployments/model"
 	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
+	"github.com/mendersoftware/deployments/store/mongo"
 )
 
 // separate set of tests for assert if correct deployment status tracking
@@ -61,7 +62,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 
 	db.On("GetDeviceDeployment", ctx,
 		fakeDeployment.Id, devId).Return(
-		fakeDeviceDeployment, nil)
+		fakeDeviceDeployment, nil).Once()
 
 	db.On("UpdateDeviceDeploymentStatus", ctx,
 		devId,
@@ -70,29 +71,35 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			assert.Equal(t, model.DeviceDeploymentStatusInstalling, ddStatus.Status)
 
 			return true
-		})).Return(model.DeviceDeploymentStatusDownloading, nil)
+		})).Return(model.DeviceDeploymentStatusDownloading, nil).Once()
 
 	db.On("UpdateStatsInc", ctx,
 		fakeDeployment.Id,
 		model.DeviceDeploymentStatusDownloading,
-		model.DeviceDeploymentStatusInstalling).Return(nil)
+		model.DeviceDeploymentStatusInstalling).Return(nil).Once()
 
 	// fake updated stats
 	fakeDeployment.Stats.Set(model.DeviceDeploymentStatusInstalling, 1)
 
 	db.On("FindDeploymentByID", ctx, fakeDeployment.Id).Return(
-		fakeDeployment, nil)
+		fakeDeployment, nil).Once()
 
 	db.On("SetDeploymentStatus", ctx,
 		fakeDeployment.Id,
 		model.DeploymentStatusInProgress,
-		mock.AnythingOfType("time.Time")).Return(nil)
+		mock.AnythingOfType("time.Time")).Return(nil).Once()
 
 	ds := NewDeployments(&db, fs, "")
 
 	err = ds.UpdateDeviceDeploymentStatus(ctx, fakeDeployment.Id, fakeDeviceDeployment.DeviceId, ddStatusNew)
 	assert.NoError(t, err)
 
+	db.On("GetDeviceDeployment", ctx,
+		fakeDeployment.Id, devId).Return(
+		nil, mongo.ErrStorageNotFound).Once()
+
+	err = ds.UpdateDeviceDeploymentStatus(ctx, fakeDeployment.Id, fakeDeviceDeployment.DeviceId, ddStatusNew)
+	assert.Equal(t, err, ErrStorageNotFound)
 }
 
 func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
