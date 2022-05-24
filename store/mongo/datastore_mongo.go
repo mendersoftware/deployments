@@ -390,6 +390,7 @@ const (
 	StorageKeyStorageSettingsKey            = "key"
 	StorageKeyStorageSettingsSecret         = "secret"
 	StorageKeyStorageSettingsURI            = "uri"
+	StorageKeyStorageSettingsExternalURI    = "external_uri"
 	StorageKeyStorageSettingsToken          = "token"
 	StorageKeyStorageSettingsForcePathStyle = "force_path_style"
 	StorageKeyStorageSettingsUseAccelerate  = "use_accelerate"
@@ -2279,6 +2280,7 @@ func (db *DataStoreMongo) SetStorageSettings(
 			StorageKeyStorageSettingsKey:            storageSettings.Key,
 			StorageKeyStorageSettingsSecret:         storageSettings.Secret,
 			StorageKeyStorageSettingsURI:            storageSettings.Uri,
+			StorageKeyStorageSettingsExternalURI:    storageSettings.ExternalUri,
 			StorageKeyStorageSettingsRegion:         storageSettings.Region,
 			StorageKeyStorageSettingsToken:          storageSettings.Token,
 			StorageKeyStorageSettingsForcePathStyle: storageSettings.ForcePathStyle,

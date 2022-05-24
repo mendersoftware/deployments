@@ -126,11 +126,17 @@ aws:
 
     # use_accelerate: false
 
-    # S3 URI
+    # S3 URI (for mender-deployment)
     # Defaults to: none (s3.amazonaws.com)
     # Overwrite with environment variable: DEPLOYMENTS_AWS_URI
 
     # uri: example.com
+
+    # S3 EXTERNAL URI (for devices)
+    # Defaults to: none (S3 URI)
+    # Overwrite with environment variable: DEPLOYMENTS_AWS_EXTERNAL_URI
+
+    # uri: external.example.com
 
     # Maximum image size
     # Defaults to: 10GB

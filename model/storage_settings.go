@@ -26,6 +26,7 @@ type StorageSettings struct {
 	Region         string `json:"region" bson:"region"`
 	Bucket         string `json:"bucket" bson:"bucket"`
 	Uri            string `json:"uri" bson:"uri"`
+	ExternalUri    string `json:"external_uri" bson:"external_uri"`
 	Key            string `json:"key" bson:"key"`
 	Secret         string `json:"secret" bson:"secret"`
 	Token          string `json:"token" bson:"token"`
@@ -60,6 +61,7 @@ func (s StorageSettings) Validate() error {
 		validation.Field(&s.Key, validation.Length(5, 50)),
 		validation.Field(&s.Secret, validation.Length(5, 100)),
 		validation.Field(&s.Uri, validation.Length(3, 2000)),
+		validation.Field(&s.ExternalUri, validation.Length(3, 2000)),
 		validation.Field(&s.Token, validation.Length(5, 100)),
 	)
 }
