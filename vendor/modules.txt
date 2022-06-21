@@ -198,9 +198,9 @@ github.com/spf13/viper/internal/encoding/javaproperties
 github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
-# github.com/stretchr/objx v0.1.1
+# github.com/stretchr/objx v0.4.0
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.7.2
+# github.com/stretchr/testify v1.7.4
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
