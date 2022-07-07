@@ -42,6 +42,10 @@ import (
 	"github.com/mendersoftware/deployments/store"
 )
 
+func init() {
+	rest.ErrorFieldName = "error"
+}
+
 const (
 	// 15 minutes
 	DefaultDownloadLinkExpire = 15 * time.Minute
@@ -411,15 +415,21 @@ func (d *DeploymentsApiHandlers) DownloadConfiguration(w rest.ResponseWriter, r 
 		rest.NotFound(w, r)
 		return
 	}
+	var (
+		deviceID, _     = url.PathUnescape(r.PathParam(ParamDeviceID))
+		deviceType, _   = url.PathUnescape(r.PathParam(ParamDeviceType))
+		deploymentID, _ = url.PathUnescape(r.PathParam(ParamDeploymentID))
+	)
+	if deviceID == "" || deviceType == "" || deploymentID == "" {
+		rest.NotFound(w, r)
+		return
+	}
 
 	var (
-		tenantID     string
-		deviceID     = r.PathParam(ParamDeviceID)
-		deviceType   = r.PathParam(ParamDeviceType)
-		deploymentID = r.PathParam(ParamDeploymentID)
-		l            = log.FromContext(r.Context())
-		q            = r.URL.Query()
-		err          error
+		tenantID string
+		l        = log.FromContext(r.Context())
+		q        = r.URL.Query()
+		err      error
 	)
 	tenantID = q.Get(ParamTenantID)
 	sig := model.NewRequestSignature(r.Request, d.config.PresignSecret)
