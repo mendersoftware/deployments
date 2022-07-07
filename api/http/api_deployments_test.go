@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -211,7 +211,7 @@ func TestDeploymentsPerTenantHandler(t *testing.T) {
 				d.DeploymentsPerTenantHandler,
 			)
 
-			url := strings.Replace(ApiUrlInternalTenantDeployments, ":tenant", tc.tenant, 1)
+			url := strings.Replace(ApiUrlInternalTenantDeployments, "#tenant", tc.tenant, 1)
 			if tc.queryString != "" {
 				url = url + "?" + tc.queryString
 			}
@@ -581,9 +581,9 @@ func TestControllerPostConfigurationDeployment(t *testing.T) {
 				d.PostDeviceConfigurationDeployment,
 			)
 
-			uri := strings.Replace(ApiUrlInternalDeviceConfigurationDeployments, ":tenant", tc.InputTenantID, 1)
-			uri = strings.Replace(uri, ":device_id", tc.InputDeviceID, 1)
-			uri = strings.Replace(uri, ":deployment_id", tc.InputDeploymentID, 1)
+			uri := strings.Replace(ApiUrlInternalDeviceConfigurationDeployments, "#tenant", tc.InputTenantID, 1)
+			uri = strings.Replace(uri, "#device_id", tc.InputDeviceID, 1)
+			uri = strings.Replace(uri, "#deployment_id", tc.InputDeploymentID, 1)
 
 			req := test.MakeSimpleRequest("POST", "http://localhost"+uri, tc.InputBodyObject)
 			req.Header.Add(requestid.RequestIdHeader, "test")
@@ -875,7 +875,6 @@ func TestDownloadConfiguration(t *testing.T) {
 		Error:      errors.New("internal error"),
 	}, {
 		Name: "error, broken artifact reader",
-
 		Config: NewConfig().
 			SetPresignSecret([]byte("test")),
 		Request: func() *http.Request {
@@ -1446,7 +1445,7 @@ func TestGetTenantStorageSettings(t *testing.T) {
 				rest.Get,
 				d.GetTenantStorageSettingsHandler,
 			)
-			url := strings.Replace(ApiUrlInternalTenantStorageSettings, ":tenant", tc.tenantID, -1)
+			url := strings.Replace(ApiUrlInternalTenantStorageSettings, "#tenant", tc.tenantID, -1)
 			req, _ := http.NewRequest(
 				"GET",
 				"http://localhost"+url,
@@ -1568,7 +1567,7 @@ func TestPutTenantStorageSettings(t *testing.T) {
 				d.PutTenantStorageSettingsHandler,
 			)
 			body, _ := json.Marshal(tc.settings)
-			url := strings.Replace(ApiUrlInternalTenantStorageSettings, ":tenant", tc.tenantID, -1)
+			url := strings.Replace(ApiUrlInternalTenantStorageSettings, "#tenant", tc.tenantID, -1)
 			req, _ := http.NewRequest(
 				http.MethodPut,
 				"http://localhost"+url,

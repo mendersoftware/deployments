@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package http
 import (
 	"context"
 	"encoding/base64"
+	"net/url"
 	"strings"
 	"time"
 
@@ -40,36 +41,42 @@ const (
 
 	ApiUrlManagementArtifacts           = ApiUrlManagement + "/artifacts"
 	ApiUrlManagementArtifactsGenerate   = ApiUrlManagement + "/artifacts/generate"
-	ApiUrlManagementArtifactsId         = ApiUrlManagement + "/artifacts/:id"
-	ApiUrlManagementArtifactsIdDownload = ApiUrlManagement + "/artifacts/:id/download"
+	ApiUrlManagementArtifactsId         = ApiUrlManagement + "/artifacts/#id"
+	ApiUrlManagementArtifactsIdDownload = ApiUrlManagement + "/artifacts/#id/download"
 
 	ApiUrlManagementDeployments            = ApiUrlManagement + "/deployments"
-	ApiUrlManagementDeploymentsGroup       = ApiUrlManagement + "/deployments/group/:name"
-	ApiUrlManagementDeploymentsId          = ApiUrlManagement + "/deployments/:id"
-	ApiUrlManagementDeploymentsStatistics  = ApiUrlManagement + "/deployments/:id/statistics"
-	ApiUrlManagementDeploymentsStatus      = ApiUrlManagement + "/deployments/:id/status"
-	ApiUrlManagementDeploymentsDevices     = ApiUrlManagement + "/deployments/:id/devices"
-	ApiUrlManagementDeploymentsDevicesList = ApiUrlManagement + "/deployments/:id/devices/list"
-	ApiUrlManagementDeploymentsLog         = ApiUrlManagement + "/deployments/:id/devices/:devid/log"
-	ApiUrlManagementDeploymentsDeviceList  = ApiUrlManagement + "/deployments/:id/device_list"
+	ApiUrlManagementDeploymentsGroup       = ApiUrlManagement + "/deployments/group/#name"
+	ApiUrlManagementDeploymentsId          = ApiUrlManagement + "/deployments/#id"
+	ApiUrlManagementDeploymentsStatistics  = ApiUrlManagement + "/deployments/#id/statistics"
+	ApiUrlManagementDeploymentsStatus      = ApiUrlManagement + "/deployments/#id/status"
+	ApiUrlManagementDeploymentsDevices     = ApiUrlManagement + "/deployments/#id/devices"
+	ApiUrlManagementDeploymentsDevicesList = ApiUrlManagement + "/deployments/#id/devices/list"
+	ApiUrlManagementDeploymentsLog         = ApiUrlManagement +
+		"/deployments/#id/devices/#devid/log"
+	ApiUrlManagementDeploymentsDeviceId   = ApiUrlManagement + "/deployments/devices/#id"
+	ApiUrlManagementDeploymentsDeviceList = ApiUrlManagement + "/deployments/#id/device_list"
 
 	ApiUrlManagementReleases = ApiUrlManagement + "/deployments/releases"
 
-	ApiUrlManagementLimitsName = ApiUrlManagement + "/limits/:name"
+	ApiUrlManagementLimitsName = ApiUrlManagement + "/limits/#name"
 
 	ApiUrlDevicesDeploymentsNext  = ApiUrlDevices + "/device/deployments/next"
-	ApiUrlDevicesDeploymentStatus = ApiUrlDevices + "/device/deployments/:id/status"
-	ApiUrlDevicesDeploymentsLog   = ApiUrlDevices + "/device/deployments/:id/log"
-	ApiUrlDevicesDownloadConfig   = ApiUrlDevices + "/download/configuration/:deployment_id/:device_type/:device_id"
+	ApiUrlDevicesDeploymentStatus = ApiUrlDevices + "/device/deployments/#id/status"
+	ApiUrlDevicesDeploymentsLog   = ApiUrlDevices + "/device/deployments/#id/log"
+	ApiUrlDevicesDownloadConfig   = ApiUrlDevices +
+		"/download/configuration/#deployment_id/#device_type/#device_id"
 
-	ApiUrlInternalAlive                          = ApiUrlInternal + "/alive"
-	ApiUrlInternalHealth                         = ApiUrlInternal + "/health"
-	ApiUrlInternalTenants                        = ApiUrlInternal + "/tenants"
-	ApiUrlInternalTenantDeployments              = ApiUrlInternal + "/tenants/:tenant/deployments"
-	ApiUrlInternalTenantDeploymentsDevice        = ApiUrlInternal + "/tenants/:tenant/deployments/devices/:id"
-	ApiUrlInternalTenantArtifacts                = ApiUrlInternal + "/tenants/:tenant/artifacts"
-	ApiUrlInternalTenantStorageSettings          = ApiUrlInternal + "/tenants/:tenant/storage/settings"
-	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal + "/tenants/:tenant/configuration/deployments/:deployment_id/devices/:device_id"
+	ApiUrlInternalAlive                   = ApiUrlInternal + "/alive"
+	ApiUrlInternalHealth                  = ApiUrlInternal + "/health"
+	ApiUrlInternalTenants                 = ApiUrlInternal + "/tenants"
+	ApiUrlInternalTenantDeployments       = ApiUrlInternal + "/tenants/#tenant/deployments"
+	ApiUrlInternalTenantDeploymentsDevice = ApiUrlInternal +
+		"/tenants/#tenant/deployments/devices/#id"
+	ApiUrlInternalTenantArtifacts       = ApiUrlInternal + "/tenants/#tenant/artifacts"
+	ApiUrlInternalTenantStorageSettings = ApiUrlInternal +
+		"/tenants/#tenant/storage/settings"
+	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal +
+		"/tenants/#tenant/configuration/deployments/#deployment_id/devices/#device_id"
 )
 
 func SetupS3(c config.Reader) (s3.FileStorage, error) {
@@ -77,7 +84,10 @@ func SetupS3(c config.Reader) (s3.FileStorage, error) {
 	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
 	region := c.GetString(dconfig.SettingAwsS3Region)
 
-	if c.IsSet(dconfig.SettingsAwsAuth) || (c.IsSet(dconfig.SettingAwsAuthKeyId) && c.IsSet(dconfig.SettingAwsAuthSecret) && c.IsSet(dconfig.SettingAwsURI)) {
+	if c.IsSet(dconfig.SettingsAwsAuth) ||
+		(c.IsSet(dconfig.SettingAwsAuthKeyId) &&
+			c.IsSet(dconfig.SettingAwsAuthSecret) &&
+			c.IsSet(dconfig.SettingAwsURI)) {
 		return s3.NewSimpleStorageServiceStatic(
 			bucket,
 			c.GetString(dconfig.SettingAwsAuthKeyId),
@@ -256,9 +266,9 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 
 func FMTConfigURL(scheme, hostname, deploymentID, deviceType, deviceID string) string {
 	repl := strings.NewReplacer(
-		":"+ParamDeploymentID, deploymentID,
-		":"+ParamDeviceType, deviceType,
-		":"+ParamDeviceID, deviceID,
+		"#"+ParamDeploymentID, url.PathEscape(deploymentID),
+		"#"+ParamDeviceType, url.PathEscape(deviceType),
+		"#"+ParamDeviceID, url.PathEscape(deviceID),
 	)
 	return scheme + "://" + hostname + repl.Replace(ApiUrlDevicesDownloadConfig)
 }
