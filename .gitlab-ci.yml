@@ -29,6 +29,3 @@ test:acceptance_tests:
   variables:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-
-test:unit:
-  image: golang:1.14
