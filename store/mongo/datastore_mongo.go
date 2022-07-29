@@ -314,6 +314,17 @@ var (
 		Options: mopts.Index().
 			SetName(IndexDeviceDeploymentsActiveCreated),
 	}
+
+	// Index 1.2.11
+	IndexDeviceDeploymentsLogs      = "devices_logs"
+	IndexDeviceDeploymentsLogsModel = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: StorageKeyDeviceDeploymentDeploymentID, Value: 1},
+			{Key: StorageKeyDeviceDeploymentDeviceId, Value: 1},
+		},
+		Options: mopts.Index().
+			SetName(IndexDeviceDeploymentsLogs),
+	}
 )
 
 // Errors
