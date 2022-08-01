@@ -82,8 +82,6 @@ github.com/go-playground/locales/currency
 github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.4.1
 github.com/go-playground/validator/v10
-# github.com/go-stack/stack v1.8.0
-github.com/go-stack/stack
 # github.com/golang/protobuf v1.5.2
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.3
@@ -158,6 +156,8 @@ github.com/mitchellh/mapstructure
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.2
 github.com/modern-go/reflect2
+# github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
+github.com/montanaflynn/stats
 # github.com/pelletier/go-toml v1.9.5
 github.com/pelletier/go-toml
 # github.com/pelletier/go-toml/v2 v2.0.1
@@ -213,13 +213,13 @@ github.com/ugorji/go/codec
 github.com/urfave/cli
 # github.com/xdg-go/pbkdf2 v1.0.0
 github.com/xdg-go/pbkdf2
-# github.com/xdg-go/scram v1.0.2
+# github.com/xdg-go/scram v1.1.1
 github.com/xdg-go/scram
-# github.com/xdg-go/stringprep v1.0.2
+# github.com/xdg-go/stringprep v1.0.3
 github.com/xdg-go/stringprep
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 github.com/youmark/pkcs8
-# go.mongodb.org/mongo-driver v1.9.1
+# go.mongodb.org/mongo-driver v1.10.0
 ## explicit
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -230,6 +230,8 @@ go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/event
 go.mongodb.org/mongo-driver/internal
 go.mongodb.org/mongo-driver/internal/randutil
+go.mongodb.org/mongo-driver/internal/randutil/rand
+go.mongodb.org/mongo-driver/internal/uuid
 go.mongodb.org/mongo-driver/mongo
 go.mongodb.org/mongo-driver/mongo/address
 go.mongodb.org/mongo-driver/mongo/description
@@ -253,9 +255,8 @@ go.mongodb.org/mongo-driver/x/mongo/driver/ocsp
 go.mongodb.org/mongo-driver/x/mongo/driver/operation
 go.mongodb.org/mongo-driver/x/mongo/driver/session
 go.mongodb.org/mongo-driver/x/mongo/driver/topology
-go.mongodb.org/mongo-driver/x/mongo/driver/uuid
 go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
-# golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
+# golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/sha3
