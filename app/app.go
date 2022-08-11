@@ -823,7 +823,7 @@ func getMetaFromArchive(r *io.Reader) (*model.ArtifactMeta, error) {
 			metaArtifact.Updates,
 			model.Update{
 				TypeInfo: model.ArtifactUpdateTypeInfo{
-					Type: *p.GetUpdateType(),
+					Type: p.GetUpdateType(),
 				},
 				Files:    uFiles,
 				MetaData: uMetadata,

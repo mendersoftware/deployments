@@ -26,7 +26,7 @@ from client import (
     InventoryClient,
     SimpleDeviceClient,
 )
-from common import artifact_from_data, Device
+from common import artifact_rootfs_from_data, Device
 
 
 class TestDeployment:
@@ -102,7 +102,7 @@ class TestDeployment:
         data = b"foo_bar"
         artifact_name = "hammer-update-" + str(uuid4())
         # come up with an artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=dev.device_type
         ) as art:
             ac = SimpleArtifactsClient()
@@ -186,7 +186,7 @@ class TestDeployment:
         data = b"foo_bar"
         artifact_name = "hammer-update-" + str(uuid4())
         # come up with an artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=dev.device_type
         ) as art:
             ac = SimpleArtifactsClient()
@@ -237,7 +237,7 @@ class TestDeployment:
         data = b"foo_bar"
         artifact_name = "pagination-test-" + str(uuid4())
         # come up with an artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=device_type
         ) as art:
             ac = SimpleArtifactsClient()
@@ -295,7 +295,7 @@ class TestDeployment:
         data = b"foo_bar"
         artifact_name = "hammer-update-" + str(uuid4())
         # come up with an artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=dev.device_type
         ) as art:
             ac = SimpleArtifactsClient()
@@ -362,7 +362,7 @@ class TestDeployment:
         data = b"foo_bar"
         artifact_name = "hammer-update-" + str(uuid4())
         # come up with an artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=dev.device_type
         ) as art:
             ac = SimpleArtifactsClient()
@@ -405,7 +405,7 @@ class TestDeployment:
         data = b"foo_bar"
         artifact_name = "hammer-update-" + str(uuid4())
         # come up with an artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=dev.device_type
         ) as art:
             ac = SimpleArtifactsClient()
@@ -525,7 +525,7 @@ class TestDeployment:
         data = b"foo_bar"
         artifact_name = "hammer-update-" + str(uuid4())
         # come up with an artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=dev.device_type
         ) as art:
             ac = SimpleArtifactsClient()

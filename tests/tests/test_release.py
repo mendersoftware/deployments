@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -14,13 +14,15 @@
 #    limitations under the License.
 import io
 import pytest
+from uuid import uuid4
 
 import bravado
 import requests
 
-from client import DeploymentsClient
+from client import DeploymentsClient, ArtifactsClient
 from common import (
     artifacts_added_from_data,
+    artifact_bootstrap_from_data,
     clean_db,
     clean_minio,
     MinioClient,
@@ -69,6 +71,45 @@ class TestRelease:
             assert r2a1["device_types_compatible"] == ["device-type-1"]
             assert r2a2["name"] == "foo"
             assert r2a2["device_types_compatible"] == ["device-type-2"]
+
+    @pytest.mark.usefixtures("clean_minio", "clean_db")
+    def test_get_release_with_bootstrap_artifact(self):
+        artifact_name = str(uuid4())
+        description = f"description for foo {artifact_name}"
+        device_type = f"project-{str(uuid4())}"
+        provides = ["foo:bar", "something:cool"]
+        clears_provides = ["nothing.really.useful.*"]
+
+        # generate artifact
+        with artifact_bootstrap_from_data(
+            name=artifact_name,
+            devicetype=device_type,
+            provides=provides,
+            clears_provides=clears_provides,
+        ) as art:
+            ac = ArtifactsClient()
+            ac.add_artifact(description, art.size, art)
+            rsp = self.d.client.Management_API.List_Releases(
+                Authorization="foo"
+            ).result()
+            res = rsp[0]
+            assert len(res) == 1
+            release1 = res[0]
+
+            assert release1.Name == artifact_name
+            assert len(release1.Artifacts) == 1
+            r1a = release1.Artifacts[0]
+            assert r1a["name"] == artifact_name
+            assert device_type in r1a["device_types_compatible"]
+            provides_dict = dict(p.split(":") for p in provides)
+            for p in provides_dict:
+                assert p in r1a["artifact_provides"]
+            for c in clears_provides:
+                assert c in r1a["clears_artifact_provides"]
+            assert len(r1a["updates"]) == 1
+            r1au = r1a["updates"][0]
+            assert r1au["files"] is None
+            assert r1au["type_info"]["type"] is None
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_get_releases_by_name(self):

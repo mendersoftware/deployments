@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import string
 import json
 import pytest
 import minio
+
+from typing import List
 
 from hashlib import sha256
 from contextlib import contextmanager
@@ -113,7 +115,9 @@ def artifact_from_raw_data(data):
 
 
 @contextmanager
-def artifact_from_data(name="foo", data=None, devicetype="hammer"):
+def artifact_rootfs_from_data(
+    name: str = "foo", data: bytes = None, devicetype: str = "hammer"
+):
     with tempfile.NamedTemporaryFile(prefix="menderout") as tmender:
         logging.info("writing mender artifact to temp file %s", tmender.name)
 
@@ -123,10 +127,11 @@ def artifact_from_data(name="foo", data=None, devicetype="hammer"):
             tdata.flush()
 
             cmd = (
-                'mender-artifact write rootfs-image --device-type "{}" '
-                '--file "{}" --artifact-name "{}" --output-path "{}"'.format(
-                    devicetype, tdata.name, name, tmender.name
-                )
+                f"mender-artifact write rootfs-image"
+                + f' --device-type "{devicetype}"'
+                + f' --file "{tdata.name}"'
+                + f' --artifact-name "{name}"'
+                + f' --output-path "{tmender.name}"'
             )
             rc = subprocess.call(cmd, shell=True)
             if rc:
@@ -141,6 +146,40 @@ def artifact_from_data(name="foo", data=None, devicetype="hammer"):
 
 
 @contextmanager
+def artifact_bootstrap_from_data(
+    name: str = "foo",
+    devicetype: str = "hammer",
+    provides: List = [],
+    clears_provides: List = [],
+):
+    with tempfile.NamedTemporaryFile(prefix="menderout") as tmender:
+        logging.info("writing mender artifact to temp file %s", tmender.name)
+
+        provides_arg = "".join([" --provides {}".format(p) for p in provides])
+        clears_provides_arg = "".join(
+            [" --clears-provides {}".format(p) for p in clears_provides]
+        )
+        cmd = (
+            f"mender-artifact write bootstrap-artifact"
+            + f' --device-type "{devicetype}"'
+            + f' --artifact-name "{name}"'
+            + f' --output-path "{tmender.name}"'
+            + f"{provides_arg}"
+            + f"{clears_provides_arg}"
+        )
+        rc = subprocess.call(cmd, shell=True)
+        if rc:
+            logging.error("mender-artifact call '%s' failed with code %d", cmd, rc)
+            raise RuntimeError(
+                "mender-artifact command '{}' failed with code {}".format(cmd, rc)
+            )
+
+        # bring up temp mender artifact
+        with artifact_from_mender_file(tmender.name) as fa:
+            yield fa
+
+
+@contextmanager
 def artifacts_added_from_data(artifacts):
     data = b"foo_bar"
     out_artifacts = []
@@ -148,7 +187,9 @@ def artifacts_added_from_data(artifacts):
 
     for (name, device_type) in artifacts:
         # generate artifact
-        with artifact_from_data(name=name, data=data, devicetype=device_type) as art:
+        with artifact_rootfs_from_data(
+            name=name, data=data, devicetype=device_type
+        ) as art:
             logging.info("uploading artifact")
             artid = ac.add_artifact("foo", art.size, art)
             out_artifacts.append(artid)

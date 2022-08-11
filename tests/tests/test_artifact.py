@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -25,7 +25,8 @@ import requests
 from client import ArtifactsClient
 from common import (
     artifact_from_raw_data,
-    artifact_from_data,
+    artifact_rootfs_from_data,
+    artifact_bootstrap_from_data,
     clean_db,
     clean_minio,
     MinioClient,
@@ -82,12 +83,12 @@ class TestArtifact:
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_valid(self):
         artifact_name = str(uuid4())
-        description = "description for foo " + artifact_name
-        device_type = "project-" + str(uuid4())
+        description = f"description for foo {artifact_name}"
+        device_type = f"project-{str(uuid4())}"
         data = b"foo_bar"
 
         # generate artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=device_type
         ) as art:
             self.ac.log.info("uploading artifact")
@@ -160,6 +161,81 @@ class TestArtifact:
                 raise AssertionError("expected to fail")
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
+    def test_artifacts_bootstrap_valid(self):
+        artifact_name = str(uuid4())
+        description = f"description for foo {artifact_name}"
+        device_type = f"project-{str(uuid4())}"
+
+        # generate artifact
+        with artifact_bootstrap_from_data(
+            name=artifact_name, devicetype=device_type
+        ) as art:
+            self.ac.log.info("uploading artifact")
+            artid = self.ac.add_artifact(description, art.size, art)
+
+            # artifacts listing should not be empty now
+            res = self.ac.list_artifacts().json()
+            self.ac.log.debug("result: %s", res)
+            assert len(res[0]) > 0
+
+            res = self.ac.show_artifact(
+                artid
+            ).json()
+            self.ac.log.debug("result: %s", res)
+
+            # verify its data
+            assert res["id"] == artid
+            assert res["name"] == artifact_name
+            assert res["description"] == description
+            assert res["size"] == int(art.size)
+            assert device_type in res["device_types_compatible"]
+            assert len(res["updates"]) == 1
+            update = res["updates"][0]
+            assert update["type_info"]["type"] is None
+            assert update["files"] is None
+
+            # try to fetch the update
+            res = self.ac.client.Management_API.Download_Artifact(
+                Authorization="foo", id=artid
+            ).result()[0]
+            self.ac.log.info("download result %s", res)
+            assert res.uri
+            # fetch it now (disable SSL verification)
+            rsp = requests.get(res.uri, verify=False, stream=True)
+
+            assert rsp.status_code == 200
+            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
+
+            # receive artifact and compare its checksum
+            dig = sha256()
+            while True:
+                rspdata = rsp.raw.read()
+                if rspdata:
+                    dig.update(rspdata)
+                else:
+                    break
+
+            self.ac.log.info(
+                "artifact checksum %s expecting %s",
+                dig.hexdigest(),
+                art.checksum,
+            )
+            assert dig.hexdigest() == art.checksum
+
+            # delete it now
+            self.ac.delete_artifact(artid)
+
+            # should be unavailable now
+            try:
+                res = self.ac.client.Management_API.Show_Artifact(
+                    Authorization="foo", id=artid
+                ).result()
+            except bravado.exception.HTTPError as e:
+                assert e.response.status_code == 404
+            else:
+                raise AssertionError("expected to fail")
+
+    @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_valid_multipart(self):
         """
         Uploads an artifact > 10MiB to cover the multipart upload scenario.
@@ -170,7 +246,7 @@ class TestArtifact:
         data = urandom(1024 * 1024 * 15)
 
         # generate artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=device_type
         ) as art:
             self.ac.log.info("uploading artifact")
@@ -196,8 +272,8 @@ class TestArtifact:
             update = res.updates[0]
             assert len(update.files) == 1
             uf = update.files[0]
-            assert uf.size == len(data)
-            assert uf.checksum
+            assert uf["size"] == len(data)
+            assert uf["checksum"]
 
     def test_single_artifact(self):
         # try with bogus image ID
