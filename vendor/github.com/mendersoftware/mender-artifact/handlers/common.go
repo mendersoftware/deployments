@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -23,8 +23,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mendersoftware/mender-artifact/artifact"
 	"github.com/pkg/errors"
+
+	"github.com/mendersoftware/mender-artifact/artifact"
 )
 
 // DataFile represents the minimum set of attributes each update file
@@ -54,10 +55,10 @@ type ArtifactUpdateHeaders interface {
 	GetVersion() int
 
 	// Return type of this update, which could be augmented.
-	GetUpdateType() string
+	GetUpdateType() *string
 
 	// Return type of original (non-augmented) update, if any.
-	GetUpdateOriginalType() string
+	GetUpdateOriginalType() *string
 
 	// Returns merged data of non-augmented and augmented data, where the
 	// latter overrides the former. Returns error if they cannot be merged.
@@ -116,7 +117,7 @@ type UpdateStorer interface {
 }
 
 type UpdateStorerProducer interface {
-	NewUpdateStorer(updateType string, payloadNum int) (UpdateStorer, error)
+	NewUpdateStorer(updateType *string, payloadNum int) (UpdateStorer, error)
 }
 
 type Installer interface {
@@ -139,7 +140,7 @@ func (i *installerBase) SetUpdateStorerProducer(producer UpdateStorerProducer) {
 	i.updateStorerProducer = producer
 }
 
-func (i *installerBase) NewUpdateStorer(updateType string, payloadNum int) (UpdateStorer, error) {
+func (i *installerBase) NewUpdateStorer(updateType *string, payloadNum int) (UpdateStorer, error) {
 	if i.updateStorerProducer != nil {
 		return i.updateStorerProducer.NewUpdateStorer(updateType, payloadNum)
 	} else {
@@ -191,9 +192,7 @@ func writeFiles(tw *tar.Writer, updFiles []string, dir string) error {
 		return errors.New("writer: tar-writer is nil")
 	}
 	files := new(artifact.Files)
-	for _, u := range updFiles {
-		files.FileList = append(files.FileList, u)
-	}
+	files.FileList = append(files.FileList, updFiles...)
 
 	sa := artifact.NewTarWriterStream(tw)
 	stream, err := artifact.ToStream(files)

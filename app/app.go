@@ -48,7 +48,6 @@ import (
 
 const (
 	ArtifactContentType              = "application/vnd.mender-artifact"
-	ArtifactConfigureType            = "mender-configure"
 	ArtifactConfigureProvides        = "data-partition.mender-configure.version"
 	ArtifactConfigureProvidesCleared = "data-partition.mender-configure.*"
 
@@ -60,6 +59,10 @@ const (
 	InventoryGroupAttributeName      = "group"
 	InventoryStatusAttributeName     = "status"
 	InventoryStatusAccepted          = "accepted"
+)
+
+var (
+	ArtifactConfigureType = "mender-configure"
 )
 
 // Errors expected from App interface
@@ -533,7 +536,7 @@ func (d *Deployments) GenerateConfigurationImage(
 		},
 		MetaData: metaData,
 		TypeInfoV3: &artifact.TypeInfoV3{
-			Type: ArtifactConfigureType,
+			Type: &ArtifactConfigureType,
 			ArtifactProvides: artifact.TypeInfoProvides{
 				ArtifactConfigureProvides: dpl.ArtifactName,
 			},
@@ -820,7 +823,7 @@ func getMetaFromArchive(r *io.Reader) (*model.ArtifactMeta, error) {
 			metaArtifact.Updates,
 			model.Update{
 				TypeInfo: model.ArtifactUpdateTypeInfo{
-					Type: p.GetUpdateType(),
+					Type: *p.GetUpdateType(),
 				},
 				Files:    uFiles,
 				MetaData: uMetadata,

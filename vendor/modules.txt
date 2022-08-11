@@ -114,6 +114,8 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/klauspost/cpuid/v2 v2.0.4
+github.com/klauspost/cpuid/v2
 # github.com/klauspost/pgzip v1.2.5
 github.com/klauspost/pgzip
 # github.com/leodido/go-urn v1.2.0
@@ -140,7 +142,7 @@ github.com/mendersoftware/go-lib-micro/rest_utils
 github.com/mendersoftware/go-lib-micro/store
 github.com/mendersoftware/go-lib-micro/strings
 github.com/mendersoftware/go-lib-micro/testing
-# github.com/mendersoftware/mender-artifact v0.0.0-20210906071412-2e25b81d10ad
+# github.com/mendersoftware/mender-artifact v0.0.0-20220717205839-1936e0f96da7
 ## explicit
 github.com/mendersoftware/mender-artifact/areader
 github.com/mendersoftware/mender-artifact/artifact
@@ -150,7 +152,7 @@ github.com/mendersoftware/mender-artifact/handlers
 github.com/mendersoftware/mender-artifact/utils
 # github.com/mendersoftware/progressbar v0.0.3
 github.com/mendersoftware/progressbar
-# github.com/minio/sha256-simd v0.1.1
+# github.com/minio/sha256-simd v1.0.0
 github.com/minio/sha256-simd
 # github.com/mitchellh/mapstructure v1.5.0
 github.com/mitchellh/mapstructure
@@ -170,7 +172,7 @@ github.com/pelletier/go-toml/v2/internal/tracker
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/remyoudompheng/go-liblzma v0.0.0-20190301141425-da7c45f32144
+# github.com/remyoudompheng/go-liblzma v0.0.0-20190506200333-81bf2d431b96
 github.com/remyoudompheng/go-liblzma
 # github.com/russross/blackfriday/v2 v2.0.1
 github.com/russross/blackfriday/v2
@@ -198,9 +200,9 @@ github.com/spf13/viper/internal/encoding/javaproperties
 github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
-# github.com/stretchr/objx v0.1.1
+# github.com/stretchr/objx v0.4.0
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.7.2
+# github.com/stretchr/testify v1.8.0
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock

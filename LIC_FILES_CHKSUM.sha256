@@ -5,7 +5,7 @@ fe60e0cc90e88f12c814adb7dc88df6791c6ec6798d8c856b7d5ad1b805b4f10  vendor/github.
 1033348db7606a7e61b6484f293847cf8d7a35766efebb97e304d4bd5d7f3f6b  LICENSE
 a4e99d13c6cd0e4faf3867ae5c9815ff88cab3cefdefe0dc1ec9ac28b1152944  vendor/github.com/mendersoftware/go-lib-micro/LICENSE
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  vendor/github.com/aws/aws-sdk-go/LICENSE.txt
-b4acfcfa2a0ba1a8c82ec3965fbcee886cff8394ca4214e0ddac0a36beb1e05a  vendor/github.com/mendersoftware/mender-artifact/LICENSE
+1033348db7606a7e61b6484f293847cf8d7a35766efebb97e304d4bd5d7f3f6b  vendor/github.com/mendersoftware/mender-artifact/LICENSE
 03cfaf331a260694d06227a589cdd2b5fcfab474697b72e250736696c313655a  vendor/github.com/jmespath/go-jmespath/LICENSE
 5e3400b93bbb099e83e52bab885e7441750673c21f97988ca3f1240639b63283  vendor/github.com/spf13/afero/LICENSE.txt
 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b  vendor/github.com/xdg-go/scram/LICENSE
@@ -24,7 +24,7 @@ c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4  vendor/github.
 8d427fd87bc9579ea368fde3d49f9ca22eac857f91a9dec7e3004bdfab7dee86  vendor/github.com/pkg/errors/LICENSE
 #
 # BSD-3-Clause
-a284e538f3e5649ae6a8f32da2bbd18e9daabf2c1ebbfb99ed92e797b159be1a  vendor/github.com/remyoudompheng/go-liblzma/LICENSE
+87640bc4df2ceb1559f268a3db1ba859ab780f7ba5b1b4545173d4680a3d918b  vendor/github.com/remyoudompheng/go-liblzma/LICENSE
 b8514c577c1c4b46cee454d5a882b15fa411e72c5bd7f801f241591789fce61a  vendor/github.com/spf13/pflag/LICENSE
 2eb550be6801c1ea434feba53bf6d12e7c71c90253e0a9de4a4f46cf88b56477  vendor/github.com/pmezard/go-difflib/LICENSE
 2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067  vendor/github.com/aws/aws-sdk-go/internal/sync/singleflight/LICENSE
@@ -75,6 +75,7 @@ caa932df46551b53643952fe03b351d55db97be73b5393b986dcf6b05d3c416a  vendor/github.
 03458b6d5828e1be1127ca2adf122572eb574fc47b56190c3b38203b8b2a98d0  vendor/github.com/gin-gonic/gin/LICENSE
 6d13d89b6c33df37f92553cc95cec278d8770ddc78c9de84620cc16dfb48cef6  vendor/github.com/youmark/pkcs8/LICENSE
 e35cc791b3c8e48b4a42a0d2719f9cdd51677fcffab0bb5dae1e63f0a53c9ee0  vendor/github.com/pelletier/go-toml/v2/LICENSE
+5d966570d7a442d4e969892860a914e542c97f262c873baee8f0aa48e1f40212  vendor/github.com/klauspost/cpuid/v2/LICENSE
 #
 # LGPL3 with static linking exception.
 b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1  vendor/gopkg.in/yaml.v2/LICENSE
