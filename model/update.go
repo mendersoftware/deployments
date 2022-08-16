@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import "time"
 
 // Type info structure
 type ArtifactUpdateTypeInfo struct {
-	Type string `json:"type" valid:"required"`
+	Type *string `json:"type" valid:"required"`
 }
 
 // Update file structure

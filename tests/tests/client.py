@@ -194,12 +194,34 @@ class ArtifactsClient(SwaggerApiClient):
         # delete it now (NOTE: not using bravado as bravado does not support
         # DELETE)
         rsp = requests.delete(
-            self.make_api_url("/artifacts/{}".format(artid)), verify=False
+            self.make_api_url(f"/artifacts/{artid}"), verify=False
         )
         try:
             assert rsp.status_code == 204
         except AssertionError:
             raise ArtifactsClientError("delete failed", rsp)
+
+    def list_artifacts(self):
+        # List artifacts. For use in tests that cannot use bravado
+        rsp = requests.get(
+            self.make_api_url("/artifacts"), verify=False
+        )
+        try:
+            assert rsp.status_code == 200
+        except AssertionError:
+            raise ArtifactsClientError("get failed", rsp)
+        return rsp
+
+    def show_artifact(self, artid=""):
+        # Show artifact. For use in tests that cannot use bravado
+        rsp = requests.get(
+            self.make_api_url(f"/artifacts/{artid}"), verify=False
+        )
+        try:
+            assert rsp.status_code == 200
+        except AssertionError:
+            raise ArtifactsClientError("get failed", rsp)
+        return rsp
 
     @contextmanager
     def with_added_artifact(self, description="", size=0, data=None):

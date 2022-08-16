@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ from uuid import uuid4
 from bson.objectid import ObjectId
 from common import (
     api_client_int,
-    artifact_from_data,
+    artifact_rootfs_from_data,
     mongo,
     clean_db,
     clean_minio,
@@ -67,7 +67,7 @@ class TestInternalApiTenantCreate:
         assert r.status_code == 201
 
         # generate artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=device_type
         ) as art:
             artifacts_client = SimpleArtifactsClient()
@@ -109,7 +109,7 @@ class TestInternalApiTenantCreate:
         tenant_id = str(ObjectId())
 
         # generate artifact
-        with artifact_from_data(
+        with artifact_rootfs_from_data(
             name=artifact_name, data=data, devicetype=device_type
         ) as art:
             artifacts_client = SimpleArtifactsClient()

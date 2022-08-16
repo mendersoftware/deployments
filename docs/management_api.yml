@@ -1569,6 +1569,7 @@ definitions:
       properties:
         type:
           type: string
+          description: Note that for emtpy Artifacts, the type is 'null'
   UpdateFile:
       description: |
           Information about particular update file.
