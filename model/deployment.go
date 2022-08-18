@@ -165,7 +165,7 @@ type Deployment struct {
 	// artifact for the device.
 	// The artifact will be generated when the device will ask
 	// for an update.
-	Configuration []byte `json:"configuration,omitempty" bson:"configuration"`
+	Configuration deploymentConfiguration `json:"configuration,omitempty" bson:"configuration"`
 }
 
 // NewDeployment creates new deployment object, sets create data by default.
