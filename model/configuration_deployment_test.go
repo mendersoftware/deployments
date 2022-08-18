@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -15,14 +15,32 @@
 package model
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"testing"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConfigurationDeploymentValidate(t *testing.T) {
+func TestDeploymentConfigurationMarshalJSON(t *testing.T) {
+	data := map[string]string{
+		"key":         "value",
+		"another-key": "another-value",
+	}
+	dataJSON, err := json.Marshal(data)
+	assert.NoError(t, err)
 
+	var c deploymentConfiguration
+	c = deploymentConfiguration(dataJSON)
+
+	dataJSON, err = json.Marshal(c)
+	assert.NoError(t, err)
+	expected := base64.StdEncoding.EncodeToString([]byte("{\"another-key\":\"ano...\\u003comitted\\u003e\",\"key\":\"val...\\u003comitted\\u003e\"}"))
+	assert.Equal(t, "\""+expected+"\"", string(dataJSON))
+}
+
+func TestConfigurationDeploymentValidate(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
