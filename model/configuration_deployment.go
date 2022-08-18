@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,6 +21,11 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/pkg/errors"
+)
+
+const (
+	omitted        = "...<omitted>"
+	lengthOmission = 3
 )
 
 // configuration saves the configuration as a binary blob
@@ -109,4 +114,24 @@ func NewDeploymentFromConfigurationDeploymentConstructor(
 	deployment.DeviceCount = &deviceCount
 
 	return deployment, nil
+}
+
+type deploymentConfiguration []byte
+
+func (c deploymentConfiguration) MarshalJSON() ([]byte, error) {
+	var configuration map[string]string
+	err := json.Unmarshal(c, &configuration)
+	if err != nil {
+		return json.Marshal(c)
+	}
+	for key, value := range configuration {
+		if len(value) > lengthOmission {
+			configuration[key] = value[0:lengthOmission] + omitted
+		}
+	}
+	data, err := json.Marshal(configuration)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(data)
 }
