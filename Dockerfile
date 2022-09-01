@@ -7,7 +7,7 @@ WORKDIR /go/src/github.com/mendersoftware/deployments
 COPY ./ .
 RUN env CGO_ENABLED=1 go build
 
-FROM alpine:3.16.0
+FROM alpine:3.16.2
 RUN apk add --no-cache ca-certificates xz
 RUN mkdir -p /etc/deployments
 EXPOSE 8080
