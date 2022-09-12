@@ -29,7 +29,8 @@ import (
 	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/client/reporting"
 	dconfig "github.com/mendersoftware/deployments/config"
-	"github.com/mendersoftware/deployments/s3"
+	"github.com/mendersoftware/deployments/storage"
+	"github.com/mendersoftware/deployments/storage/s3"
 	mstore "github.com/mendersoftware/deployments/store/mongo"
 	"github.com/mendersoftware/deployments/utils/restutil"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
@@ -84,7 +85,7 @@ const (
 		"/tenants/#tenant/configuration/deployments/#deployment_id/devices/#device_id"
 )
 
-func SetupS3(c config.Reader) (s3.FileStorage, error) {
+func SetupS3(c config.Reader) (storage.ObjectStorage, error) {
 
 	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
 	region := c.GetString(dconfig.SettingAwsS3Region)
@@ -100,13 +101,14 @@ func SetupS3(c config.Reader) (s3.FileStorage, error) {
 			region,
 			c.GetString(dconfig.SettingAwsAuthToken),
 			c.GetString(dconfig.SettingAwsURI),
+			app.ArtifactContentType,
 			c.GetBool(dconfig.SettingsAwsTagArtifact),
 			c.GetBool(dconfig.SettingAwsS3ForcePathStyle),
 			c.GetBool(dconfig.SettingAwsS3UseAccelerate),
 		)
 	}
 
-	return s3.NewSimpleStorageServiceDefaults(bucket, region)
+	return s3.NewSimpleStorageServiceDefaults(bucket, region, app.ArtifactContentType)
 }
 
 // NewRouter defines all REST API routes.
@@ -115,13 +117,6 @@ func NewRouter(ctx context.Context, c config.Reader,
 
 	// Storage Layer
 	fileStorage, err := SetupS3(c)
-	if err != nil {
-		return nil, err
-	}
-
-	// Initialise a bucket, which is needed by Minio
-	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
-	err = fileStorage.InitBucket(ctx, bucket)
 	if err != nil {
 		return nil, err
 	}
