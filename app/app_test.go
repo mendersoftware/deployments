@@ -309,7 +309,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 					testCase.InputImagesByNameError)
 
 			fs := &fs_mocks.ObjectStorage{}
-			ds := NewDeployments(&db, fs, "")
+			ds := NewDeployments(&db, fs)
 
 			mockInventoryClient := &inventory_mocks.Client{}
 			if testCase.CallGetDeviceGroups {

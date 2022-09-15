@@ -24,12 +24,10 @@ import (
 
 	"github.com/google/uuid"
 	workflows_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
-	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
 	fs_mocks "github.com/mendersoftware/deployments/storage/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
 	h "github.com/mendersoftware/deployments/utils/testing"
-	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/mender-artifact/areader"
 	"github.com/mendersoftware/mender-artifact/artifact"
@@ -46,7 +44,7 @@ func (r *BogusReader) Read(b []byte) (int, error) {
 func TestGenerateImageError(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs, ArtifactContentType)
+	d := NewDeployments(&db, fs)
 
 	testCases := []struct {
 		multipartGenerateImage *model.MultipartGenerateImageMsg
@@ -74,7 +72,7 @@ func TestGenerateImageError(t *testing.T) {
 func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs, ArtifactContentType)
+	d := NewDeployments(&db, fs)
 
 	db.On("IsArtifactUnique",
 		h.ContextMatcher(),
@@ -104,7 +102,7 @@ func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
 func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs, ArtifactContentType)
+	d := NewDeployments(&db, fs)
 
 	db.On("IsArtifactUnique",
 		h.ContextMatcher(),
@@ -134,7 +132,7 @@ func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 func TestGenerateImageErrorWhileUploading(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs, ArtifactContentType)
+	d := NewDeployments(&db, fs)
 	ctx := context.Background()
 
 	fs.On("PutObject",
@@ -145,14 +143,7 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 
 	db.On("GetStorageSettings",
 		ctx,
-	).Return(&model.StorageSettings{
-		Region: config.Config.GetString(dconfig.SettingAwsS3Region),
-		Uri:    config.Config.GetString(dconfig.SettingAwsURI),
-		Bucket: config.Config.GetString(dconfig.SettingAwsS3Bucket),
-		Key:    config.Config.GetString(dconfig.SettingAwsAuthKeyId),
-		Secret: config.Config.GetString(dconfig.SettingAwsAuthSecret),
-		Token:  config.Config.GetString(dconfig.SettingAwsAuthToken),
-	}, nil)
+	).Return(nil, nil)
 
 	db.On("IsArtifactUnique",
 		h.ContextMatcher(),
@@ -182,7 +173,7 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs, ArtifactContentType)
+	d := NewDeployments(&db, fs)
 	ctx := context.Background()
 
 	fs.On("PutObject",
@@ -199,14 +190,7 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 
 	db.On("GetStorageSettings",
 		ctx,
-	).Return(&model.StorageSettings{
-		Region: config.Config.GetString(dconfig.SettingAwsS3Region),
-		Uri:    config.Config.GetString(dconfig.SettingAwsURI),
-		Bucket: config.Config.GetString(dconfig.SettingAwsS3Bucket),
-		Key:    config.Config.GetString(dconfig.SettingAwsAuthKeyId),
-		Secret: config.Config.GetString(dconfig.SettingAwsAuthSecret),
-		Token:  config.Config.GetString(dconfig.SettingAwsAuthToken),
-	}, nil)
+	).Return(nil, nil)
 
 	fs.On("GetRequest",
 		h.ContextMatcher(),
@@ -237,7 +221,7 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs, ArtifactContentType)
+	d := NewDeployments(&db, fs)
 	ctx := context.Background()
 
 	fs.On("PutObject",
@@ -254,14 +238,7 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 
 	db.On("GetStorageSettings",
 		ctx,
-	).Return(&model.StorageSettings{
-		Region: config.Config.GetString(dconfig.SettingAwsS3Region),
-		Uri:    config.Config.GetString(dconfig.SettingAwsURI),
-		Bucket: config.Config.GetString(dconfig.SettingAwsS3Bucket),
-		Key:    config.Config.GetString(dconfig.SettingAwsAuthKeyId),
-		Secret: config.Config.GetString(dconfig.SettingAwsAuthSecret),
-		Token:  config.Config.GetString(dconfig.SettingAwsAuthToken),
-	}, nil)
+	).Return(nil, nil)
 
 	fs.On("GetRequest",
 		h.ContextMatcher(),
@@ -301,7 +278,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	generateErr := errors.New("failed to start workflow: generate_artifact")
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs, ArtifactContentType)
+	d := NewDeployments(&db, fs)
 	ctx := context.Background()
 
 	fs.On("GetRequest",
@@ -348,14 +325,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 
 	db.On("GetStorageSettings",
 		ctx,
-	).Return(&model.StorageSettings{
-		Region: config.Config.GetString(dconfig.SettingAwsS3Region),
-		Uri:    config.Config.GetString(dconfig.SettingAwsURI),
-		Bucket: config.Config.GetString(dconfig.SettingAwsS3Bucket),
-		Key:    config.Config.GetString(dconfig.SettingAwsAuthKeyId),
-		Secret: config.Config.GetString(dconfig.SettingAwsAuthSecret),
-		Token:  config.Config.GetString(dconfig.SettingAwsAuthToken),
-	}, nil)
+	).Return(nil, nil)
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
 		Name:                  "name",
@@ -380,7 +350,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs, ArtifactContentType)
+	d := NewDeployments(&db, fs)
 	ctx := context.Background()
 
 	workflowsClient := &workflows_mocks.Client{}
@@ -428,14 +398,7 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 
 	db.On("GetStorageSettings",
 		ctx,
-	).Return(&model.StorageSettings{
-		Region: config.Config.GetString(dconfig.SettingAwsS3Region),
-		Uri:    config.Config.GetString(dconfig.SettingAwsURI),
-		Bucket: config.Config.GetString(dconfig.SettingAwsS3Bucket),
-		Key:    config.Config.GetString(dconfig.SettingAwsAuthKeyId),
-		Secret: config.Config.GetString(dconfig.SettingAwsAuthSecret),
-		Token:  config.Config.GetString(dconfig.SettingAwsAuthToken),
-	}, nil)
+	).Return(nil, nil)
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
 		Name:                  "name",
@@ -461,7 +424,7 @@ func TestGenerateImageSuccessful(t *testing.T) {
 	ctx := context.Background()
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs, ArtifactContentType)
+	d := NewDeployments(&db, fs)
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
 		Name:                  "name",
@@ -512,14 +475,7 @@ func TestGenerateImageSuccessful(t *testing.T) {
 
 	db.On("GetStorageSettings",
 		ctx,
-	).Return(&model.StorageSettings{
-		Region: config.Config.GetString(dconfig.SettingAwsS3Region),
-		Uri:    config.Config.GetString(dconfig.SettingAwsURI),
-		Bucket: config.Config.GetString(dconfig.SettingAwsS3Bucket),
-		Key:    config.Config.GetString(dconfig.SettingAwsAuthKeyId),
-		Secret: config.Config.GetString(dconfig.SettingAwsAuthSecret),
-		Token:  config.Config.GetString(dconfig.SettingAwsAuthToken),
-	}, nil)
+	).Return(nil, nil)
 
 	artifactID, err := d.GenerateImage(ctx, multipartGenerateImage)
 
@@ -535,7 +491,7 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 	ctx := context.Background()
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs, ArtifactContentType)
+	d := NewDeployments(&db, fs)
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
 		Name:                  "name",
@@ -587,14 +543,7 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 
 	db.On("GetStorageSettings",
 		ctxWithIdentity,
-	).Return(&model.StorageSettings{
-		Region: config.Config.GetString(dconfig.SettingAwsS3Region),
-		Uri:    config.Config.GetString(dconfig.SettingAwsURI),
-		Bucket: config.Config.GetString(dconfig.SettingAwsS3Bucket),
-		Key:    config.Config.GetString(dconfig.SettingAwsAuthKeyId),
-		Secret: config.Config.GetString(dconfig.SettingAwsAuthSecret),
-		Token:  config.Config.GetString(dconfig.SettingAwsAuthToken),
-	}, nil)
+	).Return(nil, nil)
 
 	artifactID, err := d.GenerateImage(ctxWithIdentity, multipartGenerateImage)
 
@@ -691,7 +640,7 @@ func TestGenerateConfigurationImage(t *testing.T) {
 			defer ds.AssertExpectations(t)
 			ds.On("FindDeploymentByID", ctx, tc.DeploymentID).
 				Return(tc.Deployment, tc.StoreError)
-			d := NewDeployments(ds, nil, ArtifactContentType)
+			d := NewDeployments(ds, nil)
 			artieFact, err := d.GenerateConfigurationImage(
 				ctx, tc.DeviceType, tc.DeploymentID,
 			)
