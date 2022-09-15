@@ -50,7 +50,9 @@ const (
 	// 15 minutes
 	DefaultDownloadLinkExpire = 15 * time.Minute
 	// 10 Mb
-	DefaultMaxMetaSize = 1024 * 1024 * 10
+	DefaultMaxMetaSize  = 1024 * 1024 * 10
+	DefaultMaxImageSize = 10 * 1024 * 1024 * 1024 // 10GiB
+
 	// Pagination
 	DefaultPerPage = 20
 	MaximumPerPage = 500
@@ -132,11 +134,10 @@ type Config struct {
 }
 
 func NewConfig() *Config {
-	maxImageSize := config.Config.GetInt64(dconfig.SettingAwsS3MaxImageSize)
 	return &Config{
 		PresignExpire: DefaultDownloadLinkExpire,
 		PresignScheme: "https",
-		MaxImageSize:  maxImageSize,
+		MaxImageSize:  DefaultMaxImageSize,
 	}
 }
 
@@ -157,6 +158,11 @@ func (conf *Config) SetPresignHostname(hostname string) *Config {
 
 func (conf *Config) SetPresignScheme(scheme string) *Config {
 	conf.PresignScheme = scheme
+	return conf
+}
+
+func (conf *Config) SetMaxImageSize(size int64) *Config {
+	conf.MaxImageSize = size
 	return conf
 }
 
@@ -189,6 +195,9 @@ func NewDeploymentsApiHandlers(
 		}
 		if c.PresignScheme != "" {
 			conf.PresignScheme = c.PresignScheme
+		}
+		if c.MaxImageSize > 0 {
+			conf.MaxImageSize = c.MaxImageSize
 		}
 	}
 	return &DeploymentsApiHandlers{

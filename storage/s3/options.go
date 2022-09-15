@@ -31,7 +31,7 @@ const (
 )
 
 var (
-	validAtLeast32KiB = validation.Min(MultipartMinSize).
+	validAtLeast5MiB = validation.Min(MultipartMinSize).
 		Error("must be at least 5MiB")
 )
 
@@ -99,7 +99,7 @@ func NewOptions(opts ...*Options) *Options {
 func (opts Options) Validate() error {
 	return validation.ValidateStruct(&opts,
 		validation.Field(&opts.StaticCredentials),
-		validation.Field(&opts.BufferSize, validAtLeast32KiB),
+		validation.Field(&opts.BufferSize, validAtLeast5MiB),
 	)
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/log"
@@ -141,7 +142,12 @@ func cmdServer(args *cli.Context) error {
 		return err
 	}
 
-	err = RunServer(config.Config)
+	setupContext, cancel := context.WithTimeout(
+		context.Background(),
+		time.Second*30,
+	)
+	err = RunServer(setupContext)
+	cancel()
 	if err != nil {
 		return cli.NewExitError(err.Error(), 4)
 	}

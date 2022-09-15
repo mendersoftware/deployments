@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -56,10 +56,10 @@ func ParseStorageSettingsRequest(source io.Reader) (*StorageSettings, error) {
 // Validate checks structure according to valid tags
 func (s StorageSettings) Validate() error {
 	return validation.ValidateStruct(&s,
-		validation.Field(&s.Region, validation.Length(5, 20)),
-		validation.Field(&s.Bucket, validation.Length(5, 100)),
-		validation.Field(&s.Key, validation.Length(5, 50)),
-		validation.Field(&s.Secret, validation.Length(5, 100)),
+		validation.Field(&s.Region, validation.Required, validation.Length(5, 20)),
+		validation.Field(&s.Bucket, validation.Required, validation.Length(5, 100)),
+		validation.Field(&s.Key, validation.Required, validation.Length(5, 50)),
+		validation.Field(&s.Secret, validation.Required, validation.Length(5, 100)),
 		validation.Field(&s.Uri, validation.Length(3, 2000)),
 		validation.Field(&s.ExternalUri, validation.Length(3, 2000)),
 		validation.Field(&s.Token, validation.Length(5, 100)),
