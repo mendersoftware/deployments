@@ -138,7 +138,7 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*utils.LimitedReader"),
+		mock.AnythingOfType("*bytes.Reader"),
 	).Return(errors.New("error while uploading"))
 
 	db.On("GetStorageSettings",
@@ -179,7 +179,7 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*utils.LimitedReader"),
+		mock.AnythingOfType("*bytes.Reader"),
 	).Return(nil)
 
 	db.On("IsArtifactUnique",
@@ -227,7 +227,7 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*utils.LimitedReader"),
+		mock.AnythingOfType("*bytes.Reader"),
 	).Return(nil)
 
 	db.On("IsArtifactUnique",
@@ -309,7 +309,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*utils.LimitedReader"),
+		mock.AnythingOfType("*bytes.Reader"),
 	).Return(nil)
 
 	fs.On("DeleteObject",
@@ -382,7 +382,7 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*utils.LimitedReader"),
+		mock.AnythingOfType("*bytes.Reader"),
 	).Return(nil)
 
 	fs.On("DeleteObject",
@@ -464,7 +464,7 @@ func TestGenerateImageSuccessful(t *testing.T) {
 	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*utils.LimitedReader"),
+		mock.AnythingOfType("*bytes.Reader"),
 	).Return(nil)
 
 	db.On("IsArtifactUnique",
@@ -529,7 +529,7 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("*utils.LimitedReader"),
+		mock.AnythingOfType("*bytes.Reader"),
 	).Return(nil)
 
 	db.On("IsArtifactUnique",

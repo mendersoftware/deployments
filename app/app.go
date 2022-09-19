@@ -41,7 +41,6 @@ import (
 	"github.com/mendersoftware/deployments/storage"
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mongo"
-	"github.com/mendersoftware/deployments/utils"
 )
 
 const (
@@ -72,7 +71,6 @@ var (
 	ErrModelMissingInputArtifact        = errors.New("Missing input artifact")
 	ErrModelInvalidMetadata             = errors.New("Metadata invalid")
 	ErrModelArtifactNotUnique           = errors.New("Artifact not unique")
-	ErrModelArtifactFileTooLarge        = errors.New("Artifact file too large")
 	ErrModelImageInActiveDeployment     = errors.New(
 		"Image is used in active deployment and cannot be removed",
 	)
@@ -166,7 +164,6 @@ type App interface {
 type Deployments struct {
 	db              store.DataStore
 	objectStorage   storage.ObjectStorage
-	maxImageSize    int64
 	workflowsClient workflows.Client
 	inventoryClient inventory.Client
 	reportingClient reporting.Client
@@ -266,23 +263,7 @@ func (d *Deployments) ProvisionTenant(ctx context.Context, tenant_id string) err
 // Returns image ID and nil on success.
 func (d *Deployments) CreateImage(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
-	if multipartUploadMsg.ArtifactSize > d.maxImageSize {
-		return "", ErrModelArtifactFileTooLarge
-	}
-
-	artifactID, err := d.handleArtifact(ctx, multipartUploadMsg)
-	// try to remove artifact file from file storage on error
-	if err != nil {
-		ctx, err = d.contextWithStorageSettings(ctx)
-		if err != nil {
-			return "", err
-		}
-		if cleanupErr := d.objectStorage.DeleteObject(ctx,
-			artifactID); cleanupErr != nil {
-			return "", errors.Wrap(err, cleanupErr.Error())
-		}
-	}
-	return artifactID, err
+	return d.handleArtifact(ctx, multipartUploadMsg)
 }
 
 // handleArtifact parses artifact and uploads artifact file to the file storage - in parallel,
@@ -291,16 +272,16 @@ func (d *Deployments) CreateImage(ctx context.Context,
 func (d *Deployments) handleArtifact(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
 
+	l := log.FromContext(ctx)
+	ctx, err := d.contextWithStorageSettings(ctx)
+	if err != nil {
+		return "", err
+	}
+
 	// create pipe
 	pR, pW := io.Pipe()
 
-	// limit reader to the size provided with the upload message
-	lr := &utils.LimitedReader{
-		R:          multipartUploadMsg.ArtifactReader,
-		N:          multipartUploadMsg.ArtifactSize + 1,
-		LimitError: ErrModelArtifactFileTooLarge,
-	}
-	tee := io.TeeReader(lr, pW)
+	tee := io.TeeReader(multipartUploadMsg.ArtifactReader, pW)
 
 	uid, err := uuid.Parse(multipartUploadMsg.ArtifactID)
 	if err != nil {
@@ -318,10 +299,6 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	//nolint:errcheck
 	go func() (err error) {
 		defer func() { ch <- err }()
-		ctx, err = d.contextWithStorageSettings(ctx)
-		if err != nil {
-			return err
-		}
 		err = d.objectStorage.PutObject(
 			ctx, artifactID, pR,
 		)
@@ -335,9 +312,13 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// artifact library reads all the data from the given reader
 	metaArtifactConstructor, err := getMetaFromArchive(&tee)
 	if err != nil {
-		pW.Close()
+		_ = pW.CloseWithError(err)
 		<-ch
 		return artifactID, errors.Wrap(ErrModelParsingArtifactFailed, err.Error())
+	}
+	// validate artifact metadata
+	if err = metaArtifactConstructor.Validate(); err != nil {
+		return artifactID, ErrModelInvalidMetadata
 	}
 
 	// read the rest of the data,
@@ -353,30 +334,29 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// close the pipe
 	pW.Close()
 
-	// Assign artifact size to the actual uploaded size
-	// NOTE: the limited reader is capped at one over the size limit.
-	multipartUploadMsg.
-		ArtifactSize = multipartUploadMsg.ArtifactSize - (lr.N - 1)
-
 	// collect output from the goroutine
 	if uploadResponseErr := <-ch; uploadResponseErr != nil {
 		return artifactID, uploadResponseErr
-	}
-
-	// validate artifact metadata
-	if err = metaArtifactConstructor.Validate(); err != nil {
-		return artifactID, ErrModelInvalidMetadata
 	}
 
 	image := model.NewImage(
 		artifactID,
 		multipartUploadMsg.MetaConstructor,
 		metaArtifactConstructor,
-		multipartUploadMsg.ArtifactSize,
+		multipartUploadMsg.ArtifactReader.Count(),
 	)
 
 	// save image structure in the system
 	if err = d.db.InsertImage(ctx, image); err != nil {
+		// Try to remove the storage from s3.
+		if errDelete := d.objectStorage.DeleteObject(
+			ctx, artifactID,
+		); errDelete != nil {
+			l.Errorf(
+				"failed to clean up artifact storage after failure: %s",
+				errDelete,
+			)
+		}
 		if idxErr, ok := err.(*model.ConflictError); ok {
 			return artifactID, idxErr
 		}
@@ -509,18 +489,12 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 		return "", ErrModelArtifactNotUnique
 	}
 
-	file := &utils.LimitedReader{
-		R:          multipartMsg.FileReader,
-		N:          d.maxImageSize + 1,
-		LimitError: ErrModelArtifactFileTooLarge,
-	}
-
 	ctx, err = d.contextWithStorageSettings(ctx)
 	if err != nil {
 		return "", err
 	}
 	err = d.objectStorage.PutObject(
-		ctx, artifactID, file,
+		ctx, artifactID, multipartMsg.FileReader,
 	)
 	if err != nil {
 		return "", err

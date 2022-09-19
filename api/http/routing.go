@@ -77,7 +77,12 @@ const (
 )
 
 // NewRouter defines all REST API routes.
-func NewRouter(ctx context.Context, app app.App, ds store.DataStore, cfg *Config) (rest.App, error) {
+func NewRouter(
+	ctx context.Context,
+	app app.App,
+	ds store.DataStore,
+	cfg *Config,
+) (rest.App, error) {
 
 	// Create and configure API handlers
 	//
