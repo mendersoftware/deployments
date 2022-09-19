@@ -30,3 +30,7 @@ services:
         command: ["/app/docker-entrypoint.sh"]
         volumes:
             - "${TESTS_DIR}/mock-workflows:/app"
+        networks:
+          mender:
+            aliases:
+              - mock-server

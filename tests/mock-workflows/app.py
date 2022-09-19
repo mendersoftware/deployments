@@ -1,4 +1,4 @@
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -30,3 +30,17 @@ def gen_random_object_id():
 def generate_artifact(name: str):
     response = {"id": gen_random_object_id(), "name": name}
     return jsonify(response), 201
+
+
+def set_status(code: str):
+    return "", code
+
+
+@app.route("/status/<int:code>")
+def _set_status(code: int):
+    return "", code
+
+
+@app.route("/status/<int:code>/<path:subpath>")
+def _set_status_subpath(code: int, subpath: str):
+    return "", code

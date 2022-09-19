@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ import (
 	"testing"
 
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/deployments/storage"
+	storageMocks "github.com/mendersoftware/deployments/storage/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -115,6 +117,15 @@ func TestSetStorageSettings(t *testing.T) {
 			err: errors.New("generic error"),
 		},
 	}
+	contextMatcher := func(t *testing.T, settings *model.StorageSettings) func(context.Context) bool {
+		return func(ctx context.Context) bool {
+			actual := storage.SettingsFromContext(ctx)
+			if actual == nil {
+				return false
+			}
+			return *settings == *actual
+		}
+	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -123,8 +134,12 @@ func TestSetStorageSettings(t *testing.T) {
 				mock.MatchedBy(func(ctx context.Context) bool { return true }),
 				tc.settings,
 			).Return(tc.err)
+			objStore := new(storageMocks.ObjectStorage)
+			defer objStore.AssertExpectations(t)
+			objStore.On("HealthCheck", mock.MatchedBy(contextMatcher(t, tc.settings))).Return(nil)
 			ds := &Deployments{
-				db: &db,
+				db:            &db,
+				objectStorage: objStore,
 			}
 			ctx := context.Background()
 

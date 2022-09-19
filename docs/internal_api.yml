@@ -119,8 +119,9 @@ paths:
           required: true
         - name: settings
           in: body
-          description: Settings to set.
-          required: true
+          description: |-
+            Settings to set.
+            If set to null or an empty object, the tenant will use the default settings.
           schema:
             $ref: "#/definitions/StorageSettings"
       responses:

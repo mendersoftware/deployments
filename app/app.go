@@ -1715,10 +1715,14 @@ func (d *Deployments) SetStorageSettings(
 	ctx context.Context,
 	storageSettings *model.StorageSettings,
 ) error {
-	if err := storageSettings.Validate(); err != nil {
-		return errors.Wrap(err, "Invalid input data")
+	if storageSettings != nil {
+		ctx = storage.SettingsWithContext(ctx, storageSettings)
+		if err := d.objectStorage.HealthCheck(ctx); err != nil {
+			return errors.WithMessage(err,
+				"the provided storage settings failed the health check",
+			)
+		}
 	}
-
 	if err := d.db.SetStorageSettings(ctx, storageSettings); err != nil {
 		return errors.Wrap(err, "Failed to save settings")
 	}

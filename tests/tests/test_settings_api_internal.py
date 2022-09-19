@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -13,8 +13,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import pytest
 
 from bson.objectid import ObjectId
+
 from common import api_client_int
 
 
@@ -24,8 +26,8 @@ class TestInternalApiStorageSettings:
         data = {
             "region": "region",
             "bucket": "bucket",
-            "uri": "https://example.com",
-            "external_uri": "https://external.example.com",
+            "uri": f"http://mock-server:8080/status/200",
+            "external_uri": f"https://localhost:1234",
             "key": "long_key",
             "secret": "secret",
             "token": "token",
@@ -41,8 +43,7 @@ class TestInternalApiStorageSettings:
         data1 = {
             "region": "region",
             "bucket": "bucket",
-            "uri": "https://example.com",
-            "external_uri": "https://external.example.com",
+            "uri": f"http://mock-server:8080/status/200",
             "key": "long_key",
             "secret": "secret",
             "token": "token",
@@ -52,7 +53,7 @@ class TestInternalApiStorageSettings:
         data2 = {
             "region": "region",
             "bucket": "new_bucket",
-            "uri": "https://example.com",
+            "uri": f"http://mock-server:8080/status/200",
             "external_uri": "https://external.example.com",
             "key": "long_key",
             "secret": "secret",
@@ -62,13 +63,15 @@ class TestInternalApiStorageSettings:
         }
         api_client_int.set_settings(tenant_id, data1)
         api_client_int.set_settings(tenant_id, data2)
+        rx_data = api_client_int.get_settings(tenant_id)
+        assert data2 == rx_data
 
     def test_update_to_empty_data_set(self, api_client_int):
         tenant_id = str(ObjectId())
         data1 = {
             "region": "region",
             "bucket": "bucket",
-            "uri": "https://example.com",
+            "uri": f"http://mock-server:8080/status/200",
             "external_uri": "https://external.example.com",
             "key": "long_key",
             "secret": "secret",
@@ -76,17 +79,11 @@ class TestInternalApiStorageSettings:
             "force_path_style": True,
             "use_accelerate": True,
         }
-        data2 = {
-            "region": "",
-            "bucket": "",
-            "uri": "",
-            "external_uri": "",
-            "key": "",
-            "secret": "",
-            "token": "",
-        }
+        data2 = {}
         api_client_int.set_settings(tenant_id, data1)
         api_client_int.set_settings(tenant_id, data2)
+        rsp = api_client_int.get_settings(tenant_id)
+        assert rsp == {}
 
     def test_failed_data_key_length(self, api_client_int):
         tenant_id = str(ObjectId())
@@ -94,20 +91,20 @@ class TestInternalApiStorageSettings:
         data = {
             "region": "region",
             "bucket": "bucket",
-            "uri": "https://example.com",
+            "uri": f"http://mock-server:8080/status/200",
             "external_uri": "https://external.example.com",
             "key": "key",
             "secret": "secret",
             "token": "token",
         }
-        api_client_int.set_settings(tenant_id, data, 500)
+        api_client_int.set_settings(tenant_id, data, 400)
 
     def test_failed_data_missing_bucket(self, api_client_int):
         tenant_id = str(ObjectId())
         # 'Bucket' key is missing
         data = {
             "region": "region",
-            "uri": "https://example.com",
+            "uri": f"http://mock-server:8080/status/200",
             "external_uri": "https://external.example.com",
             "key": "long_key",
             "secret": "secret",

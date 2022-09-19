@@ -34,23 +34,20 @@ type StorageSettings struct {
 	UseAccelerate  bool   `json:"use_accelerate" bson:"use_accelerate"`
 }
 
-func ParseStorageSettingsRequest(source io.Reader) (*StorageSettings, error) {
-	var s StorageSettings
+func ParseStorageSettingsRequest(source io.Reader) (settings *StorageSettings, err error) {
+	// NOTE: by wrapping StorageSettings as an embedded struct field,
+	// passing an empty object `{}` will unmarshall as nil.
+	var s struct{ *StorageSettings }
 
-	if err := json.NewDecoder(source).Decode(&s); err != nil {
-		return nil, err
+	err = json.NewDecoder(source).Decode(&s)
+	if s.StorageSettings != nil {
+		settings = s.StorageSettings
+		err = errors.WithMessage(
+			settings.Validate(),
+			"invalid settings schema",
+		)
 	}
-
-	if s.Region != "" || s.Bucket != "" || s.Key != "" || s.Secret != "" {
-		keys := []string{s.Region, s.Bucket, s.Key, s.Secret}
-		for _, k := range keys {
-			if k == "" {
-				return nil, errors.New("Invalid input data.")
-			}
-		}
-	}
-
-	return &s, nil
+	return settings, err
 }
 
 // Validate checks structure according to valid tags
