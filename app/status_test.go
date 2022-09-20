@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/mendersoftware/deployments/model"
-	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
+	fs_mocks "github.com/mendersoftware/deployments/storage/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
 	"github.com/mendersoftware/deployments/store/mongo"
 )
@@ -57,7 +57,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		devId, fakeDeployment.Id)
 	fakeDeviceDeployment.Status = model.DeviceDeploymentStatusDownloading
 
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	db := mocks.DataStore{}
 
 	db.On("GetDeviceDeployment", ctx,
@@ -133,7 +133,7 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 		devId, fakeDeployment.Id)
 	fakeDeviceDeployment.Status = model.DeviceDeploymentStatusPending
 
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	db := mocks.DataStore{}
 
 	db.On("FindOldestActiveDeviceDeployment", ctx, devId).Return(

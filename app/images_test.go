@@ -26,7 +26,7 @@ import (
 	workflows_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
-	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
+	fs_mocks "github.com/mendersoftware/deployments/storage/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
 	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/mendersoftware/go-lib-micro/config"
@@ -45,7 +45,7 @@ func (r *BogusReader) Read(b []byte) (int, error) {
 
 func TestGenerateImageError(t *testing.T) {
 	db := mocks.DataStore{}
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 
 	testCases := []struct {
@@ -73,7 +73,7 @@ func TestGenerateImageError(t *testing.T) {
 
 func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
 	db := mocks.DataStore{}
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 
 	db.On("IsArtifactUnique",
@@ -103,7 +103,7 @@ func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
 
 func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 	db := mocks.DataStore{}
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 
 	db.On("IsArtifactUnique",
@@ -133,15 +133,14 @@ func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 
 func TestGenerateImageErrorWhileUploading(t *testing.T) {
 	db := mocks.DataStore{}
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 	ctx := context.Background()
 
-	fs.On("UploadArtifact",
+	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("*utils.LimitedReader"),
-		mock.AnythingOfType("string"),
 	).Return(errors.New("error while uploading"))
 
 	db.On("GetStorageSettings",
@@ -182,15 +181,14 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 
 func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 	db := mocks.DataStore{}
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 	ctx := context.Background()
 
-	fs.On("UploadArtifact",
+	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("*utils.LimitedReader"),
-		mock.AnythingOfType("string"),
 	).Return(nil)
 
 	db.On("IsArtifactUnique",
@@ -214,7 +212,6 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-		mock.AnythingOfType("string"),
 		mock.AnythingOfType("string"),
 	).Return(nil, errors.New("error get request"))
 
@@ -239,15 +236,14 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 
 func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 	db := mocks.DataStore{}
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 	ctx := context.Background()
 
-	fs.On("UploadArtifact",
+	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("*utils.LimitedReader"),
-		mock.AnythingOfType("string"),
 	).Return(nil)
 
 	db.On("IsArtifactUnique",
@@ -271,7 +267,6 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-		mock.AnythingOfType("string"),
 		mock.AnythingOfType("string"),
 	).Return(&model.Link{
 		Uri: "GET",
@@ -305,7 +300,7 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	generateErr := errors.New("failed to start workflow: generate_artifact")
 	db := mocks.DataStore{}
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 	ctx := context.Background()
 
@@ -313,7 +308,6 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-		mock.AnythingOfType("string"),
 		mock.AnythingOfType("string"),
 	).Return(&model.Link{
 		Uri: "GET",
@@ -335,14 +329,13 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	).Return(generateErr)
 	d.SetWorkflowsClient(workflowsClient)
 
-	fs.On("UploadArtifact",
+	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("*utils.LimitedReader"),
-		mock.AnythingOfType("string"),
 	).Return(nil)
 
-	fs.On("Delete",
+	fs.On("DeleteObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 	).Return(nil)
@@ -386,7 +379,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 
 func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testing.T) {
 	db := mocks.DataStore{}
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 	ctx := context.Background()
 
@@ -403,7 +396,6 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("string"),
 	).Return(&model.Link{
 		Uri: "GET",
 	}, nil)
@@ -417,14 +409,13 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 		Uri: "DELETE",
 	}, nil)
 
-	fs.On("UploadArtifact",
+	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("*utils.LimitedReader"),
-		mock.AnythingOfType("string"),
 	).Return(nil)
 
-	fs.On("Delete",
+	fs.On("DeleteObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 	).Return(errors.New("unable to remove the file"))
@@ -469,7 +460,7 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 func TestGenerateImageSuccessful(t *testing.T) {
 	ctx := context.Background()
 	db := mocks.DataStore{}
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
@@ -494,7 +485,6 @@ func TestGenerateImageSuccessful(t *testing.T) {
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("string"),
 	).Return(&model.Link{
 		Uri: "GET",
 	}, nil)
@@ -508,11 +498,10 @@ func TestGenerateImageSuccessful(t *testing.T) {
 		Uri: "DELETE",
 	}, nil)
 
-	fs.On("UploadArtifact",
+	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("*utils.LimitedReader"),
-		mock.AnythingOfType("string"),
 	).Return(nil)
 
 	db.On("IsArtifactUnique",
@@ -545,7 +534,7 @@ func TestGenerateImageSuccessful(t *testing.T) {
 func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 	ctx := context.Background()
 	db := mocks.DataStore{}
-	fs := &fs_mocks.FileStorage{}
+	fs := &fs_mocks.ObjectStorage{}
 	d := NewDeployments(&db, fs, ArtifactContentType)
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
@@ -568,7 +557,6 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("string"),
 	).Return(&model.Link{
 		Uri: "GET",
 	}, nil)
@@ -582,11 +570,10 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 		Uri: "DELETE",
 	}, nil)
 
-	fs.On("UploadArtifact",
+	fs.On("PutObject",
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("*utils.LimitedReader"),
-		mock.AnythingOfType("string"),
 	).Return(nil)
 
 	db.On("IsArtifactUnique",

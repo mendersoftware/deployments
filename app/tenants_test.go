@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
+	fs_mocks "github.com/mendersoftware/deployments/storage/mocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -57,7 +57,7 @@ func TestProvisionTenant(t *testing.T) {
 					}),
 				tc.id).Return(tc.storeErr)
 
-			fs := &fs_mocks.FileStorage{}
+			fs := &fs_mocks.ObjectStorage{}
 
 			d := NewDeployments(&db, fs, ArtifactContentType)
 

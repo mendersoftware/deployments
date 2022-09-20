@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import (
 	workflows_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
-	fs_mocks "github.com/mendersoftware/deployments/s3/mocks"
+	fs_mocks "github.com/mendersoftware/deployments/storage/mocks"
 	"github.com/mendersoftware/deployments/store/mocks"
 	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/mendersoftware/go-lib-micro/config"
@@ -74,13 +74,13 @@ func TestHealthCheck(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.TODO()
 			mDStore := &mocks.DataStore{}
-			mFStore := &fs_mocks.FileStorage{}
+			mFStore := &fs_mocks.ObjectStorage{}
 			mWorkflows := &workflows_mocks.Client{}
 			mInventory := &inventory_mocks.Client{}
 			mReporting := &reporting_mocks.Client{}
 			dep := &Deployments{
 				db:              mDStore,
-				fileStorage:     mFStore,
+				objectStorage:   mFStore,
 				workflowsClient: mWorkflows,
 				inventoryClient: mInventory,
 			}
@@ -99,8 +99,8 @@ func TestHealthCheck(t *testing.T) {
 					Return(tc.WorkflowsError)
 				fallthrough
 			case tc.FileStoreError != nil:
-				mFStore.On("ListBuckets", ctx).
-					Return(nil, tc.FileStoreError)
+				mFStore.On("HealthCheck", ctx).
+					Return(tc.FileStoreError)
 				fallthrough
 			case tc.DataStoreError != nil:
 				mDStore.On("Ping", ctx).
@@ -308,7 +308,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 						}, artifactSize)},
 					testCase.InputImagesByNameError)
 
-			fs := &fs_mocks.FileStorage{}
+			fs := &fs_mocks.ObjectStorage{}
 			ds := NewDeployments(&db, fs, "")
 
 			mockInventoryClient := &inventory_mocks.Client{}

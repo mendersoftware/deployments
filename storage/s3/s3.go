@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import (
 
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/deployments/storage"
 )
 
 const (
@@ -50,24 +51,6 @@ var (
 	ErrFileStorageFileNotFound = errors.New("File not found")
 )
 
-// FileStorage allows to store and manage large files
-//go:generate ../utils/mockgen.sh
-type FileStorage interface {
-	InitBucket(ctx context.Context, bucket string) error
-	ListBuckets(ctx context.Context) ([]string, error)
-	Delete(ctx context.Context, objectId string) error
-	Exists(ctx context.Context, objectId string) (bool, error)
-	LastModified(ctx context.Context, objectId string) (time.Time, error)
-	PutRequest(ctx context.Context, objectId string,
-		duration time.Duration) (*model.Link, error)
-	GetRequest(ctx context.Context, objectId string,
-		duration time.Duration, responseContentType string, fileName string) (*model.Link, error)
-	DeleteRequest(ctx context.Context, objectId string,
-		duration time.Duration) (*model.Link, error)
-	UploadArtifact(ctx context.Context, objectId string,
-		artifact io.Reader, contentType string) error
-}
-
 // SimpleStorageService - AWS S3 client.
 // Data layer for file storage.
 // Implements model.FileStorage interface
@@ -76,6 +59,7 @@ type SimpleStorageService struct {
 	bucket      string
 	tagArtifact bool
 	partSize    int64
+	contentType *string
 }
 
 // NewSimpleStorageServiceStatic create new S3 client model.
@@ -86,7 +70,8 @@ func NewSimpleStorageServiceStatic(
 	secret,
 	region,
 	token,
-	uri string,
+	uri,
+	contentType string,
 	tag_artifact,
 	forcePathStyle bool,
 	useAccelerate bool,
@@ -123,18 +108,26 @@ func NewSimpleStorageServiceStatic(
 
 	client := s3.New(sess)
 
-	return &SimpleStorageService{
+	s3c := &SimpleStorageService{
 		client:      client,
 		bucket:      bucket,
 		tagArtifact: tag_artifact,
 		partSize:    partSize,
-	}, nil
+		contentType: aws.String(contentType),
+	}
+	err = s3c.InitBucket(context.Background(), bucket)
+	if err != nil {
+		return nil, err
+	}
+	return s3c, nil
 }
 
 // NewSimpleStorageServiceDefaults create new S3 client model.
 // Use default authentication provides which looks at env variables,
 // Aws profile file and ec2 iam role
-func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageService, error) {
+func NewSimpleStorageServiceDefaults(
+	bucket, region, contentType string,
+) (*SimpleStorageService, error) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
 			Region: aws.String(region),
@@ -145,23 +138,35 @@ func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageServi
 	}
 	client := s3.New(sess)
 
-	return &SimpleStorageService{
-		client: client,
-		bucket: bucket,
-	}, nil
+	s3c := &SimpleStorageService{
+		client:      client,
+		bucket:      bucket,
+		contentType: aws.String(contentType),
+	}
+	err = s3c.InitBucket(context.Background(), bucket)
+	if err != nil {
+		return nil, err
+	}
+	return s3c, err
 }
 
-func NewSimpleStorageService(bucket, region string) (*SimpleStorageService, error) {
+func NewSimpleStorageService(bucket, region, contentType string) (*SimpleStorageService, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, err
 	}
 	client := s3.New(sess)
 
-	return &SimpleStorageService{
-		client: client,
-		bucket: bucket,
-	}, nil
+	s3c := &SimpleStorageService{
+		client:      client,
+		bucket:      bucket,
+		contentType: aws.String(contentType),
+	}
+	err = s3c.InitBucket(context.Background(), bucket)
+	if err != nil {
+		return nil, err
+	}
+	return s3c, nil
 }
 
 func getArtifactByTenant(ctx context.Context, objectID string) string {
@@ -209,27 +214,16 @@ func (s *SimpleStorageService) InitBucket(ctx context.Context, bucket string) er
 	return nil
 }
 
-func (s *SimpleStorageService) ListBuckets(ctx context.Context) ([]string, error) {
-	var ret []string
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	bucketList, err := s.client.ListBucketsWithContext(ctx, &s3.ListBucketsInput{})
-	if err != nil {
-		return nil, err
-	}
-	ret = make([]string, len(bucketList.Buckets))
-	for i, bucket := range bucketList.Buckets {
-		if bucket != nil && bucket.Name != nil {
-			ret[i] = *bucket.Name
-		}
-	}
-	return ret, nil
+func (s *SimpleStorageService) HealthCheck(ctx context.Context) error {
+	_, err := s.client.HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(s.bucket),
+	})
+	return err
 }
 
 // Delete removes deleted file from storage.
 // Noop if ID does not exist.
-func (s *SimpleStorageService) Delete(ctx context.Context, objectID string) error {
+func (s *SimpleStorageService) DeleteObject(ctx context.Context, objectID string) error {
 	objectID = getArtifactByTenant(ctx, objectID)
 
 	params := &s3.DeleteObjectInput{
@@ -252,34 +246,26 @@ func (s *SimpleStorageService) Delete(ctx context.Context, objectID string) erro
 }
 
 // Exists check if selected object exists in the storage
-func (s *SimpleStorageService) Exists(ctx context.Context, objectID string) (bool, error) {
+func (s *SimpleStorageService) StatObject(
+	ctx context.Context,
+	objectID string,
+) (*storage.ObjectInfo, error) {
 	objectID = getArtifactByTenant(ctx, objectID)
 
-	params := &s3.ListObjectsInput{
-		// Required
+	params := &s3.HeadObjectInput{
 		Bucket: aws.String(s.bucket),
-
-		// Optional
-		MaxKeys: aws.Int64(1),
-		Prefix:  aws.String(objectID),
+		Key:    aws.String(objectID),
 	}
 
-	resp, err := s.client.ListObjects(params)
+	rsp, err := s.client.HeadObject(params)
 	if err != nil {
-		return false, errors.Wrap(err, "Searching for file")
+		return nil, errors.WithMessage(err, "error getting object info")
 	}
 
-	if len(resp.Contents) == 0 {
-		return false, nil
-	}
-
-	// Note: Response should contain max 1 object (MaxKetys=1)
-	// Double check if it's exact match as object search matches prefix.
-	if *resp.Contents[0].Key == objectID {
-		return true, nil
-	}
-
-	return false, nil
+	return &storage.ObjectInfo{
+		Path:         objectID,
+		LastModified: rsp.LastModified,
+	}, nil
 }
 
 func fillBuffer(b []byte, r io.Reader) (int, error) {
@@ -297,7 +283,6 @@ func (s *SimpleStorageService) uploadMultipart(
 	buf []byte,
 	objectPath string,
 	artifact io.Reader,
-	contentType string,
 ) error {
 	const maxPartNum = 10000
 	var partNum int64 = 1
@@ -319,7 +304,7 @@ func (s *SimpleStorageService) uploadMultipart(
 	createParams := &s3.CreateMultipartUploadInput{
 		Bucket:      &s.bucket,
 		Key:         &objectPath,
-		ContentType: &contentType,
+		ContentType: s.contentType,
 		Expires:     &expiresAt,
 	}
 	rspCreate, err := s.client.CreateMultipartUploadWithContext(
@@ -426,24 +411,24 @@ func (s *SimpleStorageService) uploadMultipart(
 // using objectID as a key. If the artifact is larger than 5 MiB, the file is
 // uploaded using the s3 multipart API, otherwise the object is created in a
 // single request.
-func (s *SimpleStorageService) UploadArtifact(
+func (s *SimpleStorageService) PutObject(
 	ctx context.Context,
 	objectID string,
-	artifact io.Reader,
-	contentType string,
+	src io.Reader,
 ) error {
 	objectID = getArtifactByTenant(ctx, objectID)
 
 	buf := make([]byte, s.partSize)
-	n, err := fillBuffer(buf, artifact)
+	n, err := io.ReadFull(src, buf)
 
 	// If only one part, use PutObject API.
 	if n < len(buf) || err == io.EOF {
 		// Ordinary single-file upload
 		uploadParams := &s3.PutObjectInput{
-			Body:   bytes.NewReader(buf[:n]),
-			Bucket: &s.bucket,
-			Key:    &objectID,
+			Body:        bytes.NewReader(buf[:n]),
+			Bucket:      &s.bucket,
+			Key:         &objectID,
+			ContentType: s.contentType,
 		}
 		_, err := s.client.PutObjectWithContext(
 			ctx,
@@ -457,7 +442,7 @@ func (s *SimpleStorageService) UploadArtifact(
 		)
 		return err
 	}
-	return s.uploadMultipart(ctx, buf, objectID, artifact, contentType)
+	return s.uploadMultipart(ctx, buf, objectID, src)
 }
 
 // PutRequest duration is limited to 7 days (AWS limitation)
@@ -489,7 +474,7 @@ func (s *SimpleStorageService) PutRequest(ctx context.Context, objectID string,
 
 // GetRequest duration is limited to 7 days (AWS limitation)
 func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
-	duration time.Duration, responseContentType, fileName string) (*model.Link, error) {
+	duration time.Duration, fileName string) (*model.Link, error) {
 
 	if err := s.validateDurationLimits(duration); err != nil {
 		return nil, err
@@ -498,12 +483,9 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
 	objectID = getArtifactByTenant(ctx, objectID)
 
 	params := &s3.GetObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(objectID),
-	}
-
-	if responseContentType != "" {
-		params.ResponseContentType = &responseContentType
+		Bucket:              aws.String(s.bucket),
+		Key:                 aws.String(objectID),
+		ResponseContentType: s.contentType,
 	}
 
 	if fileName != "" {
@@ -555,40 +537,4 @@ func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) er
 	}
 
 	return nil
-}
-
-// LastModified returns last file modification time.
-// If object not found return ErrFileStorageFileNotFound
-func (s *SimpleStorageService) LastModified(
-	ctx context.Context,
-	objectID string,
-) (time.Time, error) {
-
-	objectID = getArtifactByTenant(ctx, objectID)
-
-	params := &s3.ListObjectsInput{
-		// Required
-		Bucket: aws.String(s.bucket),
-
-		// Optional
-		MaxKeys: aws.Int64(1),
-		Prefix:  aws.String(objectID),
-	}
-
-	resp, err := s.client.ListObjects(params)
-	if err != nil {
-		return time.Time{}, errors.Wrap(err, "Searching for file")
-	}
-
-	if len(resp.Contents) == 0 {
-		return time.Time{}, ErrFileStorageFileNotFound
-	}
-
-	// Note: Response should contain max 1 object (MaxKetys=1)
-	// Double check if it's exact match as object search matches prefix.
-	if *resp.Contents[0].Key != objectID {
-		return time.Time{}, ErrFileStorageFileNotFound
-	}
-
-	return *resp.Contents[0].LastModified, nil
 }
