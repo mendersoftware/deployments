@@ -300,7 +300,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	go func() (err error) {
 		defer func() { ch <- err }()
 		err = d.objectStorage.PutObject(
-			ctx, artifactID, pR,
+			ctx, model.ImagePathFromContext(ctx, artifactID), pR,
 		)
 		if err != nil {
 			pR.CloseWithError(err)
@@ -350,7 +350,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	if err = d.db.InsertImage(ctx, image); err != nil {
 		// Try to remove the storage from s3.
 		if errDelete := d.objectStorage.DeleteObject(
-			ctx, artifactID,
+			ctx, model.ImagePathFromContext(ctx, artifactID),
 		); errDelete != nil {
 			l.Errorf(
 				"failed to clean up artifact storage after failure: %s",
@@ -391,10 +391,11 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 	if err != nil {
 		return "", err
 	}
+	imgPath := model.ImagePathFromContext(ctx, imgID)
 
 	link, err := d.objectStorage.GetRequest(
 		ctx,
-		imgID,
+		imgPath,
 		DefaultImageGenerationLinkExpire,
 		"",
 	)
@@ -403,7 +404,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 	}
 	multipartGenerateImageMsg.GetArtifactURI = link.Uri
 
-	link, err = d.objectStorage.DeleteRequest(ctx, imgID, DefaultImageGenerationLinkExpire)
+	link, err = d.objectStorage.DeleteRequest(ctx, imgPath, DefaultImageGenerationLinkExpire)
 	if err != nil {
 		return "", err
 	}
@@ -411,7 +412,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 
 	err = d.workflowsClient.StartGenerateArtifact(ctx, multipartGenerateImageMsg)
 	if err != nil {
-		if cleanupErr := d.objectStorage.DeleteObject(ctx, imgID); cleanupErr != nil {
+		if cleanupErr := d.objectStorage.DeleteObject(ctx, imgPath); cleanupErr != nil {
 			return "", errors.Wrap(err, cleanupErr.Error())
 		}
 		return "", err
@@ -494,7 +495,7 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 		return "", err
 	}
 	err = d.objectStorage.PutObject(
-		ctx, artifactID, multipartMsg.FileReader,
+		ctx, model.ImagePathFromContext(ctx, artifactID), multipartMsg.FileReader,
 	)
 	if err != nil {
 		return "", err
@@ -553,7 +554,8 @@ func (d *Deployments) DeleteImage(ctx context.Context, imageID string) error {
 	if err != nil {
 		return err
 	}
-	if err := d.objectStorage.DeleteObject(ctx, imageID); err != nil {
+	imagePath := model.ImagePathFromContext(ctx, imageID)
+	if err := d.objectStorage.DeleteObject(ctx, imagePath); err != nil {
 		return errors.Wrap(err, "Deleting image file")
 	}
 
@@ -637,16 +639,15 @@ func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 	if err != nil {
 		return nil, err
 	}
-
-	_, err = d.objectStorage.StatObject(ctx, imageID)
+	imagePath := model.ImagePathFromContext(ctx, imageID)
+	_, err = d.objectStorage.StatObject(ctx, imagePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image file")
 	}
 
 	fileName := image.ArtifactMeta.Name + ".mender"
 
-	link, err := d.objectStorage.GetRequest(ctx, imageID,
-		expire, fileName)
+	link, err := d.objectStorage.GetRequest(ctx, imagePath, expire, fileName)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
 	}
@@ -1310,8 +1311,8 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		return nil, err
 	}
 
-	link, err := d.objectStorage.GetRequest(ctx, deviceDeployment.Image.Id,
-		DefaultUpdateDownloadLinkExpire, "")
+	imagePath := model.ImagePathFromContext(ctx, deviceDeployment.Image.Id)
+	link, err := d.objectStorage.GetRequest(ctx, imagePath, DefaultUpdateDownloadLinkExpire, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}

@@ -30,8 +30,6 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/go-lib-micro/identity"
-
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
 )
@@ -122,14 +120,6 @@ func New(ctx context.Context, bucket string, opts ...*Options) (*SimpleStorageSe
 	return s3c, nil
 }
 
-func getArtifactByTenant(ctx context.Context, objectID string) string {
-	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 {
-		return fmt.Sprintf("%s/%s", id.Tenant, objectID)
-	}
-
-	return objectID
-}
-
 func (s *SimpleStorageService) init(ctx context.Context) error {
 	hparams := &s3.HeadBucketInput{
 		Bucket: aws.String(s.bucket),
@@ -204,8 +194,7 @@ func (s *SimpleStorageService) HealthCheck(ctx context.Context) error {
 
 // Delete removes deleted file from storage.
 // Noop if ID does not exist.
-func (s *SimpleStorageService) DeleteObject(ctx context.Context, objectID string) error {
-	objectID = getArtifactByTenant(ctx, objectID)
+func (s *SimpleStorageService) DeleteObject(ctx context.Context, path string) error {
 	bucket, opts, err := s.optionsFromContext(ctx, false)
 	if err != nil {
 		return err
@@ -214,7 +203,7 @@ func (s *SimpleStorageService) DeleteObject(ctx context.Context, objectID string
 	params := &s3.DeleteObjectInput{
 		// Required
 		Bucket: aws.String(bucket),
-		Key:    aws.String(objectID),
+		Key:    aws.String(path),
 
 		// Optional
 		RequestPayer: types.RequestPayerRequester,
@@ -233,9 +222,8 @@ func (s *SimpleStorageService) DeleteObject(ctx context.Context, objectID string
 // Exists check if selected object exists in the storage
 func (s *SimpleStorageService) StatObject(
 	ctx context.Context,
-	objectID string,
+	path string,
 ) (*storage.ObjectInfo, error) {
-	objectID = getArtifactByTenant(ctx, objectID)
 
 	bucket, opts, err := s.optionsFromContext(ctx, false)
 	if err != nil {
@@ -244,7 +232,7 @@ func (s *SimpleStorageService) StatObject(
 
 	params := &s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(objectID),
+		Key:    aws.String(path),
 	}
 	rsp, err := s.client.HeadObject(ctx, params, opts)
 	if err != nil {
@@ -252,7 +240,7 @@ func (s *SimpleStorageService) StatObject(
 	}
 
 	return &storage.ObjectInfo{
-		Path:         objectID,
+		Path:         path,
 		LastModified: rsp.LastModified,
 	}, nil
 }
@@ -401,11 +389,9 @@ func (s *SimpleStorageService) uploadMultipart(
 // single request.
 func (s *SimpleStorageService) PutObject(
 	ctx context.Context,
-	objectID string,
+	path string,
 	src io.Reader,
 ) error {
-	objectID = getArtifactByTenant(ctx, objectID)
-
 	buf := make([]byte, s.bufferSize)
 	n, err := fillBuffer(buf, src)
 
@@ -423,7 +409,7 @@ func (s *SimpleStorageService) PutObject(
 		uploadParams := &s3.PutObjectInput{
 			Body:        bytes.NewReader(buf[:n]),
 			Bucket:      &bucket,
-			Key:         &objectID,
+			Key:         &path,
 			ContentType: s.contentType,
 		}
 		_, err = s.client.PutObject(
@@ -432,18 +418,17 @@ func (s *SimpleStorageService) PutObject(
 			opts,
 		)
 	} else if err == nil {
-		err = s.uploadMultipart(ctx, buf, objectID, src)
+		err = s.uploadMultipart(ctx, buf, path, src)
 	}
 	return err
 }
 
 func (s *SimpleStorageService) PutRequest(
 	ctx context.Context,
-	objectID string,
+	path string,
 	expireAfter time.Duration,
 ) (*model.Link, error) {
 
-	objectID = getArtifactByTenant(ctx, objectID)
 	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
 	bucket, opts, err := s.optionsFromContext(ctx, true)
 	if err != nil {
@@ -453,7 +438,7 @@ func (s *SimpleStorageService) PutRequest(
 	params := &s3.PutObjectInput{
 		// Required
 		Bucket: aws.String(bucket),
-		Key:    aws.String(objectID),
+		Key:    aws.String(path),
 	}
 
 	signDate := time.Now()
@@ -479,11 +464,10 @@ func (s *SimpleStorageService) PutRequest(
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
-func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
+func (s *SimpleStorageService) GetRequest(ctx context.Context, path string,
 	expireAfter time.Duration, fileName string) (*model.Link, error) {
 
 	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
-	objectID = getArtifactByTenant(ctx, objectID)
 	bucket, opts, err := s.optionsFromContext(ctx, true)
 	if err != nil {
 		return nil, err
@@ -491,7 +475,7 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
 
 	params := &s3.GetObjectInput{
 		Bucket:              aws.String(bucket),
-		Key:                 aws.String(objectID),
+		Key:                 aws.String(path),
 		ResponseContentType: s.contentType,
 	}
 
@@ -520,12 +504,11 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
 // DeleteRequest returns a presigned deletion request
 func (s *SimpleStorageService) DeleteRequest(
 	ctx context.Context,
-	objectID string,
+	path string,
 	expireAfter time.Duration,
 ) (*model.Link, error) {
 
 	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
-	objectID = getArtifactByTenant(ctx, objectID)
 	bucket, opts, err := s.optionsFromContext(ctx, true)
 	if err != nil {
 		return nil, err
@@ -533,7 +516,7 @@ func (s *SimpleStorageService) DeleteRequest(
 
 	params := &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(objectID),
+		Key:    aws.String(path),
 	}
 
 	signDate := time.Now()
