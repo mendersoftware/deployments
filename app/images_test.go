@@ -196,7 +196,6 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-		mock.AnythingOfType("string"),
 	).Return(nil, errors.New("error get request"))
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
@@ -244,7 +243,6 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-		mock.AnythingOfType("string"),
 	).Return(&model.Link{
 		Uri: "GET",
 	}, nil)
@@ -285,7 +283,6 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-		mock.AnythingOfType("string"),
 	).Return(&model.Link{
 		Uri: "GET",
 	}, nil)
@@ -365,7 +362,6 @@ func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testin
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-		mock.AnythingOfType("string"),
 	).Return(&model.Link{
 		Uri: "GET",
 	}, nil)
@@ -447,7 +443,6 @@ func TestGenerateImageSuccessful(t *testing.T) {
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-		mock.AnythingOfType("string"),
 	).Return(&model.Link{
 		Uri: "GET",
 	}, nil)
@@ -512,7 +507,6 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-		mock.AnythingOfType("string"),
 	).Return(&model.Link{
 		Uri: "GET",
 	}, nil)

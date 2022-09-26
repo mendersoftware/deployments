@@ -397,7 +397,6 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 		ctx,
 		imgPath,
 		DefaultImageGenerationLinkExpire,
-		"",
 	)
 	if err != nil {
 		return "", err
@@ -645,9 +644,7 @@ func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 		return nil, errors.Wrap(err, "Searching for image file")
 	}
 
-	fileName := image.ArtifactMeta.Name + ".mender"
-
-	link, err := d.objectStorage.GetRequest(ctx, imagePath, expire, fileName)
+	link, err := d.objectStorage.GetRequest(ctx, imagePath, expire)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
 	}
@@ -1312,7 +1309,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	}
 
 	imagePath := model.ImagePathFromContext(ctx, deviceDeployment.Image.Id)
-	link, err := d.objectStorage.GetRequest(ctx, imagePath, DefaultUpdateDownloadLinkExpire, "")
+	link, err := d.objectStorage.GetRequest(ctx, imagePath, DefaultUpdateDownloadLinkExpire)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}

@@ -49,6 +49,7 @@ func SetupS3(ctx context.Context) (storage.ObjectStorage, error) {
 	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
 	options := s3.NewOptions().
 		SetContentType(app.ArtifactContentType).
+		SetFilenameSuffix(".mender").
 		SetForcePathStyle(c.GetBool(dconfig.SettingAwsS3ForcePathStyle)).
 		SetUseAccelerate(c.GetBool(dconfig.SettingAwsS3UseAccelerate)).
 		SetBufferSize(int(bufferSize))

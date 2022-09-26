@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -61,6 +62,7 @@ type SimpleStorageService struct {
 	bucket        string
 	bufferSize    int
 	contentType   *string
+	fileSuffix    *string
 }
 
 type StaticCredentials struct {
@@ -457,15 +459,19 @@ func (s *SimpleStorageService) PutRequest(
 		signDate = date
 	}
 
-	return model.NewLink(
-		req.URL,
-		signDate.Add(expireAfter),
-	), nil
+	return &model.Link{
+		Uri:    req.URL,
+		Expire: signDate.Add(expireAfter),
+		Method: http.MethodPut,
+	}, nil
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
-func (s *SimpleStorageService) GetRequest(ctx context.Context, path string,
-	expireAfter time.Duration, fileName string) (*model.Link, error) {
+func (s *SimpleStorageService) GetRequest(
+	ctx context.Context,
+	objectPath string,
+	expireAfter time.Duration,
+) (*model.Link, error) {
 
 	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
 	bucket, opts, err := s.optionsFromContext(ctx, true)
@@ -475,12 +481,13 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, path string,
 
 	params := &s3.GetObjectInput{
 		Bucket:              aws.String(bucket),
-		Key:                 aws.String(path),
+		Key:                 aws.String(objectPath),
 		ResponseContentType: s.contentType,
 	}
 
-	if fileName != "" {
-		contentDisposition := fmt.Sprintf("attachment; filename=\"%s\"", fileName)
+	if s.fileSuffix != nil {
+		filename := path.Base(objectPath) + *s.fileSuffix
+		contentDisposition := fmt.Sprintf("attachment; filename=\"%s\"", filename)
 		params.ResponseContentDisposition = &contentDisposition
 	}
 
@@ -498,7 +505,11 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, path string,
 		signDate = date
 	}
 
-	return model.NewLink(req.URL, signDate.Add(expireAfter)), nil
+	return &model.Link{
+		Uri:    req.URL,
+		Expire: signDate.Add(expireAfter),
+		Method: http.MethodGet,
+	}, nil
 }
 
 // DeleteRequest returns a presigned deletion request
@@ -533,7 +544,11 @@ func (s *SimpleStorageService) DeleteRequest(
 		signDate = date
 	}
 
-	return model.NewLink(req.URL, signDate.Add(expireAfter)), nil
+	return &model.Link{
+		Uri:    req.URL,
+		Expire: signDate.Add(expireAfter),
+		Method: http.MethodDelete,
+	}, nil
 }
 
 // presign requests are limited to 7 days
