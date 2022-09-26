@@ -16,10 +16,15 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
 
 	"github.com/mendersoftware/deployments/model"
+)
+
+var (
+	ErrObjectNotFound = errors.New("object not found")
 )
 
 // ObjectStorage allows to store and manage large files
@@ -43,6 +48,7 @@ type ObjectStorage interface {
 type ObjectInfo struct {
 	Path string
 
+	Size *int64
+
 	LastModified *time.Time
-	Created      *time.Time
 }

@@ -48,11 +48,6 @@ const (
 	paramAmzDateFormat = "20060102T150405Z"
 )
 
-// Errors specific to interface
-var (
-	ErrFileStorageFileNotFound = errors.New("File not found")
-)
-
 // SimpleStorageService - AWS S3 client.
 // Data layer for file storage.
 // Implements model.FileStorage interface
@@ -214,6 +209,12 @@ func (s *SimpleStorageService) DeleteObject(ctx context.Context, path string) er
 	// ignore return response which contains charing info
 	// and file versioning data which are not in interest
 	_, err = s.client.DeleteObject(ctx, params, opts)
+	var rspErr *awsHttp.ResponseError
+	if errors.As(err, &rspErr) {
+		if rspErr.Response.StatusCode == http.StatusNotFound {
+			err = storage.ErrObjectNotFound
+		}
+	}
 	if err != nil {
 		return errors.WithMessage(err, "s3: error deleting object")
 	}
@@ -237,6 +238,12 @@ func (s *SimpleStorageService) StatObject(
 		Key:    aws.String(path),
 	}
 	rsp, err := s.client.HeadObject(ctx, params, opts)
+	var rspErr *awsHttp.ResponseError
+	if errors.As(err, &rspErr) {
+		if rspErr.Response.StatusCode == http.StatusNotFound {
+			err = storage.ErrObjectNotFound
+		}
+	}
 	if err != nil {
 		return nil, errors.WithMessage(err, "s3: error getting object info")
 	}
@@ -244,6 +251,7 @@ func (s *SimpleStorageService) StatObject(
 	return &storage.ObjectInfo{
 		Path:         path,
 		LastModified: rsp.LastModified,
+		Size:         &rsp.ContentLength,
 	}, nil
 }
 
@@ -273,19 +281,12 @@ func (s *SimpleStorageService) uploadMultipart(
 
 	// Pre-allocate 100 completed part (generous guesstimate)
 	completedParts := make([]types.CompletedPart, 0, 100)
-	// expiresAt is the maximum time the s3 service will cache the uploaded
-	// parts. Defaults to one hour.
-	expiresAt := time.Now().Add(time.Hour)
-	if deadline, ok := ctx.Deadline(); ok {
-		expiresAt = deadline
-	}
 
 	// Initiate Multipart upload
 	createParams := &s3.CreateMultipartUploadInput{
 		Bucket:      &bucket,
 		Key:         &objectPath,
 		ContentType: s.contentType,
-		Expires:     &expiresAt,
 	}
 	rspCreate, err := s.client.CreateMultipartUpload(
 		ctx, createParams, opts,
@@ -477,6 +478,10 @@ func (s *SimpleStorageService) GetRequest(
 	bucket, opts, err := s.optionsFromContext(ctx, true)
 	if err != nil {
 		return nil, err
+	}
+
+	if _, err := s.StatObject(ctx, objectPath); err != nil {
+		return nil, errors.WithMessage(err, "s3: head object")
 	}
 
 	params := &s3.GetObjectInput{
