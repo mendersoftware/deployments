@@ -85,6 +85,9 @@ func doMain(args []string) {
 	app.Before = func(args *cli.Context) error {
 
 		l := log.NewEmpty()
+		for _, alias := range dconfig.Aliases {
+			config.Config.RegisterAlias(alias.Alias, alias.Key)
+		}
 		err := config.FromConfigFile(configPath, dconfig.Defaults)
 		if err != nil {
 			return cli.NewExitError(

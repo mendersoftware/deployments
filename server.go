@@ -31,8 +31,13 @@ import (
 	"github.com/mendersoftware/deployments/client/reporting"
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/storage"
+	"github.com/mendersoftware/deployments/storage/azblob"
 	"github.com/mendersoftware/deployments/storage/s3"
 	mstore "github.com/mendersoftware/deployments/store/mongo"
+)
+
+const (
+	fileSuffixArtifact = ".mender"
 )
 
 func SetupS3(ctx context.Context) (storage.ObjectStorage, error) {
@@ -40,16 +45,16 @@ func SetupS3(ctx context.Context) (storage.ObjectStorage, error) {
 
 	// Calculate multipart buffer size: the minimum buffer size that covers
 	// the maximum image size aligned to multiple of 5MiB.
-	maxImageSize := c.GetInt64(dconfig.SettingAwsS3MaxImageSize)
+	maxImageSize := c.GetInt64(dconfig.SettingStorageMaxImageSize)
 	bufferSize := (((maxImageSize - 1) /
 		(s3.MultipartMaxParts * s3.MultipartMinSize)) + 1) *
 		s3.MultipartMinSize
 
 	// Compute the buffer size
-	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
+	bucket := c.GetString(dconfig.SettingStorageBucket)
 	options := s3.NewOptions().
 		SetContentType(app.ArtifactContentType).
-		SetFilenameSuffix(".mender").
+		SetFilenameSuffix(fileSuffixArtifact).
 		SetForcePathStyle(c.GetBool(dconfig.SettingAwsS3ForcePathStyle)).
 		SetUseAccelerate(c.GetBool(dconfig.SettingAwsS3UseAccelerate)).
 		SetBufferSize(int(bufferSize))
@@ -77,6 +82,30 @@ func SetupS3(ctx context.Context) (storage.ObjectStorage, error) {
 	return s3.New(ctx, bucket, options)
 }
 
+func SetupBlobStorage(ctx context.Context) (storage.ObjectStorage, error) {
+	c := config.Config
+
+	options := azblob.NewOptions().
+		SetContentType(app.ArtifactContentType).
+		SetFilenameSuffix(fileSuffixArtifact)
+
+	if c.IsSet(dconfig.SettingAzureConnectionString) {
+		options.SetConnectionString(c.GetString(dconfig.SettingAzureConnectionString))
+	} else if c.IsSet(dconfig.SettingAzureSharedKeyAccount) &&
+		c.IsSet(dconfig.SettingAzureSharedKeyAccountKey) {
+		creds := azblob.SharedKeyCredentials{
+			AccountName: c.GetString(dconfig.SettingAzureSharedKeyAccount),
+			AccountKey:  c.GetString(dconfig.SettingAzureSharedKeyAccountKey),
+		}
+		if c.IsSet(dconfig.SettingAzureSharedKeyURI) {
+			uri := c.GetString(dconfig.SettingAzureSharedKeyURI)
+			creds.URI = &uri
+		}
+		options.SetSharedKey(creds)
+	}
+	return azblob.New(ctx, c.GetString(dconfig.SettingStorageBucket), options)
+}
+
 func RunServer(ctx context.Context) error {
 	c := config.Config
 	dbClient, err := mstore.NewMongoClient(ctx, c)
@@ -90,9 +119,20 @@ func RunServer(ctx context.Context) error {
 	ds := mstore.NewDataStoreMongoWithClient(dbClient)
 
 	// Storage Layer
-	objStore, err := SetupS3(ctx)
+	var objStore storage.ObjectStorage
+	switch defStorage := c.GetString(dconfig.SettingDefaultStorage); defStorage {
+	case dconfig.StorageTypeAWS:
+		objStore, err = SetupS3(ctx)
+	case dconfig.StorageTypeAzure:
+		objStore, err = SetupBlobStorage(ctx)
+	default:
+		err = errors.Errorf(
+			`storage type must be one of %q or %q, received value %q`,
+			dconfig.StorageTypeAWS, dconfig.StorageTypeAzure, defStorage,
+		)
+	}
 	if err != nil {
-		return errors.WithMessage(err, "main: failed to setup s3 client")
+		return errors.WithMessage(err, "main: failed to setup storage client")
 	}
 
 	app := app.NewDeployments(ds, objStore)
@@ -108,7 +148,7 @@ func RunServer(ctx context.Context) error {
 		SetPresignExpire(time.Second * expireSec).
 		SetPresignHostname(c.GetString(dconfig.SettingPresignHost)).
 		SetPresignScheme(c.GetString(dconfig.SettingPresignScheme)).
-		SetMaxImageSize(c.GetInt64(dconfig.SettingAwsS3MaxImageSize))
+		SetMaxImageSize(c.GetInt64(dconfig.SettingStorageMaxImageSize))
 	if key, err := base64.RawStdEncoding.DecodeString(
 		base64Repl.Replace(
 			c.GetString(dconfig.SettingPresignSecret),

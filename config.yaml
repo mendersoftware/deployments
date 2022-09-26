@@ -72,13 +72,57 @@ mender-gateway: "http://mender-inventory:8080"
 
 mender-workflows: "http://mender-workflows-server:8080"
 
+
+storage:
+    # storage.default: Default storage service
+    # Must be one of ["aws", "azure"]
+    # Defaults to: "aws"
+    # Env key: DEPLOYMENTS_STORAGE_DEFAULT
+    default: "aws"
+
+    # storage.bucket: Name of the bucket (azure: container) to store artifacts.
+    #
+    # Bucket should allow PUT/GET methods using CORS, example CORS conifg:
+    #     <CORSConfiguration>
+    #     <CORSRule>
+    #         <AllowedOrigin>*</AllowedOrigin>
+    #         <AllowedMethod>PUT</AllowedMethod>
+    #         <AllowedMethod>GET</AllowedMethod>
+    #         <MaxAgeSeconds>3000</MaxAgeSeconds>
+    #         <AllowedHeader>*</AllowedHeader>
+    #     </CORSRule>
+    #     </CORSConfiguration>
+    #
+    # Defaults to: "mender-artifact-storage"
+    # Overwrite with environment variable: DEPLOYMENTS_STORAGE_BUCKET
+    bucket: "mender-artifact-storage"
+
+    # Maximum image size in bytes
+    # Defaults to: 10GB
+    # Overwrite with environment variable: DEPLOYMENTS_STORAGE_MAX_IMAGE_SIZE
+
+    # max_image_size: 10737418240
+
+    # Download link expiry duration
+    # Number of second a presigned download URL is valid
+    # Defaults to: 900 (15 minutes)
+    # Override with environment variable: DEPLOYMENTS_STORAGE_DOWNLOAD_EXPIRE_SECONDS
+    # download_expire_seconds: 900
+
+    # Download link expiry duration
+    # Number of second a presigned upload URL is valid
+    # Defaults to: 3600 (60 minutes)
+    # Override with environment variable: DEPLOYMENTS_STORAGE_UPLOAD_EXPIRE_SECONDS
+    # upload_expire_seconds: 3600
+
+
 # AWS configuration section
 aws:
 
     # AWS region for minio shoud be "us-east-1"
     # Defaults to: us-east-1
     # Overwrite with environment variable: DEPLOYMENTS_AWS_REGION
-    
+
     region: us-east-1
 
     # S3 bucket where the uploaded images will be stored and served from.
@@ -95,8 +139,8 @@ aws:
     #     </CORSConfiguration>
     # Defaults to: "mender-artifact-storage"
     # Overwrite with environment variable: DEPLOYMENTS_AWS_BUCKET
-    
-    bucket: mender-artifact-storage
+    # DEPRECATED: (alias for storage.bucket)
+    # bucket: mender-artifact-storage
 
     # Force S3 URI style to path
     #
@@ -141,6 +185,7 @@ aws:
     # Maximum image size
     # Defaults to: 10GB
     # Overwrite with environment variable: DEPLOYMENTS_AWS_MAX_IMAGE_SIZE
+    # DEPRECATED: alias for storage.max_image_size
 
     # max_image_size: 10737418240
 
@@ -148,13 +193,15 @@ aws:
     # Number of second a presigned download URL is valid
     # Defaults to: 900 (15 minutes)
     # Override with environment variable: DEPLOYMENTS_AWS_DOWNLOAD_EXPIRE_SECONDS
-    download_expire_seconds: 900
+    # DEPRECATED: alias for storage.download_expire_seconds
+    # download_expire_seconds: 900
 
     # Download link expiry duration
     # Number of second a presigned upload URL is valid
     # Defaults to: 3600 (60 minutes)
     # Override with environment variable: DEPLOYMENTS_AWS_UPLOAD_EXPIRE_SECONDS
-    upload_expire_seconds: 3600
+    # DEPRECATED: alias for storage.upload_expire_seconds
+    # upload_expire_seconds: 3600
 
     # AWS credentials can be provided with described below methods (checked in sequence):
     #
@@ -196,6 +243,44 @@ aws:
     #     secret: SECRET_KEY
     #     token: TOKEN
 
+azure:
+
+  # auth sets the client authentication for the Azure Blob Storage API.
+  # Either a connection_string or a shared_key can be specified, the former take
+  # presedence if both are specified. The credentials MUST be a shared access key
+  # to the storage account.
+  # auth:
+
+    # connection_string configures the shared access key to the storage account
+    # using the connection string format.
+    # NOTE: If set, the shared_key configuration will have no effect.
+    # Environment variable: DEPLOYMENTS_AZURE_AUTH_CONNECTION_STRING
+    #
+    # connection_string: "DefaultEndpointsProtocol=https;AccountName=myStorageAccount;AccountKey=base64encodedsecret=;EndpointSuffix=core.windows.net"
+
+    # shared_key sets the authentication credentials as separate parameters
+    # allowing to fully customize the storage account URL.
+    # shared_key:
+
+      # account_name is the name of the storage account that will be used for
+      # storing artifacts.
+      # Environment variable: DEPLOYMENTS_AZURE_AUTH_SHARED_KEY_ACCOUNT_NAME
+      #
+      # account_name: "myStorageAccount"
+
+      # account_key sets the base64-encoded key for authenticating with Azure
+      # Blob Storage API.
+      # Environment variable: DEPLOYMENTS_AZURE_AUTH_SHARED_KEY_ACCOUNT_KEY
+      #
+      # account_key: "base64encodedsecret="
+
+      # uri optionally sets the service URI for the storage account. defaults to
+      # 'https://<account_name>.core.windows.net' if left unspecified.
+      # Environment variable: DEPLOYMENTS_AZURE_AUTH_SHARED_KEY_URI
+      #
+      # uri: "https://myStorageAccount.not.windows.net"
+
+
 presign:
   # Presign algorithm
   # Signature algorithm used for generating URL signature for signed URLs.
@@ -234,7 +319,7 @@ presign:
   # Overwrite with environment variable: DEPLOYMENTS_PRESIGN_URL_SCHEME
   url_scheme: "https"
 
-# mender-reporting addr 
+# mender-reporting addr
 # Defaults to: "" (disabled by default; searches go to inventory)
 # Overwrite with environment variable: DEPLOYMENTS_REPORTING_ADDR
 

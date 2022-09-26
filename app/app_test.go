@@ -110,7 +110,7 @@ func TestHealthCheck(t *testing.T) {
 						Region:      config.Config.GetString(dconfig.SettingAwsS3Region),
 						ExternalUri: config.Config.GetString(dconfig.SettingAwsExternalURI),
 						Uri:         config.Config.GetString(dconfig.SettingAwsURI),
-						Bucket:      config.Config.GetString(dconfig.SettingAwsS3Bucket),
+						Bucket:      config.Config.GetString(dconfig.SettingStorageBucket),
 						Key:         config.Config.GetString(dconfig.SettingAwsAuthKeyId),
 						Secret:      config.Config.GetString(dconfig.SettingAwsAuthSecret),
 						Token:       config.Config.GetString(dconfig.SettingAwsAuthToken)}, nil)

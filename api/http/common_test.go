@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -43,5 +43,8 @@ func setUpRestTest(route string, routeType routerTypeHandler,
 }
 
 func init() {
-	config.Config.SetDefault(dconfig.SettingAwsS3MaxImageSize, 10*1024*1024*1024)
+	config.Config.SetDefault(
+		dconfig.SettingStorageMaxImageSize,
+		dconfig.SettingStorageMaxImageSizeDefault,
+	)
 }
