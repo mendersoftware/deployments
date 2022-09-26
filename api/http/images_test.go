@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -625,7 +625,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 			responseBody:             "Artifact file too large",
 			appGenerateImage:         true,
 			appGenerateImageResponse: "",
-			appGenerateImageError:    app.ErrModelArtifactFileTooLarge,
+			appGenerateImageError:    ErrModelArtifactFileTooLarge,
 		},
 		{
 			requestBodyObject: []h.Part{

@@ -122,7 +122,7 @@ func TestGetReleases(t *testing.T) {
 			fileStorage := &fs_mocks.ObjectStorage{}
 
 			restView := new(view.RESTView)
-			app := app.NewDeployments(store, fileStorage, app.ArtifactContentType)
+			app := app.NewDeployments(store, fileStorage)
 
 			c := NewDeploymentsApiHandlers(store, restView, app)
 
@@ -235,7 +235,7 @@ func TestListReleases(t *testing.T) {
 			fileStorage := &fs_mocks.ObjectStorage{}
 
 			restView := new(view.RESTView)
-			app := app.NewDeployments(store, fileStorage, app.ArtifactContentType)
+			app := app.NewDeployments(store, fileStorage)
 
 			c := NewDeploymentsApiHandlers(store, restView, app)
 

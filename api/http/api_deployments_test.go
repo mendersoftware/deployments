@@ -1542,12 +1542,12 @@ func TestPutTenantStorageSettings(t *testing.T) {
 		},
 		"error no data": {
 			tenantID:   "",
-			settings:   &model.StorageSettings{},
+			settings:   nil,
 			httpStatus: http.StatusNoContent,
 		},
 		"error no data multi-tenant": {
 			tenantID:   "tenant1",
-			settings:   &model.StorageSettings{},
+			settings:   nil,
 			httpStatus: http.StatusNoContent,
 		},
 		"error invalid data": {

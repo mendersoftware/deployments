@@ -22,10 +22,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,27 +40,24 @@ func TestHealthCheck(t *testing.T) {
 		panic(err)
 	}
 
-	httpClient := http.Client{
+	httpClient := &http.Client{
 		Transport: &http.Transport{
 			DialTLS: func(network, addr string) (net.Conn, error) {
 				return net.Dial(network, srvURL.Host)
 			},
 		},
 	}
-	sess, _ := session.NewSession()
+
 	sss := SimpleStorageService{
-		client: s3.New(
-			sess,
-			aws.NewConfig().
-				WithHTTPClient(&httpClient).
-				WithRegion("test").
-				WithCredentials(credentials.
-					NewStaticCredentials(
-						"test-id",
-						"test-secret",
-						"test-token",
-					)),
-		),
+		client: s3.New(s3.Options{
+			Region:     "test",
+			HTTPClient: httpClient,
+			Credentials: StaticCredentials{
+				Key:    "test",
+				Secret: "secret",
+				Token:  "token",
+			},
+		}),
 		bucket: "test",
 	}
 

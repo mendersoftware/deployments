@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 package utils
 
 import (
-	"errors"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,12 +27,14 @@ func (r NoopReader) Read(b []byte) (int, error) {
 	return len(b), nil
 }
 
+type EOFReader struct{}
+
+func (r EOFReader) Read(b []byte) (int, error) {
+	return 0, io.EOF
+}
+
 func TestLimitedReader(t *testing.T) {
-	lr := &LimitedReader{
-		R:          NoopReader{},
-		N:          48,
-		LimitError: errors.New("bogus error"),
-	}
+	lr := ReadAtMost(NoopReader{}, 48)
 	b := make([]byte, 32)
 
 	n, err := lr.Read(b)
@@ -40,10 +42,11 @@ func TestLimitedReader(t *testing.T) {
 	assert.Equal(t, 32, n)
 
 	n, err = lr.Read(b)
-	assert.NoError(t, err)
-	assert.Equal(t, 16, n)
+	assert.ErrorIs(t, err, ErrStreamTooLarge)
+	assert.Equal(t, 32, n)
 
+	lr = ReadExactly(EOFReader{}, 48)
 	n, err = lr.Read(b)
-	assert.EqualError(t, err, "bogus error")
 	assert.Equal(t, 0, n)
+	assert.Equal(t, io.ErrUnexpectedEOF, err)
 }

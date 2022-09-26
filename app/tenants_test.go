@@ -59,7 +59,7 @@ func TestProvisionTenant(t *testing.T) {
 
 			fs := &fs_mocks.ObjectStorage{}
 
-			d := NewDeployments(&db, fs, ArtifactContentType)
+			d := NewDeployments(&db, fs)
 
 			ctx := context.Background()
 

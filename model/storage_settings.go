@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -34,32 +34,29 @@ type StorageSettings struct {
 	UseAccelerate  bool   `json:"use_accelerate" bson:"use_accelerate"`
 }
 
-func ParseStorageSettingsRequest(source io.Reader) (*StorageSettings, error) {
-	var s StorageSettings
+func ParseStorageSettingsRequest(source io.Reader) (settings *StorageSettings, err error) {
+	// NOTE: by wrapping StorageSettings as an embedded struct field,
+	// passing an empty object `{}` will unmarshall as nil.
+	var s struct{ *StorageSettings }
 
-	if err := json.NewDecoder(source).Decode(&s); err != nil {
-		return nil, err
+	err = json.NewDecoder(source).Decode(&s)
+	if s.StorageSettings != nil {
+		settings = s.StorageSettings
+		err = errors.WithMessage(
+			settings.Validate(),
+			"invalid settings schema",
+		)
 	}
-
-	if s.Region != "" || s.Bucket != "" || s.Key != "" || s.Secret != "" {
-		keys := []string{s.Region, s.Bucket, s.Key, s.Secret}
-		for _, k := range keys {
-			if k == "" {
-				return nil, errors.New("Invalid input data.")
-			}
-		}
-	}
-
-	return &s, nil
+	return settings, err
 }
 
 // Validate checks structure according to valid tags
 func (s StorageSettings) Validate() error {
 	return validation.ValidateStruct(&s,
-		validation.Field(&s.Region, validation.Length(5, 20)),
-		validation.Field(&s.Bucket, validation.Length(5, 100)),
-		validation.Field(&s.Key, validation.Length(5, 50)),
-		validation.Field(&s.Secret, validation.Length(5, 100)),
+		validation.Field(&s.Region, validation.Required, validation.Length(5, 20)),
+		validation.Field(&s.Bucket, validation.Required, validation.Length(5, 100)),
+		validation.Field(&s.Key, validation.Required, validation.Length(5, 50)),
+		validation.Field(&s.Secret, validation.Required, validation.Length(5, 100)),
 		validation.Field(&s.Uri, validation.Length(3, 2000)),
 		validation.Field(&s.ExternalUri, validation.Length(3, 2000)),
 		validation.Field(&s.Token, validation.Length(5, 100)),

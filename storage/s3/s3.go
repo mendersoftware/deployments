@@ -19,31 +19,34 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math"
-	"strings"
+	"net/http"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsHttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
 
-	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
 )
 
 const (
-	ExpireMaxLimit                 = 7 * 24 * time.Hour
-	ExpireMinLimit                 = 1 * time.Minute
-	ErrCodeBucketAlreadyOwnedByYou = "BucketAlreadyOwnedByYou"
-	mib                            = 1024 * 1024
+	ExpireMaxLimit = 7 * 24 * time.Hour
+	ExpireMinLimit = 1 * time.Minute
+
+	MultipartMaxParts = 10000
+	MultipartMinSize  = 5 * mib
+
+	// Constants not exposed by aws-sdk-go
+	// from /aws/signer/v4/internal/v4
+	paramAmzDate       = "X-Amz-Date"
+	paramAmzDateFormat = "20060102T150405Z"
 )
 
 // Errors specific to interface
@@ -55,116 +58,66 @@ var (
 // Data layer for file storage.
 // Implements model.FileStorage interface
 type SimpleStorageService struct {
-	client      *s3.S3
-	bucket      string
-	tagArtifact bool
-	partSize    int64
-	contentType *string
+	client        *s3.Client
+	presignClient *s3.PresignClient
+	bucket        string
+	bufferSize    int
+	contentType   *string
 }
 
-// NewSimpleStorageServiceStatic create new S3 client model.
-// AWS authentication keys are automatically reloaded from env variables.
-func NewSimpleStorageServiceStatic(
-	bucket,
-	key,
-	secret,
-	region,
-	token,
-	uri,
-	contentType string,
-	tag_artifact,
-	forcePathStyle bool,
-	useAccelerate bool,
-) (*SimpleStorageService, error) {
-	// NOTE: This size along with the 10000 part limit sets the ultimate
-	//       limit on the upload size.
-	maxImageSize := config.Config.GetInt64(dconfig.SettingAwsS3MaxImageSize)
-	partSize := int64(math.Max(5*mib, float64(((maxImageSize-1)/(10000*mib)+1)*mib)))
-	// configuration
-	credentials := credentials.NewStaticCredentials(key, secret, token)
-	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
-
-	if len(uri) > 0 {
-		sslDisabled := !strings.HasPrefix(uri, "https://")
-		config = config.WithDisableSSL(sslDisabled).WithEndpoint(uri)
-	}
-
-	// Amazon S3 will no longer support path-style API requests starting September 30th, 2020
-	// S3 buckets created after September 30, 2020 will support only virtual-hosted style requests
-	// Setting S3ForcePathStyle to false forces virtual-hosted style.
-	config.S3ForcePathStyle = aws.Bool(forcePathStyle)
-
-	// If `true`, enables the S3 Accelerate feature. For all operations
-	// compatible with S3 Accelerate will use the accelerate endpoint for
-	// requests. Requests not compatible will fall back to normal S3 requests.
-	config.S3UseAccelerate = aws.Bool(useAccelerate)
-
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: *config,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	client := s3.New(sess)
-
-	s3c := &SimpleStorageService{
-		client:      client,
-		bucket:      bucket,
-		tagArtifact: tag_artifact,
-		partSize:    partSize,
-		contentType: aws.String(contentType),
-	}
-	err = s3c.InitBucket(context.Background(), bucket)
-	if err != nil {
-		return nil, err
-	}
-	return s3c, nil
+type StaticCredentials struct {
+	Key    string `json:"key"`
+	Secret string `json:"secret"`
+	Token  string `json:"token"`
 }
 
-// NewSimpleStorageServiceDefaults create new S3 client model.
-// Use default authentication provides which looks at env variables,
-// Aws profile file and ec2 iam role
-func NewSimpleStorageServiceDefaults(
-	bucket, region, contentType string,
-) (*SimpleStorageService, error) {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Region: aws.String(region),
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	client := s3.New(sess)
-
-	s3c := &SimpleStorageService{
-		client:      client,
-		bucket:      bucket,
-		contentType: aws.String(contentType),
-	}
-	err = s3c.InitBucket(context.Background(), bucket)
-	if err != nil {
-		return nil, err
-	}
-	return s3c, err
+func (creds StaticCredentials) Validate() error {
+	return validation.ValidateStruct(&creds,
+		validation.Field(&creds.Key, validation.Required),
+		validation.Field(&creds.Secret, validation.Required),
+	)
 }
 
-func NewSimpleStorageService(bucket, region, contentType string) (*SimpleStorageService, error) {
-	sess, err := session.NewSession()
+func (creds StaticCredentials) awsCredentials() aws.Credentials {
+	return aws.Credentials{
+		AccessKeyID:     creds.Key,
+		SecretAccessKey: creds.Secret,
+		SessionToken:    creds.Token,
+		Source:          "mender:StaticCredentials",
+	}
+}
+
+func (creds StaticCredentials) Retrieve(context.Context) (aws.Credentials, error) {
+	return creds.awsCredentials(), nil
+}
+
+func New(ctx context.Context, bucket string, opts ...*Options) (*SimpleStorageService, error) {
+	opt := NewOptions(opts...)
+	if err := opt.Validate(); err != nil {
+		return nil, errors.WithMessage(err, "s3: invalid configuration")
+	}
+
+	cfg, err := awsConfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
-	client := s3.New(sess)
+
+	clientOpts, presignOpts := opt.toS3Options()
+	client := s3.NewFromConfig(cfg, clientOpts)
+	presignClient := s3.NewPresignClient(client, presignOpts)
 
 	s3c := &SimpleStorageService{
-		client:      client,
-		bucket:      bucket,
-		contentType: aws.String(contentType),
+		client:        client,
+		presignClient: presignClient,
+		bucket:        bucket,
+
+		bufferSize:  *opt.BufferSize,
+		contentType: opt.ContentType,
 	}
-	err = s3c.InitBucket(context.Background(), bucket)
+
+	err = s3c.init(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "s3: failed to check bucket preconditions")
 	}
 	return s3c, nil
 }
@@ -177,47 +130,75 @@ func getArtifactByTenant(ctx context.Context, objectID string) string {
 	return objectID
 }
 
-func (s *SimpleStorageService) InitBucket(ctx context.Context, bucket string) error {
+func (s *SimpleStorageService) init(ctx context.Context) error {
 	hparams := &s3.HeadBucketInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(s.bucket),
 	}
+	var rspErr *awsHttp.ResponseError
 
-	headBucketCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	_, err := s.client.HeadBucketWithContext(headBucketCtx, hparams)
-	if nil == err {
+	_, err := s.client.HeadBucket(ctx, hparams)
+	if err == nil {
 		// bucket exists and have permission to access it
 		return nil
-	}
-
-	// minio requires explicit bucket creation
-	cparams := &s3.CreateBucketInput{
-		Bucket: aws.String(bucket), // Required
-	}
-
-	// timeout set to 5 seconds
-	var cancelFn func()
-	ctxWithTimeout, cancelFn := context.WithTimeout(ctx, 5*time.Second)
-	defer cancelFn()
-
-	_, err = s.client.CreateBucketWithContext(ctxWithTimeout, cparams)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() != ErrCodeBucketAlreadyOwnedByYou {
-				return err
-			}
-		} else {
-			return err
+	} else if errors.As(err, &rspErr) {
+		switch rspErr.Response.StatusCode {
+		case http.StatusNotFound:
+			err = nil // pass
+		case http.StatusForbidden:
+			err = fmt.Errorf(
+				"s3: insufficient permissions for accessing bucket '%s'",
+				s.bucket,
+			)
 		}
 	}
-	return nil
+	if err != nil {
+		return err
+	}
+	cparams := &s3.CreateBucketInput{
+		Bucket: aws.String(s.bucket),
+	}
+
+	_, err = s.client.CreateBucket(ctx, cparams)
+	if err != nil {
+		var errBucket *types.BucketAlreadyOwnedByYou
+		if !errors.As(err, errBucket) {
+			return errors.WithMessage(err, "s3: error creating bucket")
+		}
+	}
+	waitTime := time.Second * 30
+	if deadline, ok := ctx.Deadline(); ok {
+		waitTime = time.Until(deadline)
+	}
+	err = s3.NewBucketExistsWaiter(s.client).
+		Wait(ctx, &s3.HeadBucketInput{Bucket: &s.bucket}, waitTime)
+	return err
+}
+
+func noOpts(*s3.Options) {
+}
+
+func (s *SimpleStorageService) optionsFromContext(
+	ctx context.Context,
+	presign bool,
+) (bucket string, clientOptions func(*s3.Options), err error) {
+	if settings := settingsFromContext(ctx); settings != nil {
+		bucket = settings.Bucket
+		clientOptions, err = settings.getOptions(presign)
+	} else {
+		bucket = s.bucket
+		clientOptions = noOpts
+	}
+	return bucket, clientOptions, err
 }
 
 func (s *SimpleStorageService) HealthCheck(ctx context.Context) error {
-	_, err := s.client.HeadBucket(&s3.HeadBucketInput{
-		Bucket: aws.String(s.bucket),
-	})
+	bucket, opts, err := s.optionsFromContext(ctx, false)
+	if err != nil {
+		return err
+	}
+	_, err = s.client.HeadBucket(ctx, &s3.HeadBucketInput{
+		Bucket: aws.String(bucket),
+	}, opts)
 	return err
 }
 
@@ -225,21 +206,25 @@ func (s *SimpleStorageService) HealthCheck(ctx context.Context) error {
 // Noop if ID does not exist.
 func (s *SimpleStorageService) DeleteObject(ctx context.Context, objectID string) error {
 	objectID = getArtifactByTenant(ctx, objectID)
+	bucket, opts, err := s.optionsFromContext(ctx, false)
+	if err != nil {
+		return err
+	}
 
 	params := &s3.DeleteObjectInput{
 		// Required
-		Bucket: aws.String(s.bucket),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(objectID),
 
 		// Optional
-		RequestPayer: aws.String(s3.RequestPayerRequester),
+		RequestPayer: types.RequestPayerRequester,
 	}
 
 	// ignore return response which contains charing info
 	// and file versioning data which are not in interest
-	_, err := s.client.DeleteObject(params)
+	_, err = s.client.DeleteObject(ctx, params, opts)
 	if err != nil {
-		return errors.Wrap(err, "Removing file")
+		return errors.WithMessage(err, "s3: error deleting object")
 	}
 
 	return nil
@@ -252,14 +237,18 @@ func (s *SimpleStorageService) StatObject(
 ) (*storage.ObjectInfo, error) {
 	objectID = getArtifactByTenant(ctx, objectID)
 
-	params := &s3.HeadObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(objectID),
+	bucket, opts, err := s.optionsFromContext(ctx, false)
+	if err != nil {
+		return nil, err
 	}
 
-	rsp, err := s.client.HeadObject(params)
+	params := &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(objectID),
+	}
+	rsp, err := s.client.HeadObject(ctx, params, opts)
 	if err != nil {
-		return nil, errors.WithMessage(err, "error getting object info")
+		return nil, errors.WithMessage(err, "s3: error getting object info")
 	}
 
 	return &storage.ObjectInfo{
@@ -285,59 +274,59 @@ func (s *SimpleStorageService) uploadMultipart(
 	artifact io.Reader,
 ) error {
 	const maxPartNum = 10000
-	var partNum int64 = 1
+	var partNum int32 = 1
 	var rspUpload *s3.UploadPartOutput
+	bucket, opts, err := s.optionsFromContext(ctx, true)
+	if err != nil {
+		return err
+	}
 
 	// Pre-allocate 100 completed part (generous guesstimate)
-	completedParts := make([]*s3.CompletedPart, 0, 100)
+	completedParts := make([]types.CompletedPart, 0, 100)
 	// expiresAt is the maximum time the s3 service will cache the uploaded
-	// parts. All request will be presigned relative to this time.
-	expireSeconds := config.Config.GetInt(dconfig.SettingsAwsUploadExpireSeconds)
-	expiresAt := time.Now().Add(time.Duration(expireSeconds) * time.Second)
-	requestOptions := func(req *request.Request) {
-		// This will pre-sign the request for the given duration.
-		exp := time.Until(expiresAt)
-		req.ExpireTime = exp
+	// parts. Defaults to one hour.
+	expiresAt := time.Now().Add(time.Hour)
+	if deadline, ok := ctx.Deadline(); ok {
+		expiresAt = deadline
 	}
 
 	// Initiate Multipart upload
 	createParams := &s3.CreateMultipartUploadInput{
-		Bucket:      &s.bucket,
+		Bucket:      &bucket,
 		Key:         &objectPath,
 		ContentType: s.contentType,
 		Expires:     &expiresAt,
 	}
-	rspCreate, err := s.client.CreateMultipartUploadWithContext(
-		ctx, createParams, requestOptions,
+	rspCreate, err := s.client.CreateMultipartUpload(
+		ctx, createParams, opts,
 	)
 	if err != nil {
 		return err
 	}
 	uploadParams := &s3.UploadPartInput{
-		Bucket:     &s.bucket,
+		Bucket:     &bucket,
 		Key:        &objectPath,
 		UploadId:   rspCreate.UploadId,
-		PartNumber: &partNum,
+		PartNumber: partNum,
 	}
 
 	// Upload the first chunk already stored in buffer
 	r := bytes.NewReader(buf)
 	// Readjust upload parameters
 	uploadParams.Body = r
-	rspUpload, err = s.client.UploadPartWithContext(
+	rspUpload, err = s.client.UploadPart(
 		ctx,
 		uploadParams,
-		requestOptions,
+		opts,
 	)
 	if err != nil {
 		return err
 	}
-	part := partNum
 	completedParts = append(
 		completedParts,
-		&s3.CompletedPart{
+		types.CompletedPart{
 			ETag:       rspUpload.ETag,
-			PartNumber: &part,
+			PartNumber: partNum,
 		},
 	)
 
@@ -349,21 +338,21 @@ func (s *SimpleStorageService) uploadMultipart(
 		if offset > 0 {
 			r := bytes.NewReader(buf[:offset])
 			// Readjust upload parameters
+			uploadParams.PartNumber = partNum
 			uploadParams.Body = r
-			rspUpload, err = s.client.UploadPartWithContext(
+			rspUpload, err = s.client.UploadPart(
 				ctx,
 				uploadParams,
-				requestOptions,
+				opts,
 			)
 			if err != nil {
 				break
 			}
-			part := partNum
 			completedParts = append(
 				completedParts,
-				&s3.CompletedPart{
+				types.CompletedPart{
 					ETag:       rspUpload.ETag,
-					PartNumber: &part,
+					PartNumber: partNum,
 				},
 			)
 		} else {
@@ -378,33 +367,32 @@ func (s *SimpleStorageService) uploadMultipart(
 	if err == nil || err == io.EOF {
 		// Complete upload
 		uploadParams := &s3.CompleteMultipartUploadInput{
-			Bucket:   &s.bucket,
+			Bucket:   &bucket,
 			Key:      &objectPath,
 			UploadId: rspCreate.UploadId,
-			MultipartUpload: &s3.CompletedMultipartUpload{
+			MultipartUpload: &types.CompletedMultipartUpload{
 				Parts: completedParts,
 			},
 		}
-		_, err = s.client.CompleteMultipartUploadWithContext(
+		_, err = s.client.CompleteMultipartUpload(
 			ctx,
 			uploadParams,
-			requestOptions,
+			opts,
 		)
 	} else {
 		// Abort multipart upload!
 		uploadParams := &s3.AbortMultipartUploadInput{
-			Bucket:   &s.bucket,
+			Bucket:   &bucket,
 			Key:      &objectPath,
 			UploadId: rspCreate.UploadId,
 		}
-		_, err = s.client.AbortMultipartUploadWithContext(
+		_, _ = s.client.AbortMultipartUpload(
 			ctx,
 			uploadParams,
-			requestOptions,
+			opts,
 		)
 	}
 	return err
-
 }
 
 // UploadArtifact uploads given artifact into the file server (AWS S3 or minio)
@@ -418,72 +406,91 @@ func (s *SimpleStorageService) PutObject(
 ) error {
 	objectID = getArtifactByTenant(ctx, objectID)
 
-	buf := make([]byte, s.partSize)
-	n, err := io.ReadFull(src, buf)
+	buf := make([]byte, s.bufferSize)
+	n, err := fillBuffer(buf, src)
 
 	// If only one part, use PutObject API.
-	if n < len(buf) || err == io.EOF {
+	if err == io.EOF {
+		var (
+			bucket string
+			opts   func(*s3.Options)
+		)
+		bucket, opts, err = s.optionsFromContext(ctx, true)
+		if err != nil {
+			return err
+		}
 		// Ordinary single-file upload
 		uploadParams := &s3.PutObjectInput{
 			Body:        bytes.NewReader(buf[:n]),
-			Bucket:      &s.bucket,
+			Bucket:      &bucket,
 			Key:         &objectID,
 			ContentType: s.contentType,
 		}
-		_, err := s.client.PutObjectWithContext(
+		_, err = s.client.PutObject(
 			ctx,
 			uploadParams,
-			func(req *request.Request) {
-				// ExpireTime will presign URI to expire after
-				// a configurable amount of seconds (aws.upload_expire_seconds)
-				expireSeconds := config.Config.GetInt(dconfig.SettingsAwsUploadExpireSeconds)
-				req.ExpireTime = time.Duration(expireSeconds) * time.Second
-			},
+			opts,
 		)
-		return err
+	} else if err == nil {
+		err = s.uploadMultipart(ctx, buf, objectID, src)
 	}
-	return s.uploadMultipart(ctx, buf, objectID, src)
+	return err
 }
 
-// PutRequest duration is limited to 7 days (AWS limitation)
-func (s *SimpleStorageService) PutRequest(ctx context.Context, objectID string,
-	duration time.Duration) (*model.Link, error) {
+func (s *SimpleStorageService) PutRequest(
+	ctx context.Context,
+	objectID string,
+	expireAfter time.Duration,
+) (*model.Link, error) {
 
 	objectID = getArtifactByTenant(ctx, objectID)
-
-	if err := s.validateDurationLimits(duration); err != nil {
+	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
+	bucket, opts, err := s.optionsFromContext(ctx, true)
+	if err != nil {
 		return nil, err
 	}
 
 	params := &s3.PutObjectInput{
 		// Required
-		Bucket: aws.String(s.bucket),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(objectID),
 	}
 
-	// Ignore out object
-	req, _ := s.client.PutObjectRequest(params)
-
-	uri, err := req.Presign(duration)
+	signDate := time.Now()
+	req, err := s.presignClient.PresignPutObject(
+		ctx,
+		params,
+		s3.WithPresignExpires(expireAfter),
+		s3.WithPresignClientFromClientOptions(opts),
+	)
 	if err != nil {
-		return nil, errors.Wrap(err, "Signing PUT request")
+		return nil, err
+	}
+	if date, err := time.Parse(
+		req.SignedHeader.Get(paramAmzDate), paramAmzDateFormat,
+	); err == nil {
+		signDate = date
 	}
 
-	return model.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
+	return model.NewLink(
+		req.URL,
+		signDate.Add(expireAfter),
+	), nil
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
 func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
-	duration time.Duration, fileName string) (*model.Link, error) {
+	expireAfter time.Duration, fileName string) (*model.Link, error) {
 
-	if err := s.validateDurationLimits(duration); err != nil {
+	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
+	objectID = getArtifactByTenant(ctx, objectID)
+	bucket, opts, err := s.optionsFromContext(ctx, true)
+	if err != nil {
 		return nil, err
 	}
 
-	objectID = getArtifactByTenant(ctx, objectID)
-
 	params := &s3.GetObjectInput{
-		Bucket:              aws.String(s.bucket),
+		Bucket:              aws.String(bucket),
 		Key:                 aws.String(objectID),
 		ResponseContentType: s.contentType,
 	}
@@ -493,48 +500,65 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
 		params.ResponseContentDisposition = &contentDisposition
 	}
 
-	// Ignore out object
-	req, _ := s.client.GetObjectRequest(params)
-
-	uri, err := req.Presign(duration)
+	signDate := time.Now()
+	req, err := s.presignClient.PresignGetObject(ctx,
+		params,
+		s3.WithPresignExpires(expireAfter),
+		s3.WithPresignClientFromClientOptions(opts))
 	if err != nil {
-		return nil, errors.Wrap(err, "Signing GET request")
+		return nil, errors.WithMessage(err, "s3: failed to sign GET request")
+	}
+	if date, err := time.Parse(
+		req.SignedHeader.Get(paramAmzDate), paramAmzDateFormat,
+	); err == nil {
+		signDate = date
 	}
 
-	return model.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
+	return model.NewLink(req.URL, signDate.Add(expireAfter)), nil
 }
 
 // DeleteRequest returns a presigned deletion request
-func (s *SimpleStorageService) DeleteRequest(ctx context.Context, objectID string,
-	duration time.Duration) (*model.Link, error) {
+func (s *SimpleStorageService) DeleteRequest(
+	ctx context.Context,
+	objectID string,
+	expireAfter time.Duration,
+) (*model.Link, error) {
 
-	if err := s.validateDurationLimits(duration); err != nil {
+	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
+	objectID = getArtifactByTenant(ctx, objectID)
+	bucket, opts, err := s.optionsFromContext(ctx, true)
+	if err != nil {
 		return nil, err
 	}
 
-	objectID = getArtifactByTenant(ctx, objectID)
-
 	params := &s3.DeleteObjectInput{
-		Bucket: aws.String(s.bucket),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(objectID),
 	}
 
-	// Ignore out object
-	req, _ := s.client.DeleteObjectRequest(params)
-
-	uri, err := req.Presign(duration)
+	signDate := time.Now()
+	req, err := s.presignClient.PresignDeleteObject(ctx,
+		params,
+		s3.WithPresignExpires(expireAfter),
+		s3.WithPresignClientFromClientOptions(opts))
 	if err != nil {
-		return nil, errors.Wrap(err, "Signing DELETE request")
+		return nil, errors.WithMessage(err, "s3: failed to sign DELETE request")
+	}
+	if date, err := time.Parse(
+		req.SignedHeader.Get(paramAmzDate), paramAmzDateFormat,
+	); err == nil {
+		signDate = date
 	}
 
-	return model.NewLink(uri, req.Time.Add(req.ExpireTime)), nil
+	return model.NewLink(req.URL, signDate.Add(expireAfter)), nil
 }
 
-func (s *SimpleStorageService) validateDurationLimits(duration time.Duration) error {
-	if duration > ExpireMaxLimit || duration < ExpireMinLimit {
-		return fmt.Errorf("Expire duration out of range: allowed %d-%d[ns]",
-			ExpireMinLimit, ExpireMaxLimit)
+// presign requests are limited to 7 days
+func capDurationToLimits(duration time.Duration) time.Duration {
+	if duration < ExpireMinLimit {
+		duration = ExpireMinLimit
+	} else if duration > ExpireMaxLimit {
+		duration = ExpireMaxLimit
 	}
-
-	return nil
+	return duration
 }

@@ -40,6 +40,7 @@ import (
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/store"
+	"github.com/mendersoftware/deployments/utils"
 )
 
 func init() {
@@ -50,7 +51,9 @@ const (
 	// 15 minutes
 	DefaultDownloadLinkExpire = 15 * time.Minute
 	// 10 Mb
-	DefaultMaxMetaSize = 1024 * 1024 * 10
+	DefaultMaxMetaSize  = 1024 * 1024 * 10
+	DefaultMaxImageSize = 10 * 1024 * 1024 * 1024 // 10GiB
+
 	// Pagination
 	DefaultPerPage = 20
 	MaximumPerPage = 500
@@ -103,7 +106,8 @@ var (
 	ErrArtifactDeviceTypesCompatibleMissing = errors.New(
 		"request does not contain the list of compatible device types",
 	)
-	ErrArtifactFileMissing = errors.New("request does not contain the artifact file")
+	ErrArtifactFileMissing       = errors.New("request does not contain the artifact file")
+	ErrModelArtifactFileTooLarge = errors.New("Artifact file too large")
 
 	ErrInternal                   = errors.New("Internal error")
 	ErrDeploymentAlreadyFinished  = errors.New("Deployment already finished")
@@ -132,11 +136,10 @@ type Config struct {
 }
 
 func NewConfig() *Config {
-	maxImageSize := config.Config.GetInt64(dconfig.SettingAwsS3MaxImageSize)
 	return &Config{
 		PresignExpire: DefaultDownloadLinkExpire,
 		PresignScheme: "https",
-		MaxImageSize:  maxImageSize,
+		MaxImageSize:  DefaultMaxImageSize,
 	}
 }
 
@@ -157,6 +160,11 @@ func (conf *Config) SetPresignHostname(hostname string) *Config {
 
 func (conf *Config) SetPresignScheme(scheme string) *Config {
 	conf.PresignScheme = scheme
+	return conf
+}
+
+func (conf *Config) SetMaxImageSize(size int64) *Config {
+	conf.MaxImageSize = size
 	return conf
 }
 
@@ -189,6 +197,9 @@ func NewDeploymentsApiHandlers(
 		}
 		if c.PresignScheme != "" {
 			conf.PresignScheme = c.PresignScheme
+		}
+		if c.MaxImageSize > 0 {
+			conf.MaxImageSize = c.MaxImageSize
 		}
 	}
 	return &DeploymentsApiHandlers{
@@ -639,7 +650,6 @@ func (d *DeploymentsApiHandlers) newImageWithContext(
 		d.view.RenderSuccessPost(w, r, imgID)
 		return
 	}
-	l.Error(err.Error())
 	if cErr, ok := err.(*model.ConflictError); ok {
 		d.view.RenderError(w, r, cErr, http.StatusConflict, l)
 		return
@@ -659,7 +669,7 @@ func (d *DeploymentsApiHandlers) newImageWithContext(
 		return
 	case app.ErrModelMissingInputMetadata, app.ErrModelMissingInputArtifact,
 		app.ErrModelInvalidMetadata, app.ErrModelMultipartUploadMsgMalformed,
-		app.ErrModelArtifactFileTooLarge:
+		io.ErrUnexpectedEOF, utils.ErrStreamTooLarge, ErrModelArtifactFileTooLarge:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 		return
@@ -725,7 +735,7 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 		d.view.RenderError(w, r, formatArtifactUploadError(err), http.StatusBadRequest, l)
 	case app.ErrModelMissingInputMetadata, app.ErrModelMissingInputArtifact,
 		app.ErrModelInvalidMetadata, app.ErrModelMultipartUploadMsgMalformed,
-		app.ErrModelArtifactFileTooLarge:
+		io.ErrUnexpectedEOF, utils.ErrStreamTooLarge, ErrModelArtifactFileTooLarge:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 	}
@@ -737,8 +747,8 @@ func (d *DeploymentsApiHandlers) ParseMultipart(
 ) (*model.MultipartUploadMsg, error) {
 	uploadMsg := &model.MultipartUploadMsg{
 		MetaConstructor: &model.ImageMeta{},
-		ArtifactSize:    d.config.MaxImageSize,
 	}
+	var size int64
 	// Parse the multipart form sequentially. To remain backward compatible
 	// all form names that are not part of the API are ignored.
 	for {
@@ -766,16 +776,15 @@ func (d *DeploymentsApiHandlers) ParseMultipart(
 			if err != nil {
 				return nil, err
 			}
-			size, err := strconv.ParseInt(string(sz), 10, 64)
+			size, err = strconv.ParseInt(string(sz), 10, 64)
 			if err != nil {
 				return nil, err
 			}
 			// Add one since this will impose the upper limit on the
 			// artifact size.
 			if size > d.config.MaxImageSize {
-				return nil, app.ErrModelArtifactFileTooLarge
+				return nil, ErrModelArtifactFileTooLarge
 			}
-			uploadMsg.ArtifactSize = size
 
 		case "artifact_id":
 			// Add artifact id to the metadata (must be a valid UUID).
@@ -794,7 +803,14 @@ func (d *DeploymentsApiHandlers) ParseMultipart(
 		case "artifact":
 			// Assign the form-data payload to the artifact reader
 			// and return. The content is consumed elsewhere.
-			uploadMsg.ArtifactReader = part
+			if size > 0 {
+				uploadMsg.ArtifactReader = utils.ReadExactly(part, size)
+			} else {
+				uploadMsg.ArtifactReader = utils.ReadAtMost(
+					part,
+					d.config.MaxImageSize,
+				)
+			}
 			return uploadMsg, nil
 
 		default:
@@ -809,6 +825,7 @@ func (d *DeploymentsApiHandlers) ParseGenerateImageMultipart(
 	r *multipart.Reader,
 ) (*model.MultipartGenerateImageMsg, error) {
 	msg := &model.MultipartGenerateImageMsg{}
+	var size int64
 
 ParseLoop:
 	for {
@@ -848,7 +865,11 @@ ParseLoop:
 			msg.DeviceTypesCompatible = strings.Split(string(b), ",")
 
 		case "file":
-			msg.FileReader = part
+			if size > 0 {
+				msg.FileReader = utils.ReadExactly(part, size)
+			} else {
+				msg.FileReader = utils.ReadAtMost(part, d.config.MaxImageSize)
+			}
 			break ParseLoop
 
 		case "name":
@@ -868,6 +889,22 @@ ParseLoop:
 				)
 			}
 			msg.Type = string(b)
+
+		case "size":
+			// Add size limit to the metadata
+			sz, err := ioutil.ReadAll(part)
+			if err != nil {
+				return nil, err
+			}
+			size, err = strconv.ParseInt(string(sz), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			// Add one since this will impose the upper limit on the
+			// artifact size.
+			if size > d.config.MaxImageSize {
+				return nil, ErrModelArtifactFileTooLarge
+			}
 
 		default:
 			// Ignore non-API sections.

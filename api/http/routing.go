@@ -16,22 +16,13 @@ package http
 
 import (
 	"context"
-	"encoding/base64"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"go.mongodb.org/mongo-driver/mongo"
-
-	"github.com/mendersoftware/go-lib-micro/config"
 
 	"github.com/mendersoftware/deployments/app"
-	"github.com/mendersoftware/deployments/client/reporting"
-	dconfig "github.com/mendersoftware/deployments/config"
-	"github.com/mendersoftware/deployments/storage"
-	"github.com/mendersoftware/deployments/storage/s3"
-	mstore "github.com/mendersoftware/deployments/store/mongo"
+	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/utils/restutil"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 )
@@ -85,71 +76,19 @@ const (
 		"/tenants/#tenant/configuration/deployments/#deployment_id/devices/#device_id"
 )
 
-func SetupS3(c config.Reader) (storage.ObjectStorage, error) {
-
-	bucket := c.GetString(dconfig.SettingAwsS3Bucket)
-	region := c.GetString(dconfig.SettingAwsS3Region)
-
-	if c.IsSet(dconfig.SettingsAwsAuth) ||
-		(c.IsSet(dconfig.SettingAwsAuthKeyId) &&
-			c.IsSet(dconfig.SettingAwsAuthSecret) &&
-			c.IsSet(dconfig.SettingAwsURI)) {
-		return s3.NewSimpleStorageServiceStatic(
-			bucket,
-			c.GetString(dconfig.SettingAwsAuthKeyId),
-			c.GetString(dconfig.SettingAwsAuthSecret),
-			region,
-			c.GetString(dconfig.SettingAwsAuthToken),
-			c.GetString(dconfig.SettingAwsURI),
-			app.ArtifactContentType,
-			c.GetBool(dconfig.SettingsAwsTagArtifact),
-			c.GetBool(dconfig.SettingAwsS3ForcePathStyle),
-			c.GetBool(dconfig.SettingAwsS3UseAccelerate),
-		)
-	}
-
-	return s3.NewSimpleStorageServiceDefaults(bucket, region, app.ArtifactContentType)
-}
-
 // NewRouter defines all REST API routes.
-func NewRouter(ctx context.Context, c config.Reader,
-	mongoClient *mongo.Client) (rest.App, error) {
-
-	// Storage Layer
-	fileStorage, err := SetupS3(c)
-	if err != nil {
-		return nil, err
-	}
-
-	mongoStorage := mstore.NewDataStoreMongoWithClient(mongoClient)
-
-	app := app.NewDeployments(mongoStorage, fileStorage, app.ArtifactContentType)
-
-	if addr := c.GetString(dconfig.SettingReportingAddr); addr != "" {
-		c := reporting.NewClient(addr)
-		app = app.WithReporting(c)
-	}
+func NewRouter(
+	ctx context.Context,
+	app app.App,
+	ds store.DataStore,
+	cfg *Config,
+) (rest.App, error) {
 
 	// Create and configure API handlers
 	//
 	// Encode base64 secret in either std or URL encoding ignoring padding.
-	base64Repl := strings.NewReplacer("-", "+", "_", "/", "=", "")
-	expireSec := c.GetDuration(dconfig.SettingPresignExpireSeconds)
-	apiConf := NewConfig().
-		SetPresignExpire(time.Second * expireSec).
-		SetPresignHostname(c.GetString(dconfig.SettingPresignHost)).
-		SetPresignScheme(c.GetString(dconfig.SettingPresignScheme))
-	// TODO: When adding support for different signing algorithm,
-	//       conditionally decode this one:
-	if key, err := base64.RawStdEncoding.DecodeString(
-		base64Repl.Replace(
-			c.GetString(dconfig.SettingPresignSecret),
-		),
-	); err == nil {
-		apiConf.SetPresignSecret(key)
-	}
 	deploymentsHandlers := NewDeploymentsApiHandlers(
-		mongoStorage, new(view.RESTView), app, apiConf,
+		ds, new(view.RESTView), app, cfg,
 	)
 
 	// Routing

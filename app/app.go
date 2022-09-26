@@ -27,7 +27,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/mender-artifact/areader"
@@ -38,13 +37,10 @@ import (
 	"github.com/mendersoftware/deployments/client/inventory"
 	"github.com/mendersoftware/deployments/client/reporting"
 	"github.com/mendersoftware/deployments/client/workflows"
-	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
-	"github.com/mendersoftware/deployments/storage/s3"
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mongo"
-	"github.com/mendersoftware/deployments/utils"
 )
 
 const (
@@ -75,7 +71,6 @@ var (
 	ErrModelMissingInputArtifact        = errors.New("Missing input artifact")
 	ErrModelInvalidMetadata             = errors.New("Metadata invalid")
 	ErrModelArtifactNotUnique           = errors.New("Artifact not unique")
-	ErrModelArtifactFileTooLarge        = errors.New("Artifact file too large")
 	ErrModelImageInActiveDeployment     = errors.New(
 		"Image is used in active deployment and cannot be removed",
 	)
@@ -167,28 +162,22 @@ type App interface {
 }
 
 type Deployments struct {
-	db               store.DataStore
-	objectStorage    storage.ObjectStorage
-	maxImageSize     int64
-	imageContentType string
-	workflowsClient  workflows.Client
-	inventoryClient  inventory.Client
-	reportingClient  reporting.Client
+	db              store.DataStore
+	objectStorage   storage.ObjectStorage
+	workflowsClient workflows.Client
+	inventoryClient inventory.Client
+	reportingClient reporting.Client
 }
 
 func NewDeployments(
 	storage store.DataStore,
 	objectStorage storage.ObjectStorage,
-	imageContentType string,
 ) *Deployments {
-	maxImageSize := config.Config.GetInt64(dconfig.SettingAwsS3MaxImageSize)
 	return &Deployments{
-		db:               storage,
-		objectStorage:    objectStorage,
-		imageContentType: imageContentType,
-		maxImageSize:     maxImageSize,
-		workflowsClient:  workflows.NewClient(),
-		inventoryClient:  inventory.NewClient(),
+		db:              storage,
+		objectStorage:   objectStorage,
+		workflowsClient: workflows.NewClient(),
+		inventoryClient: inventory.NewClient(),
 	}
 }
 
@@ -205,11 +194,7 @@ func (d *Deployments) HealthCheck(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "error reaching MongoDB")
 	}
-	objectStorage, err := d.getObjectStorage(ctx, false)
-	if err != nil {
-		return err
-	}
-	err = objectStorage.HealthCheck(ctx)
+	err = d.objectStorage.HealthCheck(ctx)
 	if err != nil {
 		return errors.Wrap(
 			err,
@@ -236,74 +221,19 @@ func (d *Deployments) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-func (d *Deployments) getObjectStorage(
+func (d *Deployments) contextWithStorageSettings(
 	ctx context.Context,
-	external bool,
-) (storage.ObjectStorage, error) {
+) (context.Context, error) {
 	settings, err := d.db.GetStorageSettings(ctx)
 	if err != nil {
 		return nil, err
-	} else if settings != nil && settings.Bucket != "" {
-		region := config.Config.GetString(dconfig.SettingAwsS3Region)
-		key := config.Config.GetString(dconfig.SettingAwsAuthKeyId)
-		secret := config.Config.GetString(dconfig.SettingAwsAuthSecret)
-		internalUri := config.Config.GetString(dconfig.SettingAwsURI)
-		externalUri := config.Config.GetString(dconfig.SettingAwsExternalURI)
-		token := config.Config.GetString(dconfig.SettingAwsAuthToken)
-		tagArtifact := config.Config.GetBool(dconfig.SettingsAwsTagArtifact)
-
-		if settings.Region != "" {
-			region = settings.Region
+	} else if settings != nil {
+		err = settings.Validate()
+		if err != nil {
+			return nil, err
 		}
-		if settings.Key != "" {
-			key = settings.Key
-		}
-		if settings.Secret != "" {
-			secret = settings.Secret
-		}
-		if settings.Uri != "" {
-			internalUri = settings.Uri
-		}
-		if settings.Token != "" {
-			token = settings.Token
-		}
-
-		uri := internalUri
-		if external && externalUri != "" {
-			uri = externalUri
-		}
-
-		return s3.NewSimpleStorageServiceStatic(
-			settings.Bucket,
-			key,
-			secret,
-			region,
-			token,
-			uri,
-			d.imageContentType,
-			tagArtifact,
-			settings.ForcePathStyle,
-			settings.UseAccelerate,
-		)
 	}
-
-	externalUri := config.Config.GetString(dconfig.SettingAwsExternalURI)
-
-	if external && externalUri != "" {
-		return s3.NewSimpleStorageServiceStatic(
-			config.Config.GetString(dconfig.SettingAwsS3Bucket),
-			config.Config.GetString(dconfig.SettingAwsAuthKeyId),
-			config.Config.GetString(dconfig.SettingAwsAuthSecret),
-			config.Config.GetString(dconfig.SettingAwsS3Region),
-			config.Config.GetString(dconfig.SettingAwsAuthToken),
-			externalUri,
-			d.imageContentType,
-			config.Config.GetBool(dconfig.SettingsAwsTagArtifact),
-			config.Config.GetBool(dconfig.SettingAwsS3ForcePathStyle),
-			config.Config.GetBool(dconfig.SettingAwsS3UseAccelerate),
-		)
-	}
-	return d.objectStorage, nil
+	return storage.SettingsWithContext(ctx, settings), nil
 }
 
 func (d *Deployments) GetLimit(ctx context.Context, name string) (*model.Limit, error) {
@@ -333,23 +263,7 @@ func (d *Deployments) ProvisionTenant(ctx context.Context, tenant_id string) err
 // Returns image ID and nil on success.
 func (d *Deployments) CreateImage(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
-	if multipartUploadMsg.ArtifactSize > d.maxImageSize {
-		return "", ErrModelArtifactFileTooLarge
-	}
-
-	artifactID, err := d.handleArtifact(ctx, multipartUploadMsg)
-	// try to remove artifact file from file storage on error
-	if err != nil {
-		objectStorage, err := d.getObjectStorage(ctx, false)
-		if err != nil {
-			return "", err
-		}
-		if cleanupErr := objectStorage.DeleteObject(ctx,
-			artifactID); cleanupErr != nil {
-			return "", errors.Wrap(err, cleanupErr.Error())
-		}
-	}
-	return artifactID, err
+	return d.handleArtifact(ctx, multipartUploadMsg)
 }
 
 // handleArtifact parses artifact and uploads artifact file to the file storage - in parallel,
@@ -358,16 +272,16 @@ func (d *Deployments) CreateImage(ctx context.Context,
 func (d *Deployments) handleArtifact(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
 
+	l := log.FromContext(ctx)
+	ctx, err := d.contextWithStorageSettings(ctx)
+	if err != nil {
+		return "", err
+	}
+
 	// create pipe
 	pR, pW := io.Pipe()
 
-	// limit reader to the size provided with the upload message
-	lr := &utils.LimitedReader{
-		R:          multipartUploadMsg.ArtifactReader,
-		N:          multipartUploadMsg.ArtifactSize + 1,
-		LimitError: ErrModelArtifactFileTooLarge,
-	}
-	tee := io.TeeReader(lr, pW)
+	tee := io.TeeReader(multipartUploadMsg.ArtifactReader, pW)
 
 	uid, err := uuid.Parse(multipartUploadMsg.ArtifactID)
 	if err != nil {
@@ -385,11 +299,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	//nolint:errcheck
 	go func() (err error) {
 		defer func() { ch <- err }()
-		objectStorage, err := d.getObjectStorage(ctx, false)
-		if err != nil {
-			return err
-		}
-		err = objectStorage.PutObject(
+		err = d.objectStorage.PutObject(
 			ctx, artifactID, pR,
 		)
 		if err != nil {
@@ -402,9 +312,13 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// artifact library reads all the data from the given reader
 	metaArtifactConstructor, err := getMetaFromArchive(&tee)
 	if err != nil {
-		pW.Close()
+		_ = pW.CloseWithError(err)
 		<-ch
 		return artifactID, errors.Wrap(ErrModelParsingArtifactFailed, err.Error())
+	}
+	// validate artifact metadata
+	if err = metaArtifactConstructor.Validate(); err != nil {
+		return artifactID, ErrModelInvalidMetadata
 	}
 
 	// read the rest of the data,
@@ -420,30 +334,29 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// close the pipe
 	pW.Close()
 
-	// Assign artifact size to the actual uploaded size
-	// NOTE: the limited reader is capped at one over the size limit.
-	multipartUploadMsg.
-		ArtifactSize = multipartUploadMsg.ArtifactSize - (lr.N - 1)
-
 	// collect output from the goroutine
 	if uploadResponseErr := <-ch; uploadResponseErr != nil {
 		return artifactID, uploadResponseErr
-	}
-
-	// validate artifact metadata
-	if err = metaArtifactConstructor.Validate(); err != nil {
-		return artifactID, ErrModelInvalidMetadata
 	}
 
 	image := model.NewImage(
 		artifactID,
 		multipartUploadMsg.MetaConstructor,
 		metaArtifactConstructor,
-		multipartUploadMsg.ArtifactSize,
+		multipartUploadMsg.ArtifactReader.Count(),
 	)
 
 	// save image structure in the system
 	if err = d.db.InsertImage(ctx, image); err != nil {
+		// Try to remove the storage from s3.
+		if errDelete := d.objectStorage.DeleteObject(
+			ctx, artifactID,
+		); errDelete != nil {
+			l.Errorf(
+				"failed to clean up artifact storage after failure: %s",
+				errDelete,
+			)
+		}
 		if idxErr, ok := err.(*model.ConflictError); ok {
 			return artifactID, idxErr
 		}
@@ -474,12 +387,12 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 		multipartGenerateImageMsg.TenantID = id.Tenant
 	}
 
-	objectStorage, err := d.getObjectStorage(ctx, false)
+	ctx, err = d.contextWithStorageSettings(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	link, err := objectStorage.GetRequest(
+	link, err := d.objectStorage.GetRequest(
 		ctx,
 		imgID,
 		DefaultImageGenerationLinkExpire,
@@ -490,7 +403,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 	}
 	multipartGenerateImageMsg.GetArtifactURI = link.Uri
 
-	link, err = objectStorage.DeleteRequest(ctx, imgID, DefaultImageGenerationLinkExpire)
+	link, err = d.objectStorage.DeleteRequest(ctx, imgID, DefaultImageGenerationLinkExpire)
 	if err != nil {
 		return "", err
 	}
@@ -498,7 +411,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 
 	err = d.workflowsClient.StartGenerateArtifact(ctx, multipartGenerateImageMsg)
 	if err != nil {
-		if cleanupErr := objectStorage.DeleteObject(ctx, imgID); cleanupErr != nil {
+		if cleanupErr := d.objectStorage.DeleteObject(ctx, imgID); cleanupErr != nil {
 			return "", errors.Wrap(err, cleanupErr.Error())
 		}
 		return "", err
@@ -576,18 +489,12 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 		return "", ErrModelArtifactNotUnique
 	}
 
-	file := &utils.LimitedReader{
-		R:          multipartMsg.FileReader,
-		N:          d.maxImageSize + 1,
-		LimitError: ErrModelArtifactFileTooLarge,
-	}
-
-	objectStorage, err := d.getObjectStorage(ctx, false)
+	ctx, err = d.contextWithStorageSettings(ctx)
 	if err != nil {
 		return "", err
 	}
-	err = objectStorage.PutObject(
-		ctx, artifactID, file,
+	err = d.objectStorage.PutObject(
+		ctx, artifactID, multipartMsg.FileReader,
 	)
 	if err != nil {
 		return "", err
@@ -642,11 +549,11 @@ func (d *Deployments) DeleteImage(ctx context.Context, imageID string) error {
 
 	// Delete image file (call to external service)
 	// Noop for not existing file
-	objectStorage, err := d.getObjectStorage(ctx, false)
+	ctx, err = d.contextWithStorageSettings(ctx)
 	if err != nil {
 		return err
 	}
-	if err := objectStorage.DeleteObject(ctx, imageID); err != nil {
+	if err := d.objectStorage.DeleteObject(ctx, imageID); err != nil {
 		return errors.Wrap(err, "Deleting image file")
 	}
 
@@ -726,24 +633,19 @@ func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 		return nil, nil
 	}
 
-	objectStorage, err := d.getObjectStorage(ctx, false)
+	ctx, err = d.contextWithStorageSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = objectStorage.StatObject(ctx, imageID)
+	_, err = d.objectStorage.StatObject(ctx, imageID)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for image file")
 	}
 
 	fileName := image.ArtifactMeta.Name + ".mender"
 
-	externalObjectStorage, err := d.getObjectStorage(ctx, true)
-	if err != nil {
-		return nil, err
-	}
-
-	link, err := externalObjectStorage.GetRequest(ctx, imageID,
+	link, err := d.objectStorage.GetRequest(ctx, imageID,
 		expire, fileName)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
@@ -1403,12 +1305,12 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		return nil, nil
 	}
 
-	objectStorage, err := d.getObjectStorage(ctx, true)
+	ctx, err = d.contextWithStorageSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	link, err := objectStorage.GetRequest(ctx, deviceDeployment.Image.Id,
+	link, err := d.objectStorage.GetRequest(ctx, deviceDeployment.Image.Id,
 		DefaultUpdateDownloadLinkExpire, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")
@@ -1787,10 +1689,14 @@ func (d *Deployments) SetStorageSettings(
 	ctx context.Context,
 	storageSettings *model.StorageSettings,
 ) error {
-	if err := storageSettings.Validate(); err != nil {
-		return errors.Wrap(err, "Invalid input data")
+	if storageSettings != nil {
+		ctx = storage.SettingsWithContext(ctx, storageSettings)
+		if err := d.objectStorage.HealthCheck(ctx); err != nil {
+			return errors.WithMessage(err,
+				"the provided storage settings failed the health check",
+			)
+		}
 	}
-
 	if err := d.db.SetStorageSettings(ctx, storageSettings); err != nil {
 		return errors.Wrap(err, "Failed to save settings")
 	}

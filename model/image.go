@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -205,6 +205,12 @@ func (s *Image) SetModified(time time.Time) {
 	s.Modified = &time
 }
 
+type ReadCounter interface {
+	io.Reader
+	// Count returns the number of bytes read.
+	Count() int64
+}
+
 // MultipartUploadMsg is a structure with fields extracted from the multipart/form-data form
 // send in the artifact upload request
 type MultipartUploadMsg struct {
@@ -212,10 +218,8 @@ type MultipartUploadMsg struct {
 	MetaConstructor *ImageMeta
 	// ArtifactID contains the artifact ID
 	ArtifactID string
-	// size of the artifact file
-	ArtifactSize int64
 	// reader pointing to the beginning of the artifact data
-	ArtifactReader io.ReadCloser
+	ArtifactReader ReadCounter
 }
 
 // MultipartGenerateImageMsg is a structure with fields extracted from the multipart/form-data

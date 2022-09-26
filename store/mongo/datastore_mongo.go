@@ -1,16 +1,16 @@
 // Copyright 2022 Northern.tech AS
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
+//	Licensed under the Apache License, Version 2.0 (the "License");
+//	you may not use this file except in compliance with the License.
+//	You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//	    http://www.apache.org/licenses/LICENSE-2.0
 //
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
+//	Unless required by applicable law or agreed to in writing, software
+//	distributed under the License is distributed on an "AS IS" BASIS,
+//	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//	See the License for the specific language governing permissions and
+//	limitations under the License.
 package mongo
 
 import (
@@ -584,7 +584,6 @@ func (db *DataStoreMongo) GetReleases(
 }
 
 // limits
-//
 func (db *DataStoreMongo) GetLimit(ctx context.Context, name string) (*model.Limit, error) {
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -1428,7 +1427,7 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 	return raw, nil
 }
 
-//GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
+// GetDeviceStatusesForDeployment retrieve device deployment statuses for a given deployment.
 func (db *DataStoreMongo) GetDeviceStatusesForDeployment(ctx context.Context,
 	deploymentID string) ([]model.DeviceDeployment, error) {
 
@@ -2278,31 +2277,34 @@ func (db *DataStoreMongo) SetStorageSettings(
 	ctx context.Context,
 	storageSettings *model.StorageSettings,
 ) error {
+	var err error
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collection := database.Collection(CollectionStorageSettings)
 
 	filter := bson.M{
 		"_id": StorageKeyStorageSettingsDefaultID,
 	}
-	update := bson.M{
-		"$setOnInsert": bson.M{"_id": StorageKeyStorageSettingsDefaultID},
-		"$set": bson.M{
-			StorageKeyStorageSettingsBucket:         storageSettings.Bucket,
-			StorageKeyStorageSettingsKey:            storageSettings.Key,
-			StorageKeyStorageSettingsSecret:         storageSettings.Secret,
-			StorageKeyStorageSettingsURI:            storageSettings.Uri,
-			StorageKeyStorageSettingsExternalURI:    storageSettings.ExternalUri,
-			StorageKeyStorageSettingsRegion:         storageSettings.Region,
-			StorageKeyStorageSettingsToken:          storageSettings.Token,
-			StorageKeyStorageSettingsForcePathStyle: storageSettings.ForcePathStyle,
-			StorageKeyStorageSettingsUseAccelerate:  storageSettings.UseAccelerate,
-		},
-	}
-	updateOptions := mopts.Update()
-	updateOptions.SetUpsert(true)
-	if _, err := collection.UpdateOne(ctx, filter, update, updateOptions); err != nil {
-		return err
+	if storageSettings != nil {
+		update := bson.M{
+			"$setOnInsert": bson.M{"_id": StorageKeyStorageSettingsDefaultID},
+			"$set": bson.M{
+				StorageKeyStorageSettingsBucket:         storageSettings.Bucket,
+				StorageKeyStorageSettingsKey:            storageSettings.Key,
+				StorageKeyStorageSettingsSecret:         storageSettings.Secret,
+				StorageKeyStorageSettingsURI:            storageSettings.Uri,
+				StorageKeyStorageSettingsExternalURI:    storageSettings.ExternalUri,
+				StorageKeyStorageSettingsRegion:         storageSettings.Region,
+				StorageKeyStorageSettingsToken:          storageSettings.Token,
+				StorageKeyStorageSettingsForcePathStyle: storageSettings.ForcePathStyle,
+				StorageKeyStorageSettingsUseAccelerate:  storageSettings.UseAccelerate,
+			},
+		}
+		updateOptions := mopts.Update()
+		updateOptions.SetUpsert(true)
+		_, err = collection.UpdateOne(ctx, filter, update, updateOptions)
+	} else {
+		_, err = collection.DeleteOne(ctx, filter)
 	}
 
-	return nil
+	return err
 }
