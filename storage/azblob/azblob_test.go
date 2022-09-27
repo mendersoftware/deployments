@@ -41,18 +41,54 @@ var (
 		os.Getenv("TEST_AZURE_CONTAINER_NAME"),
 		"Container name for azblob tests (env: TEST_AZURE_CONTAINER_NAME)",
 	)
+	TEST_AZURE_STORAGE_ACCOUNT_NAME = flag.String(
+		"azure-account-name",
+		os.Getenv("TEST_AZURE_STORAGE_ACCOUNT_NAME"),
+		"The storage account name to use for testing "+
+			"(env: TEST_AZURE_STORAGE_ACCOUNT_NAME)",
+	)
+	TEST_AZURE_STORAGE_ACCOUNT_KEY = flag.String(
+		"azure-account-key",
+		os.Getenv("TEST_AZURE_STORAGE_ACCOUNT_KEY"),
+		"The storage account key to use for testing "+
+			"(env: TEST_AZURE_STORAGE_ACCOUNT_KEY)",
+	)
 )
+
+var azureOptions *Options
+
+func initOptions() {
+	opts := NewOptions().
+		SetFilenameSuffix(".mender").
+		SetContentType("vnd/testing").
+		SetBufferSize(BufferSizeMin)
+	if *TEST_AZURE_CONTAINER_NAME == "" {
+		return
+	} else if *TEST_AZURE_CONNECTION_STRING != "" {
+		opts.SetConnectionString(*TEST_AZURE_CONNECTION_STRING)
+	} else if *TEST_AZURE_STORAGE_ACCOUNT_NAME != "" && *TEST_AZURE_STORAGE_ACCOUNT_KEY != "" {
+		opts.SetSharedKey(SharedKeyCredentials{
+			AccountName: *TEST_AZURE_STORAGE_ACCOUNT_NAME,
+			AccountKey:  *TEST_AZURE_STORAGE_ACCOUNT_KEY,
+		})
+	} else {
+		return
+	}
+	azureOptions = opts
+}
 
 func TestMain(m *testing.M) {
 	flag.Parse()
+	initOptions()
 	ec := m.Run()
 	os.Exit(ec)
 }
 
 func TestObjectStorage(t *testing.T) {
-	if *TEST_AZURE_CONNECTION_STRING == "" || *TEST_AZURE_CONTAINER_NAME == "" {
-		t.Skip("Requires env variables TEST_AZURE_CONNECTION_STRING " +
-			"and TEST_AZURE_CONTAINER_NAME to run.")
+	if azureOptions == nil {
+		t.Skip("Requires env variables TEST_AZURE_CONTAINER_NAME and " +
+			"either TEST_AZURE_CONNECTION_STRING or " +
+			"TEST_AZURE_STORAGE_ACCOUNT_NAME and TEST_AZURE_STORAGE_ACCOUNT_KEY")
 	}
 	const (
 		blobContent = `foobarbaz`
@@ -65,11 +101,7 @@ func TestObjectStorage(t *testing.T) {
 	c, err := New(
 		ctx,
 		*TEST_AZURE_CONTAINER_NAME,
-		NewOptions().
-			SetConnectionString(*TEST_AZURE_CONNECTION_STRING).
-			SetFilenameSuffix(".mender").
-			SetContentType("vnd/testing").
-			SetBufferSize(BufferSizeMin),
+		azureOptions,
 	)
 	if !assert.NoError(t, err) {
 		return
