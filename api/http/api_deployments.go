@@ -1,16 +1,16 @@
 // Copyright 2022 Northern.tech AS
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
+//	Licensed under the Apache License, Version 2.0 (the "License");
+//	you may not use this file except in compliance with the License.
+//	You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//	    http://www.apache.org/licenses/LICENSE-2.0
 //
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
+//	Unless required by applicable law or agreed to in writing, software
+//	distributed under the License is distributed on an "AS IS" BASIS,
+//	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//	See the License for the specific language governing permissions and
+//	limitations under the License.
 
 package http
 
@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -489,7 +488,7 @@ func (d *DeploymentsApiHandlers) DownloadConfiguration(w rest.ResponseWriter, r 
 		}
 		return
 	}
-	artifactPayload, err := ioutil.ReadAll(artifact)
+	artifactPayload, err := io.ReadAll(artifact)
 	if err != nil {
 		l.Error(err.Error())
 		d.view.RenderInternalError(w, r, err, l)
@@ -764,7 +763,7 @@ func (d *DeploymentsApiHandlers) ParseMultipart(
 		switch strings.ToLower(part.FormName()) {
 		case "description":
 			// Add description to the metadata
-			dscr, err := ioutil.ReadAll(part)
+			dscr, err := io.ReadAll(part)
 			if err != nil {
 				return nil, err
 			}
@@ -772,7 +771,7 @@ func (d *DeploymentsApiHandlers) ParseMultipart(
 
 		case "size":
 			// Add size limit to the metadata
-			sz, err := ioutil.ReadAll(part)
+			sz, err := io.ReadAll(part)
 			if err != nil {
 				return nil, err
 			}
@@ -788,7 +787,7 @@ func (d *DeploymentsApiHandlers) ParseMultipart(
 
 		case "artifact_id":
 			// Add artifact id to the metadata (must be a valid UUID).
-			b, err := ioutil.ReadAll(part)
+			b, err := io.ReadAll(part)
 			if err != nil {
 				return nil, err
 			}
@@ -838,7 +837,7 @@ ParseLoop:
 		}
 		switch strings.ToLower(part.FormName()) {
 		case "args":
-			b, err := ioutil.ReadAll(part)
+			b, err := io.ReadAll(part)
 			if err != nil {
 				return nil, errors.Wrap(err,
 					"failed to read form value 'args'",
@@ -847,7 +846,7 @@ ParseLoop:
 			msg.Args = string(b)
 
 		case "description":
-			b, err := ioutil.ReadAll(part)
+			b, err := io.ReadAll(part)
 			if err != nil {
 				return nil, errors.Wrap(err,
 					"failed to read form value 'description'",
@@ -856,7 +855,7 @@ ParseLoop:
 			msg.Description = string(b)
 
 		case "device_types_compatible":
-			b, err := ioutil.ReadAll(part)
+			b, err := io.ReadAll(part)
 			if err != nil {
 				return nil, errors.Wrap(err,
 					"failed to read form value 'device_types_compatible'",
@@ -873,7 +872,7 @@ ParseLoop:
 			break ParseLoop
 
 		case "name":
-			b, err := ioutil.ReadAll(part)
+			b, err := io.ReadAll(part)
 			if err != nil {
 				return nil, errors.Wrap(err,
 					"failed to read form value 'name'",
@@ -882,7 +881,7 @@ ParseLoop:
 			msg.Name = string(b)
 
 		case "type":
-			b, err := ioutil.ReadAll(part)
+			b, err := io.ReadAll(part)
 			if err != nil {
 				return nil, errors.Wrap(err,
 					"failed to read form value 'type'",
@@ -892,7 +891,7 @@ ParseLoop:
 
 		case "size":
 			// Add size limit to the metadata
-			sz, err := ioutil.ReadAll(part)
+			sz, err := io.ReadAll(part)
 			if err != nil {
 				return nil, err
 			}
