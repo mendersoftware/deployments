@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math"
 	"strings"
 	"time"
 
@@ -43,6 +42,8 @@ const (
 	ExpireMinLimit                 = 1 * time.Minute
 	ErrCodeBucketAlreadyOwnedByYou = "BucketAlreadyOwnedByYou"
 	mib                            = 1024 * 1024
+	multipartMinSize               = 5 * mib
+	multipartMaxParts              = 10000
 )
 
 // Errors specific to interface
@@ -51,6 +52,7 @@ var (
 )
 
 // FileStorage allows to store and manage large files
+//
 //go:generate ../utils/mockgen.sh
 type FileStorage interface {
 	InitBucket(ctx context.Context, bucket string) error
@@ -78,6 +80,12 @@ type SimpleStorageService struct {
 	partSize    int64
 }
 
+func calcPartSize(maxImageSize int64) int64 {
+	return (((maxImageSize - 1) /
+		(multipartMaxParts * multipartMinSize)) + 1) *
+		multipartMinSize
+}
+
 // NewSimpleStorageServiceStatic create new S3 client model.
 // AWS authentication keys are automatically reloaded from env variables.
 func NewSimpleStorageServiceStatic(
@@ -91,10 +99,7 @@ func NewSimpleStorageServiceStatic(
 	forcePathStyle bool,
 	useAccelerate bool,
 ) (*SimpleStorageService, error) {
-	// NOTE: This size along with the 10000 part limit sets the ultimate
-	//       limit on the upload size.
 	maxImageSize := config.Config.GetInt64(dconfig.SettingAwsS3MaxImageSize)
-	partSize := int64(math.Max(5*mib, float64(((maxImageSize-1)/(10000*mib)+1)*mib)))
 	// configuration
 	credentials := credentials.NewStaticCredentials(key, secret, token)
 	config := aws.NewConfig().WithCredentials(credentials).WithRegion(region)
@@ -127,7 +132,7 @@ func NewSimpleStorageServiceStatic(
 		client:      client,
 		bucket:      bucket,
 		tagArtifact: tag_artifact,
-		partSize:    partSize,
+		partSize:    calcPartSize(maxImageSize),
 	}, nil
 }
 
@@ -145,22 +150,11 @@ func NewSimpleStorageServiceDefaults(bucket, region string) (*SimpleStorageServi
 	}
 	client := s3.New(sess)
 
+	maxImageSize := config.Config.GetInt64(dconfig.SettingAwsS3MaxImageSize)
 	return &SimpleStorageService{
-		client: client,
-		bucket: bucket,
-	}, nil
-}
-
-func NewSimpleStorageService(bucket, region string) (*SimpleStorageService, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, err
-	}
-	client := s3.New(sess)
-
-	return &SimpleStorageService{
-		client: client,
-		bucket: bucket,
+		client:   client,
+		bucket:   bucket,
+		partSize: calcPartSize(maxImageSize),
 	}, nil
 }
 
