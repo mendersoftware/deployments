@@ -34,13 +34,13 @@ type ObjectStorage struct {
 	mock.Mock
 }
 
-// DeleteObject provides a mock function with given fields: ctx, objectId
-func (_m *ObjectStorage) DeleteObject(ctx context.Context, objectId string) error {
-	ret := _m.Called(ctx, objectId)
+// DeleteObject provides a mock function with given fields: ctx, path
+func (_m *ObjectStorage) DeleteObject(ctx context.Context, path string) error {
+	ret := _m.Called(ctx, path)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, objectId)
+		r0 = rf(ctx, path)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -48,13 +48,13 @@ func (_m *ObjectStorage) DeleteObject(ctx context.Context, objectId string) erro
 	return r0
 }
 
-// DeleteRequest provides a mock function with given fields: ctx, objectId, duration
-func (_m *ObjectStorage) DeleteRequest(ctx context.Context, objectId string, duration time.Duration) (*model.Link, error) {
-	ret := _m.Called(ctx, objectId, duration)
+// DeleteRequest provides a mock function with given fields: ctx, path, duration
+func (_m *ObjectStorage) DeleteRequest(ctx context.Context, path string, duration time.Duration) (*model.Link, error) {
+	ret := _m.Called(ctx, path, duration)
 
 	var r0 *model.Link
 	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration) *model.Link); ok {
-		r0 = rf(ctx, objectId, duration)
+		r0 = rf(ctx, path, duration)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.Link)
@@ -63,7 +63,7 @@ func (_m *ObjectStorage) DeleteRequest(ctx context.Context, objectId string, dur
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, time.Duration) error); ok {
-		r1 = rf(ctx, objectId, duration)
+		r1 = rf(ctx, path, duration)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -71,13 +71,13 @@ func (_m *ObjectStorage) DeleteRequest(ctx context.Context, objectId string, dur
 	return r0, r1
 }
 
-// GetRequest provides a mock function with given fields: ctx, objectId, duration, fileName
-func (_m *ObjectStorage) GetRequest(ctx context.Context, objectId string, duration time.Duration, fileName string) (*model.Link, error) {
-	ret := _m.Called(ctx, objectId, duration, fileName)
+// GetRequest provides a mock function with given fields: ctx, path, duration
+func (_m *ObjectStorage) GetRequest(ctx context.Context, path string, duration time.Duration) (*model.Link, error) {
+	ret := _m.Called(ctx, path, duration)
 
 	var r0 *model.Link
-	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration, string) *model.Link); ok {
-		r0 = rf(ctx, objectId, duration, fileName)
+	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration) *model.Link); ok {
+		r0 = rf(ctx, path, duration)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.Link)
@@ -85,8 +85,8 @@ func (_m *ObjectStorage) GetRequest(ctx context.Context, objectId string, durati
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, time.Duration, string) error); ok {
-		r1 = rf(ctx, objectId, duration, fileName)
+	if rf, ok := ret.Get(1).(func(context.Context, string, time.Duration) error); ok {
+		r1 = rf(ctx, path, duration)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -108,13 +108,13 @@ func (_m *ObjectStorage) HealthCheck(ctx context.Context) error {
 	return r0
 }
 
-// PutObject provides a mock function with given fields: ctx, objectId, src
-func (_m *ObjectStorage) PutObject(ctx context.Context, objectId string, src io.Reader) error {
-	ret := _m.Called(ctx, objectId, src)
+// PutObject provides a mock function with given fields: ctx, path, src
+func (_m *ObjectStorage) PutObject(ctx context.Context, path string, src io.Reader) error {
+	ret := _m.Called(ctx, path, src)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, io.Reader) error); ok {
-		r0 = rf(ctx, objectId, src)
+		r0 = rf(ctx, path, src)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -122,13 +122,13 @@ func (_m *ObjectStorage) PutObject(ctx context.Context, objectId string, src io.
 	return r0
 }
 
-// PutRequest provides a mock function with given fields: ctx, objectId, duration
-func (_m *ObjectStorage) PutRequest(ctx context.Context, objectId string, duration time.Duration) (*model.Link, error) {
-	ret := _m.Called(ctx, objectId, duration)
+// PutRequest provides a mock function with given fields: ctx, path, duration
+func (_m *ObjectStorage) PutRequest(ctx context.Context, path string, duration time.Duration) (*model.Link, error) {
+	ret := _m.Called(ctx, path, duration)
 
 	var r0 *model.Link
 	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration) *model.Link); ok {
-		r0 = rf(ctx, objectId, duration)
+		r0 = rf(ctx, path, duration)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.Link)
@@ -137,7 +137,7 @@ func (_m *ObjectStorage) PutRequest(ctx context.Context, objectId string, durati
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, time.Duration) error); ok {
-		r1 = rf(ctx, objectId, duration)
+		r1 = rf(ctx, path, duration)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -145,13 +145,13 @@ func (_m *ObjectStorage) PutRequest(ctx context.Context, objectId string, durati
 	return r0, r1
 }
 
-// StatObject provides a mock function with given fields: ctx, objectId
-func (_m *ObjectStorage) StatObject(ctx context.Context, objectId string) (*storage.ObjectInfo, error) {
-	ret := _m.Called(ctx, objectId)
+// StatObject provides a mock function with given fields: ctx, path
+func (_m *ObjectStorage) StatObject(ctx context.Context, path string) (*storage.ObjectInfo, error) {
+	ret := _m.Called(ctx, path)
 
 	var r0 *storage.ObjectInfo
 	if rf, ok := ret.Get(0).(func(context.Context, string) *storage.ObjectInfo); ok {
-		r0 = rf(ctx, objectId)
+		r0 = rf(ctx, path)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*storage.ObjectInfo)
@@ -160,7 +160,7 @@ func (_m *ObjectStorage) StatObject(ctx context.Context, objectId string) (*stor
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, objectId)
+		r1 = rf(ctx, path)
 	} else {
 		r1 = ret.Error(1)
 	}

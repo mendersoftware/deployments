@@ -15,16 +15,27 @@
 package model
 
 import (
+	"context"
 	"io"
+	"path"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/mongo/doc"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
+
+func ImagePathFromContext(ctx context.Context, id string) string {
+	imgPath := id
+	if idty := identity.FromContext(ctx); idty != nil {
+		imgPath = path.Join(idty.Tenant, id)
+	}
+	return imgPath
+}
 
 // Information provided by the user
 type ImageMeta struct {

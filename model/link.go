@@ -1,4 +1,4 @@
-// Copyright 2019 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,8 +19,10 @@ import (
 )
 
 type Link struct {
-	Uri    string    `json:"uri"`
-	Expire time.Time `json:"expire,omitempty"`
+	Uri    string            `json:"uri"`
+	Expire time.Time         `json:"expire,omitempty"`
+	Method string            `json:"method,omitempty"`
+	Header map[string]string `json:"header,omitempty"`
 }
 
 func NewLink(uri string, expire time.Time) *Link {

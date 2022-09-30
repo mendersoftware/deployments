@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -29,8 +30,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/pkg/errors"
-
-	"github.com/mendersoftware/go-lib-micro/identity"
 
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
@@ -49,11 +48,6 @@ const (
 	paramAmzDateFormat = "20060102T150405Z"
 )
 
-// Errors specific to interface
-var (
-	ErrFileStorageFileNotFound = errors.New("File not found")
-)
-
 // SimpleStorageService - AWS S3 client.
 // Data layer for file storage.
 // Implements model.FileStorage interface
@@ -63,6 +57,7 @@ type SimpleStorageService struct {
 	bucket        string
 	bufferSize    int
 	contentType   *string
+	fileSuffix    *string
 }
 
 type StaticCredentials struct {
@@ -120,14 +115,6 @@ func New(ctx context.Context, bucket string, opts ...*Options) (*SimpleStorageSe
 		return nil, errors.WithMessage(err, "s3: failed to check bucket preconditions")
 	}
 	return s3c, nil
-}
-
-func getArtifactByTenant(ctx context.Context, objectID string) string {
-	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 {
-		return fmt.Sprintf("%s/%s", id.Tenant, objectID)
-	}
-
-	return objectID
 }
 
 func (s *SimpleStorageService) init(ctx context.Context) error {
@@ -204,8 +191,7 @@ func (s *SimpleStorageService) HealthCheck(ctx context.Context) error {
 
 // Delete removes deleted file from storage.
 // Noop if ID does not exist.
-func (s *SimpleStorageService) DeleteObject(ctx context.Context, objectID string) error {
-	objectID = getArtifactByTenant(ctx, objectID)
+func (s *SimpleStorageService) DeleteObject(ctx context.Context, path string) error {
 	bucket, opts, err := s.optionsFromContext(ctx, false)
 	if err != nil {
 		return err
@@ -214,7 +200,7 @@ func (s *SimpleStorageService) DeleteObject(ctx context.Context, objectID string
 	params := &s3.DeleteObjectInput{
 		// Required
 		Bucket: aws.String(bucket),
-		Key:    aws.String(objectID),
+		Key:    aws.String(path),
 
 		// Optional
 		RequestPayer: types.RequestPayerRequester,
@@ -223,6 +209,12 @@ func (s *SimpleStorageService) DeleteObject(ctx context.Context, objectID string
 	// ignore return response which contains charing info
 	// and file versioning data which are not in interest
 	_, err = s.client.DeleteObject(ctx, params, opts)
+	var rspErr *awsHttp.ResponseError
+	if errors.As(err, &rspErr) {
+		if rspErr.Response.StatusCode == http.StatusNotFound {
+			err = storage.ErrObjectNotFound
+		}
+	}
 	if err != nil {
 		return errors.WithMessage(err, "s3: error deleting object")
 	}
@@ -233,9 +225,8 @@ func (s *SimpleStorageService) DeleteObject(ctx context.Context, objectID string
 // Exists check if selected object exists in the storage
 func (s *SimpleStorageService) StatObject(
 	ctx context.Context,
-	objectID string,
+	path string,
 ) (*storage.ObjectInfo, error) {
-	objectID = getArtifactByTenant(ctx, objectID)
 
 	bucket, opts, err := s.optionsFromContext(ctx, false)
 	if err != nil {
@@ -244,16 +235,23 @@ func (s *SimpleStorageService) StatObject(
 
 	params := &s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(objectID),
+		Key:    aws.String(path),
 	}
 	rsp, err := s.client.HeadObject(ctx, params, opts)
+	var rspErr *awsHttp.ResponseError
+	if errors.As(err, &rspErr) {
+		if rspErr.Response.StatusCode == http.StatusNotFound {
+			err = storage.ErrObjectNotFound
+		}
+	}
 	if err != nil {
 		return nil, errors.WithMessage(err, "s3: error getting object info")
 	}
 
 	return &storage.ObjectInfo{
-		Path:         objectID,
+		Path:         path,
 		LastModified: rsp.LastModified,
+		Size:         &rsp.ContentLength,
 	}, nil
 }
 
@@ -283,19 +281,12 @@ func (s *SimpleStorageService) uploadMultipart(
 
 	// Pre-allocate 100 completed part (generous guesstimate)
 	completedParts := make([]types.CompletedPart, 0, 100)
-	// expiresAt is the maximum time the s3 service will cache the uploaded
-	// parts. Defaults to one hour.
-	expiresAt := time.Now().Add(time.Hour)
-	if deadline, ok := ctx.Deadline(); ok {
-		expiresAt = deadline
-	}
 
 	// Initiate Multipart upload
 	createParams := &s3.CreateMultipartUploadInput{
 		Bucket:      &bucket,
 		Key:         &objectPath,
 		ContentType: s.contentType,
-		Expires:     &expiresAt,
 	}
 	rspCreate, err := s.client.CreateMultipartUpload(
 		ctx, createParams, opts,
@@ -401,11 +392,9 @@ func (s *SimpleStorageService) uploadMultipart(
 // single request.
 func (s *SimpleStorageService) PutObject(
 	ctx context.Context,
-	objectID string,
+	path string,
 	src io.Reader,
 ) error {
-	objectID = getArtifactByTenant(ctx, objectID)
-
 	buf := make([]byte, s.bufferSize)
 	n, err := fillBuffer(buf, src)
 
@@ -423,7 +412,7 @@ func (s *SimpleStorageService) PutObject(
 		uploadParams := &s3.PutObjectInput{
 			Body:        bytes.NewReader(buf[:n]),
 			Bucket:      &bucket,
-			Key:         &objectID,
+			Key:         &path,
 			ContentType: s.contentType,
 		}
 		_, err = s.client.PutObject(
@@ -432,18 +421,17 @@ func (s *SimpleStorageService) PutObject(
 			opts,
 		)
 	} else if err == nil {
-		err = s.uploadMultipart(ctx, buf, objectID, src)
+		err = s.uploadMultipart(ctx, buf, path, src)
 	}
 	return err
 }
 
 func (s *SimpleStorageService) PutRequest(
 	ctx context.Context,
-	objectID string,
+	path string,
 	expireAfter time.Duration,
 ) (*model.Link, error) {
 
-	objectID = getArtifactByTenant(ctx, objectID)
 	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
 	bucket, opts, err := s.optionsFromContext(ctx, true)
 	if err != nil {
@@ -453,7 +441,7 @@ func (s *SimpleStorageService) PutRequest(
 	params := &s3.PutObjectInput{
 		// Required
 		Bucket: aws.String(bucket),
-		Key:    aws.String(objectID),
+		Key:    aws.String(path),
 	}
 
 	signDate := time.Now()
@@ -472,31 +460,39 @@ func (s *SimpleStorageService) PutRequest(
 		signDate = date
 	}
 
-	return model.NewLink(
-		req.URL,
-		signDate.Add(expireAfter),
-	), nil
+	return &model.Link{
+		Uri:    req.URL,
+		Expire: signDate.Add(expireAfter),
+		Method: http.MethodPut,
+	}, nil
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
-func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
-	expireAfter time.Duration, fileName string) (*model.Link, error) {
+func (s *SimpleStorageService) GetRequest(
+	ctx context.Context,
+	objectPath string,
+	expireAfter time.Duration,
+) (*model.Link, error) {
 
 	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
-	objectID = getArtifactByTenant(ctx, objectID)
 	bucket, opts, err := s.optionsFromContext(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 
+	if _, err := s.StatObject(ctx, objectPath); err != nil {
+		return nil, errors.WithMessage(err, "s3: head object")
+	}
+
 	params := &s3.GetObjectInput{
 		Bucket:              aws.String(bucket),
-		Key:                 aws.String(objectID),
+		Key:                 aws.String(objectPath),
 		ResponseContentType: s.contentType,
 	}
 
-	if fileName != "" {
-		contentDisposition := fmt.Sprintf("attachment; filename=\"%s\"", fileName)
+	if s.fileSuffix != nil {
+		filename := path.Base(objectPath) + *s.fileSuffix
+		contentDisposition := fmt.Sprintf("attachment; filename=\"%s\"", filename)
 		params.ResponseContentDisposition = &contentDisposition
 	}
 
@@ -514,18 +510,21 @@ func (s *SimpleStorageService) GetRequest(ctx context.Context, objectID string,
 		signDate = date
 	}
 
-	return model.NewLink(req.URL, signDate.Add(expireAfter)), nil
+	return &model.Link{
+		Uri:    req.URL,
+		Expire: signDate.Add(expireAfter),
+		Method: http.MethodGet,
+	}, nil
 }
 
 // DeleteRequest returns a presigned deletion request
 func (s *SimpleStorageService) DeleteRequest(
 	ctx context.Context,
-	objectID string,
+	path string,
 	expireAfter time.Duration,
 ) (*model.Link, error) {
 
 	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
-	objectID = getArtifactByTenant(ctx, objectID)
 	bucket, opts, err := s.optionsFromContext(ctx, true)
 	if err != nil {
 		return nil, err
@@ -533,7 +532,7 @@ func (s *SimpleStorageService) DeleteRequest(
 
 	params := &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(objectID),
+		Key:    aws.String(path),
 	}
 
 	signDate := time.Now()
@@ -550,7 +549,11 @@ func (s *SimpleStorageService) DeleteRequest(
 		signDate = date
 	}
 
-	return model.NewLink(req.URL, signDate.Add(expireAfter)), nil
+	return &model.Link{
+		Uri:    req.URL,
+		Expire: signDate.Add(expireAfter),
+		Method: http.MethodDelete,
+	}, nil
 }
 
 // presign requests are limited to 7 days

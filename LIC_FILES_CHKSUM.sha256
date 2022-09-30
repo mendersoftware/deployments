@@ -68,6 +68,9 @@ b8514c577c1c4b46cee454d5a882b15fa411e72c5bd7f801f241591789fce61a  vendor/github.
 # MIT
 409777def58db7e220011d266bb963259b5d45fc490e58a0d97acad2b591609a  vendor/github.com/ant0ine/go-json-rest/LICENSE
 e1a36eac3f3109d06869f57127cc32683f70a170dcefe5f143ee378ff313ddfe  vendor/github.com/asaskevich/govalidator/LICENSE
+646f8936b8ddcd14e13e578ff6857e368780b0d1a4f6066bee89211923a373e2  vendor/github.com/Azure/azure-sdk-for-go/sdk/azcore/LICENSE.txt
+646f8936b8ddcd14e13e578ff6857e368780b0d1a4f6066bee89211923a373e2  vendor/github.com/Azure/azure-sdk-for-go/sdk/internal/LICENSE.txt
+a096a435e19bb6b631da46992c011a39be563e97ce7366879ad516c772904632  vendor/github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/LICENSE.txt
 a55959c4e3e8917bfa857359bb641115336276a6cc97408fd8197e079fb18470  vendor/github.com/cpuguy83/go-md2man/v2/LICENSE.md
 03458b6d5828e1be1127ca2adf122572eb574fc47b56190c3b38203b8b2a98d0  vendor/github.com/gin-contrib/sse/LICENSE
 03458b6d5828e1be1127ca2adf122572eb574fc47b56190c3b38203b8b2a98d0  vendor/github.com/gin-gonic/gin/LICENSE

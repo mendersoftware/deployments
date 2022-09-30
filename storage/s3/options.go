@@ -43,6 +43,8 @@ type Options struct {
 	Region *string
 	// ContentType of the uploaded objects
 	ContentType *string
+	// FilenameSuffix adds the suffix to the content-disposition for object downloads>
+	FilenameSuffix *string
 	// ExternalURI is the URI used for signing requests.
 	ExternalURI *string
 	// URI is the URI for the s3 API.
@@ -119,6 +121,11 @@ func (opts *Options) SetRegion(region string) *Options {
 
 func (opts *Options) SetContentType(contentType string) *Options {
 	opts.ContentType = &contentType
+	return opts
+}
+
+func (opts *Options) SetFilenameSuffix(suffix string) *Options {
+	opts.FilenameSuffix = &suffix
 	return opts
 }
 

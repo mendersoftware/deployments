@@ -16,10 +16,15 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
 
 	"github.com/mendersoftware/deployments/model"
+)
+
+var (
+	ErrObjectNotFound = errors.New("object not found")
 )
 
 // ObjectStorage allows to store and manage large files
@@ -27,22 +32,23 @@ import (
 //go:generate ../utils/mockgen.sh
 type ObjectStorage interface {
 	HealthCheck(ctx context.Context) error
-	PutObject(ctx context.Context, objectId string, src io.Reader) error
-	DeleteObject(ctx context.Context, objectId string) error
-	StatObject(ctx context.Context, objectId string) (*ObjectInfo, error)
+	PutObject(ctx context.Context, path string, src io.Reader) error
+	DeleteObject(ctx context.Context, path string) error
+	StatObject(ctx context.Context, path string) (*ObjectInfo, error)
 
 	// The following interface generates signed URLs.
-	GetRequest(ctx context.Context, objectId string,
-		duration time.Duration, fileName string) (*model.Link, error)
-	DeleteRequest(ctx context.Context, objectId string,
+	GetRequest(ctx context.Context, path string,
 		duration time.Duration) (*model.Link, error)
-	PutRequest(ctx context.Context, objectId string,
+	DeleteRequest(ctx context.Context, path string,
+		duration time.Duration) (*model.Link, error)
+	PutRequest(ctx context.Context, path string,
 		duration time.Duration) (*model.Link, error)
 }
 
 type ObjectInfo struct {
 	Path string
 
+	Size *int64
+
 	LastModified *time.Time
-	Created      *time.Time
 }

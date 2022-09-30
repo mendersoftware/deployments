@@ -1,16 +1,16 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
+//	Licensed under the Apache License, Version 2.0 (the "License");
+//	you may not use this file except in compliance with the License.
+//	You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//	    http://www.apache.org/licenses/LICENSE-2.0
 //
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
+//	Unless required by applicable law or agreed to in writing, software
+//	distributed under the License is distributed on an "AS IS" BASIS,
+//	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//	See the License for the specific language governing permissions and
+//	limitations under the License.
 package config
 
 import (
@@ -31,31 +31,44 @@ const (
 	SettingListen        = "listen"
 	SettingListenDefault = ":8080"
 
+	SettingStorage = "storage"
+
+	SettingDefaultStorage             = SettingStorage + ".default"
+	SettingDefaultStorageDefault      = "aws"
+	SettingStorageBucket              = SettingStorage + ".bucket"
+	SettingStorageBucketDefault       = "mender-artifact-storage"
+	SettingStorageMaxImageSize        = SettingStorage + ".max_image_size"
+	SettingStorageMaxImageSizeDefault = 10 * 1024 * 1024 * 1024 // 10 GiB
+
+	SettingsStorageDownloadExpireSeconds        = SettingStorage + ".download_expire_seconds"
+	SettingsStorageDownloadExpireSecondsDefault = 900
+	SettingsStorageUploadExpireSeconds          = SettingStorage + ".upload_expire_seconds"
+	SettingsStorageUploadExpireSecondsDefault   = 3600
+
 	SettingsAws                       = "aws"
 	SettingAwsS3Region                = SettingsAws + ".region"
 	SettingAwsS3RegionDefault         = "us-east-1"
-	SettingAwsS3Bucket                = SettingsAws + ".bucket"
-	SettingAwsS3BucketDefault         = "mender-artifact-storage"
 	SettingAwsS3ForcePathStyle        = SettingsAws + ".force_path_style"
 	SettingAwsS3ForcePathStyleDefault = true
 	SettingAwsS3UseAccelerate         = SettingsAws + ".use_accelerate"
 	SettingAwsS3UseAccelerateDefault  = false
-	SettingAwsS3MaxImageSize          = SettingsAws + ".max_image_size"
-	SettingAwsS3MaxImageSizeDefault   = 10737418240
 	SettingAwsURI                     = SettingsAws + ".uri"
 	SettingAwsExternalURI             = SettingsAws + ".external_uri"
 	SettingsAwsTagArtifact            = SettingsAws + ".tag_artifact"
 	SettingsAwsTagArtifactDefault     = false
 
-	SettingsAwsDownloadExpireSeconds        = SettingsAws + ".download_expire_seconds"
-	SettingsAwsDownloadExpireSecondsDefault = 900
-	SettingsAwsUploadExpireSeconds          = SettingsAws + ".upload_expire_seconds"
-	SettingsAwsUploadExpireSecondsDefault   = 3600
-
 	SettingsAwsAuth      = SettingsAws + ".auth"
 	SettingAwsAuthKeyId  = SettingsAwsAuth + ".key"
 	SettingAwsAuthSecret = SettingsAwsAuth + ".secret"
 	SettingAwsAuthToken  = SettingsAwsAuth + ".token"
+
+	SettingAzure                    = "azure"
+	SettingAzureAuth                = SettingAzure + ".auth"
+	SettingAzureConnectionString    = SettingAzureAuth + ".connection_string"
+	SettingAzureSharedKey           = SettingAzureAuth + ".shared_key"
+	SettingAzureSharedKeyAccount    = SettingAzureSharedKey + ".account_name"
+	SettingAzureSharedKeyAccountKey = SettingAzureSharedKey + ".account_key"
+	SettingAzureSharedKeyURI        = SettingAzureSharedKey + ".uri"
 
 	SettingMongo        = "mongo-url"
 	SettingMongoDefault = "mongodb://mongo-deployments:27017"
@@ -117,6 +130,18 @@ const (
 	SettingPresignSchemeDefault = "https"
 )
 
+const (
+	StorageTypeAWS   = "aws"
+	StorageTypeAzure = "azure"
+)
+
+const (
+	deprecatedSettingAwsS3Bucket               = SettingsAws + ".bucket"
+	deprecatedSettingAwsS3MaxImageSize         = SettingsAws + ".max_image_size"
+	deprecatedSettingsAwsDownloadExpireSeconds = SettingsAws + ".download_expire_seconds"
+	deprecatedSettingsAwsUploadExpireSeconds   = SettingsAws + ".upload_expire_seconds"
+)
+
 // ValidateAwsAuth validates configuration of SettingsAwsAuth section if provided.
 func ValidateAwsAuth(c config.Reader) error {
 
@@ -160,6 +185,17 @@ func ValidateHttps(c config.Reader) error {
 	return nil
 }
 
+func ValidateStorage(c config.Reader) error {
+	svc := c.GetString(SettingDefaultStorage)
+	if svc != StorageTypeAWS && svc != StorageTypeAzure {
+		return fmt.Errorf(
+			`setting "%s" (%s) must be one of "aws" or "azure"`,
+			SettingDefaultStorage, svc,
+		)
+	}
+	return nil
+}
+
 // Generate error with missing required option message.
 func MissingOptionError(option string) error {
 	return fmt.Errorf("Required option: '%s'", option)
@@ -167,15 +203,28 @@ func MissingOptionError(option string) error {
 
 var (
 	Validators = []config.Validator{ValidateAwsAuth, ValidateHttps}
-	Defaults   = []config.Default{
+	// Aliases for deprecated configuration names to preserve backward compatibility.
+	Aliases = []struct {
+		Key   string
+		Alias string
+	}{
+		{Key: SettingStorageBucket, Alias: deprecatedSettingAwsS3Bucket},
+		{Key: SettingsStorageDownloadExpireSeconds,
+			Alias: deprecatedSettingsAwsDownloadExpireSeconds},
+		{Key: SettingsStorageUploadExpireSeconds, Alias: deprecatedSettingsAwsUploadExpireSeconds},
+		{Key: SettingStorageMaxImageSize, Alias: deprecatedSettingAwsS3MaxImageSize},
+	}
+	Defaults = []config.Default{
 		{Key: SettingListen, Value: SettingListenDefault},
+		{Key: SettingDefaultStorage, Value: SettingDefaultStorageDefault},
 		{Key: SettingAwsS3Region, Value: SettingAwsS3RegionDefault},
-		{Key: SettingAwsS3Bucket, Value: SettingAwsS3BucketDefault},
+		{Key: SettingStorageBucket, Value: SettingStorageBucketDefault},
 		{Key: SettingAwsS3ForcePathStyle, Value: SettingAwsS3ForcePathStyleDefault},
 		{Key: SettingAwsS3UseAccelerate, Value: SettingAwsS3UseAccelerateDefault},
-		{Key: SettingAwsS3MaxImageSize, Value: SettingAwsS3MaxImageSizeDefault},
-		{Key: SettingsAwsDownloadExpireSeconds, Value: SettingsAwsDownloadExpireSecondsDefault},
-		{Key: SettingsAwsUploadExpireSeconds, Value: SettingsAwsUploadExpireSecondsDefault},
+		{Key: SettingStorageMaxImageSize, Value: SettingStorageMaxImageSizeDefault},
+		{Key: SettingsStorageDownloadExpireSeconds,
+			Value: SettingsStorageDownloadExpireSecondsDefault},
+		{Key: SettingsStorageUploadExpireSeconds, Value: SettingsStorageUploadExpireSecondsDefault},
 		{Key: SettingMongo, Value: SettingMongoDefault},
 		{Key: SettingDbSSL, Value: SettingDbSSLDefault},
 		{Key: SettingDbSSLSkipVerify, Value: SettingDbSSLSkipVerifyDefault},
