@@ -24,6 +24,7 @@ class TestInternalApiStorageSettings:
     def test_ok(self, api_client_int):
         tenant_id = str(ObjectId())
         data = {
+            "type": "s3",
             "region": "region",
             "bucket": "bucket",
             "uri": f"http://mock-server:8080/status/200",
@@ -41,6 +42,7 @@ class TestInternalApiStorageSettings:
     def test_data_update(self, api_client_int):
         tenant_id = str(ObjectId())
         data1 = {
+            "type": "s3",
             "region": "region",
             "bucket": "bucket",
             "uri": f"http://mock-server:8080/status/200",
@@ -51,6 +53,7 @@ class TestInternalApiStorageSettings:
             "use_accelerate": True,
         }
         data2 = {
+            "type": "s3",
             "region": "region",
             "bucket": "new_bucket",
             "uri": f"http://mock-server:8080/status/200",
@@ -69,6 +72,7 @@ class TestInternalApiStorageSettings:
     def test_update_to_empty_data_set(self, api_client_int):
         tenant_id = str(ObjectId())
         data1 = {
+            "type": "s3",
             "region": "region",
             "bucket": "bucket",
             "uri": f"http://mock-server:8080/status/200",
@@ -89,6 +93,7 @@ class TestInternalApiStorageSettings:
         tenant_id = str(ObjectId())
         # 'Key' is too short
         data = {
+            "type": "s3",
             "region": "region",
             "bucket": "bucket",
             "uri": f"http://mock-server:8080/status/200",
@@ -103,6 +108,7 @@ class TestInternalApiStorageSettings:
         tenant_id = str(ObjectId())
         # 'Bucket' key is missing
         data = {
+            "type": "s3",
             "region": "region",
             "uri": f"http://mock-server:8080/status/200",
             "external_uri": "https://external.example.com",

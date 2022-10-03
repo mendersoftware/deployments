@@ -433,35 +433,61 @@ definitions:
     description: Per tenant storage settings.
     type: object
     properties:
+      type:
+        type: string
+        enum:
+          - s3
+          - azure
+        description: >-
+          The storage provider type 'azure' Blob storage or AWS 's3' (defaults to s3).
       region:
         type: string
-        description: AWS region.
+        description: >-
+          AWS region (S3 only: required).
       bucket:
         type: string
-        description: Bucket name.
+        description: >-
+          S3 Bucket (Azure: container) name.
       uri:
         type: string
-        description: Endpoint URI.
+        description: >-
+          Bucket/container endpoint URI.
       external_uri:
         type: string
-        description: External Endpoint URI (if differ from uri).
+        description: Public Endpoint URI for presigning URLs (S3 only).
       key:
         type: string
-        description: Access key id (for S3 - AWS_ACCESS_KEY_ID).
+        description: >-
+          Access key identifier (Azure: account name).
       secret:
         type: string
-        description: Secret access key (for S3 - AWS_SECRET_ACCESS_KEY).
+        description: >-
+          Secret access key (Azure: access key).
       token:
         type: string
-        description: Token.
+        description: AWS S3 session token (S3 only).
       force_path_style:
         type: boolean
-        description: Force S3 path-style instead of virtual-hosted style.
+        description: Force S3 path-style instead of virtual-hosted style (S3 only).
       use_accelerate:
         type: boolean
-        description: Enable S3 Transfer acceleration.
+        description: Enable S3 Transfer acceleration (S3 only).
+      connection_string:
+        type: string
+        description: Shared access key connection string (Azure only).
+      container_name:
+        type: string
+        description: >-
+          Alias for 'bucket' (Azure only).
+      account_name:
+        type: string
+        description: >-
+          Alias for 'key' (Azure only).
+      account_key:
+        type: string
+        description: >-
+          Alias for 'secret' (Azure only).
     required:
-      - region
       - bucket
       - key
       - secret

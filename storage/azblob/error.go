@@ -14,6 +14,8 @@
 
 package azblob
 
+import "errors"
+
 type OpError struct {
 	Op      string
 	Message string
@@ -46,4 +48,8 @@ const (
 	OpGetRequest    = "GetRequest"
 	OpDeleteRequest = "DeleteRequest"
 	OpPutRequest    = "PutRequest"
+)
+
+var (
+	ErrStorageSettings = errors.New("storage settings invalid")
 )

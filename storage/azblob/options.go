@@ -14,10 +14,41 @@
 
 package azblob
 
+import (
+	"fmt"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+)
+
 const (
 	BufferSizeMin     = 4 * 1024          // 4KiB
 	BufferSizeDefault = 8 * BufferSizeMin // 32KiB - same default as used in io.Copy
 )
+
+type SharedKeyCredentials struct {
+	AccountName string
+	AccountKey  string
+
+	URI *string // Optional
+}
+
+func (creds SharedKeyCredentials) azParams(
+	containerName string,
+) (containerURL string, azCreds *azblob.SharedKeyCredential, err error) {
+	azCreds, err = azblob.NewSharedKeyCredential(creds.AccountName, creds.AccountKey)
+	if err == nil {
+		if creds.URI != nil {
+			containerURL = *creds.URI
+		} else {
+			containerURL = fmt.Sprintf(
+				"https://%s.blob.core.windows.net/%s",
+				azCreds.AccountName(),
+				containerName,
+			)
+		}
+	}
+	return containerURL, azCreds, err
+}
 
 type Options struct {
 	ConnectionString *string
