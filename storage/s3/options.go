@@ -177,7 +177,7 @@ func (opts *Options) toS3Options() (
 			endpointURI := *opts.URI
 			s3Opts.EndpointResolver = s3.EndpointResolverFromURL(endpointURI,
 				func(ep *aws.Endpoint) {
-					ep.HostnameImmutable = opts.ForcePathStyle
+					ep.HostnameImmutable = true
 				},
 			)
 		}
