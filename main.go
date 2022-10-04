@@ -16,18 +16,13 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
-	"io"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/log"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
 	dconfig "github.com/mendersoftware/deployments/config"
@@ -83,41 +78,8 @@ func doMain(args []string) {
 
 	app.Action = cmdServer
 	app.Before = func(args *cli.Context) error {
-
-		l := log.NewEmpty()
-		for _, alias := range dconfig.Aliases {
-			config.Config.RegisterAlias(alias.Alias, alias.Key)
-		}
-		err := config.FromConfigFile(configPath, dconfig.Defaults)
-		if err != nil {
-			return cli.NewExitError(
-				fmt.Sprintf("error loading configuration: %s", err),
-				1)
-		}
-
-		// Enable setting config values by environment variables
-		config.Config.SetEnvPrefix("DEPLOYMENTS")
-		config.Config.AutomaticEnv()
-		config.Config.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-		if config.Config.Get(dconfig.SettingPresignSecret) == "" {
-			l.Infof("'%s' not configured. Generating a random secret.",
-				dconfig.SettingPresignSecret,
-			)
-			var buf [32]byte
-			n, err := io.ReadFull(rand.Reader, buf[:])
-			if err != nil {
-				return errors.Wrapf(err,
-					"failed to generate '%s'",
-					dconfig.SettingPresignSecret,
-				)
-			} else if n == 0 {
-				return errors.Errorf(
-					"failed to generate '%s'",
-					dconfig.SettingPresignSecret,
-				)
-			}
-			secret := base64.StdEncoding.EncodeToString(buf[:n])
-			config.Config.Set(dconfig.SettingPresignSecret, secret)
+		if err := dconfig.Setup(configPath); err != nil {
+			return cli.NewExitError(err.Error(), 1)
 		}
 
 		return nil

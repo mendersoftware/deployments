@@ -14,10 +14,16 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 
 	"github.com/mendersoftware/go-lib-micro/config"
+	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -201,8 +207,53 @@ func MissingOptionError(option string) error {
 	return fmt.Errorf("Required option: '%s'", option)
 }
 
+func applyAliases() {
+	for _, alias := range Aliases {
+		if config.Config.IsSet(alias.Alias) {
+			config.Config.Set(alias.Key, config.Config.Get(alias.Alias))
+		}
+	}
+}
+
+func Setup(configPath string) error {
+	err := config.FromConfigFile(configPath, Defaults)
+	if err != nil {
+		return fmt.Errorf("error loading configuration: %s", err)
+	}
+
+	// Enable setting config values by environment variables
+	config.Config.SetEnvPrefix("DEPLOYMENTS")
+	config.Config.AutomaticEnv()
+	config.Config.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	if err := config.ValidateConfig(config.Config, Validators...); err != nil {
+		return errors.WithMessage(err, "config: error validating configuration")
+	}
+	if config.Config.Get(SettingPresignSecret) == "" {
+		log.NewEmpty().Warnf("'%s' not configured. Generating a random secret.",
+			SettingPresignSecret,
+		)
+		var buf [32]byte
+		n, err := io.ReadFull(rand.Reader, buf[:])
+		if err != nil {
+			return errors.WithMessagef(err,
+				"failed to generate '%s'",
+				SettingPresignSecret,
+			)
+		} else if n == 0 {
+			return errors.Errorf(
+				"failed to generate '%s'",
+				SettingPresignSecret,
+			)
+		}
+		secret := base64.StdEncoding.EncodeToString(buf[:n])
+		config.Config.Set(SettingPresignSecret, secret)
+	}
+	applyAliases()
+	return nil
+}
+
 var (
-	Validators = []config.Validator{ValidateAwsAuth, ValidateHttps}
+	Validators = []config.Validator{ValidateAwsAuth, ValidateHttps, ValidateStorage}
 	// Aliases for deprecated configuration names to preserve backward compatibility.
 	Aliases = []struct {
 		Key   string
@@ -214,6 +265,7 @@ var (
 		{Key: SettingsStorageUploadExpireSeconds, Alias: deprecatedSettingsAwsUploadExpireSeconds},
 		{Key: SettingStorageMaxImageSize, Alias: deprecatedSettingAwsS3MaxImageSize},
 	}
+
 	Defaults = []config.Default{
 		{Key: SettingListen, Value: SettingListenDefault},
 		{Key: SettingDefaultStorage, Value: SettingDefaultStorageDefault},
