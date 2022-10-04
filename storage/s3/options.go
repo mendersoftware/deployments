@@ -73,6 +73,9 @@ func NewOptions(opts ...*Options) *Options {
 		if opt.StaticCredentials != nil {
 			ret.StaticCredentials = opt.StaticCredentials
 		}
+		if opt.Region != nil {
+			ret.Region = opt.Region
+		}
 		if opt.ContentType != nil {
 			ret.ContentType = opt.ContentType
 		}
