@@ -73,6 +73,9 @@ func NewOptions(opts ...*Options) *Options {
 		if opt.StaticCredentials != nil {
 			ret.StaticCredentials = opt.StaticCredentials
 		}
+		if opt.Region != nil {
+			ret.Region = opt.Region
+		}
 		if opt.ContentType != nil {
 			ret.ContentType = opt.ContentType
 		}
@@ -174,7 +177,7 @@ func (opts *Options) toS3Options() (
 			endpointURI := *opts.URI
 			s3Opts.EndpointResolver = s3.EndpointResolverFromURL(endpointURI,
 				func(ep *aws.Endpoint) {
-					ep.HostnameImmutable = opts.ForcePathStyle
+					ep.HostnameImmutable = true
 				},
 			)
 		}
