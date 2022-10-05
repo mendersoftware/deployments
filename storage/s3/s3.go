@@ -17,6 +17,7 @@ package s3
 import (
 	"bytes"
 	"context"
+	stderr "errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -47,6 +48,8 @@ const (
 	paramAmzDate       = "X-Amz-Date"
 	paramAmzDateFormat = "20060102T150405Z"
 )
+
+var ErrClientEmpty = stderr.New("s3: storage client credentials not configured")
 
 // SimpleStorageService - AWS S3 client.
 // Data layer for file storage.
@@ -86,13 +89,27 @@ func (creds StaticCredentials) Retrieve(context.Context) (aws.Credentials, error
 	return creds.awsCredentials(), nil
 }
 
-func New(ctx context.Context, bucket string, opts ...*Options) (*SimpleStorageService, error) {
-	opt := NewOptions(opts...)
+func newClient(
+	ctx context.Context,
+	withCredentials bool,
+	opt *Options,
+) (*SimpleStorageService, error) {
 	if err := opt.Validate(); err != nil {
 		return nil, errors.WithMessage(err, "s3: invalid configuration")
 	}
+	var (
+		err error
+		cfg aws.Config
+	)
 
-	cfg, err := awsConfig.LoadDefaultConfig(ctx)
+	if withCredentials {
+		cfg, err = awsConfig.LoadDefaultConfig(ctx)
+	} else {
+		opt.StaticCredentials = nil
+		cfg, err = awsConfig.LoadDefaultConfig(ctx,
+			awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}),
+		)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -101,14 +118,30 @@ func New(ctx context.Context, bucket string, opts ...*Options) (*SimpleStorageSe
 	client := s3.NewFromConfig(cfg, clientOpts)
 	presignClient := s3.NewPresignClient(client, presignOpts)
 
-	s3c := &SimpleStorageService{
+	return &SimpleStorageService{
 		client:        client,
 		presignClient: presignClient,
-		bucket:        bucket,
 
 		bufferSize:  *opt.BufferSize,
 		contentType: opt.ContentType,
+	}, nil
+}
+
+// NewEmpty initializes a new s3 client that does not implicitly load
+// credentials from the environment. Credentials must be set using the
+// StorageSettings provided with the Context.
+func NewEmpty(ctx context.Context, opts ...*Options) (storage.ObjectStorage, error) {
+	opt := NewOptions(opts...)
+	return newClient(ctx, false, opt)
+}
+
+func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectStorage, error) {
+	opt := NewOptions(opts...)
+	s3c, err := newClient(ctx, true, opt)
+	if err != nil {
+		return nil, err
 	}
+	s3c.bucket = bucket
 
 	err = s3c.init(ctx)
 	if err != nil {
@@ -171,6 +204,8 @@ func (s *SimpleStorageService) optionsFromContext(
 	if settings := settingsFromContext(ctx); settings != nil {
 		bucket = settings.Bucket
 		clientOptions, err = settings.getOptions(presign)
+	} else if s.bucket == "" {
+		return "", nil, ErrClientEmpty
 	} else {
 		bucket = s.bucket
 		clientOptions = noOpts

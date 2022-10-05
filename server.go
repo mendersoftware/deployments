@@ -32,6 +32,7 @@ import (
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/storage"
 	"github.com/mendersoftware/deployments/storage/azblob"
+	"github.com/mendersoftware/deployments/storage/manager"
 	"github.com/mendersoftware/deployments/storage/s3"
 	mstore "github.com/mendersoftware/deployments/store/mongo"
 )
@@ -40,24 +41,16 @@ const (
 	fileSuffixArtifact = ".mender"
 )
 
-func SetupS3(ctx context.Context) (storage.ObjectStorage, error) {
+func SetupS3(ctx context.Context, defaultOptions *s3.Options) (storage.ObjectStorage, error) {
 	c := config.Config
 
-	// Calculate multipart buffer size: the minimum buffer size that covers
-	// the maximum image size aligned to multiple of 5MiB.
-	maxImageSize := c.GetInt64(dconfig.SettingStorageMaxImageSize)
-	bufferSize := (((maxImageSize - 1) /
-		(s3.MultipartMaxParts * s3.MultipartMinSize)) + 1) *
-		s3.MultipartMinSize
+	// Copy / merge defaultOptions
+	options := s3.NewOptions(defaultOptions).
+		SetForcePathStyle(c.GetBool(dconfig.SettingAwsS3ForcePathStyle)).
+		SetUseAccelerate(c.GetBool(dconfig.SettingAwsS3UseAccelerate))
 
 	// Compute the buffer size
 	bucket := c.GetString(dconfig.SettingStorageBucket)
-	options := s3.NewOptions().
-		SetContentType(app.ArtifactContentType).
-		SetFilenameSuffix(fileSuffixArtifact).
-		SetForcePathStyle(c.GetBool(dconfig.SettingAwsS3ForcePathStyle)).
-		SetUseAccelerate(c.GetBool(dconfig.SettingAwsS3UseAccelerate)).
-		SetBufferSize(int(bufferSize))
 
 	// The following parameters falls back on AWS_* environment if not set
 	if c.IsSet(dconfig.SettingAwsS3Region) {
@@ -82,12 +75,14 @@ func SetupS3(ctx context.Context) (storage.ObjectStorage, error) {
 	return s3.New(ctx, bucket, options)
 }
 
-func SetupBlobStorage(ctx context.Context) (storage.ObjectStorage, error) {
+func SetupBlobStorage(
+	ctx context.Context,
+	defaultOptions *azblob.Options,
+) (storage.ObjectStorage, error) {
 	c := config.Config
 
-	options := azblob.NewOptions().
-		SetContentType(app.ArtifactContentType).
-		SetFilenameSuffix(fileSuffixArtifact)
+	// Copy / merge options
+	options := azblob.NewOptions(defaultOptions)
 
 	if c.IsSet(dconfig.SettingAzureConnectionString) {
 		options.SetConnectionString(c.GetString(dconfig.SettingAzureConnectionString))
@@ -106,6 +101,42 @@ func SetupBlobStorage(ctx context.Context) (storage.ObjectStorage, error) {
 	return azblob.New(ctx, c.GetString(dconfig.SettingStorageBucket), options)
 }
 
+func SetupObjectStorage(ctx context.Context) (objManager storage.ObjectStorage, err error) {
+	c := config.Config
+
+	// Calculate s3 multipart buffer size: the minimum buffer size that
+	// covers the maximum image size aligned to multiple of 5MiB.
+	maxImageSize := c.GetInt64(dconfig.SettingStorageMaxImageSize)
+	bufferSize := (((maxImageSize - 1) /
+		(s3.MultipartMaxParts * s3.MultipartMinSize)) + 1) *
+		s3.MultipartMinSize
+	var (
+		s3Options = s3.NewOptions().
+				SetContentType(app.ArtifactContentType).
+				SetFilenameSuffix(fileSuffixArtifact).
+				SetBufferSize(int(bufferSize))
+		azOptions = azblob.NewOptions().
+				SetContentType(app.ArtifactContentType).
+				SetFilenameSuffix(fileSuffixArtifact)
+	)
+	var defaultStorage storage.ObjectStorage
+	switch defType := c.GetString(dconfig.SettingDefaultStorage); defType {
+	case dconfig.StorageTypeAWS:
+		defaultStorage, err = SetupS3(ctx, s3Options)
+	case dconfig.StorageTypeAzure:
+		defaultStorage, err = SetupBlobStorage(ctx, azOptions)
+	default:
+		err = errors.Errorf(
+			`storage type must be one of %q or %q, received value %q`,
+			dconfig.StorageTypeAWS, dconfig.StorageTypeAzure, defType,
+		)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return manager.New(ctx, defaultStorage, s3Options, azOptions)
+}
+
 func RunServer(ctx context.Context) error {
 	c := config.Config
 	dbClient, err := mstore.NewMongoClient(ctx, c)
@@ -119,18 +150,7 @@ func RunServer(ctx context.Context) error {
 	ds := mstore.NewDataStoreMongoWithClient(dbClient)
 
 	// Storage Layer
-	var objStore storage.ObjectStorage
-	switch defStorage := c.GetString(dconfig.SettingDefaultStorage); defStorage {
-	case dconfig.StorageTypeAWS:
-		objStore, err = SetupS3(ctx)
-	case dconfig.StorageTypeAzure:
-		objStore, err = SetupBlobStorage(ctx)
-	default:
-		err = errors.Errorf(
-			`storage type must be one of %q or %q, received value %q`,
-			dconfig.StorageTypeAWS, dconfig.StorageTypeAzure, defStorage,
-		)
-	}
+	objStore, err := SetupObjectStorage(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "main: failed to setup storage client")
 	}

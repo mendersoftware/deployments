@@ -44,12 +44,26 @@ type client struct {
 	bufferSize    int
 }
 
+func NewEmpty(ctx context.Context, opts ...*Options) (storage.ObjectStorage, error) {
+	opt := NewOptions(opts...)
+	objStore := &client{
+		bufferSize:  opt.BufferSize,
+		fileSuffix:  opt.FilenameSuffix,
+		contentType: opt.ContentType,
+	}
+	return objStore, nil
+}
+
 func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectStorage, error) {
 	var (
 		err error
 		cc  *azblob.ContainerClient
 	)
 	opt := NewOptions(opts...)
+	objectStorage, err := NewEmpty(ctx, opt)
+	if err != nil {
+		return nil, err
+	}
 	if opt.ConnectionString != nil {
 		cc, err = azblob.NewContainerClientFromConnectionString(
 			*opt.ConnectionString, bucket, &azblob.ClientOptions{},
@@ -74,15 +88,9 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 	if err != nil {
 		return nil, err
 	}
-	objectStorage := &client{
-		DefaultClient: cc,
-		fileSuffix:    opt.FilenameSuffix,
-		contentType:   opt.ContentType,
-	}
-	if cc != nil {
-		if err := objectStorage.HealthCheck(ctx); err != nil {
-			return nil, err
-		}
+	objectStorage.(*client).DefaultClient = cc
+	if err := objectStorage.HealthCheck(ctx); err != nil {
+		return nil, err
 	}
 	return objectStorage, nil
 }
