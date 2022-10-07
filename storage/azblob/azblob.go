@@ -38,17 +38,20 @@ const (
 )
 
 type client struct {
-	*azblob.ContainerClient
-	fileSuffix  *string
-	contentType *string
-	bufferSize  int
+	DefaultClient *azblob.ContainerClient
+	fileSuffix    *string
+	contentType   *string
+	bufferSize    int
 }
 
-type SharedKeyCredentials struct {
-	AccountName string
-	AccountKey  string
-
-	URI *string // Optional
+func NewEmpty(ctx context.Context, opts ...*Options) (storage.ObjectStorage, error) {
+	opt := NewOptions(opts...)
+	objStore := &client{
+		bufferSize:  opt.BufferSize,
+		fileSuffix:  opt.FilenameSuffix,
+		contentType: opt.ContentType,
+	}
+	return objStore, nil
 }
 
 func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectStorage, error) {
@@ -57,6 +60,10 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 		cc  *azblob.ContainerClient
 	)
 	opt := NewOptions(opts...)
+	objectStorage, err := NewEmpty(ctx, opt)
+	if err != nil {
+		return nil, err
+	}
 	if opt.ConnectionString != nil {
 		cc, err = azblob.NewContainerClientFromConnectionString(
 			*opt.ConnectionString, bucket, &azblob.ClientOptions{},
@@ -65,43 +72,79 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 			return nil, err
 		}
 	} else if sk := opt.SharedKey; sk != nil {
-		var cred *azblob.SharedKeyCredential
-		cred, err = azblob.NewSharedKeyCredential(sk.AccountName, sk.AccountKey)
-		if err != nil {
-			return nil, err
-		}
-		var containerURI string
-		if sk.URI != nil {
-			containerURI = *sk.URI
-		} else {
-			containerURI = fmt.Sprintf(
-				"https://%s.blob.core.windows.net/%s",
-				cred.AccountName(),
-				bucket,
+		var (
+			containerURL string
+			azCred       *azblob.SharedKeyCredential
+		)
+		containerURL, azCred, err = sk.azParams(bucket)
+		if err == nil {
+			cc, err = azblob.NewContainerClientWithSharedKey(
+				containerURL,
+				azCred,
+				&azblob.ClientOptions{},
 			)
 		}
-		cc, err = azblob.NewContainerClientWithSharedKey(
-			containerURI,
-			cred,
-			&azblob.ClientOptions{},
-		)
 	}
 	if err != nil {
 		return nil, err
 	}
-	objectStorage := &client{
-		ContainerClient: cc,
-		fileSuffix:      opt.FilenameSuffix,
-		contentType:     opt.ContentType,
-	}
+	objectStorage.(*client).DefaultClient = cc
 	if err := objectStorage.HealthCheck(ctx); err != nil {
 		return nil, err
 	}
 	return objectStorage, nil
 }
 
+func (c *client) clientFromContext(
+	ctx context.Context,
+) (client *azblob.ContainerClient, err error) {
+	client = c.DefaultClient
+	if settings := storage.SettingsFromContext(ctx); settings != nil {
+		if err = settings.Validate(); err != nil {
+			return nil, err
+		} else if settings.ConnectionString != nil {
+			client, err = azblob.NewContainerClientFromConnectionString(
+				*settings.ConnectionString,
+				settings.Bucket,
+				&azblob.ClientOptions{},
+			)
+		} else {
+			var (
+				containerURL string
+				azCreds      *azblob.SharedKeyCredential
+			)
+			creds := SharedKeyCredentials{
+				AccountName: settings.Key,
+				AccountKey:  settings.Secret,
+			}
+			if settings.Uri != "" {
+				creds.URI = &settings.Uri
+			}
+
+			containerURL, azCreds, err = creds.azParams(settings.Bucket)
+			if err == nil {
+				client, err = azblob.NewContainerClientWithSharedKey(
+					containerURL,
+					azCreds,
+					&azblob.ClientOptions{},
+				)
+			}
+		}
+	}
+	return client, err
+}
+
 func (c *client) HealthCheck(ctx context.Context) error {
-	_, err := c.ContainerClient.GetProperties(ctx, &azblob.ContainerGetPropertiesOptions{})
+	azClient, err := c.clientFromContext(ctx)
+	if err != nil {
+		return OpError{
+			Op:     OpHealthCheck,
+			Reason: err,
+		}
+	} else if azClient == nil {
+		return nil
+	}
+	_, err = azClient.GetProperties(ctx, &azblob.ContainerGetPropertiesOptions{})
 	if err != nil {
 		return OpError{
 			Op:     OpHealthCheck,
@@ -116,7 +159,16 @@ func (c *client) PutObject(
 	objectPath string,
 	src io.Reader,
 ) error {
-	bc, err := c.ContainerClient.NewBlockBlobClient(objectPath)
+	azClient, err := c.clientFromContext(ctx)
+	if err != nil {
+		return OpError{
+			Op:     OpPutObject,
+			Reason: err,
+		}
+	} else if azClient == nil {
+		return nil
+	}
+	bc, err := azClient.NewBlockBlobClient(objectPath)
 	if err != nil {
 		return OpError{
 			Op:      OpPutObject,
@@ -152,7 +204,16 @@ func (c *client) DeleteObject(
 	ctx context.Context,
 	path string,
 ) error {
-	bc, err := c.ContainerClient.NewBlockBlobClient(path)
+	azClient, err := c.clientFromContext(ctx)
+	if err != nil {
+		return OpError{
+			Op:     OpDeleteObject,
+			Reason: err,
+		}
+	} else if azClient == nil {
+		return nil
+	}
+	bc, err := azClient.NewBlockBlobClient(path)
 	if err != nil {
 		return OpError{
 			Op:      OpDeleteObject,
@@ -183,7 +244,16 @@ func (c *client) StatObject(
 	ctx context.Context,
 	path string,
 ) (*storage.ObjectInfo, error) {
-	bc, err := c.ContainerClient.NewBlockBlobClient(path)
+	azClient, err := c.clientFromContext(ctx)
+	if err != nil {
+		return nil, OpError{
+			Op:     OpStatObject,
+			Reason: err,
+		}
+	} else if azClient == nil {
+		return nil, nil
+	}
+	bc, err := azClient.NewBlockBlobClient(path)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpStatObject,
@@ -239,16 +309,35 @@ func (c *client) GetRequest(
 	path string,
 	duration time.Duration,
 ) (*model.Link, error) {
-	// Check if object exists
-	_, err := c.StatObject(ctx, path)
+	azClient, err := c.clientFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, OpError{
+			Op:     OpGetRequest,
+			Reason: err,
+		}
+	} else if azClient == nil {
+		return nil, nil
 	}
-	bc, err := c.ContainerClient.NewBlobClient(path)
+	// Check if object exists
+	bc, err := azClient.NewBlockBlobClient(path)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpGetRequest,
 			Message: "failed to initialize blob client",
+			Reason:  err,
+		}
+	}
+	_, err = bc.GetProperties(ctx, &azblob.BlobGetPropertiesOptions{})
+	var storageErr *azblob.StorageError
+	if errors.As(err, &storageErr) {
+		if storageErr.ErrorCode == azblob.StorageErrorCodeBlobNotFound {
+			err = storage.ErrObjectNotFound
+		}
+	}
+	if err != nil {
+		return nil, OpError{
+			Op:      OpGetRequest,
+			Message: "failed to check preconditions",
 			Reason:  err,
 		}
 	}
@@ -282,7 +371,16 @@ func (c *client) DeleteRequest(
 	path string,
 	duration time.Duration,
 ) (*model.Link, error) {
-	bc, err := c.ContainerClient.NewBlobClient(path)
+	azClient, err := c.clientFromContext(ctx)
+	if err != nil {
+		return nil, OpError{
+			Op:     OpGetRequest,
+			Reason: err,
+		}
+	} else if azClient == nil {
+		return nil, nil
+	}
+	bc, err := azClient.NewBlobClient(path)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpDeleteRequest,
@@ -320,7 +418,16 @@ func (c *client) PutRequest(
 	objectPath string,
 	duration time.Duration,
 ) (*model.Link, error) {
-	bc, err := c.ContainerClient.NewBlobClient(objectPath)
+	azClient, err := c.clientFromContext(ctx)
+	if err != nil {
+		return nil, OpError{
+			Op:     OpGetRequest,
+			Reason: err,
+		}
+	} else if azClient == nil {
+		return nil, nil
+	}
+	bc, err := azClient.NewBlobClient(objectPath)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpPutRequest,

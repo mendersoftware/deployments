@@ -20,12 +20,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/google/uuid"
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -55,7 +57,13 @@ var (
 	)
 )
 
-var azureOptions *Options
+var (
+	azureOptions    *Options
+	storageSettings = &model.StorageSettings{
+		Type:   model.StorageTypeAzure,
+		Bucket: *TEST_AZURE_CONTAINER_NAME,
+	}
+)
 
 func initOptions() {
 	opts := NewOptions().
@@ -66,11 +74,14 @@ func initOptions() {
 		return
 	} else if *TEST_AZURE_CONNECTION_STRING != "" {
 		opts.SetConnectionString(*TEST_AZURE_CONNECTION_STRING)
+		storageSettings.ConnectionString = TEST_AZURE_CONNECTION_STRING
 	} else if *TEST_AZURE_STORAGE_ACCOUNT_NAME != "" && *TEST_AZURE_STORAGE_ACCOUNT_KEY != "" {
 		opts.SetSharedKey(SharedKeyCredentials{
 			AccountName: *TEST_AZURE_STORAGE_ACCOUNT_NAME,
 			AccountKey:  *TEST_AZURE_STORAGE_ACCOUNT_KEY,
 		})
+		storageSettings.Key = *TEST_AZURE_STORAGE_ACCOUNT_NAME
+		storageSettings.Secret = *TEST_AZURE_STORAGE_ACCOUNT_KEY
 	} else {
 		return
 	}
@@ -93,22 +104,32 @@ func TestObjectStorage(t *testing.T) {
 	const (
 		blobContent = `foobarbaz`
 	)
-
-	ctx := context.Background()
-
-	pathPrefix := "test_" + uuid.NewString() + "/"
-
-	c, err := New(
-		ctx,
-		*TEST_AZURE_CONTAINER_NAME,
-		azureOptions,
+	var (
+		azClient *azblob.ContainerClient
+		err      error
 	)
-	if !assert.NoError(t, err) {
+	if *TEST_AZURE_CONNECTION_STRING != "" {
+		azClient, err = azblob.NewContainerClientFromConnectionString(*TEST_AZURE_CONNECTION_STRING, *TEST_AZURE_CONTAINER_NAME, &azblob.ClientOptions{})
+	} else {
+		creds := SharedKeyCredentials{
+			AccountName: *TEST_AZURE_STORAGE_ACCOUNT_NAME,
+			AccountKey:  *TEST_AZURE_STORAGE_ACCOUNT_KEY,
+		}
+		url, azCred, err := creds.azParams(*TEST_AZURE_CONTAINER_NAME)
+		if err != nil {
+			t.Fatalf("error initializing blob credential parameters: %s", err)
+			return
+		}
+		azClient, err = azblob.NewContainerClientWithSharedKey(url, azCred, &azblob.ClientOptions{})
+	}
+	if err != nil {
+		t.Fatalf("error initializing blob client: %s", err)
 		return
 	}
+	pathPrefix := "test_" + uuid.NewString() + "/"
 	t.Cleanup(func() {
-		cc := c.(*client)
-		cur := cc.ListBlobsFlat(&azblob.ContainerListBlobsFlatOptions{
+		ctx := context.Background()
+		cur := azClient.ListBlobsFlat(&azblob.ContainerListBlobsFlatOptions{
 			Prefix: &pathPrefix,
 		})
 		for cur.NextPage(ctx) {
@@ -116,7 +137,10 @@ func TestObjectStorage(t *testing.T) {
 			if rsp.Segment != nil {
 				for _, item := range rsp.Segment.BlobItems {
 					if item.Name != nil {
-						err = c.DeleteObject(ctx, *item.Name)
+						bc, err := azClient.NewBlobClient(*item.Name)
+						if err == nil {
+							_, err = bc.Delete(ctx, &azblob.BlobDeleteOptions{})
+						}
 						if err != nil {
 							t.Logf("Failed to delete blob %s: %s", *item.Name, err)
 						}
@@ -128,76 +152,113 @@ func TestObjectStorage(t *testing.T) {
 			t.Log("ERROR: Failed to clean up testing data:", err)
 		}
 	})
-	err = c.PutObject(ctx, pathPrefix+"foo", strings.NewReader(blobContent))
-	assert.NoError(t, err)
+	testCases := []struct {
+		Name string
 
-	stat, err := c.StatObject(ctx, pathPrefix+"foo")
-	if assert.NoError(t, err) {
-		assert.WithinDuration(t, time.Now(), *stat.LastModified, time.Second*10,
-			"StatObject; last modified timestamp is not close to present time")
-	}
+		CTX    context.Context
+		Client storage.ObjectStorage
+	}{{
+		Name: "default client",
 
-	client := new(http.Client)
-
-	// Test signed requests
-
-	// Generate signed URL for object that does not exist
-	_, err = c.GetRequest(context.Background(), pathPrefix+"not_found", time.Minute)
-	assert.ErrorIs(t, err, storage.ErrObjectNotFound)
-
-	link, err := c.GetRequest(context.Background(), pathPrefix+"foo", time.Minute)
-	if assert.NoError(t, err) {
-		req, err := http.NewRequest(link.Method, link.Uri, nil)
-		if assert.NoError(t, err) {
-
-			rsp, err := client.Do(req)
-			assert.NoError(t, err)
-			b, err := io.ReadAll(rsp.Body)
-			assert.NoError(t, err)
-			_ = rsp.Body.Close()
-			assert.Equal(t, blobContent, string(b))
-		}
-	}
-
-	link, err = c.DeleteRequest(context.Background(), pathPrefix+"foo", time.Minute)
-	if assert.NoError(t, err) {
-		req, err := http.NewRequest(link.Method, link.Uri, nil)
-		if assert.NoError(t, err) {
-			rsp, err := client.Do(req)
-			if assert.NoError(t, err) {
-				assert.Equal(t, http.StatusAccepted, rsp.StatusCode)
-				_, err = c.StatObject(ctx, pathPrefix+"foo")
-				assert.ErrorIs(t, err, storage.ErrObjectNotFound)
+		CTX: context.Background(),
+		Client: func() storage.ObjectStorage {
+			c, err := New(context.Background(), *TEST_AZURE_CONTAINER_NAME, azureOptions)
+			if err != nil {
+				t.Fatalf("failed to initialize test case client: %s", err)
 			}
-		}
-	}
+			return c
+		}(),
+	}, {
+		Name: "client from context",
 
-	link, err = c.PutRequest(context.Background(), pathPrefix+"bar", time.Minute*5)
-	if assert.NoError(t, err) {
-		req, err := http.NewRequest(link.Method, link.Uri, strings.NewReader(blobContent))
-		if assert.NoError(t, err) {
-			for key, value := range link.Header {
-				req.Header.Set(key, value)
+		CTX: storage.SettingsWithContext(context.Background(), storageSettings),
+		Client: func() storage.ObjectStorage {
+			c, err := New(context.Background(), "")
+			if err != nil {
+				t.Fatalf("failed to initialize test case client: %s", err)
 			}
-			rsp, err := client.Do(req)
+			return c
+		}(),
+	}}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			c := tc.Client
+			ctx := tc.CTX
+			subPrefix := path.Join(pathPrefix, t.Name())
+			err = c.PutObject(ctx, subPrefix+"foo", strings.NewReader(blobContent))
+			assert.NoError(t, err)
+
+			stat, err := c.StatObject(ctx, subPrefix+"foo")
 			if assert.NoError(t, err) {
-				assert.Equal(t, http.StatusCreated, rsp.StatusCode)
-				stat, err = c.StatObject(ctx, pathPrefix+"bar")
+				assert.WithinDuration(t, time.Now(), *stat.LastModified, time.Second*10,
+					"StatObject; last modified timestamp is not close to present time")
+			}
+
+			client := new(http.Client)
+
+			// Test signed requests
+
+			// Generate signed URL for object that does not exist
+			_, err = c.GetRequest(ctx, subPrefix+"not_found", time.Minute)
+			assert.ErrorIs(t, err, storage.ErrObjectNotFound)
+
+			link, err := c.GetRequest(ctx, subPrefix+"foo", time.Minute)
+			if assert.NoError(t, err) {
+				req, err := http.NewRequest(link.Method, link.Uri, nil)
 				if assert.NoError(t, err) {
-					assert.Equal(t, int64(len(blobContent)), *stat.Size)
+
+					rsp, err := client.Do(req)
+					assert.NoError(t, err)
+					b, err := io.ReadAll(rsp.Body)
+					assert.NoError(t, err)
+					_ = rsp.Body.Close()
+					assert.Equal(t, blobContent, string(b))
 				}
-
 			}
-		}
+
+			link, err = c.DeleteRequest(ctx, subPrefix+"foo", time.Minute)
+			if assert.NoError(t, err) {
+				req, err := http.NewRequest(link.Method, link.Uri, nil)
+				if assert.NoError(t, err) {
+					rsp, err := client.Do(req)
+					if assert.NoError(t, err) {
+						assert.Equal(t, http.StatusAccepted, rsp.StatusCode)
+						_, err = c.StatObject(ctx, subPrefix+"foo")
+						assert.ErrorIs(t, err, storage.ErrObjectNotFound)
+					}
+				}
+			}
+
+			link, err = c.PutRequest(ctx, subPrefix+"bar", time.Minute*5)
+			if assert.NoError(t, err) {
+				req, err := http.NewRequest(link.Method, link.Uri, strings.NewReader(blobContent))
+				if assert.NoError(t, err) {
+					for key, value := range link.Header {
+						req.Header.Set(key, value)
+					}
+					rsp, err := client.Do(req)
+					if assert.NoError(t, err) {
+						assert.Equal(t, http.StatusCreated, rsp.StatusCode)
+						stat, err = c.StatObject(ctx, subPrefix+"bar")
+						if assert.NoError(t, err) {
+							assert.Equal(t, int64(len(blobContent)), *stat.Size)
+						}
+
+					}
+				}
+			}
+
+			err = c.DeleteObject(ctx, subPrefix+"baz")
+			assert.ErrorIs(t, err, storage.ErrObjectNotFound)
+			assert.Contains(t, err.Error(), storage.ErrObjectNotFound.Error())
+
+			err = c.PutObject(ctx, subPrefix+"baz", strings.NewReader(blobContent))
+			if assert.NoError(t, err) {
+				err = c.DeleteObject(ctx, subPrefix+"baz")
+				assert.NoError(t, err)
+			}
+		})
 	}
 
-	err = c.DeleteObject(ctx, pathPrefix+"baz")
-	assert.ErrorIs(t, err, storage.ErrObjectNotFound)
-	assert.Contains(t, err.Error(), storage.ErrObjectNotFound.Error())
-
-	err = c.PutObject(ctx, pathPrefix+"baz", strings.NewReader(blobContent))
-	if assert.NoError(t, err) {
-		err = c.DeleteObject(ctx, pathPrefix+"baz")
-		assert.NoError(t, err)
-	}
 }
