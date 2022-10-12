@@ -2285,23 +2285,9 @@ func (db *DataStoreMongo) SetStorageSettings(
 		"_id": StorageKeyStorageSettingsDefaultID,
 	}
 	if storageSettings != nil {
-		update := bson.M{
-			"$setOnInsert": bson.M{"_id": StorageKeyStorageSettingsDefaultID},
-			"$set": bson.M{
-				StorageKeyStorageSettingsBucket:         storageSettings.Bucket,
-				StorageKeyStorageSettingsKey:            storageSettings.Key,
-				StorageKeyStorageSettingsSecret:         storageSettings.Secret,
-				StorageKeyStorageSettingsURI:            storageSettings.Uri,
-				StorageKeyStorageSettingsExternalURI:    storageSettings.ExternalUri,
-				StorageKeyStorageSettingsRegion:         storageSettings.Region,
-				StorageKeyStorageSettingsToken:          storageSettings.Token,
-				StorageKeyStorageSettingsForcePathStyle: storageSettings.ForcePathStyle,
-				StorageKeyStorageSettingsUseAccelerate:  storageSettings.UseAccelerate,
-			},
-		}
-		updateOptions := mopts.Update()
-		updateOptions.SetUpsert(true)
-		_, err = collection.UpdateOne(ctx, filter, update, updateOptions)
+		replaceOptions := mopts.Replace()
+		replaceOptions.SetUpsert(true)
+		_, err = collection.ReplaceOne(ctx, filter, storageSettings, replaceOptions)
 	} else {
 		_, err = collection.DeleteOne(ctx, filter)
 	}
