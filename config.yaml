@@ -109,7 +109,7 @@ storage:
     # Override with environment variable: DEPLOYMENTS_STORAGE_DOWNLOAD_EXPIRE_SECONDS
     # download_expire_seconds: 900
 
-    # Download link expiry duration
+    # Upload link expiry duration
     # Number of second a presigned upload URL is valid
     # Defaults to: 3600 (60 minutes)
     # Override with environment variable: DEPLOYMENTS_STORAGE_UPLOAD_EXPIRE_SECONDS
