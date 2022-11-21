@@ -13,7 +13,6 @@ COPY ./entrypoint.sh /usr/bin/
 COPY  --from=builder /go/src/github.com/mendersoftware/deployments/deployments /usr/bin/deployments
 COPY ./config.yaml /usr/bin/
 
-ENV DEPLOYMENTS_MENDER_GATEWAY http://mender-inventory:8080
 ENTRYPOINT ["/usr/bin/entrypoint.sh", "server", "--automigrate"]
 
 STOPSIGNAL SIGINT
