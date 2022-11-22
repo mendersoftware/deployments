@@ -62,9 +62,8 @@ mongo-url: "mongodb://mongo-deployments:27017"
 
 # Inventory service address
 # Defaults to: http://mender-inventory:8080
-# Env key: DEPLOYMENTS_MENDER_GATEWAY
-
-mender-gateway: "http://mender-inventory:8080"
+# Env key: DEPLOYMENTS_INVENTORY_ADDR
+inventory_addr: "http://mender-inventory:8080"
 
 # Workflows service address
 # Defaults to: http://mender-workflows-servers:8080

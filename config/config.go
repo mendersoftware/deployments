@@ -88,9 +88,6 @@ const (
 	SettingDbUsername = "mongo_username"
 	SettingDbPassword = "mongo_password"
 
-	SettingGateway        = "mender-gateway"
-	SettingGatewayDefault = "localhost:9080"
-
 	SettingWorkflows        = "mender-workflows"
 	SettingWorkflowsDefault = "http://mender-workflows-server:8080"
 
@@ -280,7 +277,6 @@ var (
 		{Key: SettingMongo, Value: SettingMongoDefault},
 		{Key: SettingDbSSL, Value: SettingDbSSLDefault},
 		{Key: SettingDbSSLSkipVerify, Value: SettingDbSSLSkipVerifyDefault},
-		{Key: SettingGateway, Value: SettingGatewayDefault},
 		{Key: SettingWorkflows, Value: SettingWorkflowsDefault},
 		{Key: SettingsAwsTagArtifact, Value: SettingsAwsTagArtifactDefault},
 		{Key: SettingInventoryAddr, Value: SettingInventoryAddrDefault},
