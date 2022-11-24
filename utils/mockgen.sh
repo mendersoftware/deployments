@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2020 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ generate_mock() {
     docker run --rm -v ${REPO_ROOT}:/wd \
         -w /wd/${PACKAGE_PATH} \
         -u $(id -u):$(id -g) \
-        vektra/mockery:v2.1 --name "${INTERFACE}" \
+        vektra/mockery:v2.15 --name "${INTERFACE}" \
         --output ./mocks --print >> "mocks/${INTERFACE}.go"
 }
 generate_mock
