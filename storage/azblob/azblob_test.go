@@ -67,7 +67,6 @@ var (
 
 func initOptions() {
 	opts := NewOptions().
-		SetFilenameSuffix(".mender").
 		SetContentType("vnd/testing").
 		SetBufferSize(BufferSizeMin)
 	if *TEST_AZURE_CONTAINER_NAME == "" {
@@ -200,10 +199,10 @@ func TestObjectStorage(t *testing.T) {
 			// Test signed requests
 
 			// Generate signed URL for object that does not exist
-			_, err = c.GetRequest(ctx, subPrefix+"not_found", time.Minute)
+			_, err = c.GetRequest(ctx, subPrefix+"not_found", "foo.mender", time.Minute)
 			assert.ErrorIs(t, err, storage.ErrObjectNotFound)
 
-			link, err := c.GetRequest(ctx, subPrefix+"foo", time.Minute)
+			link, err := c.GetRequest(ctx, subPrefix+"foo", "bar.mender", time.Minute)
 			if assert.NoError(t, err) {
 				req, err := http.NewRequest(link.Method, link.Uri, nil)
 				if assert.NoError(t, err) {
