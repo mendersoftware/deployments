@@ -108,13 +108,14 @@ func (c *client) StatObject(ctx context.Context, path string) (*storage.ObjectIn
 func (c *client) GetRequest(
 	ctx context.Context,
 	path string,
+	filename string,
 	duration time.Duration,
 ) (*model.Link, error) {
 	objStore, err := c.clientFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return objStore.GetRequest(ctx, path, duration)
+	return objStore.GetRequest(ctx, path, filename, duration)
 }
 
 func (c *client) DeleteRequest(

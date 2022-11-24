@@ -37,7 +37,7 @@ type ObjectStorage interface {
 	StatObject(ctx context.Context, path string) (*ObjectInfo, error)
 
 	// The following interface generates signed URLs.
-	GetRequest(ctx context.Context, path string,
+	GetRequest(ctx context.Context, path string, filename string,
 		duration time.Duration) (*model.Link, error)
 	DeleteRequest(ctx context.Context, path string,
 		duration time.Duration) (*model.Link, error)

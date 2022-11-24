@@ -395,6 +395,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 	link, err := d.objectStorage.GetRequest(
 		ctx,
 		imgPath,
+		imgID+model.ArtifactFileSuffix,
 		DefaultImageGenerationLinkExpire,
 	)
 	if err != nil {
@@ -643,7 +644,12 @@ func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 		return nil, errors.Wrap(err, "Searching for image file")
 	}
 
-	link, err := d.objectStorage.GetRequest(ctx, imagePath, expire)
+	link, err := d.objectStorage.GetRequest(
+		ctx,
+		imagePath,
+		image.Name+model.ArtifactFileSuffix,
+		expire,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link")
 	}
@@ -1308,7 +1314,12 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	}
 
 	imagePath := model.ImagePathFromContext(ctx, deviceDeployment.Image.Id)
-	link, err := d.objectStorage.GetRequest(ctx, imagePath, DefaultUpdateDownloadLinkExpire)
+	link, err := d.objectStorage.GetRequest(
+		ctx,
+		imagePath,
+		deviceDeployment.Image.Name+model.ArtifactFileSuffix,
+		DefaultUpdateDownloadLinkExpire,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "Generating download link for the device")
 	}

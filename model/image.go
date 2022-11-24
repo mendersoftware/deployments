@@ -29,6 +29,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
+const (
+	ArtifactFileSuffix = ".mender"
+)
+
 func ImagePathFromContext(ctx context.Context, id string) string {
 	imgPath := id
 	if idty := identity.FromContext(ctx); idty != nil {

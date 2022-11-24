@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -60,7 +59,6 @@ type SimpleStorageService struct {
 	bucket        string
 	bufferSize    int
 	contentType   *string
-	fileSuffix    *string
 }
 
 type StaticCredentials struct {
@@ -506,6 +504,7 @@ func (s *SimpleStorageService) PutRequest(
 func (s *SimpleStorageService) GetRequest(
 	ctx context.Context,
 	objectPath string,
+	filename string,
 	expireAfter time.Duration,
 ) (*model.Link, error) {
 
@@ -525,8 +524,7 @@ func (s *SimpleStorageService) GetRequest(
 		ResponseContentType: s.contentType,
 	}
 
-	if s.fileSuffix != nil {
-		filename := path.Base(objectPath) + *s.fileSuffix
+	if filename != "" {
 		contentDisposition := fmt.Sprintf("attachment; filename=\"%s\"", filename)
 		params.ResponseContentDisposition = &contentDisposition
 	}

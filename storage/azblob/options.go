@@ -56,8 +56,7 @@ type Options struct {
 
 	BufferSize int
 
-	ContentType    *string
-	FilenameSuffix *string
+	ContentType *string
 }
 
 func NewOptions(opts ...*Options) *Options {
@@ -76,9 +75,6 @@ func NewOptions(opts ...*Options) *Options {
 		}
 		if o.ContentType != nil {
 			opt.ContentType = o.ContentType
-		}
-		if o.FilenameSuffix != nil {
-			opt.FilenameSuffix = o.FilenameSuffix
 		}
 		if o.BufferSize >= BufferSizeMin {
 			opt.BufferSize = o.BufferSize
@@ -99,11 +95,6 @@ func (opts *Options) SetSharedKey(sk SharedKeyCredentials) *Options {
 
 func (opts *Options) SetContentType(typ string) *Options {
 	opts.ContentType = &typ
-	return opts
-}
-
-func (opts *Options) SetFilenameSuffix(suffix string) *Options {
-	opts.FilenameSuffix = &suffix
 	return opts
 }
 
