@@ -37,10 +37,6 @@ import (
 	mstore "github.com/mendersoftware/deployments/store/mongo"
 )
 
-const (
-	fileSuffixArtifact = ".mender"
-)
-
 func SetupS3(ctx context.Context, defaultOptions *s3.Options) (storage.ObjectStorage, error) {
 	c := config.Config
 
@@ -113,11 +109,9 @@ func SetupObjectStorage(ctx context.Context) (objManager storage.ObjectStorage, 
 	var (
 		s3Options = s3.NewOptions().
 				SetContentType(app.ArtifactContentType).
-				SetFilenameSuffix(fileSuffixArtifact).
 				SetBufferSize(int(bufferSize))
 		azOptions = azblob.NewOptions().
-				SetContentType(app.ArtifactContentType).
-				SetFilenameSuffix(fileSuffixArtifact)
+				SetContentType(app.ArtifactContentType)
 	)
 	var defaultStorage storage.ObjectStorage
 	switch defType := c.GetString(dconfig.SettingDefaultStorage); defType {

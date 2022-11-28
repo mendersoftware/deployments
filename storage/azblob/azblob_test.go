@@ -67,7 +67,6 @@ var (
 
 func initOptions() {
 	opts := NewOptions().
-		SetFilenameSuffix(".mender").
 		SetContentType("vnd/testing").
 		SetBufferSize(BufferSizeMin)
 	if *TEST_AZURE_CONTAINER_NAME == "" {
@@ -200,10 +199,10 @@ func TestObjectStorage(t *testing.T) {
 			// Test signed requests
 
 			// Generate signed URL for object that does not exist
-			_, err = c.GetRequest(ctx, subPrefix+"not_found", time.Minute)
+			_, err = c.GetRequest(ctx, subPrefix+"not_found", "foo.mender", time.Minute)
 			assert.ErrorIs(t, err, storage.ErrObjectNotFound)
 
-			link, err := c.GetRequest(ctx, subPrefix+"foo", time.Minute)
+			link, err := c.GetRequest(ctx, subPrefix+"foo", "bar.mender", time.Minute)
 			if assert.NoError(t, err) {
 				req, err := http.NewRequest(link.Method, link.Uri, nil)
 				if assert.NoError(t, err) {
@@ -261,4 +260,66 @@ func TestObjectStorage(t *testing.T) {
 		})
 	}
 
+}
+
+func TestKeyFromConnectionString(t *testing.T) {
+	const (
+		ConnStr = "AccountName=foobar;AccountNotKey=notfoobar;Spam=spam;AccountKey=Zm9vYmFy"
+
+		ConnStrNamePrefix = "NotAccountName=notfoobar;AccountName=foobar;AccountKey=Zm9vYmFy"
+
+		ConnStrNoKey  = "AccountName=foobar;AccountNotKey=foobar;Spam=spam"
+		ConnStrNoName = "AccountKey=Zm9vYmFy;AccountNotKey=foobar;Spam=spam"
+	)
+	t.Parallel()
+	testCases := []struct {
+		Name string
+
+		ConnectionString string
+
+		AccountName string
+		AccountKey  string
+		Error       error
+	}{{
+		Name: "ok/connection string",
+
+		ConnectionString: ConnStr,
+
+		AccountName: "foobar",
+		AccountKey:  "Zm9vYmFy",
+	}, {
+		Name: "ok/connection string attribute is prefix of other",
+
+		ConnectionString: ConnStrNamePrefix,
+
+		AccountName: "foobar",
+		AccountKey:  "Zm9vYmFy",
+	}, {
+		Name: "error/missing AccountKey",
+
+		ConnectionString: ConnStrNoKey,
+
+		Error: ErrConnStrNoKey,
+	}, {
+		Name: "error/missing AccountName",
+
+		ConnectionString: ConnStrNoName,
+
+		Error: ErrConnStrNoName,
+	}}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+
+			key, err := keyFromConnString(tc.ConnectionString)
+			if tc.Error != nil {
+				assert.ErrorIs(t, err, tc.Error)
+			} else {
+				assert.NoError(t, err)
+				expected, _ := azblob.NewSharedKeyCredential(tc.AccountName, tc.AccountKey)
+				assert.Equal(t, expected, key)
+			}
+		})
+	}
 }

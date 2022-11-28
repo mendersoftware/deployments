@@ -21,7 +21,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"time"
 
 	"github.com/mendersoftware/deployments/model"
@@ -31,15 +30,14 @@ import (
 )
 
 const (
-	headerBlobType             = "x-ms-blob-type"
-	headerMSContentDisposition = "x-ms-blob-content-disposition"
+	headerBlobType = "x-ms-blob-type"
 
 	blobTypeBlock = "BlockBlob"
 )
 
 type client struct {
 	DefaultClient *azblob.ContainerClient
-	fileSuffix    *string
+	credentials   *azblob.SharedKeyCredential
 	contentType   *string
 	bufferSize    int
 }
@@ -48,7 +46,6 @@ func NewEmpty(ctx context.Context, opts ...*Options) (storage.ObjectStorage, err
 	opt := NewOptions(opts...)
 	objStore := &client{
 		bufferSize:  opt.BufferSize,
-		fileSuffix:  opt.FilenameSuffix,
 		contentType: opt.ContentType,
 	}
 	return objStore, nil
@@ -56,8 +53,9 @@ func NewEmpty(ctx context.Context, opts ...*Options) (storage.ObjectStorage, err
 
 func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectStorage, error) {
 	var (
-		err error
-		cc  *azblob.ContainerClient
+		err    error
+		cc     *azblob.ContainerClient
+		azCred *azblob.SharedKeyCredential
 	)
 	opt := NewOptions(opts...)
 	objectStorage, err := NewEmpty(ctx, opt)
@@ -68,14 +66,11 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 		cc, err = azblob.NewContainerClientFromConnectionString(
 			*opt.ConnectionString, bucket, &azblob.ClientOptions{},
 		)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			azCred, err = keyFromConnString(*opt.ConnectionString)
 		}
 	} else if sk := opt.SharedKey; sk != nil {
-		var (
-			containerURL string
-			azCred       *azblob.SharedKeyCredential
-		)
+		var containerURL string
 		containerURL, azCred, err = sk.azParams(bucket)
 		if err == nil {
 			cc, err = azblob.NewContainerClientWithSharedKey(
@@ -89,6 +84,7 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 		return nil, err
 	}
 	objectStorage.(*client).DefaultClient = cc
+	objectStorage.(*client).credentials = azCred
 	if err := objectStorage.HealthCheck(ctx); err != nil {
 		return nil, err
 	}
@@ -180,13 +176,6 @@ func (c *client) PutObject(
 		HTTPHeaders: &azblob.BlobHTTPHeaders{
 			BlobContentType: c.contentType,
 		},
-	}
-	if c.fileSuffix != nil {
-		filename := path.Base(objectPath) + *c.fileSuffix
-		disp := fmt.Sprintf(
-			`attachment; filename="%s"`, filename,
-		)
-		blobOpts.HTTPHeaders.BlobContentDisposition = &disp
 	}
 	blobOpts.BufferSize = c.bufferSize
 	_, err = bc.UploadStream(ctx, src, blobOpts)
@@ -306,7 +295,8 @@ func buildSignedURL(
 
 func (c *client) GetRequest(
 	ctx context.Context,
-	path string,
+	objectPath string,
+	filename string,
 	duration time.Duration,
 ) (*model.Link, error) {
 	azClient, err := c.clientFromContext(ctx)
@@ -319,7 +309,7 @@ func (c *client) GetRequest(
 		return nil, nil
 	}
 	// Check if object exists
-	bc, err := azClient.NewBlockBlobClient(path)
+	bc, err := azClient.NewBlockBlobClient(objectPath)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpGetRequest,
@@ -343,11 +333,39 @@ func (c *client) GetRequest(
 	}
 	now := time.Now().UTC()
 	exp := now.Add(duration)
-	qParams, err := bc.GetSASToken(azblob.BlobSASPermissions{Read: true}, now, exp)
+	// HACK: We cannot use BlockBlobClient.GetSASToken because the API does
+	// not expose the required parameters.
+	urlParts, _ := azblob.NewBlobURLParts(bc.URL())
+	sk, err := c.credentialsFromContext(ctx)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpGetRequest,
-			Message: "failed to generate SAS token",
+			Message: "failed to retrieve credentials",
+			Reason:  err,
+		}
+	}
+	var contentDisposition string
+	if filename != "" {
+		contentDisposition = fmt.Sprintf(
+			`attachment; filename="%s"`, filename,
+		)
+	}
+	qParams, err := azblob.BlobSASSignatureValues{
+		ContainerName: urlParts.ContainerName,
+		BlobName:      urlParts.BlobName,
+
+		Permissions: azblob.BlobSASPermissions{
+			Read: true,
+		}.String(),
+		ContentDisposition: contentDisposition,
+
+		StartTime:  now.UTC(),
+		ExpiryTime: exp.UTC(),
+	}.NewSASQueryParameters(sk)
+	if err != nil {
+		return nil, OpError{
+			Op:      OpGetRequest,
+			Message: "failed to build signed URL",
 			Reason:  err,
 		}
 	}
@@ -458,12 +476,6 @@ func (c *client) PutRequest(
 	}
 	hdrs := map[string]string{
 		headerBlobType: blobTypeBlock,
-	}
-	if c.fileSuffix != nil {
-		filename := path.Base(objectPath) + *c.fileSuffix
-		hdrs[headerMSContentDisposition] = fmt.Sprintf(
-			`attachment; filename="%s"`, filename,
-		)
 	}
 	return &model.Link{
 		Uri:    uri,
