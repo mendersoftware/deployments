@@ -1124,9 +1124,10 @@ paths:
           enum: [single_file]
         - name: args
           in: formData
-          description: Type-specific arguments used to generate the artifact.
+          description: JSON string with type-specific arguments used to generate the artifact.
           required: false
           type: string
+          format: json
         - name: file
           in: formData
           description: Raw file to be used to generate the artifact. It has to be the last part of request.
