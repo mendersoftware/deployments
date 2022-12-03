@@ -18,6 +18,7 @@ import (
 	"context"
 	"io"
 	"path"
+	"strings"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -31,7 +32,18 @@ import (
 
 const (
 	ArtifactFileSuffix = ".mender"
+	runeDollar         = '\uFF04'
+	runeDot            = '\uFF0E'
 )
+
+var (
+	StorageKeyImageProvidesRootFSChecksum = "meta_artifact.provides." +
+		GetProvidesKeyReplacer().Replace("rootfs-image.checksum")
+	StorageKeyImageProvidesRootFSVersion = "meta_artifact.provides." +
+		GetProvidesKeyReplacer().Replace("rootfs-image.version")
+)
+
+type Provides map[string]string
 
 func ImagePathFromContext(ctx context.Context, id string) string {
 	imgPath := id
@@ -95,9 +107,9 @@ type ArtifactMeta struct {
 	// List of updates
 	Updates []Update `json:"updates" valid:"-"`
 
-	// Provides is a map[string]interface{} (JSON) of artifact_provides used
+	// Provides is a map of artifact_provides used
 	// for checking artifact (version 3) dependencies.
-	Provides map[string]string `json:"artifact_provides,omitempty" bson:"provides" valid:"-"`
+	Provides Provides `json:"artifact_provides,omitempty" bson:"provides,omitempty" valid:"-"`
 
 	// Depends is a map[string]interface{} (JSON) of artifact_depends used
 	// for checking/validate against artifact (version 3) provides.
@@ -266,4 +278,19 @@ func (msg MultipartGenerateImageMsg) Validate() error {
 		return errors.New("missing 'file' section")
 	}
 	return nil
+}
+
+func GetProvidesKeyReplacer() *strings.Replacer {
+	return strings.NewReplacer(".", string(runeDot), "$", string(runeDollar))
+}
+
+// MarshalBSONValue marshals the Provides to a mongo-compatible
+// document.
+func (p Provides) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	attrs := make(bson.M, len(p))
+	replacer := GetProvidesKeyReplacer()
+	for k, v := range p {
+		attrs[replacer.Replace(k)] = v
+	}
+	return bson.MarshalValue(attrs)
 }

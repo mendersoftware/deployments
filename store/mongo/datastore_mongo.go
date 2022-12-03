@@ -80,6 +80,9 @@ var (
 	// Indexes 1.2.6
 	IndexDeviceDeploymentStatusName = "deploymentid_status_deviceid"
 
+	// Indexes 1.2.13
+	IndexArtifactProvidesRootfsVersionAndChecksumName = "artifact_provides_rootfs_version_checksum"
+
 	_false         = false
 	_true          = true
 	StorageIndexes = mongo.IndexModel{
@@ -325,6 +328,20 @@ var (
 		Options: mopts.Index().
 			SetName(IndexDeviceDeploymentsLogs),
 	}
+
+	// 1.2.13
+	IndexArtifactProvidesRootfsVersionAndChecksum = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: model.StorageKeyImageProvidesRootFSVersion,
+				Value: 1},
+			{Key: model.StorageKeyImageProvidesRootFSChecksum,
+				Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Name:       &IndexArtifactProvidesRootfsVersionAndChecksumName,
+		},
+	}
 )
 
 // Errors
@@ -358,6 +375,7 @@ const (
 	// Need to be kept in sync with structure filed names
 	StorageKeyId = "_id"
 
+	StorageKeyImageProvides    = "meta_artifact.provides"
 	StorageKeyImageDepends     = "meta_artifact.depends"
 	StorageKeyImageDependsIdx  = "meta_artifact.depends_idx"
 	StorageKeyImageSize        = "size"
