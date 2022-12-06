@@ -37,10 +37,11 @@ const (
 )
 
 var (
+	providesKeyReplacer                   = GetProvidesKeyReplacer()
 	StorageKeyImageProvidesRootFSChecksum = "meta_artifact.provides." +
-		GetProvidesKeyReplacer().Replace("rootfs-image.checksum")
+		providesKeyReplacer.Replace("rootfs-image.checksum")
 	StorageKeyImageProvidesRootFSVersion = "meta_artifact.provides." +
-		GetProvidesKeyReplacer().Replace("rootfs-image.version")
+		providesKeyReplacer.Replace("rootfs-image.version")
 )
 
 type Provides map[string]string
@@ -288,9 +289,8 @@ func GetProvidesKeyReplacer() *strings.Replacer {
 // document.
 func (p Provides) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	attrs := make(bson.M, len(p))
-	replacer := GetProvidesKeyReplacer()
 	for k, v := range p {
-		attrs[replacer.Replace(k)] = v
+		attrs[providesKeyReplacer.Replace(k)] = v
 	}
 	return bson.MarshalValue(attrs)
 }
