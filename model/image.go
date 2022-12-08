@@ -33,6 +33,13 @@ const (
 	ArtifactFileSuffix = ".mender"
 )
 
+var (
+	StorageKeyImageProvidesKey   = "meta_artifact.provides.key"
+	StorageKeyImageProvidesValue = "meta_artifact.provides.value"
+)
+
+type Provides map[string]string
+
 func ImagePathFromContext(ctx context.Context, id string) string {
 	imgPath := id
 	if idty := identity.FromContext(ctx); idty != nil {
@@ -95,9 +102,9 @@ type ArtifactMeta struct {
 	// List of updates
 	Updates []Update `json:"updates" valid:"-"`
 
-	// Provides is a map[string]interface{} (JSON) of artifact_provides used
+	// Provides is a map of artifact_provides used
 	// for checking artifact (version 3) dependencies.
-	Provides map[string]string `json:"artifact_provides,omitempty" bson:"provides" valid:"-"`
+	Provides Provides `json:"artifact_provides,omitempty" bson:"provides,omitempty" valid:"-"`
 
 	// Depends is a map[string]interface{} (JSON) of artifact_depends used
 	// for checking/validate against artifact (version 3) provides.
@@ -265,5 +272,40 @@ func (msg MultipartGenerateImageMsg) Validate() error {
 	if msg.FileReader == nil {
 		return errors.New("missing 'file' section")
 	}
+	return nil
+}
+
+type provideInternal struct {
+	Key   string
+	Value string
+}
+
+func (p Provides) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	attrs := make([]provideInternal, len(p))
+	i := 0
+	for k, v := range p {
+		attrs[i].Key = k
+		attrs[i].Value = v
+		i++
+	}
+	return bson.MarshalValue(attrs)
+}
+
+func (p *Provides) UnmarshalBSONValue(t bsontype.Type, b []byte) error {
+	raw := bson.Raw(b)
+	elems, err := raw.Elements()
+	if err != nil {
+		return err
+	}
+	*p = make(Provides, len(elems))
+	var tmp provideInternal
+	for _, elem := range elems {
+		err = elem.Value().Unmarshal(&tmp)
+		if err != nil {
+			return err
+		}
+		(*p)[tmp.Key] = tmp.Value
+	}
+
 	return nil
 }
