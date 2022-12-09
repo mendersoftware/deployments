@@ -1118,13 +1118,16 @@ paths:
             type: string
         - name: type
           in: formData
-          description: Update module used to generate the artifact.
+          description: Update Module used to generate the artifact.
           required: true
           type: string
           enum: [single_file]
         - name: args
           in: formData
-          description: Type-specific arguments used to generate the artifact.
+          description: |
+            String that represents a JSON document defining the arguments used to generate the artifact.
+            The service won't parse the content of this parameter and pass it as it is to the create artifact worker.
+            The available arguments and options depend on the Update Module implementation and are, therefore, Type-specific.
           required: false
           type: string
         - name: file
