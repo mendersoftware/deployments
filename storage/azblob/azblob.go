@@ -16,6 +16,7 @@ package azblob
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -62,9 +63,18 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 	if err != nil {
 		return nil, err
 	}
+	clientOptions := &azblob.ClientOptions{
+		Transport: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: storage.GetRootCAs(),
+				},
+			},
+		},
+	}
 	if opt.ConnectionString != nil {
 		cc, err = azblob.NewContainerClientFromConnectionString(
-			*opt.ConnectionString, bucket, &azblob.ClientOptions{},
+			*opt.ConnectionString, bucket, clientOptions,
 		)
 		if err == nil {
 			azCred, err = keyFromConnString(*opt.ConnectionString)
@@ -76,7 +86,7 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 			cc, err = azblob.NewContainerClientWithSharedKey(
 				containerURL,
 				azCred,
-				&azblob.ClientOptions{},
+				clientOptions,
 			)
 		}
 	}

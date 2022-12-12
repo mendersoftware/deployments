@@ -15,11 +15,15 @@
 package s3
 
 import (
+	"crypto/tls"
+	"net/http"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+
+	"github.com/mendersoftware/deployments/storage"
 )
 
 const (
@@ -183,6 +187,13 @@ func (opts *Options) toS3Options() (
 		}
 		s3Opts.UsePathStyle = opts.ForcePathStyle
 		s3Opts.UseAccelerate = opts.UseAccelerate
+		s3Opts.HTTPClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: storage.GetRootCAs(),
+				},
+			},
+		}
 	}
 
 	expires := DefaultExpire
