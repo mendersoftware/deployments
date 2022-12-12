@@ -151,6 +151,8 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 			controller.GetDeploymentLogForDevice),
 		rest.Delete(ApiUrlManagementDeploymentsDeviceId,
 			controller.AbortDeviceDeployments),
+		rest.Get(ApiUrlManagementDeploymentsDeviceId,
+			controller.ListDeviceDeployments),
 		rest.Get(ApiUrlManagementDeploymentsDeviceList,
 			controller.GetDeploymentDeviceList),
 

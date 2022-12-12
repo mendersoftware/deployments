@@ -46,6 +46,7 @@ const (
 )
 
 const DefaultDocumentLimit = 20
+const maxCountDocuments = int64(10000)
 
 // Internal status codes from
 // https://github.com/mongodb/mongo/blob/4.4/src/mongo/base/error_codes.yml
@@ -1476,6 +1477,16 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 					Value: model.DeviceDeploymentStatusPauseBeforeReboot,
 				}},
 			})
+		} else if *q.Status == "active" {
+			query = append(query, bson.E{
+				Key: "status", Value: bson.D{{
+					Key:   "$gte",
+					Value: model.DeviceDeploymentStatusPauseBeforeInstall,
+				}, {
+					Key:   "$lte",
+					Value: model.DeviceDeploymentStatusPending,
+				}},
+			})
 		} else {
 			var status model.DeviceDeploymentStatus
 			err := status.UnmarshalText([]byte(*q.Status))
@@ -1516,6 +1527,89 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 	}
 
 	count, err := collDevs.CountDocuments(ctx, query)
+	if err != nil {
+		return nil, -1, ErrDevicesCountFailed
+	}
+
+	return statuses, int(count), nil
+}
+
+func (db *DataStoreMongo) GetDeviceDeploymentsForDevice(ctx context.Context,
+	q store.ListQueryDeviceDeployments) ([]model.DeviceDeployment, int, error) {
+
+	statuses := []model.DeviceDeployment{}
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
+
+	query := bson.D{{
+		Key:   StorageKeyDeviceDeploymentDeviceId,
+		Value: q.DeviceID,
+	}}
+	if q.Status != nil {
+		if *q.Status == "pause" {
+			query = append(query, bson.E{
+				Key: "status", Value: bson.D{{
+					Key:   "$gte",
+					Value: model.DeviceDeploymentStatusPauseBeforeInstall,
+				}, {
+					Key:   "$lte",
+					Value: model.DeviceDeploymentStatusPauseBeforeReboot,
+				}},
+			})
+		} else if *q.Status == "active" {
+			query = append(query, bson.E{
+				Key: "status", Value: bson.D{{
+					Key:   "$gte",
+					Value: model.DeviceDeploymentStatusPauseBeforeInstall,
+				}, {
+					Key:   "$lte",
+					Value: model.DeviceDeploymentStatusPending,
+				}},
+			})
+		} else {
+			var status model.DeviceDeploymentStatus
+			err := status.UnmarshalText([]byte(*q.Status))
+			if err != nil {
+				return nil, -1, errors.Wrap(err, "invalid status query")
+			}
+			query = append(query, bson.E{
+				Key: "status", Value: status,
+			})
+		}
+	}
+
+	options := mopts.Find()
+	sortFieldQuery := bson.D{
+		{Key: StorageKeyDeviceDeploymentCreated, Value: -1},
+		{Key: StorageKeyDeviceDeploymentStatus, Value: -1},
+	}
+	options.SetSort(sortFieldQuery)
+	if q.Skip > 0 {
+		options.SetSkip(int64(q.Skip))
+	}
+	if q.Limit > 0 {
+		options.SetLimit(int64(q.Limit))
+	} else {
+		options.SetLimit(DefaultDocumentLimit)
+	}
+
+	cursor, err := collDevs.Find(ctx, query, options)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	if err = cursor.All(ctx, &statuses); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, 0, nil
+		}
+		return nil, -1, err
+	}
+
+	maxCount := maxCountDocuments
+	countOptions := &mopts.CountOptions{
+		Limit: &maxCount,
+	}
+	count, err := collDevs.CountDocuments(ctx, query, countOptions)
 	if err != nil {
 		return nil, -1, ErrDevicesCountFailed
 	}
@@ -2016,6 +2110,16 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 
 	andq := []bson.M{}
 
+	// filter by IDs
+	if len(match.IDs) > 0 {
+		tq := bson.M{
+			"_id": bson.M{
+				"$in": match.IDs,
+			},
+		}
+		andq = append(andq, tq)
+	}
+
 	// build deployment by name part of the query
 	if match.SearchText != "" {
 		// we must have indexing for text search
@@ -2094,15 +2198,18 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 		return nil, 0, err
 	}
 	// Count documents if we didn't find all already.
-	count := int64(len(deployments))
-	if count >= int64(match.Limit) {
-		count, err = collDpl.CountDocuments(ctx, query)
-		if err != nil {
-			return nil, 0, err
+	count := int64(0)
+	if !match.DisableCount {
+		count = int64(len(deployments))
+		if count >= int64(match.Limit) {
+			count, err = collDpl.CountDocuments(ctx, query)
+			if err != nil {
+				return nil, 0, err
+			}
+		} else {
+			// Don't forget to add the skipped documents
+			count += int64(match.Skip)
 		}
-	} else {
-		// Don't forget to add the skipped documents
-		count += int64(match.Skip)
 	}
 
 	return deployments, count, nil

@@ -495,6 +495,7 @@ paths:
             - "already-installed"
             - "decommissioned"
             - "pause"
+            - "active"
           required: false
         - name: page
           in: query
@@ -600,6 +601,73 @@ paths:
           $ref: "#/responses/InternalServerError"
 
   /deployments/devices/{id}:
+    get:
+      operationId: List Deployments for a Device
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: Return the Deployments history for a Device
+      description: |
+        Return the Deployments history for the specified Device, listing all its Deployments.
+      parameters:
+        - name: id
+          in: path
+          description: System wide device identifier
+          required: true
+          type: string
+        - name: status
+          in: query
+          description: >-
+            Filter deployments by status for the given device.
+          type: string
+          enum: # Unfortunately swagger 2.0 does not support reuse of enums.
+            - "failure"
+            - "aborted"
+            - "pause_before_installing"
+            - "pause_before_committing"
+            - "pause_before_rebooting"
+            - "downloading"
+            - "installing"
+            - "rebooting"
+            - "pending"
+            - "success"
+            - "noartifact"
+            - "already-installed"
+            - "decommissioned"
+            - "pause"
+            - "active"
+          required: false
+        - name: page
+          in: query
+          description: Starting page.
+          required: false
+          type: number
+          format: integer
+          default: 1
+        - name: per_page
+          in: query
+          description: Maximum number of results per page.
+          required: false
+          type: number
+          format: integer
+          default: 20
+          maximum: 20
+      produces:
+        - application/json
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/DeviceDeployment"
+        401:
+          $ref: '#/responses/UnauthorizedError'
+        500:
+          description: Internal server error.
+          schema:
+              $ref: "#/definitions/Error"
     delete:
       operationId: Abort Deployments for a Device
       tags:
@@ -1557,6 +1625,36 @@ definitions:
       log: false
       state: installing
       substate: installing.enter;script:foo-bar
+  DeviceDeployment:
+    type: object
+    properties:
+      id:
+        type: string
+      deployment:
+        $ref: "#/definitions/Deployment"
+      device:
+        $ref: "#/definitions/Device"
+    required:
+      - deployment
+      - device
+    example:
+      id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+      deployment:
+        id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+        name: production
+        artifact_name: Application 0.0.1
+        status: inprogress
+        created: 2016-02-11T13:03:17.063493443Z
+        device_count: 100
+      device:
+        id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+        device_type: Raspberry Pi 3
+        status: installing
+        finished: 2016-03-11T13:03:17.063493443Z
+        created: 2016-02-11T13:03:17.063493443Z
+        state: installing
+        substate: installing.enter;script:foo-bar
+        log: false
   ArtifactUpdate:
     description: Artifact information update.
     type: object

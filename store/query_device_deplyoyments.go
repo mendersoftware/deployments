@@ -20,19 +20,19 @@ import (
 	"github.com/mendersoftware/deployments/model"
 )
 
-type ListQuery struct {
-	Skip         int
-	Limit        int
-	DeploymentID string
-	Status       *string
+type ListQueryDeviceDeployments struct {
+	Skip     int
+	Limit    int
+	DeviceID string
+	Status   *string
 }
 
-func (l ListQuery) Validate() error {
+func (l ListQueryDeviceDeployments) Validate() error {
 	if l.Limit <= 0 {
 		return errors.New("limit: must be a positive integer")
 	}
-	if l.DeploymentID == "" {
-		return errors.New("deployment_id: cannot be blank")
+	if l.DeviceID == "" {
+		return errors.New("device_id: cannot be blank")
 	}
 	if l.Status != nil {
 		if *l.Status == "pause" || *l.Status == "active" {

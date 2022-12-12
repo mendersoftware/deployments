@@ -340,6 +340,36 @@ func (_m *App) GetDeploymentsStats(ctx context.Context, deploymentIDs ...string)
 	return r0, r1
 }
 
+// GetDeviceDeploymentListForDevice provides a mock function with given fields: ctx, query
+func (_m *App) GetDeviceDeploymentListForDevice(ctx context.Context, query store.ListQueryDeviceDeployments) ([]model.DeviceDeploymentListItem, int, error) {
+	ret := _m.Called(ctx, query)
+
+	var r0 []model.DeviceDeploymentListItem
+	if rf, ok := ret.Get(0).(func(context.Context, store.ListQueryDeviceDeployments) []model.DeviceDeploymentListItem); ok {
+		r0 = rf(ctx, query)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.DeviceDeploymentListItem)
+		}
+	}
+
+	var r1 int
+	if rf, ok := ret.Get(1).(func(context.Context, store.ListQueryDeviceDeployments) int); ok {
+		r1 = rf(ctx, query)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, store.ListQueryDeviceDeployments) error); ok {
+		r2 = rf(ctx, query)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
 // GetDeviceDeploymentLog provides a mock function with given fields: ctx, deviceID, deploymentID
 func (_m *App) GetDeviceDeploymentLog(ctx context.Context, deviceID string, deploymentID string) (*model.DeploymentLog, error) {
 	ret := _m.Called(ctx, deviceID, deploymentID)

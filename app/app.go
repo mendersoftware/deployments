@@ -147,6 +147,8 @@ type App interface {
 		deploymentID string) ([]model.DeviceDeployment, error)
 	GetDevicesListForDeployment(ctx context.Context,
 		query store.ListQuery) ([]model.DeviceDeployment, int, error)
+	GetDeviceDeploymentListForDevice(ctx context.Context,
+		query store.ListQueryDeviceDeployments) ([]model.DeviceDeploymentListItem, int, error)
 	LookupDeployment(ctx context.Context,
 		query model.Query) ([]*model.Deployment, int64, error)
 	SaveDeviceDeploymentLog(ctx context.Context, deviceID string,
@@ -1486,6 +1488,53 @@ func (d *Deployments) GetDevicesListForDeployment(ctx context.Context,
 	}
 
 	return statuses, totalCount, nil
+}
+
+func (d *Deployments) GetDeviceDeploymentListForDevice(ctx context.Context,
+	query store.ListQueryDeviceDeployments) ([]model.DeviceDeploymentListItem, int, error) {
+	deviceDeployments, totalCount, err := d.db.GetDeviceDeploymentsForDevice(ctx, query)
+	if err != nil {
+		return nil, -1, errors.Wrap(err, "retrieving the list of deployment statuses")
+	}
+
+	deploymentIDs := make([]string, len(deviceDeployments))
+	for i, deviceDeployment := range deviceDeployments {
+		deploymentIDs[i] = deviceDeployment.DeploymentId
+	}
+
+	deployments, _, err := d.db.Find(ctx, model.Query{
+		IDs:          deploymentIDs,
+		Limit:        len(deviceDeployments),
+		DisableCount: true,
+	})
+	if err != nil {
+		return nil, -1, errors.Wrap(err, "retrieving the list of deployments")
+	}
+
+	deploymentsMap := make(map[string]*model.Deployment, len(deployments))
+	for _, deployment := range deployments {
+		deploymentsMap[deployment.Id] = deployment
+	}
+
+	res := make([]model.DeviceDeploymentListItem, 0, len(deviceDeployments))
+	for _, deviceDeployment := range deviceDeployments {
+		device := deviceDeployment
+		if deployment, ok := deploymentsMap[deviceDeployment.DeploymentId]; ok {
+			res = append(res, model.DeviceDeploymentListItem{
+				Id:         deviceDeployment.Id,
+				Deployment: deployment,
+				Device:     &device,
+			})
+		} else {
+			res = append(res, model.DeviceDeploymentListItem{
+				Id:     deviceDeployment.Id,
+				Device: &device,
+			})
+
+		}
+	}
+
+	return res, totalCount, nil
 }
 
 func (d *Deployments) setDeploymentDeviceCountIfUnset(

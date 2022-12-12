@@ -20,10 +20,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	ctxstore "github.com/mendersoftware/go-lib-micro/store"
 )
@@ -963,7 +965,7 @@ func TestFindDeploymentStatsByIDs(t *testing.T) {
 	now := time.Now()
 
 	deployments := []*model.Deployment{
-		&model.Deployment{
+		{
 			Id:      "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
 			Created: &now,
 			DeploymentConstructor: &model.DeploymentConstructor{
@@ -973,7 +975,7 @@ func TestFindDeploymentStatsByIDs(t *testing.T) {
 			},
 			Stats: model.Stats{},
 		},
-		&model.Deployment{
+		{
 			Id:      "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
 			Created: &now,
 			DeploymentConstructor: &model.DeploymentConstructor{
@@ -983,7 +985,7 @@ func TestFindDeploymentStatsByIDs(t *testing.T) {
 			},
 			Stats: model.NewDeviceDeploymentStats(),
 		},
-		&model.Deployment{
+		{
 			Id:      "d50eda0d-2cea-4de1-8d42-9cd3e7e86703",
 			Created: &now,
 			DeploymentConstructor: &model.DeploymentConstructor{
@@ -1027,5 +1029,179 @@ func TestFindDeploymentStatsByIDs(t *testing.T) {
 			assert.Equal(t, len(depStats), len(tc.deployments))
 		})
 	}
+}
 
+func str2ptr(s string) *string {
+	return &s
+}
+
+func TestGetDeviceDeploymentsForDevice(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestGetDeviceDeploymentsForDevice in short mode.")
+	}
+
+	now := time.Now()
+
+	ctx := context.Background()
+	ds := NewDataStoreMongoWithClient(db.Client())
+
+	const deviceID = "d50eda0d-2cea-4de1-8d42-9cd3e7e86700"
+	deviceDeployments := []*model.DeviceDeployment{
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+			Created: func() *time.Time {
+				ret := now.Add(3 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusPauseBeforeInstall,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+		},
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
+			Created: func() *time.Time {
+				ret := now.Add(2 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusSuccess,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
+		},
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86703",
+			Created: func() *time.Time {
+				ret := now.Add(1 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusSuccess,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86703",
+		},
+	}
+	for _, deviceDeployment := range deviceDeployments {
+		assert.NoError(t, ds.InsertDeviceDeployment(ctx, deviceDeployment))
+	}
+
+	testCases := map[string]struct {
+		q store.ListQueryDeviceDeployments
+
+		res      []model.DeviceDeployment
+		resCount int
+		resErr   error
+	}{
+		"ok": {
+			q: store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Status:   nil,
+				Limit:    10,
+				Skip:     0,
+			},
+			res: []model.DeviceDeployment{
+				*deviceDeployments[0],
+				*deviceDeployments[1],
+				*deviceDeployments[2],
+			},
+			resCount: 3,
+		},
+		"ok, status pause": {
+			q: store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Status:   str2ptr("pause"),
+				Limit:    10,
+				Skip:     0,
+			},
+			res: []model.DeviceDeployment{
+				*deviceDeployments[0],
+			},
+			resCount: 1,
+		},
+		"ok, status active": {
+			q: store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Status:   str2ptr("active"),
+				Limit:    10,
+				Skip:     0,
+			},
+			res: []model.DeviceDeployment{
+				*deviceDeployments[0],
+			},
+			resCount: 1,
+		},
+		"ok, status successful": {
+			q: store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Status:   str2ptr(model.DeviceDeploymentStatusSuccessStr),
+				Limit:    10,
+				Skip:     0,
+			},
+			res: []model.DeviceDeployment{
+				*deviceDeployments[1],
+				*deviceDeployments[2],
+			},
+			resCount: 2,
+		},
+		"ok, status active, first page": {
+			q: store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Status:   str2ptr(model.DeviceDeploymentStatusSuccessStr),
+				Limit:    1,
+				Skip:     0,
+			},
+			res: []model.DeviceDeployment{
+				*deviceDeployments[1],
+			},
+			resCount: 2,
+		},
+		"ok, status active, second page": {
+			q: store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Status:   str2ptr(model.DeviceDeploymentStatusSuccessStr),
+				Limit:    1,
+				Skip:     1,
+			},
+			res: []model.DeviceDeployment{
+				*deviceDeployments[2],
+			},
+			resCount: 2,
+		},
+		"ok, no results": {
+			q: store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Status:   str2ptr(model.DeviceDeploymentStatusDownloadingStr),
+				Limit:    10,
+				Skip:     0,
+			},
+			res:      []model.DeviceDeployment{},
+			resCount: 0,
+		},
+		"ko, status invalid": {
+			q: store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Status:   str2ptr("dummy"),
+				Limit:    10,
+				Skip:     0,
+			},
+			res:      nil,
+			resCount: -1,
+			resErr:   errors.New("invalid status query: invalid status for device 'dummy'"),
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			res, count, err := ds.GetDeviceDeploymentsForDevice(ctx, tc.q)
+			assert.Equal(t, tc.resCount, count)
+
+			if tc.resErr != nil {
+				assert.EqualError(t, err, tc.resErr.Error())
+			} else {
+				for i, _ := range res {
+					// ignore Created field when comparing the results
+					res[i].Created = tc.res[i].Created
+				}
+				assert.Equal(t, tc.res, res)
+				assert.Nil(t, err)
+			}
+		})
+	}
 }
