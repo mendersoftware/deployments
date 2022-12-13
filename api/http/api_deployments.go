@@ -54,8 +54,9 @@ const (
 	DefaultMaxImageSize = 10 * 1024 * 1024 * 1024 // 10GiB
 
 	// Pagination
-	DefaultPerPage = 20
-	MaximumPerPage = 500
+	DefaultPerPage                      = 20
+	MaximumPerPage                      = 500
+	MaximumPerPageListDeviceDeployments = 20
 )
 
 const (
@@ -1657,6 +1658,54 @@ func (d *DeploymentsApiHandlers) AbortDeviceDeployments(w rest.ResponseWriter, r
 	default:
 		d.view.RenderInternalError(w, r, err, l)
 	}
+}
+
+func (d *DeploymentsApiHandlers) ListDeviceDeployments(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	did := r.PathParam("id")
+	if !govalidator.IsUUID(did) {
+		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
+		return
+	}
+
+	page, perPage, err := rest_utils.ParsePagination(r)
+	if err == nil && perPage > MaximumPerPageListDeviceDeployments {
+		err = errors.New(rest_utils.MsgQueryParmLimit(ParamPerPage))
+	}
+	if err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+
+	lq := store.ListQueryDeviceDeployments{
+		Skip:     int((page - 1) * perPage),
+		Limit:    int(perPage),
+		DeviceID: did,
+	}
+	if status := r.URL.Query().Get("status"); status != "" {
+		lq.Status = &status
+	}
+	if err = lq.Validate(); err != nil {
+		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+		return
+	}
+
+	deps, totalCount, err := d.app.GetDeviceDeploymentListForDevice(ctx, lq)
+	if err != nil {
+		d.view.RenderInternalError(w, r, err, l)
+		return
+	}
+	w.Header().Add(hdrTotalCount, strconv.FormatInt(int64(totalCount), 10))
+
+	hasNext := totalCount > lq.Skip+len(deps)
+	links := rest_utils.MakePageLinkHdrs(r, page, perPage, hasNext)
+	for _, l := range links {
+		w.Header().Add("Link", l)
+	}
+
+	d.view.RenderSuccessGet(w, deps)
 }
 
 func (d *DeploymentsApiHandlers) DecommissionDevice(w rest.ResponseWriter, r *rest.Request) {

@@ -297,6 +297,9 @@ const (
 
 // Deployment lookup query
 type Query struct {
+	// list of IDs
+	IDs []string
+
 	// match deployments by text by looking at deployment name and artifact name
 	SearchText string
 
@@ -313,6 +316,9 @@ type Query struct {
 
 	// sort values by creation date
 	Sort string
+
+	// disable the counting
+	DisableCount bool
 }
 
 type DeploymentIDs struct {

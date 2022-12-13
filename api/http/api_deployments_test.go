@@ -35,6 +35,7 @@ import (
 	"github.com/mendersoftware/deployments/app"
 	mapp "github.com/mendersoftware/deployments/app/mocks"
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/utils/restutil/view"
 	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/mendersoftware/go-lib-micro/identity"
@@ -1823,6 +1824,155 @@ func TestGetDeploymentsStats(t *testing.T) {
 			recorded.DecodeJsonPayload(&res)
 			if tc.responseCode == http.StatusOK {
 				assert.Equal(t, tc.mockedDeploymentStats, res, "Unexpected response body")
+			}
+		})
+	}
+}
+
+func str2ptr(s string) *string {
+	return &s
+}
+
+func TestListDeviceDeployments(t *testing.T) {
+	const deviceID = "d50eda0d-2cea-4de1-8d42-9cd3e7e86701"
+	t.Parallel()
+	testCases := map[string]struct {
+		deviceID     string
+		status       string
+		limit        int
+		query        *store.ListQueryDeviceDeployments
+		responseCode int
+		deployments  []model.DeviceDeploymentListItem
+		count        int
+		err          error
+	}{
+		"ok": {
+			deviceID: deviceID,
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Limit:    DefaultPerPage,
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
+		"ok, no records": {
+			deviceID: deviceID,
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Limit:    DefaultPerPage,
+			},
+			responseCode: http.StatusOK,
+			deployments:  []model.DeviceDeploymentListItem{},
+			count:        0,
+		},
+		"ok, filter by status": {
+			deviceID: deviceID,
+			status:   "pending",
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Limit:    DefaultPerPage,
+				Status:   str2ptr("pending"),
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
+		"ok, custom limit": {
+			deviceID: deviceID,
+			limit:    10,
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Limit:    10,
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
+		"ko, too high per_page": {
+			deviceID:     deviceID,
+			limit:        MaximumPerPageListDeviceDeployments + 1,
+			responseCode: http.StatusBadRequest,
+		},
+		"ko, wrong device ID": {
+			deviceID:     "dummy",
+			responseCode: http.StatusBadRequest,
+			err:          errors.New("error"),
+		},
+		"ok, wrong limit": {
+			deviceID:     deviceID,
+			limit:        -10,
+			responseCode: http.StatusBadRequest,
+		},
+		"ok, wrong status": {
+			deviceID:     deviceID,
+			status:       "dummy",
+			responseCode: http.StatusBadRequest,
+		},
+		"ko, error": {
+			deviceID: deviceID,
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Limit:    DefaultPerPage,
+			},
+			responseCode: http.StatusInternalServerError,
+			count:        -1,
+			err:          errors.New("error"),
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			app := &mapp.App{}
+			if tc.query != nil {
+				app.On("GetDeviceDeploymentListForDevice",
+					mock.MatchedBy(func(ctx context.Context) bool {
+						return true
+					}),
+					*tc.query,
+				).Return(
+					tc.deployments,
+					tc.count,
+					tc.err,
+				)
+			}
+
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlManagementDeploymentsDeviceId,
+				rest.Get,
+				d.ListDeviceDeployments,
+			)
+			url := "http://localhost" + ApiUrlManagementDeploymentsDeviceId
+			url = strings.Replace(url, "#id", tc.deviceID, 1)
+			if tc.status != "" {
+				url = url + "?status=" + tc.status
+			}
+			if tc.limit != 0 {
+				url = url + fmt.Sprintf("?per_page=%d", tc.limit)
+			}
+			req := test.MakeSimpleRequest("GET", url, nil)
+
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.responseCode)
+			recorded.ContentTypeIsJson()
+			res := []model.DeviceDeploymentListItem{}
+			recorded.DecodeJsonPayload(&res)
+			if tc.responseCode == http.StatusOK {
+				assert.Equal(t, tc.deployments, res, "Unexpected response body")
 			}
 		})
 	}
