@@ -81,6 +81,9 @@ var (
 	// Indexes 1.2.6
 	IndexDeviceDeploymentStatusName = "deploymentid_status_deviceid"
 
+	// Indexes 1.2.13
+	IndexArtifactProvidesName = "artifact_provides"
+
 	_false         = false
 	_true          = true
 	StorageIndexes = mongo.IndexModel{
@@ -326,6 +329,21 @@ var (
 		Options: mopts.Index().
 			SetName(IndexDeviceDeploymentsLogs),
 	}
+
+	// 1.2.13
+	IndexArtifactProvides = mongo.IndexModel{
+		Keys: bson.D{
+			{Key: model.StorageKeyImageProvidesKey,
+				Value: 1},
+			{Key: model.StorageKeyImageProvidesValue,
+				Value: 1},
+		},
+		Options: &mopts.IndexOptions{
+			Background: &_false,
+			Sparse:     &_true,
+			Name:       &IndexArtifactProvidesName,
+		},
+	}
 )
 
 // Errors
@@ -359,6 +377,7 @@ const (
 	// Need to be kept in sync with structure filed names
 	StorageKeyId = "_id"
 
+	StorageKeyImageProvides    = "meta_artifact.provides"
 	StorageKeyImageDepends     = "meta_artifact.depends"
 	StorageKeyImageDependsIdx  = "meta_artifact.depends_idx"
 	StorageKeyImageSize        = "size"
