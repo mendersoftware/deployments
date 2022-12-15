@@ -17,7 +17,6 @@ package mongo
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	"github.com/pkg/errors"
@@ -36,50 +35,16 @@ type OldImage struct {
 	// Image ID
 	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
 
-	// User provided field set
-	*model.ImageMeta `bson:"meta"`
-
 	// Field set provided with yocto image
 	*OldArtifactMeta `bson:"meta_artifact"`
-
-	// Artifact total size
-	Size int64 `json:"size" bson:"size" valid:"-"`
-
-	// Last modification time, including image upload time
-	Modified *time.Time `json:"modified" valid:"-"`
 }
 
 // Information provided by the Mender Artifact header
 type OldArtifactMeta struct {
-	// artifact_name from artifact file
-	Name string `json:"name" bson:"name" valid:"length(1|4096),required"`
-
-	// Compatible device types for the application
-	//nolint:lll
-	DeviceTypesCompatible []string `json:"device_types_compatible" bson:"device_types_compatible" valid:"length(1|4096),required"`
-
-	// Artifact version info
-	Info *model.ArtifactInfo `json:"info"`
-
-	// Flag that indicates if artifact is signed or not
-	Signed bool `json:"signed" bson:"signed"`
-
-	// List of updates
-	Updates []model.Update `json:"updates" valid:"-"`
-
 	// Provides is a map of artifact_provides used
 	// for checking artifact (version 3) dependencies.
 	//nolint:lll
 	Provides map[string]string `json:"artifact_provides,omitempty" bson:"provides,omitempty" valid:"-"`
-
-	// Depends is a map[string]interface{} (JSON) of artifact_depends used
-	// for checking/validate against artifact (version 3) provides.
-	Depends map[string]interface{} `json:"artifact_depends,omitempty" bson:"depends" valid:"-"`
-
-	// ClearsProvides is a list of strings (JSON) of clears_artifact_provides used
-	// for clearing already-installed artifact (version 3) provides.
-	//nolint:lll
-	ClearsProvides []string `json:"clears_artifact_provides,omitempty" bson:"clears_provides,omitempty" valid:"-"`
 }
 
 // Up intrduces index on artifact depends rootfs-image checksum and version and
