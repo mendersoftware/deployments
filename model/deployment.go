@@ -168,6 +168,11 @@ type Deployment struct {
 	Configuration deploymentConfiguration `json:"configuration,omitempty" bson:"configuration"`
 }
 
+type DeploymentArtifactsUpdate struct {
+	// List of artifact id's targeted for deployments, optional
+	Artifacts []string `bson:"artifacts"`
+}
+
 // NewDeployment creates new deployment object, sets create data by default.
 func NewDeployment() (*Deployment, error) {
 	now := time.Now()
