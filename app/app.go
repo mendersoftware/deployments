@@ -160,6 +160,10 @@ type App interface {
 	CreateDeviceConfigurationDeployment(
 		ctx context.Context, constructor *model.ConfigurationDeploymentConstructor,
 		deviceID, deploymentID string) (string, error)
+	UpdateDeploymentsWithArtifactName(
+		ctx context.Context,
+		artifactName string,
+	) error
 }
 
 type Deployments struct {
@@ -362,6 +366,9 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 			return artifactID, idxErr
 		}
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
+	}
+	if err := d.UpdateDeploymentsWithArtifactName(ctx, metaArtifactConstructor.Name); err != nil {
+		return "", errors.Wrap(err, "fail to update deployments")
 	}
 
 	return artifactID, nil
@@ -883,8 +890,8 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 	}
 
 	// Assign artifacts to the deployment.
-	// Only artifacts present in the system at the moment of deployment creation
-	// will be part of this deployment.
+	// When new artifact(s) with the artifact name same as the one in the deployment
+	// will be uploaded to the backend, it will also become part of this deployment.
 	artifacts, err := d.db.ImagesByName(ctx, deployment.ArtifactName)
 	if err != nil {
 		return "", errors.Wrap(err, "Finding artifact with given name")
@@ -1780,4 +1787,30 @@ func (d *Deployments) search(
 	} else {
 		return d.inventoryClient.Search(ctx, tid, parms)
 	}
+}
+
+func (d *Deployments) UpdateDeploymentsWithArtifactName(
+	ctx context.Context,
+	artifactName string,
+) error {
+	// first check if there are pending deployments with given artifact name
+	exists, err := d.db.ExistUnfinishedByArtifactName(ctx, artifactName)
+	if err != nil {
+		return errors.Wrap(err, "looking for deployments with given artifact name")
+	}
+	if !exists {
+		return nil
+	}
+
+	// Assign artifacts to the deployments with given artifact name
+	artifacts, err := d.db.ImagesByName(ctx, artifactName)
+	if err != nil {
+		return errors.Wrap(err, "Finding artifact with given name")
+	}
+
+	if len(artifacts) == 0 {
+		return ErrNoArtifact
+	}
+	artifactIDs := getArtifactIDs(artifacts)
+	return d.db.UpdateDeploymentsWithArtifactName(ctx, artifactName, artifactIDs)
 }

@@ -2354,6 +2354,40 @@ func (db *DataStoreMongo) ExistUnfinishedByArtifactId(ctx context.Context,
 	return true, nil
 }
 
+// ExistUnfinishedByArtifactName checks if there is an active deployment that uses
+// given artifact
+func (db *DataStoreMongo) ExistUnfinishedByArtifactName(ctx context.Context,
+	artifactName string) (bool, error) {
+
+	if len(artifactName) == 0 {
+		return false, ErrImagesStorageInvalidArtifactName
+	}
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
+
+	var tmp interface{}
+	query := bson.D{
+		{Key: StorageKeyDeploymentFinished, Value: nil},
+		{Key: StorageKeyDeploymentArtifactName, Value: artifactName},
+	}
+
+	projection := bson.M{
+		"_id": 1,
+	}
+	findOptions := mopts.FindOne()
+	findOptions.SetProjection(projection)
+
+	if err := collDpl.FindOne(ctx, query, findOptions).Decode(&tmp); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
 // ExistByArtifactId check if there is any deployment that uses give artifact
 func (db *DataStoreMongo) ExistByArtifactId(ctx context.Context,
 	id string) (bool, error) {
@@ -2418,5 +2452,27 @@ func (db *DataStoreMongo) SetStorageSettings(
 		_, err = collection.DeleteOne(ctx, filter)
 	}
 
+	return err
+}
+
+func (db *DataStoreMongo) UpdateDeploymentsWithArtifactName(
+	ctx context.Context,
+	artifactName string,
+	artifactIDs []string,
+) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
+
+	query := bson.D{
+		{Key: StorageKeyDeploymentFinished, Value: nil},
+		{Key: StorageKeyDeploymentArtifactName, Value: artifactName},
+	}
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeploymentArtifacts: artifactIDs,
+		},
+	}
+
+	_, err := collDpl.UpdateMany(ctx, query, update)
 	return err
 }

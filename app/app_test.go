@@ -905,3 +905,60 @@ func TestGetDeviceDeploymentListForDevice(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateDeploymentsWithArtifactName(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+
+		// Input
+		artifactName string
+
+		storeMock *mocks.DataStore
+
+		// Output
+		err error
+	}{
+		{
+			name:         "ok",
+			artifactName: "foo",
+
+			storeMock: func() *mocks.DataStore {
+				ds := new(mocks.DataStore)
+
+				ds.On("ExistUnfinishedByArtifactName",
+					h.ContextMatcher(),
+					"foo",
+				).Return(true, nil)
+				ds.On("ImagesByName",
+					h.ContextMatcher(),
+					"foo",
+				).Return([]*model.Image{{Id: "foo-id"}}, nil)
+				ds.On("UpdateDeploymentsWithArtifactName",
+					h.ContextMatcher(), "foo", []string{"foo-id"},
+				).Return(nil)
+
+				return ds
+			}(),
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			defer tc.storeMock.AssertExpectations(t)
+
+			app := &Deployments{
+				db: tc.storeMock,
+			}
+
+			err := app.UpdateDeploymentsWithArtifactName(context.Background(), tc.artifactName)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

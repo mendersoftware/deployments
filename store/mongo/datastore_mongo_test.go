@@ -1205,3 +1205,267 @@ func TestGetDeviceDeploymentsForDevice(t *testing.T) {
 		})
 	}
 }
+
+func TestExistUnfinishedByArtifactName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestExistUnfinishedByArtifactName in short mode.")
+	}
+
+	testCases := map[string]struct {
+		inputDeploymentsCollection []interface{}
+
+		artifactName string
+
+		exist bool
+		err   error
+	}{
+		"ok, exist": {
+			inputDeploymentsCollection: []interface{}{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "foo",
+					},
+					Id:     "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Active: true,
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "bar",
+					},
+					Id:     "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Active: false,
+				},
+			},
+			artifactName: "foo",
+			exist:        true,
+		},
+		"ok, does not exist": {
+			inputDeploymentsCollection: []interface{}{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "foo",
+					},
+					Id:     "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Active: true,
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "bar",
+					},
+					Id:     "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Active: false,
+				},
+			},
+			artifactName: "baz",
+			exist:        false,
+		},
+		"no deployments": {
+			artifactName: "baz",
+			exist:        false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			// Make sure we start test with empty database
+			db.Wipe()
+
+			client := db.Client()
+			ds := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
+
+			if tc.inputDeploymentsCollection != nil {
+				_, err := collDep.InsertMany(
+					ctx, tc.inputDeploymentsCollection)
+				assert.NoError(t, err)
+			}
+
+			exist, err := ds.ExistUnfinishedByArtifactName(ctx, tc.artifactName)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.exist, exist)
+			}
+		})
+	}
+}
+
+func TestExistUnfinishedByArtifactId(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestExistUnfinishedByArtifactId in short mode.")
+	}
+
+	testCases := map[string]struct {
+		inputDeploymentsCollection []interface{}
+
+		artifactId string
+
+		exist bool
+		err   error
+	}{
+		"ok, exist": {
+			inputDeploymentsCollection: []interface{}{
+				&model.Deployment{
+					Id:        "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Artifacts: []string{"foo", "bar"},
+					Active:    true,
+				},
+				&model.Deployment{
+					Id:        "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Artifacts: []string{"baz"},
+					Active:    false,
+				},
+			},
+			artifactId: "foo",
+			exist:      true,
+		},
+		"ok, does not exist": {
+			inputDeploymentsCollection: []interface{}{
+				&model.Deployment{
+					Id:        "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Artifacts: []string{"foo", "bar"},
+					Active:    true,
+				},
+				&model.Deployment{
+					Id:        "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Artifacts: []string{"bar"},
+					Active:    false,
+				},
+			},
+			artifactId: "baz",
+			exist:      false,
+		},
+		"no deployments": {
+			artifactId: "baz",
+			exist:      false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			// Make sure we start test with empty database
+			db.Wipe()
+
+			client := db.Client()
+			ds := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
+
+			if tc.inputDeploymentsCollection != nil {
+				_, err := collDep.InsertMany(
+					ctx, tc.inputDeploymentsCollection)
+				assert.NoError(t, err)
+			}
+
+			exist, err := ds.ExistUnfinishedByArtifactId(ctx, tc.artifactId)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.exist, exist)
+			}
+		})
+	}
+}
+
+func TestUpdateDeploymentsWithArtifactName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestUpdateDeploymentsWithArtifactName in short mode.")
+	}
+
+	testCases := map[string]struct {
+		inputDeploymentsCollection []interface{}
+
+		artifactName string
+		artifactIDs  []string
+
+		outputDeployments []*model.Deployment
+		err               error
+	}{
+		"ok": {
+			inputDeploymentsCollection: []interface{}{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "foo",
+					},
+					Id:        "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Artifacts: []string{"foo-1"},
+
+					Active: true,
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "bar",
+					},
+					Id:     "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Active: true,
+				},
+			},
+			artifactName: "foo",
+			artifactIDs:  []string{"foo-1", "foo-2"},
+			outputDeployments: []*model.Deployment{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "foo",
+					},
+					Id:        "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Artifacts: []string{"foo-1", "foo-2"},
+					Active:    true,
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "bar",
+					},
+					Id:     "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Active: true,
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			// Make sure we start test with empty database
+			db.Wipe()
+
+			client := db.Client()
+			ds := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
+
+			if tc.inputDeploymentsCollection != nil {
+				_, err := collDep.InsertMany(
+					ctx, tc.inputDeploymentsCollection)
+				assert.NoError(t, err)
+			}
+
+			err := ds.UpdateDeploymentsWithArtifactName(
+				ctx,
+				tc.artifactName,
+				tc.artifactIDs,
+			)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.NoError(t, err)
+				deployments, _, err := ds.Find(ctx, model.Query{})
+				assert.NoError(t, err)
+				assert.Equal(t, tc.outputDeployments, deployments)
+			}
+		})
+	}
+}

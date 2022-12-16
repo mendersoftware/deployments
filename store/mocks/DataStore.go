@@ -216,6 +216,27 @@ func (_m *DataStore) ExistUnfinishedByArtifactId(ctx context.Context, id string)
 	return r0, r1
 }
 
+// ExistUnfinishedByArtifactName provides a mock function with given fields: ctx, artifactName
+func (_m *DataStore) ExistUnfinishedByArtifactName(ctx context.Context, artifactName string) (bool, error) {
+	ret := _m.Called(ctx, artifactName)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+		r0 = rf(ctx, artifactName)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, artifactName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Exists provides a mock function with given fields: ctx, id
 func (_m *DataStore) Exists(ctx context.Context, id string) (bool, error) {
 	ret := _m.Called(ctx, id)
@@ -996,6 +1017,20 @@ func (_m *DataStore) Update(ctx context.Context, image *model.Image) (bool, erro
 	}
 
 	return r0, r1
+}
+
+// UpdateDeploymentsWithArtifactName provides a mock function with given fields: ctx, artifactName, artifactIDs
+func (_m *DataStore) UpdateDeploymentsWithArtifactName(ctx context.Context, artifactName string, artifactIDs []string) error {
+	ret := _m.Called(ctx, artifactName, artifactIDs)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, []string) error); ok {
+		r0 = rf(ctx, artifactName, artifactIDs)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // UpdateDeviceDeploymentLogAvailability provides a mock function with given fields: ctx, deviceID, deploymentID, log

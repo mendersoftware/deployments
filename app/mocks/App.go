@@ -673,6 +673,20 @@ func (_m *App) SetStorageSettings(ctx context.Context, storageSettings *model.St
 	return r0
 }
 
+// UpdateDeploymentsWithArtifactName provides a mock function with given fields: ctx, artifactName
+func (_m *App) UpdateDeploymentsWithArtifactName(ctx context.Context, artifactName string) error {
+	ret := _m.Called(ctx, artifactName)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, artifactName)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateDeviceDeploymentStatus provides a mock function with given fields: ctx, deploymentID, deviceID, state
 func (_m *App) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string, deviceID string, state model.DeviceDeploymentState) error {
 	ret := _m.Called(ctx, deploymentID, deviceID, state)
