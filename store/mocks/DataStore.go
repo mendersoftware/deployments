@@ -516,27 +516,6 @@ func (_m *DataStore) GetDeviceDeploymentLog(ctx context.Context, deviceID string
 	return r0, r1
 }
 
-// GetDeviceDeploymentStatus provides a mock function with given fields: ctx, deploymentID, deviceID
-func (_m *DataStore) GetDeviceDeploymentStatus(ctx context.Context, deploymentID string, deviceID string) (model.DeviceDeploymentStatus, error) {
-	ret := _m.Called(ctx, deploymentID, deviceID)
-
-	var r0 model.DeviceDeploymentStatus
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) model.DeviceDeploymentStatus); ok {
-		r0 = rf(ctx, deploymentID, deviceID)
-	} else {
-		r0 = ret.Get(0).(model.DeviceDeploymentStatus)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, deploymentID, deviceID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetDeviceDeploymentsForDevice provides a mock function with given fields: ctx, query
 func (_m *DataStore) GetDeviceDeploymentsForDevice(ctx context.Context, query store.ListQueryDeviceDeployments) ([]model.DeviceDeployment, int, error) {
 	ret := _m.Called(ctx, query)

@@ -1689,32 +1689,6 @@ func (db *DataStoreMongo) HasDeploymentForDevice(ctx context.Context,
 	return true, nil
 }
 
-func (db *DataStoreMongo) GetDeviceDeploymentStatus(ctx context.Context,
-	deploymentID string, deviceID string) (model.DeviceDeploymentStatus, error) {
-
-	var dep model.DeviceDeployment
-	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
-	collDevs := database.Collection(CollectionDevices)
-
-	query := bson.M{
-		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
-		StorageKeyDeviceDeploymentDeviceId:     deviceID,
-		StorageKeyDeviceDeploymentDeleted: bson.D{
-			{Key: "$exists", Value: false},
-		},
-	}
-
-	if err := collDevs.FindOne(ctx, query).Decode(&dep); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return model.DeviceDeploymentStatusNull, nil
-		} else {
-			return model.DeviceDeploymentStatusNull, err
-		}
-	}
-
-	return dep.Status, nil
-}
-
 func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 	deploymentId string) error {
 

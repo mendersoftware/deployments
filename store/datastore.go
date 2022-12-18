@@ -99,8 +99,6 @@ type DataStore interface {
 		query ListQueryDeviceDeployments) ([]model.DeviceDeployment, int, error)
 	HasDeploymentForDevice(ctx context.Context,
 		deploymentID string, deviceID string) (bool, error)
-	GetDeviceDeploymentStatus(ctx context.Context,
-		deploymentID string, deviceID string) (model.DeviceDeploymentStatus, error)
 	AbortDeviceDeployments(ctx context.Context, deploymentID string) error
 	DeleteDeviceDeploymentsHistory(ctx context.Context, deviceId string) error
 	DecommissionDeviceDeployments(ctx context.Context, deviceId string) error
