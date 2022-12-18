@@ -61,7 +61,8 @@ type DataStore interface {
 		deviceID, deploymentID string) (*model.DeploymentLog, error)
 
 	// device deployments
-	InsertDeviceDeployment(ctx context.Context, deviceDeployment *model.DeviceDeployment) error
+	InsertDeviceDeployment(ctx context.Context, deviceDeployment *model.DeviceDeployment,
+		incrementDeviceCount bool) error
 	InsertMany(ctx context.Context,
 		deployment ...*model.DeviceDeployment) error
 	ExistAssignedImageWithIDAndStatuses(ctx context.Context,
@@ -103,8 +104,8 @@ type DataStore interface {
 	AbortDeviceDeployments(ctx context.Context, deploymentID string) error
 	DeleteDeviceDeploymentsHistory(ctx context.Context, deviceId string) error
 	DecommissionDeviceDeployments(ctx context.Context, deviceId string) error
-	GetDeviceDeployment(ctx context.Context,
-		deploymentID string, deviceID string) (*model.DeviceDeployment, error)
+	GetDeviceDeployment(ctx context.Context, deploymentID string,
+		deviceID string, includeDeleted bool) (*model.DeviceDeployment, error)
 	SaveDeviceDeploymentRequest(
 		ctx context.Context,
 		ID string,

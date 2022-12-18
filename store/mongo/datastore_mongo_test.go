@@ -739,7 +739,7 @@ func TestFindOldestActiveDeviceDeployment(t *testing.T) {
 			DeploymentId: uuid.New().String(),
 			Active:       true,
 		}} {
-			if err := ds.InsertDeviceDeployment(ctx, depl); err != nil {
+			if err := ds.InsertDeviceDeployment(ctx, depl, true); err != nil {
 				panic(err)
 			}
 		}
@@ -879,8 +879,20 @@ func TestFindLatestInactiveDeviceDeployment(t *testing.T) {
 			DeviceId:     env.deviceID,
 			DeploymentId: uuid.New().String(),
 			Active:       true,
+		}, {
+			Id: "4",
+			Created: func() *time.Time {
+				ret := now.Add(-time.Second)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusPending,
+			DeviceId:     env.deviceID,
+			DeploymentId: uuid.New().String(),
+			Deleted: func() *time.Time {
+				return &now
+			}(),
 		}} {
-			if err := ds.InsertDeviceDeployment(ctx, depl); err != nil {
+			if err := ds.InsertDeviceDeployment(ctx, depl, true); err != nil {
 				panic(err)
 			}
 		}
@@ -1079,7 +1091,7 @@ func TestGetDeviceDeploymentsForDevice(t *testing.T) {
 		},
 	}
 	for _, deviceDeployment := range deviceDeployments {
-		assert.NoError(t, ds.InsertDeviceDeployment(ctx, deviceDeployment))
+		assert.NoError(t, ds.InsertDeviceDeployment(ctx, deviceDeployment, true))
 	}
 
 	testCases := map[string]struct {

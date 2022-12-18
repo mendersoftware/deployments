@@ -1184,8 +1184,15 @@ func (d *Deployments) createDeviceDeploymentWithStatus(
 	ctx context.Context, deviceID string,
 	deployment *model.Deployment, status model.DeviceDeploymentStatus,
 ) (*model.DeviceDeployment, error) {
-	deviceDeployment := model.NewDeviceDeployment(deviceID, deployment.Id)
+	prevStatus := model.DeviceDeploymentStatusNull
+	deviceDeployment, err := d.db.GetDeviceDeployment(ctx, deployment.Id, deviceID, true)
+	if err != nil && err != mongo.ErrStorageNotFound {
+		return nil, err
+	} else if deviceDeployment != nil {
+		prevStatus = deviceDeployment.Status
+	}
 
+	deviceDeployment = model.NewDeviceDeployment(deviceID, deployment.Id)
 	deviceDeployment.Status = status
 	deviceDeployment.Active = status.Active()
 	deviceDeployment.Created = deployment.Created
@@ -1194,7 +1201,8 @@ func (d *Deployments) createDeviceDeploymentWithStatus(
 		return nil, err
 	}
 
-	if err := d.db.InsertDeviceDeployment(ctx, deviceDeployment); err != nil {
+	if err := d.db.InsertDeviceDeployment(ctx, deviceDeployment,
+		prevStatus == model.DeviceDeploymentStatusNull); err != nil {
 		return nil, err
 	}
 
@@ -1202,14 +1210,14 @@ func (d *Deployments) createDeviceDeploymentWithStatus(
 	// in the database and locally, and update deployment status
 	if err := d.db.UpdateStatsInc(
 		ctx, deployment.Id,
-		model.DeviceDeploymentStatusNull, status,
+		prevStatus, status,
 	); err != nil {
 		return nil, err
 	}
 
 	deployment.Stats.Inc(status)
 
-	err := d.recalcDeploymentStatus(ctx, deployment)
+	err = d.recalcDeploymentStatus(ctx, deployment)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update deployment status")
 	}
@@ -1364,7 +1372,7 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 		finishTime = &now
 	}
 
-	dd, err := d.db.GetDeviceDeployment(ctx, deploymentID, deviceID)
+	dd, err := d.db.GetDeviceDeployment(ctx, deploymentID, deviceID, false)
 	if err == mongo.ErrStorageNotFound {
 		return ErrStorageNotFound
 	} else if err != nil {

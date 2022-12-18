@@ -470,13 +470,13 @@ func (_m *DataStore) FindUnfinishedByID(ctx context.Context, id string) (*model.
 	return r0, r1
 }
 
-// GetDeviceDeployment provides a mock function with given fields: ctx, deploymentID, deviceID
-func (_m *DataStore) GetDeviceDeployment(ctx context.Context, deploymentID string, deviceID string) (*model.DeviceDeployment, error) {
-	ret := _m.Called(ctx, deploymentID, deviceID)
+// GetDeviceDeployment provides a mock function with given fields: ctx, deploymentID, deviceID, includeDeleted
+func (_m *DataStore) GetDeviceDeployment(ctx context.Context, deploymentID string, deviceID string, includeDeleted bool) (*model.DeviceDeployment, error) {
+	ret := _m.Called(ctx, deploymentID, deviceID, includeDeleted)
 
 	var r0 *model.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.DeviceDeployment); ok {
-		r0 = rf(ctx, deploymentID, deviceID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, bool) *model.DeviceDeployment); ok {
+		r0 = rf(ctx, deploymentID, deviceID, includeDeleted)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.DeviceDeployment)
@@ -484,8 +484,8 @@ func (_m *DataStore) GetDeviceDeployment(ctx context.Context, deploymentID strin
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, deploymentID, deviceID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, bool) error); ok {
+		r1 = rf(ctx, deploymentID, deviceID, includeDeleted)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -814,13 +814,13 @@ func (_m *DataStore) InsertDeployment(ctx context.Context, deployment *model.Dep
 	return r0
 }
 
-// InsertDeviceDeployment provides a mock function with given fields: ctx, deviceDeployment
-func (_m *DataStore) InsertDeviceDeployment(ctx context.Context, deviceDeployment *model.DeviceDeployment) error {
-	ret := _m.Called(ctx, deviceDeployment)
+// InsertDeviceDeployment provides a mock function with given fields: ctx, deviceDeployment, incrementDeviceCount
+func (_m *DataStore) InsertDeviceDeployment(ctx context.Context, deviceDeployment *model.DeviceDeployment, incrementDeviceCount bool) error {
+	ret := _m.Called(ctx, deviceDeployment, incrementDeviceCount)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *model.DeviceDeployment) error); ok {
-		r0 = rf(ctx, deviceDeployment)
+	if rf, ok := ret.Get(0).(func(context.Context, *model.DeviceDeployment, bool) error); ok {
+		r0 = rf(ctx, deviceDeployment, incrementDeviceCount)
 	} else {
 		r0 = ret.Error(0)
 	}

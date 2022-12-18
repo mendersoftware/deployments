@@ -1074,6 +1074,7 @@ func (db *DataStoreMongo) GetDeviceDeploymentLog(ctx context.Context,
 func (db *DataStoreMongo) InsertDeviceDeployment(
 	ctx context.Context,
 	deviceDeployment *model.DeviceDeployment,
+	incrementDeviceCount bool,
 ) error {
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	c := database.Collection(CollectionDevices)
@@ -1082,9 +1083,11 @@ func (db *DataStoreMongo) InsertDeviceDeployment(
 		return err
 	}
 
-	err := db.IncrementDeploymentDeviceCount(ctx, deviceDeployment.DeploymentId, 1)
-	if err != nil {
-		return err
+	if incrementDeviceCount {
+		err := db.IncrementDeploymentDeviceCount(ctx, deviceDeployment.DeploymentId, 1)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -1188,6 +1191,9 @@ func (db *DataStoreMongo) FindOldestActiveDeviceDeployment(
 	query := bson.D{
 		{Key: StorageKeyDeviceDeploymentActive, Value: true},
 		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentDeleted, Value: bson.D{
+			{Key: "$exists", Value: false},
+		}},
 	}
 
 	// Find the oldest one by sorting the creation timestamp
@@ -1226,6 +1232,9 @@ func (db *DataStoreMongo) FindLatestInactiveDeviceDeployment(
 	query := bson.D{
 		{Key: StorageKeyDeviceDeploymentActive, Value: false},
 		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentDeleted, Value: bson.D{
+			{Key: "$exists", Value: false},
+		}},
 	}
 
 	// Find the latest one by sorting by the creation timestamp
@@ -1270,6 +1279,9 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(
 	query := bson.D{
 		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
 		{Key: StorageKeyDeviceDeploymentDeploymentID, Value: deploymentID},
+		{Key: StorageKeyDeviceDeploymentDeleted, Value: bson.D{
+			{Key: "$exists", Value: false},
+		}},
 	}
 
 	// update status field
@@ -1317,10 +1329,11 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentLogAvailability(ctx context.Cont
 	collDevs := database.Collection(CollectionDevices)
 
 	selector := bson.D{
-		{Key: StorageKeyDeviceDeploymentDeviceId,
-			Value: deviceID},
-		{Key: StorageKeyDeviceDeploymentDeploymentID,
-			Value: deploymentID},
+		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentDeploymentID, Value: deploymentID},
+		{Key: StorageKeyDeviceDeploymentDeleted, Value: bson.D{
+			{Key: "$exists", Value: false},
+		}},
 	}
 
 	update := bson.D{
@@ -1379,10 +1392,11 @@ func (db *DataStoreMongo) AssignArtifact(
 	collDevs := database.Collection(CollectionDevices)
 
 	selector := bson.D{
-		{Key: StorageKeyDeviceDeploymentDeviceId,
-			Value: deviceID},
-		{Key: StorageKeyDeviceDeploymentDeploymentID,
-			Value: deploymentID},
+		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentDeploymentID, Value: deploymentID},
+		{Key: StorageKeyDeviceDeploymentDeleted, Value: bson.D{
+			{Key: "$exists", Value: false},
+		}},
 	}
 
 	update := bson.D{
@@ -1412,7 +1426,11 @@ func (db *DataStoreMongo) AggregateDeviceDeploymentByStatus(ctx context.Context,
 
 	match := bson.D{
 		{Key: "$match", Value: bson.M{
-			StorageKeyDeviceDeploymentDeploymentID: id}},
+			StorageKeyDeviceDeploymentDeploymentID: id,
+			StorageKeyDeviceDeploymentDeleted: bson.D{
+				{Key: "$exists", Value: false},
+			},
+		}},
 	}
 	group := bson.D{
 		{Key: "$group", Value: bson.D{
@@ -1458,6 +1476,9 @@ func (db *DataStoreMongo) GetDeviceStatusesForDeployment(ctx context.Context,
 
 	query := bson.M{
 		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
+		StorageKeyDeviceDeploymentDeleted: bson.D{
+			{Key: "$exists", Value: false},
+		},
 	}
 
 	cursor, err := collDevs.Find(ctx, query)
@@ -1482,10 +1503,12 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDevs := database.Collection(CollectionDevices)
 
-	query := bson.D{{
-		Key:   StorageKeyDeviceDeploymentDeploymentID,
-		Value: q.DeploymentID,
-	}}
+	query := bson.D{
+		{Key: StorageKeyDeviceDeploymentDeploymentID, Value: q.DeploymentID},
+		{Key: StorageKeyDeviceDeploymentDeleted, Value: bson.D{
+			{Key: "$exists", Value: false},
+		}},
+	}
 	if q.Status != nil {
 		if *q.Status == "pause" {
 			query = append(query, bson.E{
@@ -1648,10 +1671,11 @@ func (db *DataStoreMongo) HasDeploymentForDevice(ctx context.Context,
 	collDevs := database.Collection(CollectionDevices)
 
 	query := bson.D{
-		{Key: StorageKeyDeviceDeploymentDeploymentID,
-			Value: deploymentID},
-		{Key: StorageKeyDeviceDeploymentDeviceId,
-			Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentDeploymentID, Value: deploymentID},
+		{Key: StorageKeyDeviceDeploymentDeviceId, Value: deviceID},
+		{Key: StorageKeyDeviceDeploymentDeleted, Value: bson.D{
+			{Key: "$exists", Value: false},
+		}},
 	}
 
 	if err := collDevs.FindOne(ctx, query).Decode(&dep); err != nil {
@@ -1675,6 +1699,9 @@ func (db *DataStoreMongo) GetDeviceDeploymentStatus(ctx context.Context,
 	query := bson.M{
 		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
 		StorageKeyDeviceDeploymentDeviceId:     deviceID,
+		StorageKeyDeviceDeploymentDeleted: bson.D{
+			{Key: "$exists", Value: false},
+		},
 	}
 
 	if err := collDevs.FindOne(ctx, query).Decode(&dep); err != nil {
@@ -1700,6 +1727,9 @@ func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 	selector := bson.M{
 		StorageKeyDeviceDeploymentDeploymentID: deploymentId,
 		StorageKeyDeviceDeploymentActive:       true,
+		StorageKeyDeviceDeploymentDeleted: bson.D{
+			{Key: "$exists", Value: false},
+		},
 	}
 
 	update := bson.M{
@@ -1754,6 +1784,9 @@ func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 	selector := bson.M{
 		StorageKeyDeviceDeploymentDeviceId: deviceId,
 		StorageKeyDeviceDeploymentActive:   true,
+		StorageKeyDeviceDeploymentDeleted: bson.D{
+			{Key: "$exists", Value: false},
+		},
 	}
 
 	update := bson.M{
@@ -1770,8 +1803,8 @@ func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
 	return nil
 }
 
-func (db *DataStoreMongo) GetDeviceDeployment(ctx context.Context,
-	deploymentID string, deviceID string) (*model.DeviceDeployment, error) {
+func (db *DataStoreMongo) GetDeviceDeployment(ctx context.Context, deploymentID string,
+	deviceID string, includeDeleted bool) (*model.DeviceDeployment, error) {
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDevs := database.Collection(CollectionDevices)
@@ -1780,9 +1813,17 @@ func (db *DataStoreMongo) GetDeviceDeployment(ctx context.Context,
 		StorageKeyDeviceDeploymentDeploymentID: deploymentID,
 		StorageKeyDeviceDeploymentDeviceId:     deviceID,
 	}
+	if !includeDeleted {
+		filter[StorageKeyDeviceDeploymentDeleted] = bson.D{
+			{Key: "$exists", Value: false},
+		}
+	}
+
+	opts := &mopts.FindOneOptions{}
+	opts.SetSort(bson.D{{Key: "created", Value: -1}})
 
 	var dd model.DeviceDeployment
-	if err := collDevs.FindOne(ctx, filter).Decode(&dd); err != nil {
+	if err := collDevs.FindOne(ctx, filter, opts).Decode(&dd); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, ErrStorageNotFound
 		}
@@ -2048,7 +2089,10 @@ func (db *DataStoreMongo) DeviceCountByDeployment(ctx context.Context,
 	collDevs := database.Collection(CollectionDevices)
 
 	filter := bson.M{
-		"deploymentid": id,
+		StorageKeyDeviceDeploymentDeploymentID: id,
+		StorageKeyDeviceDeploymentDeleted: bson.D{
+			{Key: "$exists", Value: false},
+		},
 	}
 
 	deviceCount, err := collDevs.CountDocuments(ctx, filter)
