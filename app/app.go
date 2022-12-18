@@ -156,6 +156,7 @@ type App interface {
 	GetDeviceDeploymentLog(ctx context.Context,
 		deviceID, deploymentID string) (*model.DeploymentLog, error)
 	AbortDeviceDeployments(ctx context.Context, deviceID string) error
+	DeleteDeviceDeploymentsHistory(ctx context.Context, deviceId string) error
 	DecommissionDevice(ctx context.Context, deviceID string) error
 	CreateDeviceConfigurationDeployment(
 		ctx context.Context, constructor *model.ConfigurationDeploymentConstructor,
@@ -1737,6 +1738,11 @@ func (d *Deployments) AbortDeviceDeployments(ctx context.Context, deviceId strin
 		deviceId,
 		model.DeviceDeploymentStatusAborted,
 	)
+}
+
+// DeleteDeviceDeploymentsHistory deletes the device deployments history
+func (d *Deployments) DeleteDeviceDeploymentsHistory(ctx context.Context, deviceId string) error {
+	return d.db.DeleteDeviceDeploymentsHistory(ctx, deviceId)
 }
 
 // Storage settings

@@ -101,6 +101,7 @@ type DataStore interface {
 	GetDeviceDeploymentStatus(ctx context.Context,
 		deploymentID string, deviceID string) (model.DeviceDeploymentStatus, error)
 	AbortDeviceDeployments(ctx context.Context, deploymentID string) error
+	DeleteDeviceDeploymentsHistory(ctx context.Context, deviceId string) error
 	DecommissionDeviceDeployments(ctx context.Context, deviceId string) error
 	GetDeviceDeployment(ctx context.Context,
 		deploymentID string, deviceID string) (*model.DeviceDeployment, error)

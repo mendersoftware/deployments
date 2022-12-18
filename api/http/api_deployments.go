@@ -1660,6 +1660,22 @@ func (d *DeploymentsApiHandlers) AbortDeviceDeployments(w rest.ResponseWriter, r
 	}
 }
 
+func (d *DeploymentsApiHandlers) DeleteDeviceDeploymentsHistory(w rest.ResponseWriter,
+	r *rest.Request) {
+	ctx := r.Context()
+	l := requestlog.GetRequestLogger(r)
+
+	id := r.PathParam("id")
+	err := d.app.DeleteDeviceDeploymentsHistory(ctx, id)
+
+	switch err {
+	case nil, app.ErrStorageNotFound:
+		d.view.RenderEmptySuccessResponse(w)
+	default:
+		d.view.RenderInternalError(w, r, err, l)
+	}
+}
+
 func (d *DeploymentsApiHandlers) ListDeviceDeployments(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	l := requestlog.GetRequestLogger(r)

@@ -600,6 +600,49 @@ func TestAbortDeployment(t *testing.T) {
 	}
 }
 
+func TestDeleteDeviceDeploymentsHistory(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		DeviceID                            string
+		DeleteDeviceDeploymentsHistoryError error
+
+		OutputError error
+	}{
+		"ok": {
+			DeviceID: "f826484e-1157-4109-af21-304e6d711561",
+		},
+		"error": {
+			DeviceID: "f826484e-1157-4109-af21-304e6d711561",
+
+			DeleteDeviceDeploymentsHistoryError: errors.New("error"),
+			OutputError:                         errors.New("error"),
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(fmt.Sprintf("test case %s", name), func(t *testing.T) {
+			db := mocks.DataStore{}
+			defer db.AssertExpectations(t)
+			db.On("DeleteDeviceDeploymentsHistory",
+				h.ContextMatcher(), tc.DeviceID).
+				Return(tc.DeleteDeviceDeploymentsHistoryError)
+
+			ds := &Deployments{
+				db: &db,
+			}
+			ctx := context.Background()
+
+			err := ds.DeleteDeviceDeploymentsHistory(ctx, tc.DeviceID)
+			if tc.OutputError != nil {
+				assert.EqualError(t, err, tc.OutputError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestImageUsedInActiveDeployment(t *testing.T) {
 
 	t.Parallel()

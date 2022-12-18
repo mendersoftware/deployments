@@ -111,6 +111,20 @@ func (_m *DataStore) DeleteDeployment(ctx context.Context, id string) error {
 	return r0
 }
 
+// DeleteDeviceDeploymentsHistory provides a mock function with given fields: ctx, deviceId
+func (_m *DataStore) DeleteDeviceDeploymentsHistory(ctx context.Context, deviceId string) error {
+	ret := _m.Called(ctx, deviceId)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, deviceId)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // DeleteImage provides a mock function with given fields: ctx, id
 func (_m *DataStore) DeleteImage(ctx context.Context, id string) error {
 	ret := _m.Called(ctx, id)
@@ -523,29 +537,6 @@ func (_m *DataStore) GetDeviceDeploymentStatus(ctx context.Context, deploymentID
 	return r0, r1
 }
 
-// GetDeviceStatusesForDeployment provides a mock function with given fields: ctx, deploymentID
-func (_m *DataStore) GetDeviceStatusesForDeployment(ctx context.Context, deploymentID string) ([]model.DeviceDeployment, error) {
-	ret := _m.Called(ctx, deploymentID)
-
-	var r0 []model.DeviceDeployment
-	if rf, ok := ret.Get(0).(func(context.Context, string) []model.DeviceDeployment); ok {
-		r0 = rf(ctx, deploymentID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]model.DeviceDeployment)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, deploymentID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetDeviceDeploymentsForDevice provides a mock function with given fields: ctx, query
 func (_m *DataStore) GetDeviceDeploymentsForDevice(ctx context.Context, query store.ListQueryDeviceDeployments) ([]model.DeviceDeployment, int, error) {
 	ret := _m.Called(ctx, query)
@@ -574,6 +565,29 @@ func (_m *DataStore) GetDeviceDeploymentsForDevice(ctx context.Context, query st
 	}
 
 	return r0, r1, r2
+}
+
+// GetDeviceStatusesForDeployment provides a mock function with given fields: ctx, deploymentID
+func (_m *DataStore) GetDeviceStatusesForDeployment(ctx context.Context, deploymentID string) ([]model.DeviceDeployment, error) {
+	ret := _m.Called(ctx, deploymentID)
+
+	var r0 []model.DeviceDeployment
+	if rf, ok := ret.Get(0).(func(context.Context, string) []model.DeviceDeployment); ok {
+		r0 = rf(ctx, deploymentID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.DeviceDeployment)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, deploymentID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // GetDevicesListForDeployment provides a mock function with given fields: ctx, query

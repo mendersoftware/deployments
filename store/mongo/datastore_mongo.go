@@ -401,6 +401,7 @@ const (
 	StorageKeyDeviceDeploymentIsLogAvailable = "log"
 	StorageKeyDeviceDeploymentArtifact       = "image"
 	StorageKeyDeviceDeploymentRequest        = "request"
+	StorageKeyDeviceDeploymentDeleted        = "deleted"
 
 	StorageKeyDeploymentName         = "deploymentconstructor.name"
 	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
@@ -1705,6 +1706,32 @@ func (db *DataStoreMongo) AbortDeviceDeployments(ctx context.Context,
 		"$set": bson.M{
 			StorageKeyDeviceDeploymentStatus: model.DeviceDeploymentStatusAborted,
 			StorageKeyDeviceDeploymentActive: false,
+		},
+	}
+
+	if _, err := collDevs.UpdateMany(ctx, selector, update); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *DataStoreMongo) DeleteDeviceDeploymentsHistory(ctx context.Context,
+	deviceID string) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
+	selector := bson.M{
+		StorageKeyDeviceDeploymentDeviceId: deviceID,
+		StorageKeyDeviceDeploymentActive:   false,
+		StorageKeyDeviceDeploymentDeleted: bson.M{
+			"$exists": false,
+		},
+	}
+
+	now := time.Now()
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyDeviceDeploymentDeleted: &now,
 		},
 	}
 
