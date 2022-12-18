@@ -693,6 +693,34 @@ paths:
           schema:
               $ref: "#/definitions/Error"
 
+  /deployments/devices/{id}/history:
+    delete:
+      operationId: Delete Device Deployments history
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: Delete the Device Deployments history
+      description: |
+        Delete the completed Device Deployments records for the given device.
+        This effectively resets the Device Deployments history and makes the
+        device eligible (again) for all the active deployments.
+      parameters:
+        - name: id
+          in: path
+          description: System wide device identifier
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        204:
+          description: Operation completed successfully.
+        401:
+          $ref: '#/responses/UnauthorizedError'
+        500:
+          $ref: "#/responses/InternalServerError"
+
   /deployments/releases:
     get:
       deprecated: true
@@ -1593,12 +1621,15 @@ definitions:
       id:
         type: string
         description: Device identifier.
-      finished:
-        type: string
-        format: date-time
       status:
         $ref: '#/definitions/DeviceStatus'
       created:
+        type: string
+        format: date-time
+      finished:
+        type: string
+        format: date-time
+      deleted:
         type: string
         format: date-time
       device_type:
