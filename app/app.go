@@ -1269,12 +1269,13 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		}
 	}
 
-	// if the device reported same artifact name as the one in the device deployment,
-	// and this is a new device deployment - indicated by device deployment
-	// status "pending",
+	// if the deployment is not forcing the installation, and if the device
+	// reported same artifact name as the one in the device deployment, and this is
+	// a new device deployment - indicated by device deployment status "pending",
 	// pretend there is no deployment for this device, but update
 	// its status to already installed first
-	if request.DeviceProvides.ArtifactName != "" &&
+	if !deployment.ForceInstallation &&
+		request.DeviceProvides.ArtifactName != "" &&
 		deployment.ArtifactName == request.DeviceProvides.ArtifactName &&
 		deviceDeployment.Status == model.DeviceDeploymentStatusPending {
 

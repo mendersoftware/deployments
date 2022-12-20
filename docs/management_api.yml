@@ -1439,6 +1439,9 @@ definitions:
         description: |
             When set, the deployment will be created for all
             currently accepted devices.
+      force_installation:
+        type: boolean
+        description: Force the installation of the Artifact disabling the `already-installed` check.
     required:
       - name
       - artifact_name
@@ -1456,6 +1459,9 @@ definitions:
       artifact_name:
         type: string
         description: Name of the artifact to deploy
+      force_installation:
+        type: boolean
+        description: Force the installation of the Artifact disabling the `already-installed` check.
     required:
       - name
       - artifact_name
