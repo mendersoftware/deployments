@@ -14,8 +14,25 @@
 
 package model
 
+import "time"
+
 type DeviceDeploymentListItem struct {
-	Id         string            `json:"id"`
-	Deployment *Deployment       `json:"deployment"`
-	Device     *DeviceDeployment `json:"device"`
+	Id         string                     `json:"id"`
+	Deployment *Deployment                `json:"deployment"`
+	Device     *DeviceDeploymentWithImage `json:"device"`
+}
+
+type DeviceDeploymentWithImage struct {
+	Active         bool                   `json:"-"`
+	Created        *time.Time             `json:"created"`
+	Finished       *time.Time             `json:"finished,omitempty"`
+	Deleted        *time.Time             `json:"deleted,omitempty"`
+	Status         DeviceDeploymentStatus `json:"status"`
+	DeviceId       string                 `json:"id"`
+	DeploymentId   string                 `json:"-"`
+	Id             string                 `json:"-"`
+	Image          *Image                 `json:"image,omitempty"`
+	Request        *DeploymentNextRequest `json:"-"`
+	IsLogAvailable bool                   `json:"log"`
+	SubState       string                 `json:"substate,omitempty"`
 }

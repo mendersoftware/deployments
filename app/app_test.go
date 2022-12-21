@@ -783,7 +783,7 @@ func TestGetDeviceDeploymentListForDevice(t *testing.T) {
 					Deployment: &model.Deployment{
 						Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
 					},
-					Device: &model.DeviceDeployment{
+					Device: &model.DeviceDeploymentWithImage{
 						Id:           "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
 						DeviceId:     deviceID,
 						DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
@@ -794,7 +794,7 @@ func TestGetDeviceDeploymentListForDevice(t *testing.T) {
 					Deployment: &model.Deployment{
 						Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
 					},
-					Device: &model.DeviceDeployment{
+					Device: &model.DeviceDeploymentWithImage{
 						Id:           "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
 						DeviceId:     deviceID,
 						DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
@@ -840,7 +840,7 @@ func TestGetDeviceDeploymentListForDevice(t *testing.T) {
 			res: []model.DeviceDeploymentListItem{
 				{
 					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
-					Device: &model.DeviceDeployment{
+					Device: &model.DeviceDeploymentWithImage{
 						Id:           "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
 						DeviceId:     deviceID,
 						DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
@@ -851,7 +851,7 @@ func TestGetDeviceDeploymentListForDevice(t *testing.T) {
 					Deployment: &model.Deployment{
 						Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
 					},
-					Device: &model.DeviceDeployment{
+					Device: &model.DeviceDeploymentWithImage{
 						Id:           "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
 						DeviceId:     deviceID,
 						DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
