@@ -82,6 +82,10 @@ type DeploymentConstructor struct {
 	// When set to true deployment will be created for all currently accepted devices
 	AllDevices bool `json:"all_devices,omitempty" bson:"-"`
 
+	// ForceInstallation forces the installation of the artifact and disables the
+	// `already-installed` check
+	ForceInstallation bool `json:"force_installation,omitempty" bson:"force_installation"`
+
 	// When set the deployment will be created for all accepted devices from a given group
 	Group string `json:"-" bson:"-"`
 }
