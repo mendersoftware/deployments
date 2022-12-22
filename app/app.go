@@ -1535,7 +1535,7 @@ func (d *Deployments) GetDeviceDeploymentListForDevice(ctx context.Context,
 
 	res := make([]model.DeviceDeploymentListItem, 0, len(deviceDeployments))
 	for _, deviceDeployment := range deviceDeployments {
-		device := deviceDeployment
+		device := model.DeviceDeploymentWithImage(deviceDeployment)
 		if deployment, ok := deploymentsMap[deviceDeployment.DeploymentId]; ok {
 			res = append(res, model.DeviceDeploymentListItem{
 				Id:         deviceDeployment.Id,

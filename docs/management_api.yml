@@ -1662,6 +1662,139 @@ definitions:
       log: false
       state: installing
       substate: installing.enter;script:foo-bar
+  DeviceWithImage:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Device identifier.
+      status:
+        $ref: '#/definitions/DeviceStatus'
+      created:
+        type: string
+        format: date-time
+      finished:
+        type: string
+        format: date-time
+      deleted:
+        type: string
+        format: date-time
+      device_type:
+        type: string
+      log:
+        type: boolean
+        description: Availability of the device's deployment log.
+      state:
+        type: string
+        description: State reported by device
+      substate:
+        type: string
+        description: Additional state information
+      image:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Image ID
+          meta:
+            type: object
+            properties:
+              description:
+                type: string
+                description: Image description
+          meta_artifact:
+            type: object
+            properties:
+              name:
+                type: string
+              device_types_compatible:
+                type: array
+                description: An array of compatible device types.
+                items:
+                  type: string
+              info:
+                $ref: "#/definitions/ArtifactInfo"
+              signed:
+                type: boolean
+                description: Idicates if artifact is signed or not.
+              updates:
+                type: array
+                items:
+                  $ref: "#/definitions/Update"
+              artifact_provides:
+                type: object
+                description: |
+                  List of Artifact provides.
+
+                  Map of key/value pairs, where both keys and values are strings.
+                additionalProperties:
+                  type: string
+              artifact_depends:
+                type: object
+                description: |
+                  List of Artifact depends.
+
+                  Map of key/value pairs, where keys are strings and values are lists of strings.
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+              clears_artifact_provides:
+                type: array
+                description: List of Clear Artifact provides.
+                items:
+                  type: string
+          size:
+            type: integer
+            description: Image size in bytes
+          modified:
+            type: string
+            format: date-time
+            description: Creation / last edition of any of the artifact properties
+    required:
+      - id
+      - status
+      - log
+    example:
+      id: 00a0c91e6-7dec-11d0-a765-f81d4faebf6
+      finished: 2016-03-11T13:03:17.063493443Z
+      status: installing
+      created: 2016-02-11T13:03:17.063493443Z
+      device_type: Raspberry Pi 3
+      log: false
+      state: installing
+      substate: installing.enter;script:foo-bar
+      image:
+        id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+        name: Application 1.0.0
+        meta:
+          description: Johns Monday test build
+        meta_artifact:
+          name: Application 1.0.0
+          device_types_compatible: [Beagle Bone]
+          info:
+            type_info:
+              type: rootfs
+          signed: false
+          updates:
+            type_info: "rootfs-image"
+            files:
+              - name: rootfs-image-1
+                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                size: 123
+                date: 2016-03-11T13:03:17.063+0000
+            meta_data: {}
+          artifact_provides:
+            artifact_name: "test"
+            rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+            rootfs-image.version: "test"
+          artifact_depends:
+            device_type:
+              - "test"
+          clears_artifact_provides:
+            - "rootfs-image.*"
+        size: 36891648
+        modified: "2016-03-11T13:03:17.063493443Z"
   DeviceDeployment:
     type: object
     properties:
@@ -1670,7 +1803,7 @@ definitions:
       deployment:
         $ref: "#/definitions/Deployment"
       device:
-        $ref: "#/definitions/Device"
+        $ref: "#/definitions/DeviceWithImage"
     required:
       - deployment
       - device
@@ -1692,6 +1825,37 @@ definitions:
         state: installing
         substate: installing.enter;script:foo-bar
         log: false
+        image:
+          id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+          name: Application 1.0.0
+          meta:
+            description: Johns Monday test build
+          meta_artifact:
+            name: Application 1.0.0
+            device_types_compatible: [Beagle Bone]
+            info:
+              type_info:
+                type: rootfs
+            signed: false
+            updates:
+              type_info: "rootfs-image"
+              files:
+                - name: rootfs-image-1
+                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                  size: 123
+                  date: 2016-03-11T13:03:17.063+0000
+              meta_data: {}
+            artifact_provides:
+              artifact_name: "test"
+              rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+              rootfs-image.version: "test"
+            artifact_depends:
+              device_type:
+                - "test"
+            clears_artifact_provides:
+              - "rootfs-image.*"
+          size: 36891648
+          modified: "2016-03-11T13:03:17.063493443Z"
   ArtifactUpdate:
     description: Artifact information update.
     type: object
