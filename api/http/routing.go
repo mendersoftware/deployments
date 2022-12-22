@@ -49,8 +49,9 @@ const (
 	ApiUrlManagementDeploymentsDevicesList = ApiUrlManagement + "/deployments/#id/devices/list"
 	ApiUrlManagementDeploymentsLog         = ApiUrlManagement +
 		"/deployments/#id/devices/#devid/log"
-	ApiUrlManagementDeploymentsDeviceId   = ApiUrlManagement + "/deployments/devices/#id"
-	ApiUrlManagementDeploymentsDeviceList = ApiUrlManagement + "/deployments/#id/device_list"
+	ApiUrlManagementDeploymentsDeviceId      = ApiUrlManagement + "/deployments/devices/#id"
+	ApiUrlManagementDeploymentsDeviceHistory = ApiUrlManagement + "/deployments/devices/#id/history"
+	ApiUrlManagementDeploymentsDeviceList    = ApiUrlManagement + "/deployments/#id/device_list"
 
 	ApiUrlManagementReleases     = ApiUrlManagement + "/deployments/releases"
 	ApiUrlManagementReleasesList = ApiUrlManagement + "/deployments/releases/list"
@@ -151,6 +152,8 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 			controller.GetDeploymentLogForDevice),
 		rest.Delete(ApiUrlManagementDeploymentsDeviceId,
 			controller.AbortDeviceDeployments),
+		rest.Delete(ApiUrlManagementDeploymentsDeviceHistory,
+			controller.DeleteDeviceDeploymentsHistory),
 		rest.Get(ApiUrlManagementDeploymentsDeviceId,
 			controller.ListDeviceDeployments),
 		rest.Get(ApiUrlManagementDeploymentsDeviceList,

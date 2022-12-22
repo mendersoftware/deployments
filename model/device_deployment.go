@@ -216,6 +216,9 @@ type DeviceDeployment struct {
 	// Update finish time
 	Finished *time.Time `json:"finished,omitempty" bson:"finished,omitempty"`
 
+	// Logical deletion time
+	Deleted *time.Time `json:"deleted,omitempty" bson:"deleted,omitempty"`
+
 	// Status
 	Status DeviceDeploymentStatus `json:"status" bson:"status"`
 

@@ -139,6 +139,20 @@ func (_m *App) DecommissionDevice(ctx context.Context, deviceID string) error {
 	return r0
 }
 
+// DeleteDeviceDeploymentsHistory provides a mock function with given fields: ctx, deviceId
+func (_m *App) DeleteDeviceDeploymentsHistory(ctx context.Context, deviceId string) error {
+	ret := _m.Called(ctx, deviceId)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, deviceId)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // DeleteImage provides a mock function with given fields: ctx, imageID
 func (_m *App) DeleteImage(ctx context.Context, imageID string) error {
 	ret := _m.Called(ctx, imageID)

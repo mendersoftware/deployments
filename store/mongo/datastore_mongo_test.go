@@ -739,7 +739,7 @@ func TestFindOldestActiveDeviceDeployment(t *testing.T) {
 			DeploymentId: uuid.New().String(),
 			Active:       true,
 		}} {
-			if err := ds.InsertDeviceDeployment(ctx, depl); err != nil {
+			if err := ds.InsertDeviceDeployment(ctx, depl, true); err != nil {
 				panic(err)
 			}
 		}
@@ -879,8 +879,20 @@ func TestFindLatestInactiveDeviceDeployment(t *testing.T) {
 			DeviceId:     env.deviceID,
 			DeploymentId: uuid.New().String(),
 			Active:       true,
+		}, {
+			Id: "4",
+			Created: func() *time.Time {
+				ret := now.Add(-time.Second)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusPending,
+			DeviceId:     env.deviceID,
+			DeploymentId: uuid.New().String(),
+			Deleted: func() *time.Time {
+				return &now
+			}(),
 		}} {
-			if err := ds.InsertDeviceDeployment(ctx, depl); err != nil {
+			if err := ds.InsertDeviceDeployment(ctx, depl, true); err != nil {
 				panic(err)
 			}
 		}
@@ -1079,7 +1091,7 @@ func TestGetDeviceDeploymentsForDevice(t *testing.T) {
 		},
 	}
 	for _, deviceDeployment := range deviceDeployments {
-		assert.NoError(t, ds.InsertDeviceDeployment(ctx, deviceDeployment))
+		assert.NoError(t, ds.InsertDeviceDeployment(ctx, deviceDeployment, true))
 	}
 
 	testCases := map[string]struct {
@@ -1466,6 +1478,98 @@ func TestUpdateDeploymentsWithArtifactName(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.outputDeployments, deployments)
 			}
+		})
+	}
+}
+
+func TestDeleteDeviceDeploymentsHistory(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestDeleteDeviceDeploymentsHistory in short mode.")
+	}
+
+	testCases := map[string]struct {
+		inputDeviceDeployments []interface{}
+
+		deviceID string
+		assert   func(deviceDeployments []model.DeviceDeployment)
+	}{
+		"ok": {
+			inputDeviceDeployments: []interface{}{
+				&model.DeviceDeployment{
+					Id:       "a108ae14-bb4e-455f-9b40-2ef4bab97bb0",
+					DeviceId: "a108ae14-bb4e-455f-9b40-2ef4bab97bb0",
+					Active:   true,
+				},
+				&model.DeviceDeployment{
+					Id:       "a108ae14-bb4e-455f-9b40-2ef4bab97bb1",
+					DeviceId: "a108ae14-bb4e-455f-9b40-2ef4bab97bb0",
+					Active:   false,
+				},
+				&model.DeviceDeployment{
+					Id:       "a108ae14-bb4e-455f-9b40-2ef4bab97bb2",
+					DeviceId: "a108ae14-bb4e-455f-9b40-2ef4bab97bb0",
+					Active:   false,
+				},
+			},
+			deviceID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb0",
+			assert: func(deviceDeployments []model.DeviceDeployment) {
+				assert.Len(t, deviceDeployments, 2)
+			},
+		},
+		"ko, no matches": {
+			inputDeviceDeployments: []interface{}{
+				&model.DeviceDeployment{
+					Id:       "a108ae14-bb4e-455f-9b40-2ef4bab97bb0",
+					DeviceId: "a108ae14-bb4e-455f-9b40-2ef4bab97bb0",
+					Active:   true,
+				},
+				&model.DeviceDeployment{
+					Id:       "a108ae14-bb4e-455f-9b40-2ef4bab97bb1",
+					DeviceId: "a108ae14-bb4e-455f-9b40-2ef4bab97bb0",
+					Active:   false,
+				},
+				&model.DeviceDeployment{
+					Id:       "a108ae14-bb4e-455f-9b40-2ef4bab97bb2",
+					DeviceId: "a108ae14-bb4e-455f-9b40-2ef4bab97bb0",
+					Active:   false,
+				},
+			},
+			deviceID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb1",
+			assert: func(deviceDeployments []model.DeviceDeployment) {
+				assert.Len(t, deviceDeployments, 0)
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db.Wipe()
+
+			client := db.Client()
+			ds := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+
+			collDeviceDeps := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDevices)
+
+			if tc.inputDeviceDeployments != nil {
+				_, err := collDeviceDeps.InsertMany(
+					ctx, tc.inputDeviceDeployments)
+				assert.NoError(t, err)
+			}
+
+			err := ds.DeleteDeviceDeploymentsHistory(ctx, tc.deviceID)
+			assert.NoError(t, err)
+			cur, err := collDeviceDeps.Find(ctx, bson.M{
+				StorageKeyDeviceDeploymentDeleted: bson.M{"$exists": true},
+			})
+			assert.NoError(t, err)
+			var deviceDeployments []model.DeviceDeployment
+			err = cur.All(ctx, &deviceDeployments)
+			assert.NoError(t, err)
+			tc.assert(deviceDeployments)
 		})
 	}
 }

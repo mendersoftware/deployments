@@ -61,7 +61,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 	db := mocks.DataStore{}
 
 	db.On("GetDeviceDeployment", ctx,
-		fakeDeployment.Id, devId).Return(
+		fakeDeployment.Id, devId, false).Return(
 		fakeDeviceDeployment, nil).Once()
 
 	db.On("UpdateDeviceDeploymentStatus", ctx,
@@ -95,7 +95,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 	assert.NoError(t, err)
 
 	db.On("GetDeviceDeployment", ctx,
-		fakeDeployment.Id, devId).Return(
+		fakeDeployment.Id, devId, false).Return(
 		nil, mongo.ErrStorageNotFound).Once()
 
 	err = ds.UpdateDeviceDeploymentStatus(ctx, fakeDeployment.Id, fakeDeviceDeployment.DeviceId, ddStatusNew)
@@ -144,7 +144,7 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 
 	db.On("DeviceCountByDeployment", ctx, fakeDeployment.Id).Return(2, nil)
 	db.On("GetDeviceDeployment", ctx,
-		fakeDeployment.Id, fakeDeviceDeployment.DeviceId).Return(
+		fakeDeployment.Id, fakeDeviceDeployment.DeviceId, false).Return(
 		fakeDeviceDeployment, nil)
 
 	db.On("IncrementDeviceDeploymentAttempts", ctx,
@@ -311,7 +311,7 @@ func TestDecommissionDevice(t *testing.T) {
 				)
 
 			db.On("GetDeviceDeployment", ctx, tc.inputDeploymentId,
-				tc.inputDeviceId).Return(
+				tc.inputDeviceId, mock.AnythingOfType("bool")).Return(
 				tc.getDeviceDeploymentDeployment, tc.getDeviceDeploymentError)
 
 			db.On("UpdateDeviceDeploymentStatus", ctx, tc.inputDeviceId,
@@ -332,7 +332,7 @@ func TestDecommissionDevice(t *testing.T) {
 			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
 				100, 100).Return(nil, nil)
 
-			db.On("InsertDeviceDeployment", ctx, mock.AnythingOfType("*model.DeviceDeployment")).Return(
+			db.On("InsertDeviceDeployment", ctx, mock.AnythingOfType("*model.DeviceDeployment"), true).Return(
 				tc.insertDeviceDeploymentError)
 
 			db.On("FindDeploymentByID", ctx, tc.inputDeploymentId).Return(
@@ -502,7 +502,7 @@ func TestAbortDeviceDeployments(t *testing.T) {
 				)
 
 			db.On("GetDeviceDeployment", ctx, tc.inputDeploymentId,
-				tc.inputDeviceId).Return(
+				tc.inputDeviceId, mock.AnythingOfType("bool")).Return(
 				tc.getDeviceDeploymentDeployment, tc.getDeviceDeploymentError)
 
 			db.On("UpdateDeviceDeploymentStatus", ctx, tc.inputDeviceId,
@@ -523,7 +523,7 @@ func TestAbortDeviceDeployments(t *testing.T) {
 			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
 				100, 100).Return(nil, nil)
 
-			db.On("InsertDeviceDeployment", ctx, mock.AnythingOfType("*model.DeviceDeployment")).Return(
+			db.On("InsertDeviceDeployment", ctx, mock.AnythingOfType("*model.DeviceDeployment"), true).Return(
 				tc.insertDeviceDeploymentError)
 
 			db.On("FindDeploymentByID", ctx, tc.inputDeploymentId).Return(
