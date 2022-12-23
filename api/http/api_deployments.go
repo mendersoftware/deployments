@@ -1678,6 +1678,24 @@ func (d *DeploymentsApiHandlers) DeleteDeviceDeploymentsHistory(w rest.ResponseW
 
 func (d *DeploymentsApiHandlers) ListDeviceDeployments(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
+	d.listDeviceDeployments(ctx, w, r)
+}
+
+func (d *DeploymentsApiHandlers) ListDeviceDeploymentsInternal(w rest.ResponseWriter,
+	r *rest.Request) {
+	ctx := r.Context()
+	tenantID := r.PathParam("tenant")
+	if tenantID != "" {
+		ctx = identity.WithContext(r.Context(), &identity.Identity{
+			Tenant:   tenantID,
+			IsDevice: true,
+		})
+	}
+	d.listDeviceDeployments(ctx, w, r)
+}
+
+func (d *DeploymentsApiHandlers) listDeviceDeployments(ctx context.Context,
+	w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 
 	did := r.PathParam("id")

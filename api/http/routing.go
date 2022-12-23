@@ -199,6 +199,8 @@ func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	return []*rest.Route{
 		rest.Post(ApiUrlInternalTenants, controller.ProvisionTenantsHandler),
 		rest.Get(ApiUrlInternalTenantDeployments, controller.DeploymentsPerTenantHandler),
+		rest.Get(ApiUrlInternalTenantDeploymentsDevice,
+			controller.ListDeviceDeploymentsInternal),
 		rest.Delete(ApiUrlInternalTenantDeploymentsDevice,
 			controller.AbortDeviceDeploymentsInternal),
 		rest.Post(ApiUrlInternalTenantArtifacts, controller.NewImageForTenantHandler),
