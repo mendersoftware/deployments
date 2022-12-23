@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ import (
 	"time"
 
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/go-lib-micro/identity"
+	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -200,4 +202,107 @@ func TestGenerateArtifactSuccessful(t *testing.T) {
 	assert.Equal(t, "args", multipartGenerateImage.Args)
 	assert.Equal(t, "tenant_id", multipartGenerateImage.TenantID)
 	assert.Equal(t, "artifact_id", multipartGenerateImage.ArtifactID)
+}
+
+func mockServerReindex(t *testing.T, tenant, device, reqid string, code int) (*httptest.Server, error) {
+	h := func(w http.ResponseWriter, r *http.Request) {
+		if code != http.StatusOK {
+			w.WriteHeader(code)
+			return
+		}
+		defer r.Body.Close()
+
+		request := ReindexWorkflow{}
+
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&request)
+		assert.NoError(t, err)
+
+		assert.Equal(t, reqid, request.RequestID)
+		assert.Equal(t, tenant, request.TenantID)
+		assert.Equal(t, device, request.DeviceID)
+		assert.Equal(t, ServiceDeployments, request.Service)
+
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		w.WriteHeader(http.StatusOK)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(h))
+	return srv, nil
+}
+
+func TestReindexReporting(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+
+		tenant string
+		device string
+		reqid  string
+
+		code int
+
+		err error
+	}{
+		{
+			name:   "ok",
+			tenant: "tenant1",
+			device: "device2",
+			reqid:  "reqid1",
+
+			code: http.StatusOK,
+		},
+		{
+			name: "ko, no tenant identity",
+			err:  errors.New("workflows: context lacking tenant identity"),
+		},
+		{
+			name:   "404",
+			tenant: "tenant2",
+			device: "device3",
+			reqid:  "reqid2",
+
+			code: http.StatusNotFound,
+			err:  errors.New(`workflows: workflow "reindex_reporting" not defined`),
+		},
+		{
+			name:   "500",
+			tenant: "tenant2",
+			device: "device3",
+			reqid:  "reqid2",
+
+			code: http.StatusInternalServerError,
+			err:  errors.New(`workflows: unexpected HTTP status from workflows service: 500 Internal Server Error`),
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			srv, err := mockServerReindex(t, tc.tenant, tc.device, tc.reqid, tc.code)
+			assert.NoError(t, err)
+
+			defer srv.Close()
+
+			ctx := context.Background()
+			ctx = requestid.WithContext(ctx, tc.reqid)
+			if tc.tenant != "" {
+				ctx = identity.WithContext(ctx,
+					&identity.Identity{
+						Tenant: tc.tenant,
+					})
+			}
+
+			client := NewClient().(*client)
+			client.baseURL = srv.URL
+
+			err = client.StartReindexReporting(ctx, tc.device)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
