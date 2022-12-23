@@ -1724,7 +1724,8 @@ func (d *DeploymentsApiHandlers) ListDeviceDeployments(w rest.ResponseWriter, r 
 	d.view.RenderSuccessGet(w, deps)
 }
 
-func (d *DeploymentsApiHandlers) DecommissionDevice(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) AbortDeviceDeploymentsInternal(w rest.ResponseWriter,
+	r *rest.Request) {
 	ctx := r.Context()
 	tenantID := r.PathParam("tenantID")
 	if tenantID != "" {
