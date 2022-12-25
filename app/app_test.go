@@ -25,6 +25,7 @@ import (
 
 	inventory_mocks "github.com/mendersoftware/deployments/client/inventory/mocks"
 	reporting_mocks "github.com/mendersoftware/deployments/client/reporting/mocks"
+	"github.com/mendersoftware/deployments/client/workflows"
 	workflows_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
@@ -997,6 +998,55 @@ func TestUpdateDeploymentsWithArtifactName(t *testing.T) {
 			}
 
 			err := app.UpdateDeploymentsWithArtifactName(context.Background(), tc.artifactName)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestReindexDevice(t *testing.T) {
+	t.Parallel()
+
+	const deviceID = "deviceID"
+	ctx := context.Background()
+
+	testCases := []struct {
+		name          string
+		workflowsMock func() workflows.Client
+		err           error
+	}{
+		{
+			name: "ok",
+			workflowsMock: func() workflows.Client {
+				wf := &workflows_mocks.Client{}
+				wf.On("StartReindexReporting", ctx, deviceID).Return(nil)
+				return wf
+			},
+		},
+		{
+			name: "ko",
+			workflowsMock: func() workflows.Client {
+				wf := &workflows_mocks.Client{}
+				wf.On("StartReindexReporting", ctx, deviceID).Return(errors.New("error"))
+				return wf
+			},
+			err: errors.New("error"),
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			app := &Deployments{
+				workflowsClient: tc.workflowsMock(),
+				reportingClient: &reporting_mocks.Client{},
+			}
+
+			err := app.reindexDevice(ctx, deviceID)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 			} else {
