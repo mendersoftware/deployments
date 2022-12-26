@@ -1510,7 +1510,7 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 		}},
 	}
 	if q.Status != nil {
-		if *q.Status == "pause" {
+		if *q.Status == model.DeviceDeploymentStatusPauseStr {
 			query = append(query, bson.E{
 				Key: "status", Value: bson.D{{
 					Key:   "$gte",
@@ -1520,7 +1520,7 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 					Value: model.DeviceDeploymentStatusPauseBeforeReboot,
 				}},
 			})
-		} else if *q.Status == "active" {
+		} else if *q.Status == model.DeviceDeploymentStatusActiveStr {
 			query = append(query, bson.E{
 				Key: "status", Value: bson.D{{
 					Key:   "$gte",
@@ -1528,6 +1528,20 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 				}, {
 					Key:   "$lte",
 					Value: model.DeviceDeploymentStatusPending,
+				}},
+			})
+		} else if *q.Status == model.DeviceDeploymentStatusFinishedStr {
+			query = append(query, bson.E{
+				Key: "status", Value: bson.D{{
+					Key: "$in",
+					Value: []model.DeviceDeploymentStatus{
+						model.DeviceDeploymentStatusFailure,
+						model.DeviceDeploymentStatusAborted,
+						model.DeviceDeploymentStatusSuccess,
+						model.DeviceDeploymentStatusNoArtifact,
+						model.DeviceDeploymentStatusAlreadyInst,
+						model.DeviceDeploymentStatusDecommissioned,
+					},
 				}},
 			})
 		} else {
@@ -1589,7 +1603,7 @@ func (db *DataStoreMongo) GetDeviceDeploymentsForDevice(ctx context.Context,
 		Value: q.DeviceID,
 	}}
 	if q.Status != nil {
-		if *q.Status == "pause" {
+		if *q.Status == model.DeviceDeploymentStatusPauseStr {
 			query = append(query, bson.E{
 				Key: "status", Value: bson.D{{
 					Key:   "$gte",
@@ -1599,7 +1613,7 @@ func (db *DataStoreMongo) GetDeviceDeploymentsForDevice(ctx context.Context,
 					Value: model.DeviceDeploymentStatusPauseBeforeReboot,
 				}},
 			})
-		} else if *q.Status == "active" {
+		} else if *q.Status == model.DeviceDeploymentStatusActiveStr {
 			query = append(query, bson.E{
 				Key: "status", Value: bson.D{{
 					Key:   "$gte",
@@ -1607,6 +1621,20 @@ func (db *DataStoreMongo) GetDeviceDeploymentsForDevice(ctx context.Context,
 				}, {
 					Key:   "$lte",
 					Value: model.DeviceDeploymentStatusPending,
+				}},
+			})
+		} else if *q.Status == model.DeviceDeploymentStatusFinishedStr {
+			query = append(query, bson.E{
+				Key: "status", Value: bson.D{{
+					Key: "$in",
+					Value: []model.DeviceDeploymentStatus{
+						model.DeviceDeploymentStatusFailure,
+						model.DeviceDeploymentStatusAborted,
+						model.DeviceDeploymentStatusSuccess,
+						model.DeviceDeploymentStatusNoArtifact,
+						model.DeviceDeploymentStatusAlreadyInst,
+						model.DeviceDeploymentStatusDecommissioned,
+					},
 				}},
 			})
 		} else {

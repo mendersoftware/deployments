@@ -35,7 +35,9 @@ func (l ListQueryDeviceDeployments) Validate() error {
 		return errors.New("device_id: cannot be blank")
 	}
 	if l.Status != nil {
-		if *l.Status == "pause" || *l.Status == "active" {
+		if *l.Status == model.DeviceDeploymentStatusPauseStr ||
+			*l.Status == model.DeviceDeploymentStatusActiveStr ||
+			*l.Status == model.DeviceDeploymentStatusFinishedStr {
 			return nil
 		}
 		stat := model.NewStatus(*l.Status)
