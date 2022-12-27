@@ -281,6 +281,44 @@ paths:
         400:
           $ref: "#/responses/InvalidRequestError"
 
+  /tenants/{tenant_id}/deployments/devices:
+    get:
+      operationId: List Device Deployments entries
+      tags:
+        - Internal API
+      summary: Return the Deployments history entries for the specified IDs
+      description: |
+        Return the Deployments history entries for the specified IDs
+      parameters:
+        - name: tenant_id
+          in: path
+          type: string
+          description: Tenant ID
+          required: true
+        - name: id
+          in: query
+          description: Deployment Device ID filter. Can be repeated to query a set of entries.
+          required: false
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+      produces:
+        - application/json
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/DeviceDeployment"
+        400:
+          description: Bad request.
+        500:
+          description: Internal server error.
+          schema:
+              $ref: "#/definitions/Error"
+
   /tenants/{tenant_id}/deployments/devices/{id}:
     get:
       operationId: List Deployments for a Device

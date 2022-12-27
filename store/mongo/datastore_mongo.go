@@ -1598,10 +1598,22 @@ func (db *DataStoreMongo) GetDeviceDeploymentsForDevice(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDevs := database.Collection(CollectionDevices)
 
-	query := bson.D{{
-		Key:   StorageKeyDeviceDeploymentDeviceId,
-		Value: q.DeviceID,
-	}}
+	query := bson.D{}
+	if q.DeviceID != "" {
+		query = append(query, bson.E{
+			Key:   StorageKeyDeviceDeploymentDeviceId,
+			Value: q.DeviceID,
+		})
+	} else if len(q.IDs) > 0 {
+		query = append(query, bson.E{
+			Key: StorageKeyId,
+			Value: bson.D{{
+				Key:   "$in",
+				Value: q.IDs,
+			}},
+		})
+	}
+
 	if q.Status != nil {
 		if *q.Status == model.DeviceDeploymentStatusPauseStr {
 			query = append(query, bson.E{
