@@ -70,6 +70,20 @@ func (_m *Client) StartReindexReporting(c context.Context, device string) error 
 	return r0
 }
 
+// StartReindexReportingDeployment provides a mock function with given fields: c, device, deployment, id
+func (_m *Client) StartReindexReportingDeployment(c context.Context, device string, deployment string, id string) error {
+	ret := _m.Called(c, device, deployment, id)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+		r0 = rf(c, device, deployment, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 type mockConstructorTestingTNewClient interface {
 	mock.TestingT
 	Cleanup(func())

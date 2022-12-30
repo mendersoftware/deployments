@@ -35,10 +35,11 @@ import (
 )
 
 const (
-	healthURL           = "/api/v1/health"
-	generateArtifactURL = "/api/v1/workflow/generate_artifact"
-	reindexReportingURL = "/api/v1/workflow/reindex_reporting"
-	defaultTimeout      = 5 * time.Second
+	healthURL                     = "/api/v1/health"
+	generateArtifactURL           = "/api/v1/workflow/generate_artifact"
+	reindexReportingURL           = "/api/v1/workflow/reindex_reporting"
+	reindexReportingDeploymentURL = "/api/v1/workflow/reindex_reporting_deployment"
+	defaultTimeout                = 5 * time.Second
 )
 
 // Client is the workflows client
@@ -51,6 +52,7 @@ type Client interface {
 		multipartGenerateImageMsg *model.MultipartGenerateImageMsg,
 	) error
 	StartReindexReporting(c context.Context, device string) error
+	StartReindexReportingDeployment(c context.Context, device, deployment, id string) error
 }
 
 // NewClient returns a new workflows client
@@ -174,6 +176,59 @@ func (c *client) StartReindexReporting(ctx context.Context, device string) error
 
 	if rsp.StatusCode == http.StatusNotFound {
 		workflowURIparts := strings.Split(reindexReportingURL, "/")
+		workflowName := workflowURIparts[len(workflowURIparts)-1]
+		return errors.New(`workflows: workflow "` + workflowName + `" not defined`)
+	}
+
+	return errors.Errorf(
+		"workflows: unexpected HTTP status from workflows service: %s",
+		rsp.Status,
+	)
+}
+
+func (c *client) StartReindexReportingDeployment(ctx context.Context,
+	device, deployment, id string) error {
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
+		defer cancel()
+	}
+	ident := identity.FromContext(ctx)
+	if ident == nil {
+		return errors.New("workflows: context lacking tenant identity")
+	}
+	wflow := ReindexDeploymentWorkflow{
+		RequestID:    requestid.FromContext(ctx),
+		TenantID:     ident.Tenant,
+		DeviceID:     device,
+		DeploymentID: deployment,
+		ID:           id,
+		Service:      ServiceDeployments,
+	}
+	payload, _ := json.Marshal(wflow)
+	req, err := http.NewRequestWithContext(ctx,
+		"POST",
+		c.baseURL+reindexReportingDeploymentURL,
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		return errors.Wrap(err, "workflows: error preparing HTTP request")
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	rsp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "workflows: failed to trigger reporting reindex deployment")
+	}
+	defer rsp.Body.Close()
+
+	if rsp.StatusCode < 300 {
+		return nil
+	}
+
+	if rsp.StatusCode == http.StatusNotFound {
+		workflowURIparts := strings.Split(reindexReportingDeploymentURL, "/")
 		workflowName := workflowURIparts[len(workflowURIparts)-1]
 		return errors.New(`workflows: workflow "` + workflowName + `" not defined`)
 	}

@@ -1088,6 +1088,11 @@ func (d *Deployments) assignArtifact(
 			l := log.FromContext(ctx)
 			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 		}
+		if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
+			deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
+			l := log.FromContext(ctx)
+			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
+		}
 		return nil
 	}
 
@@ -1232,6 +1237,11 @@ func (d *Deployments) createDeviceDeploymentWithStatus(
 			l := log.FromContext(ctx)
 			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 		}
+		if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
+			deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
+			l := log.FromContext(ctx)
+			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
+		}
 	}
 
 	return deviceDeployment, nil
@@ -1282,6 +1292,11 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 			if err := d.reindexDevice(ctx, deviceDeployment.DeviceId); err != nil {
 				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 			}
+			if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
+				deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
+				l := log.FromContext(ctx)
+				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
+			}
 			return nil, ErrConflictingRequestData
 		}
 	} else {
@@ -1307,6 +1322,11 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 				Status: model.DeviceDeploymentStatusAlreadyInst,
 			}); err != nil {
 			if err := d.reindexDevice(ctx, deviceDeployment.DeviceId); err != nil {
+				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
+			}
+			if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
+				deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
+				l := log.FromContext(ctx)
 				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 			}
 			return nil, errors.Wrap(err, "Failed to update deployment status")
@@ -1437,6 +1457,10 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 
 	if !ddState.Status.Active() {
 		if err := d.reindexDevice(ctx, deviceID); err != nil {
+			l := log.FromContext(ctx)
+			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
+		}
+		if err := d.reindexDeployment(ctx, dd.DeviceId, dd.DeploymentId, dd.Id); err != nil {
 			l := log.FromContext(ctx)
 			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 		}
@@ -1741,10 +1765,17 @@ func (d *Deployments) updateDeviceDeploymentsStatus(
 				return err
 			}
 			if ok {
-				_, err := d.createDeviceDeploymentWithStatus(ctx,
+				deviceDeployment, err := d.createDeviceDeploymentWithStatus(ctx,
 					deviceId, deployment, status)
 				if err != nil {
 					return err
+				}
+				if !status.Active() {
+					if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
+						deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
+						l := log.FromContext(ctx)
+						l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
+					}
 				}
 			}
 		}
@@ -1861,6 +1892,14 @@ func (d *Deployments) UpdateDeploymentsWithArtifactName(
 func (d *Deployments) reindexDevice(ctx context.Context, deviceID string) error {
 	if d.reportingClient != nil {
 		return d.workflowsClient.StartReindexReporting(ctx, deviceID)
+	}
+	return nil
+}
+
+func (d *Deployments) reindexDeployment(ctx context.Context,
+	deviceID, deploymentID, ID string) error {
+	if d.reportingClient != nil {
+		return d.workflowsClient.StartReindexReportingDeployment(ctx, deviceID, deploymentID, ID)
 	}
 	return nil
 }
