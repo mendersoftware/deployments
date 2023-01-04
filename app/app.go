@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //	Licensed under the Apache License, Version 2.0 (the "License");
 //	you may not use this file except in compliance with the License.
@@ -1264,8 +1264,6 @@ func (d *Deployments) isDevicePartOfDeployment(
 func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, deviceID string,
 	request *model.DeploymentNextRequest) (*model.DeploymentInstructions, error) {
 
-	l := log.FromContext(ctx)
-
 	deployment, deviceDeployment, err := d.getDeploymentForDevice(ctx, deviceID)
 	if err != nil {
 		return nil, ErrModelInternal
@@ -1273,38 +1271,9 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		return nil, nil
 	}
 
-	if deviceDeployment.Request != nil {
-		if !reflect.DeepEqual(deviceDeployment.Request, request) {
-			// the device reported different device type and/or artifact name
-			// during the update process, which should never happen;
-			// mark deployment for this device as failed to force client to rollback
-			l.Errorf(
-				"Device with id %s reported new data: %s during update process;"+
-					"old data: %s",
-				deviceID, request, deviceDeployment.Request)
-
-			if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
-				model.DeviceDeploymentState{
-					Status: model.DeviceDeploymentStatusFailure,
-				}); err != nil {
-				return nil, errors.Wrap(err, "Failed to update deployment status")
-			}
-			if err := d.reindexDevice(ctx, deviceDeployment.DeviceId); err != nil {
-				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
-			}
-			if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
-				deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
-				l := log.FromContext(ctx)
-				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
-			}
-			return nil, ErrConflictingRequestData
-		}
-	} else {
-		// save the request
-		if err := d.db.SaveDeviceDeploymentRequest(
-			ctx, deviceDeployment.Id, request); err != nil {
-			return nil, err
-		}
+	err = d.saveDeviceDeploymentRequest(ctx, deviceID, deviceDeployment, request)
+	if err != nil {
+		return nil, err
 	}
 
 	// if the deployment is not forcing the installation, and if the device
@@ -1322,6 +1291,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 				Status: model.DeviceDeploymentStatusAlreadyInst,
 			}); err != nil {
 			if err := d.reindexDevice(ctx, deviceDeployment.DeviceId); err != nil {
+				l := log.FromContext(ctx)
 				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 			}
 			if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
@@ -1392,6 +1362,45 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	}
 
 	return instructions, nil
+}
+
+func (d *Deployments) saveDeviceDeploymentRequest(ctx context.Context, deviceID string,
+	deviceDeployment *model.DeviceDeployment, request *model.DeploymentNextRequest) error {
+	if deviceDeployment.Request != nil {
+		if !reflect.DeepEqual(deviceDeployment.Request, request) {
+			// the device reported different device type and/or artifact name
+			// during the update process, which should never happen;
+			// mark deployment for this device as failed to force client to rollback
+			l := log.FromContext(ctx)
+			l.Errorf(
+				"Device with id %s reported new data: %s during update process;"+
+					"old data: %s",
+				deviceID, request, deviceDeployment.Request)
+
+			if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
+				model.DeviceDeploymentState{
+					Status: model.DeviceDeploymentStatusFailure,
+				}); err != nil {
+				return errors.Wrap(err, "Failed to update deployment status")
+			}
+			if err := d.reindexDevice(ctx, deviceDeployment.DeviceId); err != nil {
+				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
+			}
+			if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
+				deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
+				l := log.FromContext(ctx)
+				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
+			}
+			return ErrConflictingRequestData
+		}
+	} else {
+		// save the request
+		if err := d.db.SaveDeviceDeploymentRequest(
+			ctx, deviceDeployment.Id, request); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // UpdateDeviceDeploymentStatus will update the deployment status for device of
