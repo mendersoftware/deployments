@@ -496,6 +496,7 @@ paths:
             - "decommissioned"
             - "pause"
             - "active"
+            - "finished"
           required: false
         - name: page
           in: query
@@ -637,6 +638,7 @@ paths:
             - "decommissioned"
             - "pause"
             - "active"
+            - "finished"
           required: false
         - name: page
           in: query

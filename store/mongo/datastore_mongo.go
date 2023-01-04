@@ -1510,7 +1510,7 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 		}},
 	}
 	if q.Status != nil {
-		if *q.Status == "pause" {
+		if *q.Status == model.DeviceDeploymentStatusPauseStr {
 			query = append(query, bson.E{
 				Key: "status", Value: bson.D{{
 					Key:   "$gte",
@@ -1520,7 +1520,7 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 					Value: model.DeviceDeploymentStatusPauseBeforeReboot,
 				}},
 			})
-		} else if *q.Status == "active" {
+		} else if *q.Status == model.DeviceDeploymentStatusActiveStr {
 			query = append(query, bson.E{
 				Key: "status", Value: bson.D{{
 					Key:   "$gte",
@@ -1528,6 +1528,20 @@ func (db *DataStoreMongo) GetDevicesListForDeployment(ctx context.Context,
 				}, {
 					Key:   "$lte",
 					Value: model.DeviceDeploymentStatusPending,
+				}},
+			})
+		} else if *q.Status == model.DeviceDeploymentStatusFinishedStr {
+			query = append(query, bson.E{
+				Key: "status", Value: bson.D{{
+					Key: "$in",
+					Value: []model.DeviceDeploymentStatus{
+						model.DeviceDeploymentStatusFailure,
+						model.DeviceDeploymentStatusAborted,
+						model.DeviceDeploymentStatusSuccess,
+						model.DeviceDeploymentStatusNoArtifact,
+						model.DeviceDeploymentStatusAlreadyInst,
+						model.DeviceDeploymentStatusDecommissioned,
+					},
 				}},
 			})
 		} else {
@@ -1584,12 +1598,24 @@ func (db *DataStoreMongo) GetDeviceDeploymentsForDevice(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collDevs := database.Collection(CollectionDevices)
 
-	query := bson.D{{
-		Key:   StorageKeyDeviceDeploymentDeviceId,
-		Value: q.DeviceID,
-	}}
+	query := bson.D{}
+	if q.DeviceID != "" {
+		query = append(query, bson.E{
+			Key:   StorageKeyDeviceDeploymentDeviceId,
+			Value: q.DeviceID,
+		})
+	} else if len(q.IDs) > 0 {
+		query = append(query, bson.E{
+			Key: StorageKeyId,
+			Value: bson.D{{
+				Key:   "$in",
+				Value: q.IDs,
+			}},
+		})
+	}
+
 	if q.Status != nil {
-		if *q.Status == "pause" {
+		if *q.Status == model.DeviceDeploymentStatusPauseStr {
 			query = append(query, bson.E{
 				Key: "status", Value: bson.D{{
 					Key:   "$gte",
@@ -1599,7 +1625,7 @@ func (db *DataStoreMongo) GetDeviceDeploymentsForDevice(ctx context.Context,
 					Value: model.DeviceDeploymentStatusPauseBeforeReboot,
 				}},
 			})
-		} else if *q.Status == "active" {
+		} else if *q.Status == model.DeviceDeploymentStatusActiveStr {
 			query = append(query, bson.E{
 				Key: "status", Value: bson.D{{
 					Key:   "$gte",
@@ -1607,6 +1633,20 @@ func (db *DataStoreMongo) GetDeviceDeploymentsForDevice(ctx context.Context,
 				}, {
 					Key:   "$lte",
 					Value: model.DeviceDeploymentStatusPending,
+				}},
+			})
+		} else if *q.Status == model.DeviceDeploymentStatusFinishedStr {
+			query = append(query, bson.E{
+				Key: "status", Value: bson.D{{
+					Key: "$in",
+					Value: []model.DeviceDeploymentStatus{
+						model.DeviceDeploymentStatusFailure,
+						model.DeviceDeploymentStatusAborted,
+						model.DeviceDeploymentStatusSuccess,
+						model.DeviceDeploymentStatusNoArtifact,
+						model.DeviceDeploymentStatusAlreadyInst,
+						model.DeviceDeploymentStatusDecommissioned,
+					},
 				}},
 			})
 		} else {

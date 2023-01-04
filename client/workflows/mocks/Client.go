@@ -56,6 +56,20 @@ func (_m *Client) StartGenerateArtifact(ctx context.Context, multipartGenerateIm
 	return r0
 }
 
+// StartReindexReporting provides a mock function with given fields: c, device
+func (_m *Client) StartReindexReporting(c context.Context, device string) error {
+	ret := _m.Called(c, device)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(c, device)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 type mockConstructorTestingTNewClient interface {
 	mock.TestingT
 	Cleanup(func())

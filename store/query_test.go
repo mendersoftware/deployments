@@ -56,14 +56,14 @@ func TestListQueryValidate(t *testing.T) {
 			query: &ListQuery{
 				Limit:        1,
 				DeploymentID: "dummy",
-				Status:       str2ptr("pause"),
+				Status:       str2ptr(model.DeviceDeploymentStatusPauseStr),
 			},
 		},
 		"status, active": {
 			query: &ListQuery{
 				Limit:        1,
 				DeploymentID: "dummy",
-				Status:       str2ptr("active"),
+				Status:       str2ptr(model.DeviceDeploymentStatusActiveStr),
 			},
 		},
 		"status, pending": {
@@ -71,6 +71,13 @@ func TestListQueryValidate(t *testing.T) {
 				Limit:        1,
 				DeploymentID: "dummy",
 				Status:       str2ptr(model.DeviceDeploymentStatusPendingStr),
+			},
+		},
+		"status, finished": {
+			query: &ListQuery{
+				Limit:        1,
+				DeploymentID: "dummy",
+				Status:       str2ptr(model.DeviceDeploymentStatusFinishedStr),
 			},
 		},
 	}

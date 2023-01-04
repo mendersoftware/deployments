@@ -52,14 +52,14 @@ func TestListQueryDeviceDeploymentsValidate(t *testing.T) {
 			query: &ListQueryDeviceDeployments{
 				Limit:    1,
 				DeviceID: "dummy",
-				Status:   str2ptr("pause"),
+				Status:   str2ptr(model.DeviceDeploymentStatusPauseStr),
 			},
 		},
 		"status, active": {
 			query: &ListQueryDeviceDeployments{
 				Limit:    1,
 				DeviceID: "dummy",
-				Status:   str2ptr("active"),
+				Status:   str2ptr(model.DeviceDeploymentStatusActiveStr),
 			},
 		},
 		"status, pending": {
@@ -67,6 +67,13 @@ func TestListQueryDeviceDeploymentsValidate(t *testing.T) {
 				Limit:    1,
 				DeviceID: "dummy",
 				Status:   str2ptr(model.DeviceDeploymentStatusPendingStr),
+			},
+		},
+		"status, finished": {
+			query: &ListQueryDeviceDeployments{
+				Limit:    1,
+				DeviceID: "dummy",
+				Status:   str2ptr(model.DeviceDeploymentStatusFinishedStr),
 			},
 		},
 	}

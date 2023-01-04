@@ -1962,12 +1962,12 @@ func TestListDeviceDeployments(t *testing.T) {
 			responseCode: http.StatusBadRequest,
 			err:          errors.New("error"),
 		},
-		"ok, wrong limit": {
+		"ko, wrong limit": {
 			deviceID:     deviceID,
 			limit:        -10,
 			responseCode: http.StatusBadRequest,
 		},
-		"ok, wrong status": {
+		"ko, wrong status": {
 			deviceID:     deviceID,
 			status:       "dummy",
 			responseCode: http.StatusBadRequest,
@@ -2014,6 +2014,307 @@ func TestListDeviceDeployments(t *testing.T) {
 			}
 			if tc.limit != 0 {
 				url = url + fmt.Sprintf("?per_page=%d", tc.limit)
+			}
+			req := test.MakeSimpleRequest("GET", url, nil)
+
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.responseCode)
+			recorded.ContentTypeIsJson()
+			res := []model.DeviceDeploymentListItem{}
+			recorded.DecodeJsonPayload(&res)
+			if tc.responseCode == http.StatusOK {
+				assert.Equal(t, tc.deployments, res, "Unexpected response body")
+			}
+		})
+	}
+}
+
+func TestListDeviceDeploymentsInternal(t *testing.T) {
+	const deviceID = "d50eda0d-2cea-4de1-8d42-9cd3e7e86701"
+	const tenantID = "tenant_id"
+	t.Parallel()
+	testCases := map[string]struct {
+		deviceID     string
+		status       string
+		limit        int
+		query        *store.ListQueryDeviceDeployments
+		responseCode int
+		deployments  []model.DeviceDeploymentListItem
+		count        int
+		err          error
+	}{
+		"ok": {
+			deviceID: deviceID,
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Limit:    DefaultPerPage,
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
+		"ok, no records": {
+			deviceID: deviceID,
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Limit:    DefaultPerPage,
+			},
+			responseCode: http.StatusOK,
+			deployments:  []model.DeviceDeploymentListItem{},
+			count:        0,
+		},
+		"ok, filter by status": {
+			deviceID: deviceID,
+			status:   "pending",
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Limit:    DefaultPerPage,
+				Status:   str2ptr("pending"),
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
+		"ok, custom limit": {
+			deviceID: deviceID,
+			limit:    10,
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Limit:    10,
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
+		"ko, too high per_page": {
+			deviceID:     deviceID,
+			limit:        MaximumPerPageListDeviceDeployments + 1,
+			responseCode: http.StatusBadRequest,
+		},
+		"ko, wrong device ID": {
+			deviceID:     "dummy",
+			responseCode: http.StatusBadRequest,
+			err:          errors.New("error"),
+		},
+		"ok, wrong limit": {
+			deviceID:     deviceID,
+			limit:        -10,
+			responseCode: http.StatusBadRequest,
+		},
+		"ok, wrong status": {
+			deviceID:     deviceID,
+			status:       "dummy",
+			responseCode: http.StatusBadRequest,
+		},
+		"ko, error": {
+			deviceID: deviceID,
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Limit:    DefaultPerPage,
+			},
+			responseCode: http.StatusInternalServerError,
+			count:        -1,
+			err:          errors.New("error"),
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			app := &mapp.App{}
+			if tc.query != nil {
+				app.On("GetDeviceDeploymentListForDevice",
+					mock.MatchedBy(func(ctx context.Context) bool {
+						id := identity.FromContext(ctx)
+						assert.NotNil(t, id)
+						assert.Equal(t, tenantID, id.Tenant)
+						return true
+					}),
+					*tc.query,
+				).Return(
+					tc.deployments,
+					tc.count,
+					tc.err,
+				)
+			}
+
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlInternalTenantDeploymentsDevice,
+				rest.Get,
+				d.ListDeviceDeploymentsInternal,
+			)
+			url := "http://localhost" + ApiUrlInternalTenantDeploymentsDevice
+			url = strings.Replace(url, "#tenant", tenantID, 1)
+			url = strings.Replace(url, "#id", tc.deviceID, 1)
+			if tc.status != "" {
+				url = url + "?status=" + tc.status
+			}
+			if tc.limit != 0 {
+				url = url + fmt.Sprintf("?per_page=%d", tc.limit)
+			}
+			req := test.MakeSimpleRequest("GET", url, nil)
+
+			recorded := test.RunRequest(t, api.MakeHandler(), req)
+			recorded.CodeIs(tc.responseCode)
+			recorded.ContentTypeIsJson()
+			res := []model.DeviceDeploymentListItem{}
+			recorded.DecodeJsonPayload(&res)
+			if tc.responseCode == http.StatusOK {
+				assert.Equal(t, tc.deployments, res, "Unexpected response body")
+			}
+		})
+	}
+}
+
+func TestListDeviceDeploymentsByIDsInternal(t *testing.T) {
+	const ID = "d50eda0d-2cea-4de1-8d42-9cd3e7e86701"
+	const tenantID = "tenant_id"
+	t.Parallel()
+	testCases := map[string]struct {
+		ID           string
+		status       string
+		limit        int
+		query        *store.ListQueryDeviceDeployments
+		responseCode int
+		deployments  []model.DeviceDeploymentListItem
+		count        int
+		err          error
+	}{
+		"ok": {
+			ID: ID,
+			query: &store.ListQueryDeviceDeployments{
+				IDs:   []string{ID},
+				Limit: DefaultPerPage,
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
+		"ok, no records": {
+			ID: ID,
+			query: &store.ListQueryDeviceDeployments{
+				IDs:   []string{ID},
+				Limit: DefaultPerPage,
+			},
+			responseCode: http.StatusOK,
+			deployments:  []model.DeviceDeploymentListItem{},
+			count:        0,
+		},
+		"ok, filter by status": {
+			ID:     ID,
+			status: "pending",
+			query: &store.ListQueryDeviceDeployments{
+				IDs:    []string{ID},
+				Limit:  DefaultPerPage,
+				Status: str2ptr("pending"),
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
+		"ok, custom limit": {
+			ID:    ID,
+			limit: 10,
+			query: &store.ListQueryDeviceDeployments{
+				IDs:   []string{ID},
+				Limit: 10,
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
+		"ko, too high per_page": {
+			ID:           ID,
+			limit:        MaximumPerPageListDeviceDeployments + 1,
+			responseCode: http.StatusBadRequest,
+		},
+		"ko, wrong ID": {
+			responseCode: http.StatusBadRequest,
+			err:          errors.New("error"),
+		},
+		"ko, wrong limit": {
+			ID:           ID,
+			limit:        -10,
+			responseCode: http.StatusBadRequest,
+		},
+		"ko, wrong status": {
+			ID:           ID,
+			status:       "dummy",
+			responseCode: http.StatusBadRequest,
+		},
+		"ko, error": {
+			ID: ID,
+			query: &store.ListQueryDeviceDeployments{
+				IDs:   []string{ID},
+				Limit: DefaultPerPage,
+			},
+			responseCode: http.StatusInternalServerError,
+			count:        -1,
+			err:          errors.New("error"),
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			app := &mapp.App{}
+			if tc.query != nil {
+				app.On("GetDeviceDeploymentListForDevice",
+					mock.MatchedBy(func(ctx context.Context) bool {
+						id := identity.FromContext(ctx)
+						assert.NotNil(t, id)
+						assert.Equal(t, tenantID, id.Tenant)
+						return true
+					}),
+					*tc.query,
+				).Return(
+					tc.deployments,
+					tc.count,
+					tc.err,
+				)
+			}
+
+			restView := new(view.RESTView)
+			d := NewDeploymentsApiHandlers(nil, restView, app)
+			api := setUpRestTest(
+				ApiUrlInternalTenantDeploymentsDevices,
+				rest.Get,
+				d.ListDeviceDeploymentsByIDsInternal,
+			)
+			url := "http://localhost" + ApiUrlInternalTenantDeploymentsDevices
+			url = strings.Replace(url, "#tenant", tenantID, 1) + "?"
+			if tc.ID != "" {
+				url = url + "id=" + tc.ID
+			}
+			if tc.status != "" {
+				url = url + "&status=" + tc.status
+			}
+			if tc.limit != 0 {
+				url = url + fmt.Sprintf("&per_page=%d", tc.limit)
 			}
 			req := test.MakeSimpleRequest("GET", url, nil)
 

@@ -1678,12 +1678,55 @@ func (d *DeploymentsApiHandlers) DeleteDeviceDeploymentsHistory(w rest.ResponseW
 
 func (d *DeploymentsApiHandlers) ListDeviceDeployments(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
+	d.listDeviceDeployments(ctx, w, r, true)
+}
+
+func (d *DeploymentsApiHandlers) ListDeviceDeploymentsInternal(w rest.ResponseWriter,
+	r *rest.Request) {
+	ctx := r.Context()
+	tenantID := r.PathParam("tenant")
+	if tenantID != "" {
+		ctx = identity.WithContext(r.Context(), &identity.Identity{
+			Tenant:   tenantID,
+			IsDevice: true,
+		})
+	}
+	d.listDeviceDeployments(ctx, w, r, true)
+}
+
+func (d *DeploymentsApiHandlers) ListDeviceDeploymentsByIDsInternal(w rest.ResponseWriter,
+	r *rest.Request) {
+	ctx := r.Context()
+	tenantID := r.PathParam("tenant")
+	if tenantID != "" {
+		ctx = identity.WithContext(r.Context(), &identity.Identity{
+			Tenant:   tenantID,
+			IsDevice: true,
+		})
+	}
+	d.listDeviceDeployments(ctx, w, r, false)
+}
+
+func (d *DeploymentsApiHandlers) listDeviceDeployments(ctx context.Context,
+	w rest.ResponseWriter, r *rest.Request, byDeviceID bool) {
 	l := requestlog.GetRequestLogger(r)
 
-	did := r.PathParam("id")
-	if !govalidator.IsUUID(did) {
-		d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
-		return
+	did := ""
+	var IDs []string
+	if byDeviceID {
+		did = r.PathParam("id")
+		if !govalidator.IsUUID(did) {
+			d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
+			return
+		}
+	} else {
+		values := r.URL.Query()
+		if values.Has("id") && len(values["id"]) > 0 {
+			IDs = values["id"]
+		} else {
+			d.view.RenderError(w, r, errors.New("id: cannot be blank"), http.StatusBadRequest, l)
+			return
+		}
 	}
 
 	page, perPage, err := rest_utils.ParsePagination(r)
@@ -1699,6 +1742,7 @@ func (d *DeploymentsApiHandlers) ListDeviceDeployments(w rest.ResponseWriter, r 
 		Skip:     int((page - 1) * perPage),
 		Limit:    int(perPage),
 		DeviceID: did,
+		IDs:      IDs,
 	}
 	if status := r.URL.Query().Get("status"); status != "" {
 		lq.Status = &status
@@ -1724,7 +1768,8 @@ func (d *DeploymentsApiHandlers) ListDeviceDeployments(w rest.ResponseWriter, r 
 	d.view.RenderSuccessGet(w, deps)
 }
 
-func (d *DeploymentsApiHandlers) DecommissionDevice(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) AbortDeviceDeploymentsInternal(w rest.ResponseWriter,
+	r *rest.Request) {
 	ctx := r.Context()
 	tenantID := r.PathParam("tenantID")
 	if tenantID != "" {

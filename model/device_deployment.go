@@ -79,6 +79,12 @@ const (
 	// DeviceDeploymentStatusNew = "lorem-ipsum"
 )
 
+const (
+	DeviceDeploymentStatusPauseStr    = "pause"
+	DeviceDeploymentStatusActiveStr   = "active"
+	DeviceDeploymentStatusFinishedStr = "finished"
+)
+
 func NewStatus(status string) DeviceDeploymentStatus {
 	var stat DeviceDeploymentStatus
 	_ = stat.UnmarshalText([]byte(status))

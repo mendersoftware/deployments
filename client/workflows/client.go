@@ -15,6 +15,7 @@
 package workflows
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -23,7 +24,9 @@ import (
 	"time"
 
 	"github.com/mendersoftware/go-lib-micro/config"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 	"github.com/pkg/errors"
 
@@ -34,6 +37,7 @@ import (
 const (
 	healthURL           = "/api/v1/health"
 	generateArtifactURL = "/api/v1/workflow/generate_artifact"
+	reindexReportingURL = "/api/v1/workflow/reindex_reporting"
 	defaultTimeout      = 5 * time.Second
 )
 
@@ -46,6 +50,7 @@ type Client interface {
 		ctx context.Context,
 		multipartGenerateImageMsg *model.MultipartGenerateImageMsg,
 	) error
+	StartReindexReporting(c context.Context, device string) error
 }
 
 // NewClient returns a new workflows client
@@ -127,4 +132,54 @@ func (c *client) StartGenerateArtifact(
 		return errors.New("failed to start workflow: generate_artifact")
 	}
 	return nil
+}
+
+func (c *client) StartReindexReporting(ctx context.Context, device string) error {
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
+		defer cancel()
+	}
+	id := identity.FromContext(ctx)
+	if id == nil {
+		return errors.New("workflows: context lacking tenant identity")
+	}
+	wflow := ReindexWorkflow{
+		RequestID: requestid.FromContext(ctx),
+		TenantID:  id.Tenant,
+		DeviceID:  device,
+		Service:   ServiceDeployments,
+	}
+	payload, _ := json.Marshal(wflow)
+	req, err := http.NewRequestWithContext(ctx,
+		"POST",
+		c.baseURL+reindexReportingURL,
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		return errors.Wrap(err, "workflows: error preparing HTTP request")
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	rsp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "workflows: failed to trigger reporting reindex")
+	}
+	defer rsp.Body.Close()
+
+	if rsp.StatusCode < 300 {
+		return nil
+	}
+
+	if rsp.StatusCode == http.StatusNotFound {
+		workflowURIparts := strings.Split(reindexReportingURL, "/")
+		workflowName := workflowURIparts[len(workflowURIparts)-1]
+		return errors.New(`workflows: workflow "` + workflowName + `" not defined`)
+	}
+
+	return errors.Errorf(
+		"workflows: unexpected HTTP status from workflows service: %s",
+		rsp.Status,
+	)
 }

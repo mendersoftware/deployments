@@ -825,6 +825,23 @@ func TestGetDevicesListForDeployment(t *testing.T) {
 			},
 			outputStatuses: input[3:6],
 		},
+		"range filter finished status": {
+			inputListQuery: store.ListQuery{
+				DeploymentID: "30b3e62c-9ec2-4312-a7fa-cff24cc7397b",
+				Status: func() *string {
+					s := "finished"
+					return &s
+				}(),
+			},
+			outputStatuses: []model.DeviceDeployment{
+				input[1],
+				input[2],
+				input[10],
+				input[11],
+				input[12],
+				input[13],
+			},
+		},
 		"nonexistent deployment": {
 			inputListQuery: store.ListQuery{
 				DeploymentID: "aaaaaaaa-9ec2-4312-a7fa-cff24cc7397b",

@@ -25,17 +25,20 @@ type ListQueryDeviceDeployments struct {
 	Limit    int
 	DeviceID string
 	Status   *string
+	IDs      []string
 }
 
 func (l ListQueryDeviceDeployments) Validate() error {
 	if l.Limit <= 0 {
 		return errors.New("limit: must be a positive integer")
 	}
-	if l.DeviceID == "" {
+	if l.DeviceID == "" && len(l.IDs) == 0 {
 		return errors.New("device_id: cannot be blank")
 	}
 	if l.Status != nil {
-		if *l.Status == "pause" || *l.Status == "active" {
+		if *l.Status == model.DeviceDeploymentStatusPauseStr ||
+			*l.Status == model.DeviceDeploymentStatusActiveStr ||
+			*l.Status == model.DeviceDeploymentStatusFinishedStr {
 			return nil
 		}
 		stat := model.NewStatus(*l.Status)

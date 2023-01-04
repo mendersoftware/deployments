@@ -64,11 +64,12 @@ const (
 	ApiUrlDevicesDownloadConfig   = ApiUrlDevices +
 		"/download/configuration/#deployment_id/#device_type/#device_id"
 
-	ApiUrlInternalAlive                   = ApiUrlInternal + "/alive"
-	ApiUrlInternalHealth                  = ApiUrlInternal + "/health"
-	ApiUrlInternalTenants                 = ApiUrlInternal + "/tenants"
-	ApiUrlInternalTenantDeployments       = ApiUrlInternal + "/tenants/#tenant/deployments"
-	ApiUrlInternalTenantDeploymentsDevice = ApiUrlInternal +
+	ApiUrlInternalAlive                    = ApiUrlInternal + "/alive"
+	ApiUrlInternalHealth                   = ApiUrlInternal + "/health"
+	ApiUrlInternalTenants                  = ApiUrlInternal + "/tenants"
+	ApiUrlInternalTenantDeployments        = ApiUrlInternal + "/tenants/#tenant/deployments"
+	ApiUrlInternalTenantDeploymentsDevices = ApiUrlInternal + "/tenants/#tenant/deployments/devices"
+	ApiUrlInternalTenantDeploymentsDevice  = ApiUrlInternal +
 		"/tenants/#tenant/deployments/devices/#id"
 	ApiUrlInternalTenantArtifacts       = ApiUrlInternal + "/tenants/#tenant/artifacts"
 	ApiUrlInternalTenantStorageSettings = ApiUrlInternal +
@@ -199,7 +200,12 @@ func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	return []*rest.Route{
 		rest.Post(ApiUrlInternalTenants, controller.ProvisionTenantsHandler),
 		rest.Get(ApiUrlInternalTenantDeployments, controller.DeploymentsPerTenantHandler),
-		rest.Delete(ApiUrlInternalTenantDeploymentsDevice, controller.DecommissionDevice),
+		rest.Get(ApiUrlInternalTenantDeploymentsDevices,
+			controller.ListDeviceDeploymentsByIDsInternal),
+		rest.Get(ApiUrlInternalTenantDeploymentsDevice,
+			controller.ListDeviceDeploymentsInternal),
+		rest.Delete(ApiUrlInternalTenantDeploymentsDevice,
+			controller.AbortDeviceDeploymentsInternal),
 		rest.Post(ApiUrlInternalTenantArtifacts, controller.NewImageForTenantHandler),
 
 		// per-tenant storage settings

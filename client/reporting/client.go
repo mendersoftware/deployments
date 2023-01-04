@@ -31,7 +31,7 @@ import (
 
 const (
 	uriInternal       = "/api/internal/v1/reporting"
-	uriInternalSearch = uriInternal + "/inventory/tenants/:tenant_id/search"
+	uriInternalSearch = uriInternal + "/tenants/:tenant_id/devices/search"
 	uriIInternalAlive = uriInternal + "/alive"
 
 	defaultTimeout = 5 * time.Second

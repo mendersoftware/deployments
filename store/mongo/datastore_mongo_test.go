@@ -1115,10 +1115,23 @@ func TestGetDeviceDeploymentsForDevice(t *testing.T) {
 			},
 			resCount: 3,
 		},
+		"ok, IDs": {
+			q: store.ListQueryDeviceDeployments{
+				IDs:    []string{"d50eda0d-2cea-4de1-8d42-9cd3e7e86701", "d50eda0d-2cea-4de1-8d42-9cd3e7e86702"},
+				Status: nil,
+				Limit:  10,
+				Skip:   0,
+			},
+			res: []model.DeviceDeployment{
+				*deviceDeployments[0],
+				*deviceDeployments[1],
+			},
+			resCount: 2,
+		},
 		"ok, status pause": {
 			q: store.ListQueryDeviceDeployments{
 				DeviceID: deviceID,
-				Status:   str2ptr("pause"),
+				Status:   str2ptr(model.DeviceDeploymentStatusPauseStr),
 				Limit:    10,
 				Skip:     0,
 			},
@@ -1127,10 +1140,23 @@ func TestGetDeviceDeploymentsForDevice(t *testing.T) {
 			},
 			resCount: 1,
 		},
+		"ok, status finished": {
+			q: store.ListQueryDeviceDeployments{
+				DeviceID: deviceID,
+				Status:   str2ptr(model.DeviceDeploymentStatusFinishedStr),
+				Limit:    10,
+				Skip:     0,
+			},
+			res: []model.DeviceDeployment{
+				*deviceDeployments[1],
+				*deviceDeployments[2],
+			},
+			resCount: 2,
+		},
 		"ok, status active": {
 			q: store.ListQueryDeviceDeployments{
 				DeviceID: deviceID,
-				Status:   str2ptr("active"),
+				Status:   str2ptr(model.DeviceDeploymentStatusActiveStr),
 				Limit:    10,
 				Skip:     0,
 			},
