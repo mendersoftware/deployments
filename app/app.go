@@ -1290,16 +1290,16 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 			model.DeviceDeploymentState{
 				Status: model.DeviceDeploymentStatusAlreadyInst,
 			}); err != nil {
-			if err := d.reindexDevice(ctx, deviceDeployment.DeviceId); err != nil {
-				l := log.FromContext(ctx)
-				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
-			}
-			if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
-				deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
-				l := log.FromContext(ctx)
-				l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
-			}
 			return nil, errors.Wrap(err, "Failed to update deployment status")
+		}
+		if err := d.reindexDevice(ctx, deviceDeployment.DeviceId); err != nil {
+			l := log.FromContext(ctx)
+			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
+		}
+		if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
+			deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
+			l := log.FromContext(ctx)
+			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 		}
 
 		return nil, nil
