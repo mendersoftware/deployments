@@ -1055,3 +1055,54 @@ func TestReindexDevice(t *testing.T) {
 		})
 	}
 }
+
+func TestReindexDeployment(t *testing.T) {
+	t.Parallel()
+
+	const deviceID = "deviceID"
+	const deploymentID = "deploymentID"
+	const ID = "ID"
+	ctx := context.Background()
+
+	testCases := []struct {
+		name          string
+		workflowsMock func() workflows.Client
+		err           error
+	}{
+		{
+			name: "ok",
+			workflowsMock: func() workflows.Client {
+				wf := &workflows_mocks.Client{}
+				wf.On("StartReindexReportingDeployment", ctx, deviceID, deploymentID, ID).Return(nil)
+				return wf
+			},
+		},
+		{
+			name: "ko",
+			workflowsMock: func() workflows.Client {
+				wf := &workflows_mocks.Client{}
+				wf.On("StartReindexReportingDeployment", ctx, deviceID, deploymentID, ID).Return(errors.New("error"))
+				return wf
+			},
+			err: errors.New("error"),
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			app := &Deployments{
+				workflowsClient: tc.workflowsMock(),
+				reportingClient: &reporting_mocks.Client{},
+			}
+
+			err := app.reindexDeployment(ctx, deviceID, deploymentID, ID)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

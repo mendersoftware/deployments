@@ -24,3 +24,12 @@ type ReindexWorkflow struct {
 	DeviceID  string `json:"device_id"`
 	Service   string `json:"service"`
 }
+
+type ReindexDeploymentWorkflow struct {
+	RequestID    string `json:"request_id"`
+	TenantID     string `json:"tenant_id"`
+	DeviceID     string `json:"device_id"`
+	DeploymentID string `json:"deployment_id"`
+	ID           string `json:"id"`
+	Service      string `json:"service"`
+}

@@ -306,3 +306,114 @@ func TestReindexReporting(t *testing.T) {
 		})
 	}
 }
+
+func mockServerReindexDeployment(t *testing.T, tenant, device, deployment, id, reqid string,
+	code int) (*httptest.Server, error) {
+	h := func(w http.ResponseWriter, r *http.Request) {
+		if code != http.StatusOK {
+			w.WriteHeader(code)
+			return
+		}
+		defer r.Body.Close()
+
+		request := ReindexDeploymentWorkflow{}
+
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&request)
+		assert.NoError(t, err)
+
+		assert.Equal(t, reqid, request.RequestID)
+		assert.Equal(t, tenant, request.TenantID)
+		assert.Equal(t, device, request.DeviceID)
+		assert.Equal(t, deployment, request.DeploymentID)
+		assert.Equal(t, id, request.ID)
+		assert.Equal(t, ServiceDeployments, request.Service)
+
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		w.WriteHeader(http.StatusOK)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(h))
+	return srv, nil
+}
+
+func TestReindexDeploymentWorkflow(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+
+		tenant     string
+		device     string
+		deployment string
+		id         string
+		reqid      string
+
+		code int
+
+		err error
+	}{
+		{
+			name:       "ok",
+			tenant:     "tenant1",
+			device:     "device2",
+			deployment: "deployment3",
+			id:         "id4",
+			reqid:      "reqid1",
+
+			code: http.StatusOK,
+		},
+		{
+			name: "ko, no tenant identity",
+			err:  errors.New("workflows: context lacking tenant identity"),
+		},
+		{
+			name:   "404",
+			tenant: "tenant2",
+			device: "device3",
+			reqid:  "reqid2",
+
+			code: http.StatusNotFound,
+			err:  errors.New(`workflows: workflow "reindex_reporting_deployment" not defined`),
+		},
+		{
+			name:   "500",
+			tenant: "tenant2",
+			device: "device3",
+			reqid:  "reqid2",
+
+			code: http.StatusInternalServerError,
+			err:  errors.New(`workflows: unexpected HTTP status from workflows service: 500 Internal Server Error`),
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			srv, err := mockServerReindexDeployment(t, tc.tenant, tc.device, tc.deployment,
+				tc.id, tc.reqid, tc.code)
+			assert.NoError(t, err)
+
+			defer srv.Close()
+
+			ctx := context.Background()
+			ctx = requestid.WithContext(ctx, tc.reqid)
+			if tc.tenant != "" {
+				ctx = identity.WithContext(ctx,
+					&identity.Identity{
+						Tenant: tc.tenant,
+					})
+			}
+
+			client := NewClient().(*client)
+			client.baseURL = srv.URL
+
+			err = client.StartReindexReportingDeployment(ctx, tc.device, tc.deployment, tc.id)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
