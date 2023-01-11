@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //	Licensed under the Apache License, Version 2.0 (the "License");
 //	you may not use this file except in compliance with the License.
@@ -333,9 +333,9 @@ var (
 	// 1.2.13
 	IndexArtifactProvides = mongo.IndexModel{
 		Keys: bson.D{
-			{Key: model.StorageKeyImageProvidesKey,
+			{Key: model.StorageKeyImageProvidesIdxKey,
 				Value: 1},
-			{Key: model.StorageKeyImageProvidesValue,
+			{Key: model.StorageKeyImageProvidesIdxValue,
 				Value: 1},
 		},
 		Options: &mopts.IndexOptions{
@@ -665,6 +665,9 @@ func (db *DataStoreMongo) Update(ctx context.Context,
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
+	// add special representation of artifact provides
+	image.ProvidesIdx = model.ProvidesIdx(image.Provides)
+
 	image.SetModified(time.Now())
 	if res, err := collImg.ReplaceOne(
 		ctx, bson.M{"_id": image.Id}, image,
@@ -796,6 +799,9 @@ func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Image) e
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
 
+	// add special representation of artifact provides
+	image.ProvidesIdx = model.ProvidesIdx(image.Provides)
+
 	_, err := collImg.InsertOne(ctx, image)
 	if err != nil {
 		if except, ok := err.(mongo.WriteException); ok {
@@ -828,9 +834,14 @@ func (db *DataStoreMongo) FindImageByID(ctx context.Context,
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	collImg := database.Collection(CollectionImages)
+	projection := bson.M{
+		"provides_idx": 0,
+	}
+	findOptions := mopts.FindOne()
+	findOptions.SetProjection(projection)
 
 	var image model.Image
-	if err := collImg.FindOne(ctx, bson.M{"_id": id}).
+	if err := collImg.FindOne(ctx, bson.M{"_id": id}, findOptions).
 		Decode(&image); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -971,7 +982,11 @@ func (db *DataStoreMongo) ListImages(
 
 	}
 
+	projection := bson.M{
+		"provides_idx": 0,
+	}
 	findOptions := &mopts.FindOptions{}
+	findOptions.SetProjection(projection)
 	if filt != nil && filt.Page > 0 && filt.PerPage > 0 {
 		findOptions.SetSkip(int64((filt.Page - 1) * filt.PerPage))
 		findOptions.SetLimit(int64(filt.PerPage))
