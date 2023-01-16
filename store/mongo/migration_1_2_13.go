@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -31,49 +31,32 @@ type migration_1_2_13 struct {
 	db     string
 }
 
-type OldImage struct {
-	// Image ID
-	Id string `json:"id" bson:"_id" valid:"uuidv4,required"`
-
-	// Field set provided with yocto image
-	*OldArtifactMeta `bson:"meta_artifact"`
-}
-
-// Information provided by the Mender Artifact header
-type OldArtifactMeta struct {
-	// Provides is a map of artifact_provides used
-	// for checking artifact (version 3) dependencies.
-	//nolint:lll
-	Provides map[string]string `json:"artifact_provides,omitempty" bson:"provides,omitempty" valid:"-"`
-}
-
-// Up intrduces index on artifact depends rootfs-image checksum and version and
-// rewrites provides to avoid using dots and dollars in key names
+// Up intrduces special representation of artifact provides and index them.
 func (m *migration_1_2_13) Up(from migrate.Version) error {
 	ctx := context.Background()
 	c := m.client.Database(m.db).Collection(CollectionImages)
 
-	// transform existing device_types_compatible in v1 and v2 artifacts into 'depends.device_type'
 	query := bson.M{
-		StorageKeyImageProvides: bson.M{"$exists": true},
+		StorageKeyImageProvides:    bson.M{"$exists": true},
+		StorageKeyImageProvidesIdx: bson.M{"$exists": false},
 	}
 	cursor, err := c.Find(ctx, query)
 	if err != nil {
 		return err
 	}
 	defer cursor.Close(ctx)
-	var a OldImage
+	var a model.Image
 	for cursor.Next(ctx) {
 		err = cursor.Decode(&a)
 		if err != nil {
 			break
 		}
 
-		provides := model.Provides(a.Provides)
+		providesIdx := model.ProvidesIdx(a.ArtifactMeta.Provides)
 
 		up := bson.M{
 			"$set": bson.M{
-				StorageKeyImageProvides: provides,
+				StorageKeyImageProvidesIdx: providesIdx,
 			},
 		}
 
@@ -89,14 +72,11 @@ func (m *migration_1_2_13) Up(from migrate.Version) error {
 	if err = cursor.Err(); err != nil {
 		return errors.WithMessage(err, "failed to decode artifact")
 	}
-
-	// create new artifact provides rootfs checksum and version index
+	// create index for artifact provides
 	storage := NewDataStoreMongoWithClient(m.client)
-	err = storage.EnsureIndexes(m.db,
+	return storage.EnsureIndexes(m.db,
 		CollectionImages,
 		IndexArtifactProvides)
-
-	return err
 }
 
 func (m *migration_1_2_13) Version() migrate.Version {

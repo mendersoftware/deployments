@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -34,11 +34,11 @@ const (
 )
 
 var (
-	StorageKeyImageProvidesKey   = "meta_artifact.provides.key"
-	StorageKeyImageProvidesValue = "meta_artifact.provides.value"
+	StorageKeyImageProvidesIdxKey   = "meta_artifact.provides_idx.key"
+	StorageKeyImageProvidesIdxValue = "meta_artifact.provides_idx.value"
 )
 
-type Provides map[string]string
+type ProvidesIdx map[string]string
 
 func ImagePathFromContext(ctx context.Context, id string) string {
 	imgPath := id
@@ -104,7 +104,12 @@ type ArtifactMeta struct {
 
 	// Provides is a map of artifact_provides used
 	// for checking artifact (version 3) dependencies.
-	Provides Provides `json:"artifact_provides,omitempty" bson:"provides,omitempty" valid:"-"`
+	//nolint: lll
+	Provides map[string]string `json:"artifact_provides,omitempty" bson:"provides,omitempty" valid:"-"`
+
+	// ProvidesIdx is special representation of provides
+	// which makes possible to index and query using provides.
+	ProvidesIdx ProvidesIdx `json:"-" bson:"provides_idx,omitempty"`
 
 	// Depends is a map[string]interface{} (JSON) of artifact_depends used
 	// for checking/validate against artifact (version 3) provides.
@@ -280,7 +285,7 @@ type provideInternal struct {
 	Value string
 }
 
-func (p Provides) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (p ProvidesIdx) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	attrs := make([]provideInternal, len(p))
 	i := 0
 	for k, v := range p {
@@ -291,13 +296,13 @@ func (p Provides) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	return bson.MarshalValue(attrs)
 }
 
-func (p *Provides) UnmarshalBSONValue(t bsontype.Type, b []byte) error {
+func (p *ProvidesIdx) UnmarshalBSONValue(t bsontype.Type, b []byte) error {
 	raw := bson.Raw(b)
 	elems, err := raw.Elements()
 	if err != nil {
 		return err
 	}
-	*p = make(Provides, len(elems))
+	*p = make(ProvidesIdx, len(elems))
 	var tmp provideInternal
 	for _, elem := range elems {
 		err = elem.Value().Unmarshal(&tmp)
