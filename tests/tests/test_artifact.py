@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2022 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -316,3 +316,19 @@ class TestArtifact:
 
         # the file has been stored
         assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
+
+    @pytest.mark.usefixtures("clean_minio", "clean_db")
+    def test_compressed_artifacts_valid(self):
+        """Create and upload artifacts with different compressions"""
+        compressions = ["gzip", "lzma"]
+        for comp in compressions:
+            artifact_name = str(uuid4())
+            description = "description for foo " + artifact_name
+            device_type = "project-" + str(uuid4())
+            data = b"foo_bar"
+
+            with artifact_rootfs_from_data(
+                    name=artifact_name, data=data, devicetype=device_type, compression=comp
+            ) as art:
+                self.ac.log.info("uploading artifact (compression: {})".format(comp))
+                self.ac.add_artifact(description, art.size, art)
