@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2022 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ def artifact_from_raw_data(data):
 
 @contextmanager
 def artifact_rootfs_from_data(
-    name: str = "foo", data: bytes = None, devicetype: str = "hammer"
+    name: str = "foo", data: bytes = None, devicetype: str = "hammer", compression=""
 ):
     with tempfile.NamedTemporaryFile(prefix="menderout") as tmender:
         logging.info("writing mender artifact to temp file %s", tmender.name)
@@ -132,6 +132,7 @@ def artifact_rootfs_from_data(
                 + f' --file "{tdata.name}"'
                 + f' --artifact-name "{name}"'
                 + f' --output-path "{tmender.name}"'
+                + f' --compression "{compression}"'
             )
             rc = subprocess.call(cmd, shell=True)
             if rc:
