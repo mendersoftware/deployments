@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/google/uuid"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
@@ -104,11 +106,11 @@ func TestObjectStorage(t *testing.T) {
 		blobContent = `foobarbaz`
 	)
 	var (
-		azClient *azblob.ContainerClient
+		azClient *container.Client
 		err      error
 	)
 	if *TEST_AZURE_CONNECTION_STRING != "" {
-		azClient, err = azblob.NewContainerClientFromConnectionString(*TEST_AZURE_CONNECTION_STRING, *TEST_AZURE_CONTAINER_NAME, &azblob.ClientOptions{})
+		azClient, err = container.NewClientFromConnectionString(*TEST_AZURE_CONNECTION_STRING, *TEST_AZURE_CONTAINER_NAME, &container.ClientOptions{})
 	} else {
 		creds := SharedKeyCredentials{
 			AccountName: *TEST_AZURE_STORAGE_ACCOUNT_NAME,
@@ -119,7 +121,7 @@ func TestObjectStorage(t *testing.T) {
 			t.Fatalf("error initializing blob credential parameters: %s", err)
 			return
 		}
-		azClient, err = azblob.NewContainerClientWithSharedKey(url, azCred, &azblob.ClientOptions{})
+		azClient, err = container.NewClientWithSharedKeyCredential(url, azCred, &container.ClientOptions{})
 	}
 	if err != nil {
 		t.Fatalf("error initializing blob client: %s", err)
@@ -128,27 +130,26 @@ func TestObjectStorage(t *testing.T) {
 	pathPrefix := "test_" + uuid.NewString() + "/"
 	t.Cleanup(func() {
 		ctx := context.Background()
-		cur := azClient.ListBlobsFlat(&azblob.ContainerListBlobsFlatOptions{
+		cur := azClient.NewListBlobsFlatPager(&container.ListBlobsFlatOptions{
 			Prefix: &pathPrefix,
 		})
-		for cur.NextPage(ctx) {
-			rsp := cur.PageResponse()
+		for cur.More() {
+			rsp, err := cur.NextPage(ctx)
+			if err != nil {
+				t.Log("ERROR: Failed to clean up testing data:", err)
+				break
+			}
 			if rsp.Segment != nil {
 				for _, item := range rsp.Segment.BlobItems {
 					if item.Name != nil {
-						bc, err := azClient.NewBlobClient(*item.Name)
-						if err == nil {
-							_, err = bc.Delete(ctx, &azblob.BlobDeleteOptions{})
-						}
+						bc := azClient.NewBlobClient(*item.Name)
+						_, err = bc.Delete(ctx, &blob.DeleteOptions{})
 						if err != nil {
 							t.Logf("Failed to delete blob %s: %s", *item.Name, err)
 						}
 					}
 				}
 			}
-		}
-		if err := cur.Err(); err != nil {
-			t.Log("ERROR: Failed to clean up testing data:", err)
 		}
 	})
 	testCases := []struct {

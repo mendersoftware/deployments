@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package azblob
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,7 +26,14 @@ import (
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas"
 )
 
 const (
@@ -37,10 +43,10 @@ const (
 )
 
 type client struct {
-	DefaultClient *azblob.ContainerClient
+	DefaultClient *container.Client
 	credentials   *azblob.SharedKeyCredential
 	contentType   *string
-	bufferSize    int
+	bufferSize    int64
 }
 
 func NewEmpty(ctx context.Context, opts ...*Options) (storage.ObjectStorage, error) {
@@ -55,7 +61,7 @@ func NewEmpty(ctx context.Context, opts ...*Options) (storage.ObjectStorage, err
 func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectStorage, error) {
 	var (
 		err    error
-		cc     *azblob.ContainerClient
+		cc     *container.Client
 		azCred *azblob.SharedKeyCredential
 	)
 	opt := NewOptions(opts...)
@@ -63,17 +69,19 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 	if err != nil {
 		return nil, err
 	}
-	clientOptions := &azblob.ClientOptions{
-		Transport: &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs: storage.GetRootCAs(),
+	clientOptions := &container.ClientOptions{
+		ClientOptions: azcore.ClientOptions{
+			Transport: &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						RootCAs: storage.GetRootCAs(),
+					},
 				},
 			},
 		},
 	}
 	if opt.ConnectionString != nil {
-		cc, err = azblob.NewContainerClientFromConnectionString(
+		cc, err = container.NewClientFromConnectionString(
 			*opt.ConnectionString, bucket, clientOptions,
 		)
 		if err == nil {
@@ -83,7 +91,7 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 		var containerURL string
 		containerURL, azCred, err = sk.azParams(bucket)
 		if err == nil {
-			cc, err = azblob.NewContainerClientWithSharedKey(
+			cc, err = container.NewClientWithSharedKeyCredential(
 				containerURL,
 				azCred,
 				clientOptions,
@@ -103,16 +111,16 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 
 func (c *client) clientFromContext(
 	ctx context.Context,
-) (client *azblob.ContainerClient, err error) {
+) (client *container.Client, err error) {
 	client = c.DefaultClient
 	if settings := storage.SettingsFromContext(ctx); settings != nil {
 		if err = settings.Validate(); err != nil {
 			return nil, err
 		} else if settings.ConnectionString != nil {
-			client, err = azblob.NewContainerClientFromConnectionString(
+			client, err = container.NewClientFromConnectionString(
 				*settings.ConnectionString,
 				settings.Bucket,
-				&azblob.ClientOptions{},
+				&container.ClientOptions{},
 			)
 		} else {
 			var (
@@ -129,10 +137,10 @@ func (c *client) clientFromContext(
 
 			containerURL, azCreds, err = creds.azParams(settings.Bucket)
 			if err == nil {
-				client, err = azblob.NewContainerClientWithSharedKey(
+				client, err = container.NewClientWithSharedKeyCredential(
 					containerURL,
 					azCreds,
-					&azblob.ClientOptions{},
+					&container.ClientOptions{},
 				)
 			}
 		}
@@ -150,7 +158,7 @@ func (c *client) HealthCheck(ctx context.Context) error {
 	} else if azClient == nil {
 		return nil
 	}
-	_, err = azClient.GetProperties(ctx, &azblob.ContainerGetPropertiesOptions{})
+	_, err = azClient.GetProperties(ctx, &container.GetPropertiesOptions{})
 	if err != nil {
 		return OpError{
 			Op:     OpHealthCheck,
@@ -174,20 +182,13 @@ func (c *client) PutObject(
 	} else if azClient == nil {
 		return nil
 	}
-	bc, err := azClient.NewBlockBlobClient(objectPath)
-	if err != nil {
-		return OpError{
-			Op:      OpPutObject,
-			Message: "failed to initialize blob client",
-			Reason:  err,
-		}
-	}
-	var blobOpts = azblob.UploadStreamOptions{
-		HTTPHeaders: &azblob.BlobHTTPHeaders{
+	bc := azClient.NewBlockBlobClient(objectPath)
+	var blobOpts = &blockblob.UploadStreamOptions{
+		HTTPHeaders: &blob.HTTPHeaders{
 			BlobContentType: c.contentType,
 		},
 	}
-	blobOpts.BufferSize = c.bufferSize
+	blobOpts.BlockSize = c.bufferSize
 	_, err = bc.UploadStream(ctx, src, blobOpts)
 	if err != nil {
 		return OpError{
@@ -212,22 +213,15 @@ func (c *client) DeleteObject(
 	} else if azClient == nil {
 		return nil
 	}
-	bc, err := azClient.NewBlockBlobClient(path)
-	if err != nil {
-		return OpError{
-			Op:      OpDeleteObject,
-			Message: "failed to initialize blob client",
-			Reason:  err,
-		}
-	}
-	_, err = bc.Delete(ctx, &azblob.BlobDeleteOptions{
-		DeleteSnapshots: azblob.DeleteSnapshotsOptionTypeInclude.ToPtr(),
+	bc := azClient.NewBlockBlobClient(path)
+	_, err = bc.Delete(ctx, &blob.DeleteOptions{
+		DeleteSnapshots: to.Ptr(azblob.DeleteSnapshotsOptionTypeInclude),
 	})
-	var storageErr *azblob.StorageError
-	if errors.As(err, &storageErr) {
-		if storageErr.ErrorCode == azblob.StorageErrorCodeBlobNotFound {
-			err = storage.ErrObjectNotFound
-		}
+	if bloberror.HasCode(err,
+		bloberror.BlobNotFound,
+		bloberror.ContainerNotFound,
+		bloberror.ResourceNotFound) {
+		err = storage.ErrObjectNotFound
 	}
 	if err != nil {
 		return OpError{
@@ -252,7 +246,7 @@ func (c *client) StatObject(
 	} else if azClient == nil {
 		return nil, nil
 	}
-	bc, err := azClient.NewBlockBlobClient(path)
+	bc := azClient.NewBlockBlobClient(path)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpStatObject,
@@ -260,12 +254,13 @@ func (c *client) StatObject(
 			Reason:  err,
 		}
 	}
-	rsp, err := bc.GetProperties(ctx, &azblob.BlobGetPropertiesOptions{})
-	var storageErr *azblob.StorageError
-	if errors.As(err, &storageErr) {
-		if storageErr.ErrorCode == azblob.StorageErrorCodeBlobNotFound {
-			err = storage.ErrObjectNotFound
-		}
+	rsp, err := bc.GetProperties(ctx, &blob.GetPropertiesOptions{})
+	if bloberror.HasCode(err,
+		bloberror.BlobNotFound,
+		bloberror.ContainerNotFound,
+		bloberror.ResourceNotFound,
+	) {
+		err = storage.ErrObjectNotFound
 	}
 	if err != nil {
 		return nil, OpError{
@@ -283,7 +278,7 @@ func (c *client) StatObject(
 
 func buildSignedURL(
 	blobURL string,
-	SASParams azblob.SASQueryParameters,
+	SASParams sas.QueryParameters,
 ) (string, error) {
 	baseURL, err := url.Parse(blobURL)
 	if err != nil {
@@ -319,7 +314,7 @@ func (c *client) GetRequest(
 		return nil, nil
 	}
 	// Check if object exists
-	bc, err := azClient.NewBlockBlobClient(objectPath)
+	bc := azClient.NewBlockBlobClient(objectPath)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpGetRequest,
@@ -327,12 +322,13 @@ func (c *client) GetRequest(
 			Reason:  err,
 		}
 	}
-	_, err = bc.GetProperties(ctx, &azblob.BlobGetPropertiesOptions{})
-	var storageErr *azblob.StorageError
-	if errors.As(err, &storageErr) {
-		if storageErr.ErrorCode == azblob.StorageErrorCodeBlobNotFound {
-			err = storage.ErrObjectNotFound
-		}
+	_, err = bc.GetProperties(ctx, &blob.GetPropertiesOptions{})
+	if bloberror.HasCode(err,
+		bloberror.BlobNotFound,
+		bloberror.ContainerNotFound,
+		bloberror.ResourceNotFound,
+	) {
+		err = storage.ErrObjectNotFound
 	}
 	if err != nil {
 		return nil, OpError{
@@ -345,7 +341,7 @@ func (c *client) GetRequest(
 	exp := now.Add(duration)
 	// HACK: We cannot use BlockBlobClient.GetSASToken because the API does
 	// not expose the required parameters.
-	urlParts, _ := azblob.NewBlobURLParts(bc.URL())
+	urlParts, _ := blob.ParseURL(bc.URL())
 	sk, err := c.credentialsFromContext(ctx)
 	if err != nil {
 		return nil, OpError{
@@ -360,18 +356,19 @@ func (c *client) GetRequest(
 			`attachment; filename="%s"`, filename,
 		)
 	}
-	qParams, err := azblob.BlobSASSignatureValues{
+	permissions := &sas.BlobPermissions{
+		Read: true,
+	}
+	qParams, err := sas.BlobSignatureValues{
 		ContainerName: urlParts.ContainerName,
 		BlobName:      urlParts.BlobName,
 
-		Permissions: azblob.BlobSASPermissions{
-			Read: true,
-		}.String(),
+		Permissions:        permissions.String(),
 		ContentDisposition: contentDisposition,
 
 		StartTime:  now.UTC(),
 		ExpiryTime: exp.UTC(),
-	}.NewSASQueryParameters(sk)
+	}.SignWithSharedKey(sk)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpGetRequest,
@@ -408,7 +405,7 @@ func (c *client) DeleteRequest(
 	} else if azClient == nil {
 		return nil, nil
 	}
-	bc, err := azClient.NewBlobClient(path)
+	bc := azClient.NewBlobClient(path)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpDeleteRequest,
@@ -418,22 +415,15 @@ func (c *client) DeleteRequest(
 	}
 	now := time.Now().UTC()
 	exp := now.Add(duration)
-	qParams, err := bc.GetSASToken(azblob.BlobSASPermissions{Delete: true}, now, exp)
+	uri, err := bc.GetSASURL(sas.BlobPermissions{Delete: true}, now, exp)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpDeleteRequest,
-			Message: "failed to generate SAS token",
+			Message: "failed to generate signed URL",
 			Reason:  err,
 		}
 	}
-	uri, err := buildSignedURL(bc.URL(), qParams)
-	if err != nil {
-		return nil, OpError{
-			Op:      OpDeleteRequest,
-			Message: "failed to create pre-signed URL",
-			Reason:  err,
-		}
-	}
+
 	return &model.Link{
 		Uri:    uri,
 		Expire: exp,
@@ -455,7 +445,7 @@ func (c *client) PutRequest(
 	} else if azClient == nil {
 		return nil, nil
 	}
-	bc, err := azClient.NewBlobClient(objectPath)
+	bc := azClient.NewBlobClient(objectPath)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpPutRequest,
@@ -465,22 +455,14 @@ func (c *client) PutRequest(
 	}
 	now := time.Now().UTC()
 	exp := now.Add(duration)
-	qParams, err := bc.GetSASToken(azblob.BlobSASPermissions{
+	uri, err := bc.GetSASURL(sas.BlobPermissions{
 		Create: true,
 		Write:  true,
 	}, now, exp)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpPutRequest,
-			Message: "failed to generate SAS token",
-			Reason:  err,
-		}
-	}
-	uri, err := buildSignedURL(bc.URL(), qParams)
-	if err != nil {
-		return nil, OpError{
-			Op:      OpPutRequest,
-			Message: "failed to create pre-signed URL",
+			Message: "failed to generate signed URL",
 			Reason:  err,
 		}
 	}
