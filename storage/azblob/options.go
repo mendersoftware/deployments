@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ type Options struct {
 	ConnectionString *string
 	SharedKey        *SharedKeyCredentials
 
-	BufferSize int
+	BufferSize int64
 
 	ContentType *string
 }
@@ -98,7 +98,7 @@ func (opts *Options) SetContentType(typ string) *Options {
 	return opts
 }
 
-func (opts *Options) SetBufferSize(size int) *Options {
+func (opts *Options) SetBufferSize(size int64) *Options {
 	opts.BufferSize = size
 	return opts
 }
