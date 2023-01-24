@@ -1,5 +1,6 @@
 FROM golang:1.19.3-alpine3.15 as builder
 RUN apk add --no-cache \
+     openssl-dev \
      xz-dev \
      musl-dev \
      gcc
@@ -19,6 +20,8 @@ EXPOSE 8080
 COPY --from=builder /etc_extra/ /etc/
 COPY --from=builder /lib/ld-musl-x86_64.so.1 /lib/ld-musl-x86_64.so.1
 COPY --from=builder /usr/lib/liblzma.so.5 /usr/lib/liblzma.so.5
+COPY --from=builder /usr/lib/libssl.so.1.1 /usr/lib/libssl.so.1.1
+COPY --from=builder /usr/lib/libcrypto.so.1.1 /usr/lib/libcrypto.so.1.1
 COPY --chown=nobody --from=builder /tmp_extra/ /tmp/
 USER 65534
 WORKDIR /etc/deployments
