@@ -3,7 +3,7 @@ module github.com/mendersoftware/deployments
 go 1.18
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.6.1
 	github.com/ant0ine/go-json-rest v3.3.3-0.20170913041208-ebb33769ae01+incompatible
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/aws/aws-sdk-go-v2 v1.17.3
