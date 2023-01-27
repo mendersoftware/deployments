@@ -697,14 +697,14 @@ paths:
 
   /deployments/devices/{id}/history:
     delete:
-      operationId: Delete Device Deployments history
+      operationId: Reset Device Deployments history
       tags:
         - Management API
       security:
         - ManagementJWT: []
-      summary: Delete the Device Deployments history
+      summary: Reset the Device Deployments history
       description: |
-        Delete the completed Device Deployments records for the given device.
+        Mark as logically deleted the completed Device Deployments records for the given device.
         This effectively resets the Device Deployments history and makes the
         device eligible (again) for all the active deployments.
       parameters:
