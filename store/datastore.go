@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -104,6 +104,14 @@ type DataStore interface {
 	DecommissionDeviceDeployments(ctx context.Context, deviceId string) error
 	GetDeviceDeployment(ctx context.Context, deploymentID string,
 		deviceID string, includeDeleted bool) (*model.DeviceDeployment, error)
+	GetDeviceDeployments(
+		ctx context.Context,
+		skip int,
+		limit int,
+		deviceID string,
+		active *bool,
+		includeDeleted bool,
+	) ([]model.DeviceDeployment, error)
 	SaveDeviceDeploymentRequest(
 		ctx context.Context,
 		ID string,
@@ -146,4 +154,6 @@ type DataStore interface {
 		artifactName string,
 		artifactIDs []string,
 	) error
+
+	GetTenantDbs() ([]string, error)
 }

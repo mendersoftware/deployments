@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,12 +21,20 @@ import (
 	"time"
 
 	"github.com/mendersoftware/go-lib-micro/config"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
+	"github.com/mendersoftware/deployments/client/workflows"
 	dconfig "github.com/mendersoftware/deployments/config"
+	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mongo"
+)
+
+const (
+	deviceDeploymentsBatchSize = 512
 )
 
 func main() {
@@ -73,6 +81,23 @@ func doMain(args []string) {
 			},
 
 			Action: cmdMigrate,
+		},
+		{
+			Name:  "propagate-reporting",
+			Usage: "Trigger a reindex of all the device deployments in the reporting services ",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "tenant_id",
+					Usage: "Tenant ID (optional) - propagate for just a single tenant.",
+				},
+				cli.BoolFlag{
+					Name: "dry-run",
+					Usage: "Do not perform any modifications," +
+						" just scan and print devices.",
+				},
+			},
+
+			Action: cmdPropagateReporting,
 		},
 	}
 
@@ -150,5 +175,165 @@ func migrate(tenant string, automigrate bool) error {
 			3)
 	}
 
+	return nil
+}
+
+func cmdPropagateReporting(args *cli.Context) error {
+	if config.Config.GetString(dconfig.SettingReportingAddr) == "" {
+		return cli.NewExitError(errors.New("reporting address not configured"), 1)
+	}
+	c := config.Config
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		time.Second*30,
+	)
+	defer cancel()
+	dbClient, err := mongo.NewMongoClient(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = dbClient.Disconnect(context.Background())
+	}()
+
+	db := mongo.NewDataStoreMongoWithClient(dbClient)
+
+	wflows := workflows.NewClient()
+
+	err = propagateReporting(
+		db,
+		wflows,
+		args.String("tenant_id"),
+		args.Bool("dry-run"),
+	)
+	if err != nil {
+		return cli.NewExitError(err, 7)
+	}
+	return nil
+}
+
+func propagateReporting(
+	db store.DataStore,
+	wflows workflows.Client,
+	tenant string,
+	dryRun bool,
+) error {
+	l := log.NewEmpty()
+
+	dbs, err := selectDbs(db, tenant)
+	if err != nil {
+		return errors.Wrap(err, "aborting")
+	}
+
+	var errReturned error
+	for _, d := range dbs {
+		err := tryPropagateReportingForDb(db, wflows, d, dryRun)
+		if err != nil {
+			errReturned = err
+			l.Errorf("giving up on DB %s due to fatal error: %s", d, err.Error())
+			continue
+		}
+	}
+
+	l.Info("all DBs processed, exiting.")
+	return errReturned
+}
+
+func selectDbs(db store.DataStore, tenant string) ([]string, error) {
+	l := log.NewEmpty()
+
+	var dbs []string
+
+	if tenant != "" {
+		l.Infof("propagating deployments history for user-specified tenant %s", tenant)
+		n := mstore.DbNameForTenant(tenant, mongo.DbName)
+		dbs = []string{n}
+	} else {
+		l.Infof("propagating deployments history for all tenants")
+
+		// infer if we're in ST or MT
+		tdbs, err := db.GetTenantDbs()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to retrieve tenant DBs")
+		}
+
+		if len(tdbs) == 0 {
+			l.Infof("no tenant DBs found - will try the default database %s", mongo.DbName)
+			dbs = []string{mongo.DbName}
+		} else {
+			dbs = tdbs
+		}
+	}
+
+	return dbs, nil
+}
+
+func tryPropagateReportingForDb(
+	db store.DataStore,
+	wflows workflows.Client,
+	dbname string,
+	dryRun bool,
+) error {
+	l := log.NewEmpty()
+
+	l.Infof("propagating deployments data to reporting from DB: %s", dbname)
+
+	tenant := mstore.TenantFromDbName(dbname, mongo.DbName)
+
+	ctx := context.Background()
+	if tenant != "" {
+		ctx = identity.WithContext(ctx, &identity.Identity{
+			Tenant: tenant,
+		})
+	}
+
+	err := reindexDeploymentsReporting(ctx, db, wflows, tenant, dryRun)
+	if err != nil {
+		l.Infof("Done with DB %s, but there were errors: %s.", dbname, err.Error())
+	} else {
+		l.Infof("Done with DB %s", dbname)
+	}
+
+	return err
+}
+
+func reindexDeploymentsReporting(
+	ctx context.Context,
+	db store.DataStore,
+	wflows workflows.Client,
+	tenant string,
+	dryRun bool,
+) error {
+	var skip int
+
+	skip = 0
+	for {
+		dd, err := db.GetDeviceDeployments(ctx, skip, deviceDeploymentsBatchSize, "", nil, true)
+		if err != nil {
+			return errors.Wrap(err, "failed to get device deployments")
+		}
+
+		if len(dd) < 1 {
+			break
+		}
+
+		if !dryRun {
+			deviceDeployments := make([]workflows.DeviceDeploymentShortInfo, len(dd))
+			for i, d := range dd {
+				deviceDeployments[i].ID = d.Id
+				deviceDeployments[i].DeviceID = d.DeviceId
+				deviceDeployments[i].DeploymentID = d.DeploymentId
+			}
+			err := wflows.StartReindexReportingDeploymentBatch(ctx, deviceDeployments)
+			if err != nil {
+				return err
+			}
+		}
+
+		skip += deviceDeploymentsBatchSize
+		if len(dd) < deviceDeploymentsBatchSize {
+			break
+		}
+	}
 	return nil
 }
