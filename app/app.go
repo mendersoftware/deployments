@@ -1819,7 +1819,31 @@ func (d *Deployments) AbortDeviceDeployments(ctx context.Context, deviceId strin
 
 // DeleteDeviceDeploymentsHistory deletes the device deployments history
 func (d *Deployments) DeleteDeviceDeploymentsHistory(ctx context.Context, deviceId string) error {
-	return d.db.DeleteDeviceDeploymentsHistory(ctx, deviceId)
+	// get device deployments which will be marked as deleted
+	f := false
+	dd, err := d.db.GetDeviceDeployments(ctx, 0, 0, deviceId, &f, false)
+	if err != nil {
+		return err
+	}
+
+	// no device deployments to update
+	if len(dd) <= 0 {
+		return nil
+	}
+
+	// mark device deployments as deleted
+	if err := d.db.DeleteDeviceDeploymentsHistory(ctx, deviceId); err != nil {
+		return err
+	}
+
+	// trigger reindexing of updated device deployments
+	deviceDeployments := make([]workflows.DeviceDeploymentShortInfo, len(dd))
+	for i, d := range dd {
+		deviceDeployments[i].ID = d.Id
+		deviceDeployments[i].DeviceID = d.DeviceId
+		deviceDeployments[i].DeploymentID = d.DeploymentId
+	}
+	return d.workflowsClient.StartReindexReportingDeploymentBatch(ctx, deviceDeployments)
 }
 
 // Storage settings

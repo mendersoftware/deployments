@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -603,38 +603,106 @@ func TestAbortDeployment(t *testing.T) {
 
 func TestDeleteDeviceDeploymentsHistory(t *testing.T) {
 	t.Parallel()
+	f := false
+	ctx := context.Background()
+	deviceID := "f826484e-1157-4109-af21-304e6d711561"
 
 	testCases := map[string]struct {
-		DeviceID                            string
-		DeleteDeviceDeploymentsHistoryError error
+		workflowsMock *workflows_mocks.Client
+		storeMock     *mocks.DataStore
 
 		OutputError error
 	}{
 		"ok": {
-			DeviceID: "f826484e-1157-4109-af21-304e6d711561",
+			storeMock: func() *mocks.DataStore {
+				ds := new(mocks.DataStore)
+
+				ds.On("DeleteDeviceDeploymentsHistory",
+					h.ContextMatcher(), deviceID).
+					Return(nil)
+				ds.On("GetDeviceDeployments",
+					h.ContextMatcher(),
+					0,
+					0,
+					deviceID,
+					&f,
+					false,
+				).Return(
+					[]model.DeviceDeployment{
+						{
+							Id:           "foo",
+							DeviceId:     "bar",
+							DeploymentId: "baz",
+						},
+					},
+					nil,
+				)
+
+				return ds
+			}(),
+			workflowsMock: func() *workflows_mocks.Client {
+				wf := new(workflows_mocks.Client)
+				wf.On(
+					"StartReindexReportingDeploymentBatch",
+					ctx,
+					[]workflows.DeviceDeploymentShortInfo{
+						{
+							ID:           "foo",
+							DeviceID:     "bar",
+							DeploymentID: "baz",
+						},
+					},
+				).Return(nil)
+				return wf
+			}(),
 		},
 		"error": {
-			DeviceID: "f826484e-1157-4109-af21-304e6d711561",
+			workflowsMock: func() *workflows_mocks.Client {
+				wf := new(workflows_mocks.Client)
+				return wf
+			}(),
+			storeMock: func() *mocks.DataStore {
+				ds := new(mocks.DataStore)
 
-			DeleteDeviceDeploymentsHistoryError: errors.New("error"),
-			OutputError:                         errors.New("error"),
+				ds.On("DeleteDeviceDeploymentsHistory",
+					h.ContextMatcher(), deviceID).
+					Return(errors.New("error"))
+				ds.On("GetDeviceDeployments",
+					h.ContextMatcher(),
+					0,
+					0,
+					deviceID,
+					&f,
+					false,
+				).Return(
+					[]model.DeviceDeployment{
+						{
+							Id:           "foo",
+							DeviceId:     "bar",
+							DeploymentId: "baz",
+						},
+					},
+					nil,
+				)
+
+				return ds
+			}(),
+
+			OutputError: errors.New("error"),
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(fmt.Sprintf("test case %s", name), func(t *testing.T) {
-			db := mocks.DataStore{}
-			defer db.AssertExpectations(t)
-			db.On("DeleteDeviceDeploymentsHistory",
-				h.ContextMatcher(), tc.DeviceID).
-				Return(tc.DeleteDeviceDeploymentsHistoryError)
 
+			defer tc.workflowsMock.AssertExpectations(t)
+			defer tc.storeMock.AssertExpectations(t)
 			ds := &Deployments{
-				db: &db,
+				db:              tc.storeMock,
+				workflowsClient: tc.workflowsMock,
 			}
-			ctx := context.Background()
 
-			err := ds.DeleteDeviceDeploymentsHistory(ctx, tc.DeviceID)
+			err := ds.DeleteDeviceDeploymentsHistory(ctx, deviceID)
 			if tc.OutputError != nil {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
