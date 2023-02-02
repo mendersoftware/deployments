@@ -150,13 +150,13 @@ func (c *client) StartReindexReporting(ctx context.Context, device string) error
 		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
 		defer cancel()
 	}
-	id := identity.FromContext(ctx)
-	if id == nil {
-		return errors.New("workflows: context lacking tenant identity")
+	tenantID := ""
+	if ident := identity.FromContext(ctx); ident != nil {
+		tenantID = ident.Tenant
 	}
 	wflow := ReindexWorkflow{
 		RequestID: requestid.FromContext(ctx),
-		TenantID:  id.Tenant,
+		TenantID:  tenantID,
 		DeviceID:  device,
 		Service:   ServiceDeployments,
 	}
@@ -201,13 +201,13 @@ func (c *client) StartReindexReportingDeployment(ctx context.Context,
 		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
 		defer cancel()
 	}
-	ident := identity.FromContext(ctx)
-	if ident == nil {
-		return errors.New("workflows: context lacking tenant identity")
+	tenantID := ""
+	if ident := identity.FromContext(ctx); ident != nil {
+		tenantID = ident.Tenant
 	}
 	wflow := ReindexDeploymentWorkflow{
 		RequestID:    requestid.FromContext(ctx),
-		TenantID:     ident.Tenant,
+		TenantID:     tenantID,
 		DeviceID:     device,
 		DeploymentID: deployment,
 		ID:           id,
@@ -254,16 +254,16 @@ func (c *client) StartReindexReportingDeploymentBatch(ctx context.Context,
 		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
 		defer cancel()
 	}
-	ident := identity.FromContext(ctx)
-	if ident == nil {
-		return errors.New("workflows: context lacking tenant identity")
+	tenantID := ""
+	if ident := identity.FromContext(ctx); ident != nil {
+		tenantID = ident.Tenant
 	}
 	reqID := requestid.FromContext(ctx)
 	wflows := make([]ReindexDeploymentWorkflow, len(info))
 	for i, d := range info {
 		wflows[i] = ReindexDeploymentWorkflow{
 			RequestID:    reqID,
-			TenantID:     ident.Tenant,
+			TenantID:     tenantID,
 			DeviceID:     d.DeviceID,
 			DeploymentID: d.DeploymentID,
 			ID:           d.ID,

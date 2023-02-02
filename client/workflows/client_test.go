@@ -254,10 +254,6 @@ func TestReindexReporting(t *testing.T) {
 			code: http.StatusOK,
 		},
 		{
-			name: "ko, no tenant identity",
-			err:  errors.New("workflows: context lacking tenant identity"),
-		},
-		{
 			name:   "404",
 			tenant: "tenant2",
 			device: "device3",
@@ -362,10 +358,6 @@ func TestReindexDeploymentWorkflow(t *testing.T) {
 			reqid:      "reqid1",
 
 			code: http.StatusOK,
-		},
-		{
-			name: "ko, no tenant identity",
-			err:  errors.New("workflows: context lacking tenant identity"),
 		},
 		{
 			name:   "404",
@@ -489,10 +481,6 @@ func TestReindexDeploymentBatchWorkflow(t *testing.T) {
 			reqid: "reqid1",
 
 			code: http.StatusOK,
-		},
-		{
-			name: "ko, no tenant identity",
-			err:  errors.New("workflows: context lacking tenant identity"),
 		},
 		{
 			name:   "404",
