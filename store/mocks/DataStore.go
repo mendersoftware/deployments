@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -516,6 +516,29 @@ func (_m *DataStore) GetDeviceDeploymentLog(ctx context.Context, deviceID string
 	return r0, r1
 }
 
+// GetDeviceDeployments provides a mock function with given fields: ctx, skip, limit, deviceID, active, includeDeleted
+func (_m *DataStore) GetDeviceDeployments(ctx context.Context, skip int, limit int, deviceID string, active *bool, includeDeleted bool) ([]model.DeviceDeployment, error) {
+	ret := _m.Called(ctx, skip, limit, deviceID, active, includeDeleted)
+
+	var r0 []model.DeviceDeployment
+	if rf, ok := ret.Get(0).(func(context.Context, int, int, string, *bool, bool) []model.DeviceDeployment); ok {
+		r0 = rf(ctx, skip, limit, deviceID, active, includeDeleted)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.DeviceDeployment)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, int, int, string, *bool, bool) error); ok {
+		r1 = rf(ctx, skip, limit, deviceID, active, includeDeleted)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetDeviceDeploymentsForDevice provides a mock function with given fields: ctx, query
 func (_m *DataStore) GetDeviceDeploymentsForDevice(ctx context.Context, query store.ListQueryDeviceDeployments) ([]model.DeviceDeployment, int, error) {
 	ret := _m.Called(ctx, query)
@@ -668,6 +691,29 @@ func (_m *DataStore) GetStorageSettings(ctx context.Context) (*model.StorageSett
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
 		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetTenantDbs provides a mock function with given fields:
+func (_m *DataStore) GetTenantDbs() ([]string, error) {
+	ret := _m.Called()
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func() []string); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}

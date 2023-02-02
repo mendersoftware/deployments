@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //	Licensed under the Apache License, Version 2.0 (the "License");
 //	you may not use this file except in compliance with the License.
@@ -35,12 +35,19 @@ import (
 )
 
 const (
-	healthURL                     = "/api/v1/health"
-	generateArtifactURL           = "/api/v1/workflow/generate_artifact"
-	reindexReportingURL           = "/api/v1/workflow/reindex_reporting"
-	reindexReportingDeploymentURL = "/api/v1/workflow/reindex_reporting_deployment"
-	defaultTimeout                = 5 * time.Second
+	healthURL                          = "/api/v1/health"
+	generateArtifactURL                = "/api/v1/workflow/generate_artifact"
+	reindexReportingURL                = "/api/v1/workflow/reindex_reporting"
+	reindexReportingDeploymentURL      = "/api/v1/workflow/reindex_reporting_deployment"
+	reindexReportingDeploymentBatchURL = "/api/v1/workflow/reindex_reporting_deployment/batch"
+	defaultTimeout                     = 5 * time.Second
 )
+
+type DeviceDeploymentShortInfo struct {
+	ID           string
+	DeviceID     string
+	DeploymentID string
+}
 
 // Client is the workflows client
 //
@@ -53,6 +60,7 @@ type Client interface {
 	) error
 	StartReindexReporting(c context.Context, device string) error
 	StartReindexReportingDeployment(c context.Context, device, deployment, id string) error
+	StartReindexReportingDeploymentBatch(c context.Context, info []DeviceDeploymentShortInfo) error
 }
 
 // NewClient returns a new workflows client
@@ -142,13 +150,13 @@ func (c *client) StartReindexReporting(ctx context.Context, device string) error
 		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
 		defer cancel()
 	}
-	id := identity.FromContext(ctx)
-	if id == nil {
-		return errors.New("workflows: context lacking tenant identity")
+	tenantID := ""
+	if ident := identity.FromContext(ctx); ident != nil {
+		tenantID = ident.Tenant
 	}
 	wflow := ReindexWorkflow{
 		RequestID: requestid.FromContext(ctx),
-		TenantID:  id.Tenant,
+		TenantID:  tenantID,
 		DeviceID:  device,
 		Service:   ServiceDeployments,
 	}
@@ -193,13 +201,13 @@ func (c *client) StartReindexReportingDeployment(ctx context.Context,
 		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
 		defer cancel()
 	}
-	ident := identity.FromContext(ctx)
-	if ident == nil {
-		return errors.New("workflows: context lacking tenant identity")
+	tenantID := ""
+	if ident := identity.FromContext(ctx); ident != nil {
+		tenantID = ident.Tenant
 	}
 	wflow := ReindexDeploymentWorkflow{
 		RequestID:    requestid.FromContext(ctx),
-		TenantID:     ident.Tenant,
+		TenantID:     tenantID,
 		DeviceID:     device,
 		DeploymentID: deployment,
 		ID:           id,
@@ -209,6 +217,63 @@ func (c *client) StartReindexReportingDeployment(ctx context.Context,
 	req, err := http.NewRequestWithContext(ctx,
 		"POST",
 		c.baseURL+reindexReportingDeploymentURL,
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		return errors.Wrap(err, "workflows: error preparing HTTP request")
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	rsp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "workflows: failed to trigger reporting reindex deployment")
+	}
+	defer rsp.Body.Close()
+
+	if rsp.StatusCode < 300 {
+		return nil
+	}
+
+	if rsp.StatusCode == http.StatusNotFound {
+		workflowURIparts := strings.Split(reindexReportingDeploymentURL, "/")
+		workflowName := workflowURIparts[len(workflowURIparts)-1]
+		return errors.New(`workflows: workflow "` + workflowName + `" not defined`)
+	}
+
+	return errors.Errorf(
+		"workflows: unexpected HTTP status from workflows service: %s",
+		rsp.Status,
+	)
+}
+
+func (c *client) StartReindexReportingDeploymentBatch(ctx context.Context,
+	info []DeviceDeploymentShortInfo) error {
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultTimeout)
+		defer cancel()
+	}
+	tenantID := ""
+	if ident := identity.FromContext(ctx); ident != nil {
+		tenantID = ident.Tenant
+	}
+	reqID := requestid.FromContext(ctx)
+	wflows := make([]ReindexDeploymentWorkflow, len(info))
+	for i, d := range info {
+		wflows[i] = ReindexDeploymentWorkflow{
+			RequestID:    reqID,
+			TenantID:     tenantID,
+			DeviceID:     d.DeviceID,
+			DeploymentID: d.DeploymentID,
+			ID:           d.ID,
+			Service:      ServiceDeployments,
+		}
+	}
+	payload, _ := json.Marshal(wflows)
+	req, err := http.NewRequestWithContext(ctx,
+		"POST",
+		c.baseURL+reindexReportingDeploymentBatchURL,
 		bytes.NewReader(payload),
 	)
 	if err != nil {

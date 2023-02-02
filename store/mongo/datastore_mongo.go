@@ -28,6 +28,7 @@ import (
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/mendersoftware/go-lib-micro/config"
+	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 
 	dconfig "github.com/mendersoftware/deployments/config"
@@ -1871,6 +1872,52 @@ func (db *DataStoreMongo) GetDeviceDeployment(ctx context.Context, deploymentID 
 	return &dd, nil
 }
 
+func (db *DataStoreMongo) GetDeviceDeployments(
+	ctx context.Context,
+	skip int,
+	limit int,
+	deviceID string,
+	active *bool,
+	includeDeleted bool,
+) ([]model.DeviceDeployment, error) {
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionDevices)
+
+	filter := bson.M{}
+	if !includeDeleted {
+		filter[StorageKeyDeviceDeploymentDeleted] = bson.D{
+			{Key: "$exists", Value: false},
+		}
+	}
+	if deviceID != "" {
+		filter[StorageKeyDeviceDeploymentDeviceId] = deviceID
+	}
+	if active != nil {
+		filter[StorageKeyDeviceDeploymentActive] = *active
+	}
+
+	opts := &mopts.FindOptions{}
+	opts.SetSort(bson.D{{Key: "created", Value: -1}})
+	if skip > 0 {
+		opts.SetSkip(int64(skip))
+	}
+	if limit > 0 {
+		opts.SetLimit(int64(limit))
+	}
+
+	var deviceDeployments []model.DeviceDeployment
+	cursor, err := collDevs.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	if err := cursor.All(ctx, &deviceDeployments); err != nil {
+		return nil, err
+	}
+
+	return deviceDeployments, nil
+}
+
 // deployments
 
 func (db *DataStoreMongo) EnsureIndexes(dbName string, collName string,
@@ -2584,4 +2631,8 @@ func (db *DataStoreMongo) UpdateDeploymentsWithArtifactName(
 
 	_, err := collDpl.UpdateMany(ctx, query, update)
 	return err
+}
+
+func (db *DataStoreMongo) GetTenantDbs() ([]string, error) {
+	return migrate.GetTenantDbs(context.Background(), db.client, mstore.IsTenantDb(DbName))
 }
