@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -1240,6 +1240,142 @@ func TestGetDeviceDeploymentsForDevice(t *testing.T) {
 				assert.Equal(t, tc.res, res)
 				assert.Nil(t, err)
 			}
+		})
+	}
+}
+
+func TestGetDeviceDeployments(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestGetDeviceDeployments in short mode.")
+	}
+
+	now := time.Now()
+	f := false
+
+	ctx := context.Background()
+	ds := NewDataStoreMongoWithClient(db.Client())
+
+	const deviceID = "d50eda0d-2cea-4de1-8d42-9cd3e7e86700"
+	const differentDeviceID = "d50eda0d-2cea-4de1-8d42-9cd3e7e86701"
+	deviceDeployments := []*model.DeviceDeployment{
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+			Created: func() *time.Time {
+				ret := now.Add(5 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusPauseBeforeInstall,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+			Active:       true,
+		},
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
+			Created: func() *time.Time {
+				ret := now.Add(4 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusSuccess,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
+			Deleted:      &now,
+		},
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86703",
+			Created: func() *time.Time {
+				ret := now.Add(3 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusSuccess,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86703",
+		},
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86704",
+			Created: func() *time.Time {
+				ret := now.Add(2 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusPending,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86704",
+			Active:       true,
+		},
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86705",
+			Created: func() *time.Time {
+				ret := now.Add(1 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusInstalling,
+			DeviceId:     differentDeviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86705",
+			Active:       true,
+		},
+	}
+	// Make sure we start test with empty database
+	db.Wipe()
+	for _, deviceDeployment := range deviceDeployments {
+		assert.NoError(t, ds.InsertDeviceDeployment(ctx, deviceDeployment, true))
+	}
+
+	testCases := map[string]struct {
+		skip           int
+		limit          int
+		deviceID       string
+		active         *bool
+		includeDeleted bool
+
+		res []model.DeviceDeployment
+	}{
+		"ok": {
+			includeDeleted: true,
+			res: []model.DeviceDeployment{
+				*deviceDeployments[0],
+				*deviceDeployments[1],
+				*deviceDeployments[2],
+				*deviceDeployments[3],
+				*deviceDeployments[4],
+			},
+		},
+		"ok, skip and limit": {
+			skip:           1,
+			limit:          2,
+			includeDeleted: true,
+			res: []model.DeviceDeployment{
+				*deviceDeployments[1],
+				*deviceDeployments[2],
+			},
+		},
+		"ok, not active, not deleted": {
+			active:         &f,
+			includeDeleted: false,
+			res: []model.DeviceDeployment{
+				*deviceDeployments[2],
+			},
+		},
+		"ok, filter by deviceID": {
+			deviceID:       differentDeviceID,
+			includeDeleted: false,
+			res: []model.DeviceDeployment{
+				*deviceDeployments[4],
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			res, err := ds.GetDeviceDeployments(
+				ctx, tc.skip, tc.limit, tc.deviceID, tc.active, tc.includeDeleted)
+			assert.NoError(t, err)
+
+			for i, _ := range res {
+				// ignore Created and Deleted fields when comparing the results
+				res[i].Created = tc.res[i].Created
+				res[i].Deleted = tc.res[i].Deleted
+			}
+			assert.Equal(t, tc.res, res)
+			assert.Nil(t, err)
 		})
 	}
 }
