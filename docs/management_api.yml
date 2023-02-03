@@ -451,7 +451,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: "#/definitions/Device"
+              $ref: "#/definitions/DeviceWithImage"
         401:
           $ref: '#/responses/UnauthorizedError'
         404:
@@ -521,7 +521,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: "#/definitions/Device"
+              $ref: "#/definitions/DeviceWithImage"
         401:
           $ref: '#/responses/UnauthorizedError'
         404:
