@@ -1104,6 +1104,10 @@ func (d *Deployments) assignArtifact(
 	); err != nil {
 		return errors.Wrap(err, "Assigning artifact to the device deployment")
 	}
+	if err := d.db.IncrementDeploymentTotalSize(
+		ctx, deviceDeployment.DeploymentId, artifact.Size); err != nil {
+		return errors.Wrap(err, "failed to increment deployment total size")
+	}
 
 	deviceDeployment.Image = artifact
 

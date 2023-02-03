@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -120,6 +120,11 @@ func (c DeploymentConstructor) ValidateNew() error {
 	return nil
 }
 
+type DeploymentStatistics struct {
+	Status    Stats `json:"status" bson:"-"`
+	TotalSize int   `json:"total_size" bson:"total_size"`
+}
+
 type Deployment struct {
 	// User provided field set
 	*DeploymentConstructor
@@ -140,6 +145,8 @@ type Deployment struct {
 	// Initialized with the "pending" counter set to total device count for deployment.
 	// Individual counter incremented/decremented according to device status updates.
 	Stats Stats `json:"-"`
+
+	Statistics DeploymentStatistics `json:"statistics,omitempty" bson:"statistics,omitempty"`
 
 	// Status is the overall deployment status
 	Status DeploymentStatus `json:"status" bson:"status"`
@@ -244,6 +251,7 @@ func (d *Deployment) MarshalJSON() ([]byte, error) {
 	if slim.Type == "" {
 		slim.Type = DeploymentTypeSoftware
 	}
+	slim.Statistics.Status = slim.Stats
 
 	return json.Marshal(&slim)
 }

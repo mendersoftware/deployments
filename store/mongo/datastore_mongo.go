@@ -417,6 +417,7 @@ const (
 	StorageKeyDeploymentDeviceCount  = "device_count"
 	StorageKeyDeploymentMaxDevices   = "max_devices"
 	StorageKeyDeploymentType         = "type"
+	StorageKeyDeploymentTotalSize    = "statistics.total_size"
 
 	StorageKeyStorageSettingsDefaultID      = "settings"
 	StorageKeyStorageSettingsBucket         = "bucket"
@@ -2274,6 +2275,28 @@ func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 		return ErrStorageInvalidID
 	}
 
+	return err
+}
+
+func (db *DataStoreMongo) IncrementDeploymentTotalSize(
+	ctx context.Context,
+	deploymentID string,
+	increment int64,
+) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collection := database.Collection(CollectionDeployments)
+
+	filter := bson.M{
+		"_id": deploymentID,
+	}
+
+	update := bson.M{
+		"$inc": bson.M{
+			StorageKeyDeploymentTotalSize: increment,
+		},
+	}
+
+	_, err := collection.UpdateOne(ctx, filter, update)
 	return err
 }
 
