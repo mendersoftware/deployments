@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -238,7 +238,7 @@ type DeviceDeployment struct {
 	Id string `json:"-" bson:"_id"`
 
 	// Assigned software image
-	Image *Image `json:"-"`
+	Image *Image `json:"image,omitempty"`
 
 	// deployments/next request from the device
 	Request *DeploymentNextRequest `json:"-"`
