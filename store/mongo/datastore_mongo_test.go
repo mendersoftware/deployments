@@ -1735,3 +1735,147 @@ func TestDeleteDeviceDeploymentsHistory(t *testing.T) {
 		})
 	}
 }
+
+func TestIncrementDeploymentTotalSize(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestIncrementDeploymentTotalSize in short mode.")
+	}
+
+	testCases := map[string]struct {
+		inputDeploymentsCollection []interface{}
+
+		artifactSize int64
+		deploymentID string
+
+		outputDeployments []*model.Deployment
+		err               error
+	}{
+		"ok": {
+			inputDeploymentsCollection: []interface{}{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "foo",
+					},
+					Id:        "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Artifacts: []string{"foo-1"},
+					Statistics: model.DeploymentStatistics{
+						TotalSize: 100,
+					},
+					Active: true,
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "bar",
+					},
+					Id:     "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Active: true,
+				},
+			},
+			artifactSize: 200,
+			deploymentID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+			outputDeployments: []*model.Deployment{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "foo",
+					},
+					Id:        "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Artifacts: []string{"foo-1"},
+					Statistics: model.DeploymentStatistics{
+						TotalSize: 300,
+					},
+					Active: true,
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "bar",
+					},
+					Id:     "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Active: true,
+				},
+			},
+		},
+		"ok, no statistics at the beginning": {
+			inputDeploymentsCollection: []interface{}{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "foo",
+					},
+					Id:        "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Artifacts: []string{"foo-1"},
+					Statistics: model.DeploymentStatistics{
+						TotalSize: 100,
+					},
+					Active: true,
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "bar",
+					},
+					Id:     "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Active: true,
+				},
+			},
+			artifactSize: 200,
+			deploymentID: "d1804903-5caa-4a73-a3ae-0efcc3205405",
+			outputDeployments: []*model.Deployment{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "foo",
+					},
+					Id:        "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+					Artifacts: []string{"foo-1"},
+					Statistics: model.DeploymentStatistics{
+						TotalSize: 100,
+					},
+					Active: true,
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "bar",
+					},
+					Id: "d1804903-5caa-4a73-a3ae-0efcc3205405",
+					Statistics: model.DeploymentStatistics{
+						TotalSize: 200,
+					},
+					Active: true,
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			// Make sure we start test with empty database
+			db.Wipe()
+
+			client := db.Client()
+			ds := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
+
+			if tc.inputDeploymentsCollection != nil {
+				_, err := collDep.InsertMany(
+					ctx, tc.inputDeploymentsCollection)
+				assert.NoError(t, err)
+			}
+
+			err := ds.IncrementDeploymentTotalSize(
+				ctx,
+				tc.deploymentID,
+				tc.artifactSize,
+			)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.NoError(t, err)
+				deployments, _, err := ds.Find(ctx, model.Query{})
+				assert.NoError(t, err)
+				assert.Equal(t, tc.outputDeployments, deployments)
+			}
+		})
+	}
+}

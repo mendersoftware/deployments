@@ -825,6 +825,20 @@ func (_m *DataStore) IncrementDeploymentDeviceCount(ctx context.Context, deploym
 	return r0
 }
 
+// IncrementDeploymentTotalSize provides a mock function with given fields: ctx, deploymentID, increment
+func (_m *DataStore) IncrementDeploymentTotalSize(ctx context.Context, deploymentID string, increment int64) error {
+	ret := _m.Called(ctx, deploymentID, increment)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int64) error); ok {
+		r0 = rf(ctx, deploymentID, increment)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // InsertDeployment provides a mock function with given fields: ctx, deployment
 func (_m *DataStore) InsertDeployment(ctx context.Context, deployment *model.Deployment) error {
 	ret := _m.Called(ctx, deployment)

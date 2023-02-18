@@ -148,6 +148,7 @@ type DataStore interface {
 	ExistByArtifactId(ctx context.Context, id string) (bool, error)
 	SetDeploymentDeviceCount(ctx context.Context, deploymentID string, count int) error
 	IncrementDeploymentDeviceCount(ctx context.Context, deploymentID string, increment int) error
+	IncrementDeploymentTotalSize(ctx context.Context, deploymentID string, increment int64) error
 	DeviceCountByDeployment(ctx context.Context, id string) (int, error)
 	UpdateDeploymentsWithArtifactName(
 		ctx context.Context,

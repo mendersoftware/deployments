@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -217,21 +217,26 @@ func TestDeploymentMarshalJSON(t *testing.T) {
 	deviceCount := 1337
 	dep.DeviceCount = &deviceCount
 	dep.Status = DeploymentStatusInProgress
+	dep.Statistics = DeploymentStatistics{
+		TotalSize: 10,
+	}
+	dep.Stats = Stats{"foo": 1}
 
 	j, err := dep.MarshalJSON()
 	assert.NoError(t, err)
 
 	// date format may be slightly different on different platforms
 	expectedJSON := `
-    {
-        "name": "Region: NYC",
-        "artifact_name": "App 123",
+	{
+		"name":"Region: NYC",
+		"artifact_name":"App 123",
         "created":"` + dep.Created.Format(time.RFC3339Nano) + `",
-        "device_count": 1337,
-        "id":"14ddec54-30be-49bf-aa6b-97ce271d71f5",
-        "status": "inprogress",
-        "type": "software"
-    }`
+		"id":"14ddec54-30be-49bf-aa6b-97ce271d71f5",
+		"statistics":{"status":{"foo":1},"total_size":10},
+		"status":"inprogress",
+		"device_count":1337,
+		"type":"software"
+	}`
 
 	assert.JSONEq(t, expectedJSON, string(j))
 }
