@@ -183,7 +183,6 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
-
   /deployments/statistics/list:
     post:
       operationId: Deployment Status Statistics List
@@ -253,9 +252,7 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
-
   /deployments/group/{name}:
-
     post:
       operationId: Create Deployment for a Group of Devices
       tags:
@@ -467,8 +464,11 @@ paths:
       security:
         - ManagementJWT: []
       summary: |
-        Get list of all devices and their respective status for the deployment
-        with the given ID.
+        Get the list of devices and their respective status for the deployment
+        with the given ID. The response includes devices as they get assigned
+        to the deployment when checking for updates. Therefore, this endpoint
+        will list all the devices only once each asks for updates and evaluates
+        this deployment.
       parameters:
         - name: deployment_id
           in: path
@@ -479,6 +479,7 @@ paths:
           in: query
           description: >-
             Filter devices by status within deployment.
+          required: false
           type: string
           enum: # Unfortunately swagger 2.0 does not support reuse of enums.
             - "failure"
@@ -497,7 +498,6 @@ paths:
             - "pause"
             - "active"
             - "finished"
-          required: false
         - name: page
           in: query
           description: Starting page.
@@ -670,6 +670,7 @@ paths:
           description: Internal server error.
           schema:
               $ref: "#/definitions/Error"
+
     delete:
       operationId: Abort Deployments for a Device
       tags:
@@ -1413,6 +1414,7 @@ paths:
           $ref: "#/responses/NotFoundError"
         500:
           $ref: "#/responses/InternalServerError"
+
   /limits/storage:
     get:
       operationId: Get Storage Usage
@@ -2032,7 +2034,6 @@ definitions:
     example:
       uri: http://mender.io/artifact.tar.gz.mender
       expire: 2016-10-29T10:45:34Z
-
   DeviceStatus:
     type: string
     enum:
@@ -2049,7 +2050,6 @@ definitions:
       - "noartifact"
       - "already-installed"
       - "decommissioned"
-
   StorageLimit:
     description: Tenant account storage limit and storage usage.
     type: object
