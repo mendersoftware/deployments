@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -197,7 +197,11 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-	).Return(nil, errors.New("error get request"))
+	).Return(nil, errors.New("error get request")).
+		On("DeleteObject",
+			h.ContextMatcher(),
+			mock.AnythingOfType("string")).
+		Return(errors.New("error!"))
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
 		Name:                  "name",
@@ -253,7 +257,11 @@ func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 		h.ContextMatcher(),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("time.Duration"),
-	).Return(nil, errors.New("error delete request"))
+	).Return(nil, errors.New("error delete request")).
+		On("DeleteObject",
+			h.ContextMatcher(),
+			mock.AnythingOfType("string")).
+		Return(errors.New("error!"))
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
 		Name:                  "name",
