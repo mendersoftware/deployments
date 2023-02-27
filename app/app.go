@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"path"
 	"reflect"
 	"strings"
 	"time"
@@ -55,6 +56,8 @@ const (
 	InventoryGroupAttributeName      = "group"
 	InventoryStatusAttributeName     = "status"
 	InventoryStatusAccepted          = "accepted"
+
+	fileSuffixTmp = ".tmp"
 )
 
 var (
@@ -386,39 +389,13 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 		return "", ErrModelMultipartUploadMsgMalformed
 	}
 
-	imgID, err := d.handleRawFile(ctx, multipartGenerateImageMsg)
+	imgPath, err := d.handleRawFile(ctx, multipartGenerateImageMsg)
 	if err != nil {
 		return "", err
 	}
-
-	multipartGenerateImageMsg.ArtifactID = imgID
 	if id := identity.FromContext(ctx); id != nil && len(id.Tenant) > 0 {
 		multipartGenerateImageMsg.TenantID = id.Tenant
 	}
-
-	ctx, err = d.contextWithStorageSettings(ctx)
-	if err != nil {
-		return "", err
-	}
-	imgPath := model.ImagePathFromContext(ctx, imgID)
-
-	link, err := d.objectStorage.GetRequest(
-		ctx,
-		imgPath,
-		imgID+model.ArtifactFileSuffix,
-		DefaultImageGenerationLinkExpire,
-	)
-	if err != nil {
-		return "", err
-	}
-	multipartGenerateImageMsg.GetArtifactURI = link.Uri
-
-	link, err = d.objectStorage.DeleteRequest(ctx, imgPath, DefaultImageGenerationLinkExpire)
-	if err != nil {
-		return "", err
-	}
-	multipartGenerateImageMsg.DeleteArtifactURI = link.Uri
-
 	err = d.workflowsClient.StartGenerateArtifact(ctx, multipartGenerateImageMsg)
 	if err != nil {
 		if cleanupErr := d.objectStorage.DeleteObject(ctx, imgPath); cleanupErr != nil {
@@ -427,7 +404,7 @@ func (d *Deployments) GenerateImage(ctx context.Context,
 		return "", err
 	}
 
-	return imgID, err
+	return multipartGenerateImageMsg.ArtifactID, err
 }
 
 func (d *Deployments) GenerateConfigurationImage(
@@ -478,12 +455,14 @@ func (d *Deployments) GenerateConfigurationImage(
 
 // handleRawFile parses raw data, uploads it to the file storage,
 // and starts the workflow to generate the artifact.
-// Returns image ID, artifact file ID and nil on success.
+// Returns the object path to the file and nil on success.
 func (d *Deployments) handleRawFile(ctx context.Context,
-	multipartMsg *model.MultipartGenerateImageMsg) (string, error) {
-
+	multipartMsg *model.MultipartGenerateImageMsg) (filePath string, err error) {
+	l := log.FromContext(ctx)
 	uid, _ := uuid.NewRandom()
 	artifactID := uid.String()
+	multipartMsg.ArtifactID = artifactID
+	filePath = model.ImagePathFromContext(ctx, artifactID+fileSuffixTmp)
 
 	// check if artifact is unique
 	// artifact is considered to be unique if there is no artifact with the same name
@@ -504,11 +483,37 @@ func (d *Deployments) handleRawFile(ctx context.Context,
 		return "", err
 	}
 	err = d.objectStorage.PutObject(
-		ctx, model.ImagePathFromContext(ctx, artifactID), multipartMsg.FileReader,
+		ctx, filePath, multipartMsg.FileReader,
 	)
 	if err != nil {
 		return "", err
 	}
+	defer func() {
+		if err != nil {
+			e := d.objectStorage.DeleteObject(ctx, filePath)
+			if e != nil {
+				l.Errorf("error cleaning up raw file '%s' from objectstorage: %s",
+					filePath, e)
+			}
+		}
+	}()
+
+	link, err := d.objectStorage.GetRequest(
+		ctx,
+		filePath,
+		path.Base(filePath),
+		DefaultImageGenerationLinkExpire,
+	)
+	if err != nil {
+		return "", err
+	}
+	multipartMsg.GetArtifactURI = link.Uri
+
+	link, err = d.objectStorage.DeleteRequest(ctx, filePath, DefaultImageGenerationLinkExpire)
+	if err != nil {
+		return "", err
+	}
+	multipartMsg.DeleteArtifactURI = link.Uri
 
 	return artifactID, nil
 }
