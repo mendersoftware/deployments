@@ -28,6 +28,7 @@ import (
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/mendersoftware/go-lib-micro/config"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 
@@ -44,6 +45,7 @@ const (
 	CollectionDeviceDeploymentLogs = "devices.logs"
 	CollectionDevices              = "devices"
 	CollectionStorageSettings      = "settings"
+	CollectionUploadIntents        = "uploads"
 )
 
 const DefaultDocumentLimit = 20
@@ -831,6 +833,17 @@ func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Image) e
 	}
 
 	return nil
+}
+
+func (db *DataStoreMongo) InsertUploadIntent(ctx context.Context, link *model.UploadLink) error {
+	collUploads := db.client.
+		Database(DatabaseName).
+		Collection(CollectionUploadIntents)
+	if idty := identity.FromContext(ctx); idty != nil {
+		link.TenantID = idty.Tenant
+	}
+	_, err := collUploads.InsertOne(ctx, link)
+	return err
 }
 
 // FindImageByID search storage for image with ID, returns nil if not found

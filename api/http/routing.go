@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mendersoftware/go-lib-micro/log"
 
 	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/store"
@@ -32,11 +33,12 @@ const (
 	ApiUrlManagement = "/api/management/v1/deployments"
 	ApiUrlDevices    = "/api/devices/v1/deployments"
 
-	ApiUrlManagementArtifacts           = ApiUrlManagement + "/artifacts"
-	ApiUrlManagementArtifactsList       = ApiUrlManagement + "/artifacts/list"
-	ApiUrlManagementArtifactsGenerate   = ApiUrlManagement + "/artifacts/generate"
-	ApiUrlManagementArtifactsId         = ApiUrlManagement + "/artifacts/#id"
-	ApiUrlManagementArtifactsIdDownload = ApiUrlManagement + "/artifacts/#id/download"
+	ApiUrlManagementArtifacts             = ApiUrlManagement + "/artifacts"
+	ApiUrlManagementArtifactsList         = ApiUrlManagement + "/artifacts/list"
+	ApiUrlManagementArtifactsGenerate     = ApiUrlManagement + "/artifacts/generate"
+	ApiUrlManagementArtifactsDirectUpload = ApiUrlManagement + "/artifacts/directupload"
+	ApiUrlManagementArtifactsId           = ApiUrlManagement + "/artifacts/#id"
+	ApiUrlManagementArtifactsIdDownload   = ApiUrlManagement + "/artifacts/#id/download"
 
 	ApiUrlManagementDeployments                   = ApiUrlManagement + "/deployments"
 	ApiUrlManagementMultipleDeploymentsStatistics = ApiUrlManagement +
@@ -94,7 +96,7 @@ func NewRouter(
 	)
 
 	// Routing
-	imageRoutes := NewImagesResourceRoutes(deploymentsHandlers)
+	imageRoutes := NewImagesResourceRoutes(deploymentsHandlers, cfg)
 	deploymentsRoutes := NewDeploymentsResourceRoutes(deploymentsHandlers)
 	limitsRoutes := NewLimitsResourceRoutes(deploymentsHandlers)
 	tenantsRoutes := TenantRoutes(deploymentsHandlers)
@@ -108,13 +110,13 @@ func NewRouter(
 	return rest.MakeRouter(restutil.AutogenOptionsRoutes(restutil.NewOptionsHandler, routes...)...)
 }
 
-func NewImagesResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
+func NewImagesResourceRoutes(controller *DeploymentsApiHandlers, cfg *Config) []*rest.Route {
 
 	if controller == nil {
 		return []*rest.Route{}
 	}
 
-	return []*rest.Route{
+	routes := []*rest.Route{
 		rest.Post(ApiUrlManagementArtifacts, controller.NewImage),
 		rest.Post(ApiUrlManagementArtifactsGenerate, controller.GenerateImage),
 		rest.Get(ApiUrlManagementArtifacts, controller.GetImages),
@@ -126,6 +128,17 @@ func NewImagesResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 
 		rest.Get(ApiUrlManagementArtifactsIdDownload, controller.DownloadLink),
 	}
+	if cfg.EnableDirectUpload {
+		log.NewEmpty().Infof(
+			"direct upload enabled: POST %s",
+			ApiUrlManagementArtifactsDirectUpload,
+		)
+		routes = append(routes, rest.Post(
+			ApiUrlManagementArtifactsDirectUpload,
+			controller.UploadLink,
+		))
+	}
+	return routes
 }
 
 func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {

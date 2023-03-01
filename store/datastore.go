@@ -55,6 +55,9 @@ type DataStore interface {
 	ImageByNameAndDeviceType(ctx context.Context,
 		name, deviceType string) (*model.Image, error)
 
+	// upload intents
+	InsertUploadIntent(ctx context.Context, link *model.UploadLink) error
+
 	//device deployment log
 	SaveDeviceDeploymentLog(ctx context.Context, log model.DeploymentLog) error
 	GetDeviceDeploymentLog(ctx context.Context,

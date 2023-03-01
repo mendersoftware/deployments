@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //	Licensed under the Apache License, Version 2.0 (the "License");
 //	you may not use this file except in compliance with the License.
@@ -133,6 +133,8 @@ type Config struct {
 	PresignScheme string
 	// MaxImageSize is the maximum image size
 	MaxImageSize int64
+
+	EnableDirectUpload bool
 }
 
 func NewConfig() *Config {
@@ -165,6 +167,11 @@ func (conf *Config) SetPresignScheme(scheme string) *Config {
 
 func (conf *Config) SetMaxImageSize(size int64) *Config {
 	conf.MaxImageSize = size
+	return conf
+}
+
+func (conf *Config) SetEnableDirectUpload(enable bool) *Config {
+	conf.EnableDirectUpload = enable
 	return conf
 }
 
@@ -201,6 +208,7 @@ func NewDeploymentsApiHandlers(
 		if c.MaxImageSize > 0 {
 			conf.MaxImageSize = c.MaxImageSize
 		}
+		conf.EnableDirectUpload = c.EnableDirectUpload
 	}
 	return &DeploymentsApiHandlers{
 		store:  store,
@@ -408,6 +416,24 @@ func (d *DeploymentsApiHandlers) DownloadLink(w rest.ResponseWriter, r *rest.Req
 
 	expireSeconds := config.Config.GetInt(dconfig.SettingsStorageDownloadExpireSeconds)
 	link, err := d.app.DownloadLink(r.Context(), id, time.Duration(expireSeconds)*time.Second)
+	if err != nil {
+		d.view.RenderInternalError(w, r, err, l)
+		return
+	}
+
+	if link == nil {
+		d.view.RenderErrorNotFound(w, r, l)
+		return
+	}
+
+	d.view.RenderSuccessGet(w, link)
+}
+
+func (d *DeploymentsApiHandlers) UploadLink(w rest.ResponseWriter, r *rest.Request) {
+	l := requestlog.GetRequestLogger(r)
+
+	expireSeconds := config.Config.GetInt(dconfig.SettingsStorageUploadExpireSeconds)
+	link, err := d.app.UploadLink(r.Context(), time.Duration(expireSeconds)*time.Second)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return

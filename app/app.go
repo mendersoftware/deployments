@@ -117,6 +117,7 @@ type App interface {
 	) ([]*model.Image, int, error)
 	DownloadLink(ctx context.Context, imageID string,
 		expire time.Duration) (*model.Link, error)
+	UploadLink(ctx context.Context, expire time.Duration) (*model.UploadLink, error)
 	GetImage(ctx context.Context, id string) (*model.Image, error)
 	DeleteImage(ctx context.Context, imageID string) error
 	CreateImage(ctx context.Context,
@@ -670,6 +671,30 @@ func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 	}
 
 	return link, nil
+}
+
+func (d *Deployments) UploadLink(
+	ctx context.Context,
+	expire time.Duration,
+) (*model.UploadLink, error) {
+
+	artifactID := uuid.New().String()
+	path := model.ImagePathFromContext(ctx, artifactID) + fileSuffixTmp
+	link, err := d.objectStorage.PutRequest(ctx, path, expire)
+	if err != nil {
+		return nil, errors.WithMessage(err, "app: failed to generate signed URL")
+	}
+	upLink := &model.UploadLink{
+		ArtifactID: artifactID,
+		IssuedAt:   time.Now(),
+		Link:       *link,
+	}
+	err = d.db.InsertUploadIntent(ctx, upLink)
+	if err != nil {
+		return nil, errors.WithMessage(err, "app: error recording the upload intent")
+	}
+
+	return upLink, err
 }
 
 func getArtifactInfo(info artifact.Info) *model.ArtifactInfo {

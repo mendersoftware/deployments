@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //	Licensed under the Apache License, Version 2.0 (the "License");
 //	you may not use this file except in compliance with the License.
@@ -45,6 +45,9 @@ const (
 	SettingStorageBucketDefault       = "mender-artifact-storage"
 	SettingStorageMaxImageSize        = SettingStorage + ".max_image_size"
 	SettingStorageMaxImageSizeDefault = 10 * 1024 * 1024 * 1024 // 10 GiB
+
+	SettingStorageEnableDirectUpload        = SettingStorage + ".enable_direct_upload"
+	SettingStorageEnableDirectUploadDefault = false
 
 	SettingsStorageDownloadExpireSeconds        = SettingStorage + ".download_expire_seconds"
 	SettingsStorageDownloadExpireSecondsDefault = 900
@@ -268,6 +271,7 @@ var (
 		{Key: SettingDefaultStorage, Value: SettingDefaultStorageDefault},
 		{Key: SettingAwsS3Region, Value: SettingAwsS3RegionDefault},
 		{Key: SettingStorageBucket, Value: SettingStorageBucketDefault},
+		{Key: SettingStorageEnableDirectUpload, Value: SettingStorageEnableDirectUploadDefault},
 		{Key: SettingAwsS3ForcePathStyle, Value: SettingAwsS3ForcePathStyleDefault},
 		{Key: SettingAwsS3UseAccelerate, Value: SettingAwsS3UseAccelerateDefault},
 		{Key: SettingStorageMaxImageSize, Value: SettingStorageMaxImageSizeDefault},

@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -162,7 +162,8 @@ func RunServer(ctx context.Context) error {
 		SetPresignExpire(time.Second * expireSec).
 		SetPresignHostname(c.GetString(dconfig.SettingPresignHost)).
 		SetPresignScheme(c.GetString(dconfig.SettingPresignScheme)).
-		SetMaxImageSize(c.GetInt64(dconfig.SettingStorageMaxImageSize))
+		SetMaxImageSize(c.GetInt64(dconfig.SettingStorageMaxImageSize)).
+		SetEnableDirectUpload(c.GetBool(dconfig.SettingStorageEnableDirectUpload))
 	if key, err := base64.RawStdEncoding.DecodeString(
 		base64Repl.Replace(
 			c.GetString(dconfig.SettingPresignSecret),
