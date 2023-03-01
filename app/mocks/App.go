@@ -715,6 +715,29 @@ func (_m *App) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID st
 	return r0
 }
 
+// UploadLink provides a mock function with given fields: ctx, expire
+func (_m *App) UploadLink(ctx context.Context, expire time.Duration) (*model.UploadLink, error) {
+	ret := _m.Called(ctx, expire)
+
+	var r0 *model.UploadLink
+	if rf, ok := ret.Get(0).(func(context.Context, time.Duration) *model.UploadLink); ok {
+		r0 = rf(ctx, expire)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.UploadLink)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, time.Duration) error); ok {
+		r1 = rf(ctx, expire)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 type mockConstructorTestingTNewApp interface {
 	mock.TestingT
 	Cleanup(func())
