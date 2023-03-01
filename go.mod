@@ -7,9 +7,9 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.6.1
 	github.com/ant0ine/go-json-rest v3.3.3-0.20170913041208-ebb33769ae01+incompatible
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
-	github.com/aws/aws-sdk-go-v2 v1.17.3
+	github.com/aws/aws-sdk-go-v2 v1.17.5
 	github.com/aws/aws-sdk-go-v2/config v1.17.10
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.29.6
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.30.5
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/google/uuid v1.3.0
 	github.com/mendersoftware/go-lib-micro v0.0.0-20220620185918-c0dd57dbb00b
@@ -26,14 +26,14 @@ require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.10 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.12.23 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.19 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.27 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.21 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.29 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.23 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.26 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.0.18 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.0.21 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.9.11 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.1.22 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.21 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.13.21 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.1.24 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.23 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.13.23 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.11.25 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.17.1 // indirect
