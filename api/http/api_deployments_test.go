@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -235,6 +235,116 @@ func TestDeploymentsPerTenantHandler(t *testing.T) {
 	}
 }
 
+func TestUploadLink(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		Name string
+
+		App func(t *testing.T) *mapp.App
+
+		StatusCode        int
+		BodyAssertionFunc func(t *testing.T, body string) bool
+	}
+	testCases := []testCase{{
+		Name: "ok",
+
+		App: func(t *testing.T) *mapp.App {
+			app := new(mapp.App)
+			expire := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+			app.On("UploadLink", contextMatcher(), mock.AnythingOfType("time.Duration")).
+				Return(&model.UploadLink{
+					ArtifactID: "00000000-0000-0000-0000-000000000000",
+					Link: model.Link{
+						Uri:    "http://localhost:8080",
+						Method: "PUT",
+						Expire: expire,
+					},
+				}, nil)
+
+			return app
+		},
+
+		StatusCode: http.StatusOK,
+		BodyAssertionFunc: func(t *testing.T, body string) bool {
+			expire := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+			expectedBody, _ := json.Marshal(model.UploadLink{
+				ArtifactID: "00000000-0000-0000-0000-000000000000",
+				Link: model.Link{
+					Uri:    "http://localhost:8080",
+					Method: "PUT",
+					Expire: expire,
+				},
+			})
+			return assert.Equal(t, string(expectedBody), body, "unexpected HTTP body")
+		},
+	}, {
+		Name: "error/generating signed URL",
+
+		App: func(t *testing.T) *mapp.App {
+			app := new(mapp.App)
+			app.On("UploadLink", contextMatcher(), mock.AnythingOfType("time.Duration")).
+				Return(nil, errors.New("error generating URL"))
+
+			return app
+		},
+
+		StatusCode: http.StatusInternalServerError,
+		BodyAssertionFunc: func(t *testing.T, body string) bool {
+			return true
+		},
+	}, {
+		Name: "error/not found",
+
+		App: func(t *testing.T) *mapp.App {
+			app := new(mapp.App)
+			app.On("UploadLink", contextMatcher(), mock.AnythingOfType("time.Duration")).
+				Return(nil, nil)
+
+			return app
+		},
+
+		StatusCode: http.StatusNotFound,
+		BodyAssertionFunc: func(t *testing.T, body string) bool {
+			return true
+		},
+	}}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			req, _ := http.NewRequest(
+				http.MethodPost,
+				"https://localhost:8443"+ApiUrlManagementArtifactsDirectUpload,
+				nil)
+			app := tc.App(t)
+			defer app.AssertExpectations(t)
+
+			conf := NewConfig().
+				SetEnableDirectUpload(true)
+			apiHandler, err := NewRouter(
+				ctx,
+				app,
+				nil,
+				conf,
+			)
+			if err != nil {
+				panic(err)
+			}
+			api := rest.NewApi()
+			api.SetApp(apiHandler)
+
+			w := httptest.NewRecorder()
+			api.MakeHandler().ServeHTTP(w, req)
+
+			assert.Equal(t, tc.StatusCode, w.Code, "Unexpected HTTP status code")
+			tc.BodyAssertionFunc(t, w.Body.String())
+		})
+	}
+}
+
 func TestPostDeployment(t *testing.T) {
 	t.Parallel()
 
@@ -459,7 +569,12 @@ func TestPostDeploymentToGroup(t *testing.T) {
 				constructor,
 			).Return("foo", tc.AppError)
 			restView := new(view.RESTView)
-			d := NewDeploymentsApiHandlers(nil, restView, app)
+			d := NewDeploymentsApiHandlers(
+				nil,
+				restView,
+				app,
+				NewConfig().SetEnableDirectUpload(true),
+			)
 			api := setUpRestTest(
 				ApiUrlManagementDeploymentsGroup,
 				rest.Post,

@@ -317,6 +317,37 @@ func TestGetReleases(t *testing.T) {
 	}
 }
 
+func TestInsertUploadIntent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestInsertUploadIntent in short mode.")
+	}
+
+	ctx := context.Background()
+	mgoClient := db.Client()
+	ds := NewDataStoreMongoWithClient(mgoClient)
+	link := &model.UploadLink{
+		Link: model.Link{
+			Expire:   time.Now().Add(time.Minute).Round(time.Second),
+			TenantID: "123456789012345678901234",
+		},
+		ArtifactID: uuid.New().String(),
+	}
+
+	err := ds.InsertUploadIntent(ctx, link)
+	if assert.NoError(t, err) {
+		// verify that record exist in database
+		var actual model.UploadLink
+		err := mgoClient.
+			Database(DatabaseName).
+			Collection(CollectionUploadIntents).
+			FindOne(ctx, bson.D{}).
+			Decode(&actual)
+		if assert.NoError(t, err, "error retrieving document from db") {
+			assert.Equal(t, link.ArtifactID, actual.ArtifactID)
+		}
+	}
+}
+
 func TestFindNewerActiveDeployments(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestFindNewerActiveDeployments in short mode.")
