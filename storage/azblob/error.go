@@ -42,6 +42,7 @@ func (err OpError) Unwrap() error {
 
 const (
 	OpHealthCheck   = "HealthCheck"
+	OpGetObject     = "GetObject"
 	OpPutObject     = "PutObject"
 	OpDeleteObject  = "DeleteObject"
 	OpStatObject    = "StatObject"
@@ -52,4 +53,5 @@ const (
 
 var (
 	ErrStorageSettings = errors.New("storage settings invalid")
+	ErrEmptyClient     = errors.New("storage client not configured")
 )

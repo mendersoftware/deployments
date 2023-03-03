@@ -222,6 +222,37 @@ func (s *SimpleStorageService) HealthCheck(ctx context.Context) error {
 	return err
 }
 
+func (s *SimpleStorageService) GetObject(
+	ctx context.Context,
+	path string,
+) (io.ReadCloser, error) {
+	bucket, opts, err := s.optionsFromContext(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	params := &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(path),
+
+		RequestPayer: types.RequestPayerRequester,
+	}
+
+	out, err := s.client.GetObject(ctx, params, opts)
+	var rspErr *awsHttp.ResponseError
+	if errors.As(err, &rspErr) {
+		if rspErr.Response.StatusCode == http.StatusNotFound {
+			err = storage.ErrObjectNotFound
+		}
+	}
+	if err != nil {
+		return nil, errors.WithMessage(
+			err,
+			"s3: failed to get object",
+		)
+	}
+	return out.Body, nil
+}
+
 // Delete removes deleted file from storage.
 // Noop if ID does not exist.
 func (s *SimpleStorageService) DeleteObject(ctx context.Context, path string) error {

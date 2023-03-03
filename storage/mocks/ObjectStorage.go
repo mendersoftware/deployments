@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -64,6 +64,29 @@ func (_m *ObjectStorage) DeleteRequest(ctx context.Context, path string, duratio
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, time.Duration) error); ok {
 		r1 = rf(ctx, path, duration)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetObject provides a mock function with given fields: ctx, path
+func (_m *ObjectStorage) GetObject(ctx context.Context, path string) (io.ReadCloser, error) {
+	ret := _m.Called(ctx, path)
+
+	var r0 io.ReadCloser
+	if rf, ok := ret.Get(0).(func(context.Context, string) io.ReadCloser); ok {
+		r0 = rf(ctx, path)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(io.ReadCloser)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, path)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -81,6 +81,14 @@ func (c *client) HealthCheck(ctx context.Context) (err error) {
 	return objStore.HealthCheck(ctx)
 }
 
+func (c *client) GetObject(ctx context.Context, path string) (io.ReadCloser, error) {
+	objStore, err := c.clientFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return objStore.GetObject(ctx, path)
+}
+
 func (c *client) PutObject(ctx context.Context, path string, src io.Reader) error {
 	objStore, err := c.clientFromContext(ctx)
 	if err != nil {

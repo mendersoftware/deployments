@@ -168,6 +168,34 @@ func (c *client) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
+func (c *client) GetObject(
+	ctx context.Context,
+	objectPath string,
+) (io.ReadCloser, error) {
+	azClient, err := c.clientFromContext(ctx)
+	if err != nil {
+		return nil, OpError{
+			Op:     OpGetObject,
+			Reason: err,
+		}
+	}
+	bc := azClient.NewBlockBlobClient(objectPath)
+	out, err := bc.DownloadStream(ctx, &blob.DownloadStreamOptions{})
+	if bloberror.HasCode(err,
+		bloberror.BlobNotFound,
+		bloberror.ContainerNotFound,
+		bloberror.ResourceNotFound) {
+		err = storage.ErrObjectNotFound
+	}
+	if err != nil {
+		return nil, OpError{
+			Op:     OpGetObject,
+			Reason: err,
+		}
+	}
+	return out.Body, nil
+}
+
 func (c *client) PutObject(
 	ctx context.Context,
 	objectPath string,
