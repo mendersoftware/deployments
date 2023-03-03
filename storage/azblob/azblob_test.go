@@ -18,16 +18,20 @@ import (
 	"context"
 	"flag"
 	"io"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/uuid"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
@@ -320,6 +324,140 @@ func TestKeyFromConnectionString(t *testing.T) {
 				assert.NoError(t, err)
 				expected, _ := azblob.NewSharedKeyCredential(tc.AccountName, tc.AccountKey)
 				assert.Equal(t, expected, key)
+			}
+		})
+	}
+}
+
+func newTestStorageAndServer(handler http.Handler) (*client, *httptest.Server) {
+	srv := httptest.NewServer(handler)
+	contentType := "application/vnd-test"
+	var d net.Dialer
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return d.DialContext(
+					ctx,
+					srv.Listener.Addr().Network(),
+					srv.Listener.Addr().String(),
+				)
+			},
+			DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return d.DialContext(
+					ctx,
+					srv.Listener.Addr().Network(),
+					srv.Listener.Addr().String(),
+				)
+			},
+		},
+	}
+
+	creds := SharedKeyCredentials{
+		AccountName: "test",
+		AccountKey:  "test",
+	}
+	url, cred, _ := creds.azParams("container")
+	cc, err := container.NewClientWithSharedKeyCredential(
+		url, cred, &container.ClientOptions{
+			ClientOptions: azcore.ClientOptions{
+				Transport: httpClient,
+			},
+		},
+	)
+	if err != nil {
+		srv.Close()
+		panic(err)
+	}
+
+	return &client{
+		DefaultClient: cc,
+		credentials:   cred,
+
+		contentType: &contentType,
+		bufferSize:  BufferSizeDefault,
+	}, srv
+}
+
+func TestGetObject(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		Name string
+
+		CTX        context.Context
+		ObjectPath string
+
+		Handler func(t *testing.T) http.HandlerFunc
+		Body    []byte
+		Error   assert.ErrorAssertionFunc
+	}
+
+	testCases := []testCase{{
+		Name: "ok",
+
+		ObjectPath: "foo/bar",
+		Handler: func(t *testing.T) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "/container/foo/bar", r.URL.Path)
+
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("imagine artifacts"))
+			}
+		},
+		Body: []byte("imagine artifacts"),
+	}, {
+		Name: "error/object not found",
+
+		ObjectPath: "foo/bar",
+		Handler: func(t *testing.T) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "/container/foo/bar", r.URL.Path)
+
+				w.WriteHeader(http.StatusNotFound)
+			}
+		},
+		Error: func(t assert.TestingT, err error, _ ...interface{}) bool {
+			return assert.Error(t, err)
+		},
+	}, {
+		Name: "error/invalid settings from context",
+
+		CTX: storage.SettingsWithContext(
+			context.Background(),
+			&model.StorageSettings{},
+		),
+		ObjectPath: "foo/bar",
+		Handler: func(t *testing.T) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				assert.FailNow(t, "the test was not supposed to make a request")
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+		},
+		Error: func(t assert.TestingT, err error, _ ...interface{}) bool {
+			var verr validation.Errors
+			return assert.Error(t, err) &&
+				assert.ErrorAs(t, err, &verr)
+		},
+	}}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+
+			azClient, srv := newTestStorageAndServer(tc.Handler(t))
+			defer srv.Close()
+			ctx := tc.CTX
+			if ctx == nil {
+				ctx = context.Background()
+			}
+			obj, err := azClient.GetObject(ctx, tc.ObjectPath)
+			if tc.Error != nil {
+				tc.Error(t, err)
+			} else if assert.NoError(t, err) {
+				b, _ := io.ReadAll(obj)
+				obj.Close()
+				assert.Equal(t, tc.Body, b)
 			}
 		})
 	}
