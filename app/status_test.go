@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -126,8 +126,17 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 			Devices:      []string{devType},
 		},
 	)
-	fakeDeployment.MaxDevices = 1
 	assert.NoError(t, err)
+	fakeDeployment.MaxDevices = 1
+
+	fakeImage := &model.Image{
+		ArtifactMeta: &model.ArtifactMeta{
+			Name:           depArtifact,
+			Provides:       map[string]string{"bar": "baz"},
+			ClearsProvides: []string{"foo"},
+		},
+		Size: 5,
+	}
 
 	fakeDeviceDeployment := model.NewDeviceDeployment(
 		devId, fakeDeployment.Id)
@@ -178,6 +187,14 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 	db.On("SaveDeviceDeploymentRequest", ctx,
 		mock.AnythingOfType("string"),
 		request).Return(nil)
+
+	db.On("ImageByNameAndDeviceType", ctx, depArtifact, devType).Return(
+		fakeImage, nil)
+
+	db.On("AssignArtifact", ctx,
+		fakeDeviceDeployment.DeviceId,
+		fakeDeviceDeployment.DeploymentId,
+		fakeImage).Return(nil)
 
 	ds := NewDeployments(&db, fs)
 
