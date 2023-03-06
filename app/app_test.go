@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -414,6 +415,118 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 		})
 	}
 
+}
+
+func TestUploadLink(t *testing.T) {
+	t.Parallel()
+
+	regexMatcher := func(pattern string) interface{} {
+		return mock.MatchedBy(func(value string) bool {
+			return assert.Regexp(t, pattern, value)
+		})
+	}
+
+	link := &model.Link{
+		Uri:    "http://localhost:8080",
+		Method: "PUT",
+		Expire: time.Now().Add(time.Hour),
+	}
+	matchUpLink := mock.MatchedBy(func(value *model.UploadLink) bool {
+		return assert.Equal(t, *link, value.Link)
+	})
+
+	t.Run("ok", func(t *testing.T) {
+		ctx := context.Background()
+		objStore := new(fs_mocks.ObjectStorage)
+		ds := new(mocks.DataStore)
+		deploy := NewDeployments(ds, objStore)
+		objStore.On("PutRequest",
+			ctx,
+			regexMatcher(`^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}\`+
+				fileSuffixTmp),
+			time.Minute,
+		).Return(link, nil)
+
+		ds.On("InsertUploadIntent", ctx, matchUpLink).
+			Return(nil)
+		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		assert.NoError(t, err)
+		assert.NotNil(t, upLink)
+		objStore.AssertExpectations(t)
+		ds.AssertExpectations(t)
+	})
+
+	t.Run("ok/multi-tenancy", func(t *testing.T) {
+		ctx := identity.WithContext(context.Background(), &identity.Identity{
+			Tenant: "123456789012345678901234",
+		})
+		objStore := new(fs_mocks.ObjectStorage)
+		ds := new(mocks.DataStore)
+		deploy := NewDeployments(ds, objStore)
+		objStore.On("PutRequest",
+			ctx,
+			regexMatcher(`^123456789012345678901234/`+
+				`[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}\`+
+				fileSuffixTmp),
+			time.Minute,
+		).Return(link, nil)
+
+		ds.On("InsertUploadIntent", ctx, matchUpLink).
+			Return(nil)
+		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		assert.NoError(t, err)
+		assert.NotNil(t, upLink)
+		objStore.AssertExpectations(t)
+		ds.AssertExpectations(t)
+	})
+
+	t.Run("error/signing request", func(t *testing.T) {
+		ctx := identity.WithContext(context.Background(), &identity.Identity{
+			Tenant: "123456789012345678901234",
+		})
+		objStore := new(fs_mocks.ObjectStorage)
+		ds := new(mocks.DataStore)
+		deploy := NewDeployments(ds, objStore)
+		errInternal := errors.New("internal error")
+		objStore.On("PutRequest",
+			ctx,
+			regexMatcher(`^123456789012345678901234/`+
+				`[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}\`+
+				fileSuffixTmp),
+			time.Minute,
+		).Return(nil, errInternal)
+
+		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		assert.ErrorIs(t, err, errInternal)
+		assert.Nil(t, upLink)
+		objStore.AssertExpectations(t)
+		ds.AssertExpectations(t)
+	})
+
+	t.Run("error/recording upload intent", func(t *testing.T) {
+		ctx := identity.WithContext(context.Background(), &identity.Identity{
+			Tenant: "123456789012345678901234",
+		})
+		objStore := new(fs_mocks.ObjectStorage)
+		ds := new(mocks.DataStore)
+		deploy := NewDeployments(ds, objStore)
+		errInternal := errors.New("internal error")
+		objStore.On("PutRequest",
+			ctx,
+			regexMatcher(`^123456789012345678901234/`+
+				`[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}\`+
+				fileSuffixTmp),
+			time.Minute,
+		).Return(link, nil)
+
+		ds.On("InsertUploadIntent", ctx, matchUpLink).
+			Return(errInternal)
+		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		assert.ErrorIs(t, err, errInternal)
+		assert.Nil(t, upLink)
+		objStore.AssertExpectations(t)
+		ds.AssertExpectations(t)
+	})
 }
 
 func TestCreateDeviceConfigurationDeployment(t *testing.T) {

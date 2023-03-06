@@ -114,6 +114,13 @@ storage:
     # Override with environment variable: DEPLOYMENTS_STORAGE_UPLOAD_EXPIRE_SECONDS
     # upload_expire_seconds: 3600
 
+    # Direct upload feature flag
+    # Enables functionality to request direct upload links to the object
+    # storage backend for optimizing data transfer. This feature is disabled
+    # by default.
+    # Overwrite with environment variable: DEPLOYMENTS_STORAGE_ENABLE_DIRECT_UPLOAD
+    # enable_direct_upload: false
+
 
 # AWS configuration section
 aws:

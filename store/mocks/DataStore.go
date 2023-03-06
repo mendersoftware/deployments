@@ -902,6 +902,20 @@ func (_m *DataStore) InsertMany(ctx context.Context, deployment ...*model.Device
 	return r0
 }
 
+// InsertUploadIntent provides a mock function with given fields: ctx, link
+func (_m *DataStore) InsertUploadIntent(ctx context.Context, link *model.UploadLink) error {
+	ret := _m.Called(ctx, link)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *model.UploadLink) error); ok {
+		r0 = rf(ctx, link)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // IsArtifactUnique provides a mock function with given fields: ctx, artifactName, deviceTypesCompatible
 func (_m *DataStore) IsArtifactUnique(ctx context.Context, artifactName string, deviceTypesCompatible []string) (bool, error) {
 	ret := _m.Called(ctx, artifactName, deviceTypesCompatible)

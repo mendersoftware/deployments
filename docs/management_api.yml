@@ -1183,6 +1183,30 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /artifacts/directupload:
+    post:
+      operationId: Request Direct Upload
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: Request link for uploading artifact directly to the storage backend
+      produces:
+        - application/json
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              $ref: "#/definitions/ArtifactUploadLink"
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: '#/responses/UnauthorizedError'
+        500:
+          $ref: "#/responses/InternalServerError"
+
   /artifacts/generate:
     post:
       operationId: Generate Artifact
@@ -2034,6 +2058,30 @@ definitions:
     example:
       uri: http://mender.io/artifact.tar.gz.mender
       expire: 2016-10-29T10:45:34Z
+
+  ArtifactUploadLink:
+    description: URL for artifact file upload.
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The ID of the artifact upload intent.
+      uri:
+        type: string
+      expire:
+        type: string
+        format: date-time
+    required:
+      - id
+      - uri
+      - expire
+    example:
+      id: 07d2e773-a2a3-4f64-936a-4245e79194dd
+      uri: >-
+        https://hosted-mender-artifacts.s3.amazonaws.com/1234/40df67c4-e5e9-4042-981a-f43adebd5b88?X-Amz-Date=20230401T000000Z&X-Amz-Expires=900&X-Amz-Signature=6d656e646572
+      expire: 2023-04-01T00:15:00Z
+
   DeviceStatus:
     type: string
     enum:
