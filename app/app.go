@@ -1335,6 +1335,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 			l := log.FromContext(ctx)
 			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 		}
+		var newArtifactAssigned bool
 
 		return nil, nil
 	}
@@ -1361,13 +1362,34 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 			ctx, deployment, deviceDeployment, request.DeviceProvides); err != nil {
 			return nil, err
 		}
+		newArtifactAssigned = true
 	}
 
 	if deviceDeployment.Image == nil {
 		return nil, nil
 	}
 
-	ctx, err = d.contextWithStorageSettings(ctx)
+	// if the deployment is not forcing the installation, and
+	// if artifact was recognized as already installed, and this is
+	// a new device deployment - indicated by device deployment status "pending",
+	// handle already installed artifact case
+	if !deployment.ForceInstallation &&
+		d.isAlreadyInstalled(request, deviceDeployment) &&
+		deviceDeployment.Status == model.DeviceDeploymentStatusPending {
+		return nil, d.handleAlreadyInstalled(ctx, deviceDeployment)
+	}
+
+	// if new artifact has been assigned to device deployment
+	// add artifact size to deployment total size,
+	// before returning deployment instruction to the device
+	if newArtifactAssigned {
+		if err := d.db.IncrementDeploymentTotalSize(
+			ctx, deviceDeployment.DeploymentId, deviceDeployment.Image.Size); err != nil {
+			l.Errorf("failed to increment deployment total size: %s", err.Error())
+		}
+	}
+
+	ctx, err := d.contextWithStorageSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
