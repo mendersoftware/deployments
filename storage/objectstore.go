@@ -53,3 +53,9 @@ type ObjectInfo struct {
 
 	LastModified *time.Time
 }
+
+type ObjectReader interface {
+	io.ReadCloser
+
+	Length() int64
+}

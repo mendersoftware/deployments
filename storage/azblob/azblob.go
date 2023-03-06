@@ -172,6 +172,15 @@ func (c *client) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
+type objectReader struct {
+	io.ReadCloser
+	length int64
+}
+
+func (r objectReader) Length() int64 {
+	return r.length
+}
+
 func (c *client) GetObject(
 	ctx context.Context,
 	objectPath string,
@@ -196,6 +205,12 @@ func (c *client) GetObject(
 			Op:     OpGetObject,
 			Reason: err,
 		}
+	}
+	if out.ContentLength != nil {
+		return objectReader{
+			ReadCloser: out.Body,
+			length:     *out.ContentLength,
+		}, nil
 	}
 	return out.Body, nil
 }

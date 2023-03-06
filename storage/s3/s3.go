@@ -222,6 +222,15 @@ func (s *SimpleStorageService) HealthCheck(ctx context.Context) error {
 	return err
 }
 
+type objectReader struct {
+	io.ReadCloser
+	length int64
+}
+
+func (obj objectReader) Length() int64 {
+	return obj.length
+}
+
 func (s *SimpleStorageService) GetObject(
 	ctx context.Context,
 	path string,
@@ -250,7 +259,10 @@ func (s *SimpleStorageService) GetObject(
 			"s3: failed to get object",
 		)
 	}
-	return out.Body, nil
+	return objectReader{
+		ReadCloser: out.Body,
+		length:     out.ContentLength,
+	}, nil
 }
 
 // Delete removes deleted file from storage.
@@ -459,11 +471,28 @@ func (s *SimpleStorageService) PutObject(
 	path string,
 	src io.Reader,
 ) error {
-	buf := make([]byte, s.bufferSize)
-	n, err := fillBuffer(buf, src)
+	var (
+		r   io.Reader
+		l   int64
+		n   int
+		err error
+		buf []byte
+	)
+	if objReader, ok := src.(storage.ObjectReader); ok {
+		r = objReader
+		l = objReader.Length()
+	} else {
+		// Peek payload
+		buf = make([]byte, s.bufferSize)
+		n, err = fillBuffer(buf, src)
+		if err == io.EOF {
+			r = bytes.NewReader(buf[:n])
+			l = int64(n)
+		}
+	}
 
 	// If only one part, use PutObject API.
-	if err == io.EOF {
+	if r != nil {
 		var (
 			bucket string
 			opts   func(*s3.Options)
@@ -474,10 +503,11 @@ func (s *SimpleStorageService) PutObject(
 		}
 		// Ordinary single-file upload
 		uploadParams := &s3.PutObjectInput{
-			Body:        bytes.NewReader(buf[:n]),
-			Bucket:      &bucket,
-			Key:         &path,
-			ContentType: s.contentType,
+			Body:          r,
+			Bucket:        &bucket,
+			Key:           &path,
+			ContentType:   s.contentType,
+			ContentLength: l,
 		}
 		_, err = s.client.PutObject(
 			ctx,
