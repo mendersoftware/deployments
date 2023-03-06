@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/smithy-go"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
@@ -151,9 +150,7 @@ func TestGetObject(t *testing.T) {
 			}
 		},
 		Error: func(t assert.TestingT, err error, _ ...interface{}) bool {
-			var apiErr smithy.APIError
-			t1 := assert.ErrorAs(t, err, &apiErr)
-			return t1 && assert.Equal(t, "NotFound", apiErr.ErrorCode())
+			return assert.ErrorIs(t, err, storage.ErrObjectNotFound)
 		},
 	}, {
 		Name: "error/invalid settings from context",

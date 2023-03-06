@@ -26,6 +26,31 @@ type ReadCounter interface {
 	Count() int64
 }
 
+func CountReads(r io.Reader) ReadCounter {
+	if rc, ok := r.(ReadCounter); ok {
+		return rc
+	}
+	return &readCounter{
+		R: r,
+		N: 0,
+	}
+}
+
+type readCounter struct {
+	R io.Reader
+	N int64
+}
+
+func (rc *readCounter) Read(b []byte) (int, error) {
+	n, err := rc.R.Read(b)
+	rc.N += int64(n)
+	return n, err
+}
+
+func (rc readCounter) Count() int64 {
+	return rc.N
+}
+
 type limitedReader struct {
 	R       io.Reader // underlying reader
 	N       int64     // bytes read

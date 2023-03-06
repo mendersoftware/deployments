@@ -41,6 +41,7 @@ import (
 	"github.com/mendersoftware/deployments/storage"
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mongo"
+	"github.com/mendersoftware/deployments/utils"
 )
 
 const (
@@ -293,7 +294,9 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// create pipe
 	pR, pW := io.Pipe()
 
-	tee := io.TeeReader(multipartUploadMsg.ArtifactReader, pW)
+	artifactReader := utils.CountReads(multipartUploadMsg.ArtifactReader)
+
+	tee := io.TeeReader(artifactReader, pW)
 
 	uid, err := uuid.Parse(multipartUploadMsg.ArtifactID)
 	if err != nil {
@@ -355,7 +358,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		artifactID,
 		multipartUploadMsg.MetaConstructor,
 		metaArtifactConstructor,
-		multipartUploadMsg.ArtifactReader.Count(),
+		artifactReader.Count(),
 	)
 
 	// save image structure in the system

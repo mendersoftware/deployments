@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ type ObjectInfo struct {
 }
 
 type ObjectReader interface {
-	io.ReadCloser
+	io.Reader
 
 	Length() int64
 }
