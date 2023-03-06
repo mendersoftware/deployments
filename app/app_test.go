@@ -447,8 +447,12 @@ func TestUploadLink(t *testing.T) {
 			time.Minute,
 		).Return(link, nil)
 
-		ds.On("InsertUploadIntent", ctx, matchUpLink).
-			Return(nil)
+		ds.On("GetStorageSettings", ctx).
+			Return(nil, nil).
+			Once().
+			On("InsertUploadIntent", ctx, matchUpLink).
+			Return(nil).
+			Once()
 		upLink, err := deploy.UploadLink(ctx, time.Minute)
 		assert.NoError(t, err)
 		assert.NotNil(t, upLink)
@@ -471,8 +475,12 @@ func TestUploadLink(t *testing.T) {
 			time.Minute,
 		).Return(link, nil)
 
-		ds.On("InsertUploadIntent", ctx, matchUpLink).
-			Return(nil)
+		ds.On("GetStorageSettings", ctx).
+			Return(nil, nil).
+			Once().
+			On("InsertUploadIntent", ctx, matchUpLink).
+			Return(nil).
+			Once()
 		upLink, err := deploy.UploadLink(ctx, time.Minute)
 		assert.NoError(t, err)
 		assert.NotNil(t, upLink)
@@ -488,6 +496,9 @@ func TestUploadLink(t *testing.T) {
 		ds := new(mocks.DataStore)
 		deploy := NewDeployments(ds, objStore)
 		errInternal := errors.New("internal error")
+		ds.On("GetStorageSettings", ctx).
+			Return(nil, nil).
+			Once()
 		objStore.On("PutRequest",
 			ctx,
 			regexMatcher(`^123456789012345678901234/`+
@@ -519,8 +530,29 @@ func TestUploadLink(t *testing.T) {
 			time.Minute,
 		).Return(link, nil)
 
-		ds.On("InsertUploadIntent", ctx, matchUpLink).
-			Return(errInternal)
+		ds.On("GetStorageSettings", ctx).
+			Return(nil, nil).
+			Once().
+			On("InsertUploadIntent", ctx, matchUpLink).
+			Return(errInternal).
+			Once()
+		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		assert.ErrorIs(t, err, errInternal)
+		assert.Nil(t, upLink)
+		objStore.AssertExpectations(t)
+		ds.AssertExpectations(t)
+	})
+	t.Run("error/getting storage settings", func(t *testing.T) {
+		ctx := identity.WithContext(context.Background(), &identity.Identity{
+			Tenant: "123456789012345678901234",
+		})
+		objStore := new(fs_mocks.ObjectStorage)
+		ds := new(mocks.DataStore)
+		deploy := NewDeployments(ds, objStore)
+		errInternal := errors.New("internal error")
+		ds.On("GetStorageSettings", ctx).
+			Return(nil, errInternal).
+			Once()
 		upLink, err := deploy.UploadLink(ctx, time.Minute)
 		assert.ErrorIs(t, err, errInternal)
 		assert.Nil(t, upLink)

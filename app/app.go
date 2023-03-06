@@ -242,6 +242,8 @@ func (d *Deployments) contextWithStorageSettings(
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		return ctx, nil
 	}
 	return storage.SettingsWithContext(ctx, settings), nil
 }
@@ -677,6 +679,10 @@ func (d *Deployments) UploadLink(
 	ctx context.Context,
 	expire time.Duration,
 ) (*model.UploadLink, error) {
+	ctx, err := d.contextWithStorageSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	artifactID := uuid.New().String()
 	path := model.ImagePathFromContext(ctx, artifactID) + fileSuffixTmp
