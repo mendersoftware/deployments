@@ -1058,92 +1058,6 @@ func (d *Deployments) ImageUsedInDeployment(ctx context.Context, imageID string)
 	return found, nil
 }
 
-// assignArtifact assigns artifact to the device deployment
-func (d *Deployments) assignArtifact(
-	ctx context.Context,
-	deployment *model.Deployment,
-	deviceDeployment *model.DeviceDeployment,
-	installed *model.InstalledDeviceDeployment) error {
-
-	// Assign artifact to the device deployment.
-	var artifact *model.Image
-	var err error
-
-	if err = installed.Validate(); err != nil {
-		return err
-	}
-
-	if deviceDeployment.DeploymentId == "" || deviceDeployment.DeviceId == "" {
-		return ErrModelInternal
-	}
-
-	// Clear device deployment image
-	// New artifact will be selected for the device deployment
-	deviceDeployment.Image = nil
-
-	// First case is for backward compatibility.
-	// It is possible that there is old deployment structure in the system.
-	// In such case we need to select artifact using name and device type.
-	if deployment.Artifacts == nil || len(deployment.Artifacts) == 0 {
-		artifact, err = d.db.ImageByNameAndDeviceType(
-			ctx,
-			installed.ArtifactName,
-			installed.DeviceType,
-		)
-		if err != nil {
-			return errors.Wrap(err, "assigning artifact to device deployment")
-		}
-	} else {
-		// Select artifact for the device deployment from artifacts assigned to the deployment.
-		artifact, err = d.db.ImageByIdsAndDeviceType(
-			ctx,
-			deployment.Artifacts,
-			installed.DeviceType,
-		)
-		if err != nil {
-			return errors.Wrap(err, "assigning artifact to device deployment")
-		}
-	}
-
-	// If not having appropriate image, set noartifact status
-	if artifact == nil {
-		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId,
-			deviceDeployment.DeviceId,
-			model.DeviceDeploymentState{
-				Status: model.DeviceDeploymentStatusNoArtifact,
-			}); err != nil {
-			return errors.Wrap(err, "Failed to update deployment status")
-		}
-		if err := d.reindexDevice(ctx, deviceDeployment.DeviceId); err != nil {
-			l := log.FromContext(ctx)
-			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
-		}
-		if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
-			deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
-			l := log.FromContext(ctx)
-			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
-		}
-		return nil
-	}
-
-	if err := d.db.AssignArtifact(
-		ctx,
-		deviceDeployment.DeviceId,
-		deviceDeployment.DeploymentId,
-		artifact,
-	); err != nil {
-		return errors.Wrap(err, "Assigning artifact to the device deployment")
-	}
-	if err := d.db.IncrementDeploymentTotalSize(
-		ctx, deviceDeployment.DeploymentId, artifact.Size); err != nil {
-		return errors.Wrap(err, "failed to increment deployment total size")
-	}
-
-	deviceDeployment.Image = artifact
-
-	return nil
-}
-
 // Retrieves the model.Deployment and model.DeviceDeployment structures
 // for the device. Upon error, nil is returned for both deployment structures.
 func (d *Deployments) getDeploymentForDevice(ctx context.Context,
@@ -1309,35 +1223,19 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 	if err != nil {
 		return nil, err
 	}
+	return d.getDeploymentInstructions(ctx, deployment, deviceDeployment, request)
+}
 
-	// if the deployment is not forcing the installation, and if the device
-	// reported same artifact name as the one in the device deployment, and this is
-	// a new device deployment - indicated by device deployment status "pending",
-	// pretend there is no deployment for this device, but update
-	// its status to already installed first
-	if !deployment.ForceInstallation &&
-		request.DeviceProvides.ArtifactName != "" &&
-		deployment.ArtifactName == request.DeviceProvides.ArtifactName &&
-		deviceDeployment.Status == model.DeviceDeploymentStatusPending {
+func (d *Deployments) getDeploymentInstructions(
+	ctx context.Context,
+	deployment *model.Deployment,
+	deviceDeployment *model.DeviceDeployment,
+	request *model.DeploymentNextRequest,
+) (*model.DeploymentInstructions, error) {
 
-		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
-			model.DeviceDeploymentState{
-				Status: model.DeviceDeploymentStatusAlreadyInst,
-			}); err != nil {
-			return nil, errors.Wrap(err, "Failed to update deployment status")
-		}
-		if err := d.reindexDevice(ctx, deviceDeployment.DeviceId); err != nil {
-			l := log.FromContext(ctx)
-			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
-		}
-		if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
-			deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
-			l := log.FromContext(ctx)
-			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
-		}
+	var newArtifactAssigned bool
 
-		return nil, nil
-	}
+	l := log.FromContext(ctx)
 
 	if deployment.Type == model.DeploymentTypeConfiguration {
 		// There's nothing more we need to do, the link must be filled
@@ -1347,7 +1245,7 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 			Artifact: model.ArtifactDeploymentInstructions{
 				// configuration artifacts are created on demand, so they do not have IDs
 				// use deployment ID togheter with device ID as artifact ID
-				ID:                    deployment.Id + deviceID,
+				ID:                    deployment.Id + deviceDeployment.DeviceId,
 				ArtifactName:          deployment.ArtifactName,
 				DeviceTypesCompatible: []string{request.DeviceProvides.DeviceType},
 			},
@@ -1355,19 +1253,42 @@ func (d *Deployments) GetDeploymentForDeviceWithCurrent(ctx context.Context, dev
 		}, nil
 	}
 
-	// assign artifact only if the artifact was not assigned previously
+	// assing artifact to the device deployment
+	// only if it was not assgined previously
 	if deviceDeployment.Image == nil {
 		if err := d.assignArtifact(
 			ctx, deployment, deviceDeployment, request.DeviceProvides); err != nil {
 			return nil, err
 		}
+		newArtifactAssigned = true
 	}
 
 	if deviceDeployment.Image == nil {
+		// No artifact - return empty response
 		return nil, nil
 	}
 
-	ctx, err = d.contextWithStorageSettings(ctx)
+	// if the deployment is not forcing the installation, and
+	// if artifact was recognized as already installed, and this is
+	// a new device deployment - indicated by device deployment status "pending",
+	// handle already installed artifact case
+	if !deployment.ForceInstallation &&
+		d.isAlreadyInstalled(request, deviceDeployment) &&
+		deviceDeployment.Status == model.DeviceDeploymentStatusPending {
+		return nil, d.handleAlreadyInstalled(ctx, deviceDeployment)
+	}
+
+	// if new artifact has been assigned to device deployment
+	// add artifact size to deployment total size,
+	// before returning deployment instruction to the device
+	if newArtifactAssigned {
+		if err := d.db.IncrementDeploymentTotalSize(
+			ctx, deviceDeployment.DeploymentId, deviceDeployment.Image.Size); err != nil {
+			l.Errorf("failed to increment deployment total size: %s", err.Error())
+		}
+	}
+
+	ctx, err := d.contextWithStorageSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
