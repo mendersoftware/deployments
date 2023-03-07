@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -54,6 +54,10 @@ var defaultProdStack = []rest.Middleware{
 	&rest.RecoverMiddleware{},
 }
 
+var regexInternalArtifacts = regexp.MustCompile(
+	"^" + api_http.ApiUrlInternal + "/tenants/([0-9a-f-]+)/artifacts",
+)
+
 func SetupMiddleware(c config.Reader, api *rest.Api) {
 
 	api.Use(commonLoggingAccessStack...)
@@ -75,17 +79,14 @@ func SetupMiddleware(c config.Reader, api *rest.Api) {
 	// For the rest of the requests expected Content-Type is 'application/json'.
 	api.Use(&rest.IfMiddleware{
 		Condition: func(r *rest.Request) bool {
-			if r.URL.Path == api_http.ApiUrlManagementArtifacts && r.Method == http.MethodPost ||
-				r.URL.Path == api_http.ApiUrlManagementArtifactsGenerate &&
-					r.Method == http.MethodPost {
-				return true
-			} else if match, _ := regexp.MatchString(
-				api_http.ApiUrlInternal+"/tenants/([a-z0-9]+)/artifacts", r.URL.Path); match &&
-				r.Method == http.MethodPost {
-				return true
-			} else {
-				return false
+			if r.Method == http.MethodPost {
+				if r.URL.Path == api_http.ApiUrlManagementArtifacts ||
+					r.URL.Path == api_http.ApiUrlManagementArtifactsGenerate ||
+					regexInternalArtifacts.MatchString(r.URL.Path) {
+					return true
+				}
 			}
+			return false
 		},
 		IfTrue: rest.MiddlewareSimple(func(handler rest.HandlerFunc) rest.HandlerFunc {
 			return func(w rest.ResponseWriter, r *rest.Request) {
