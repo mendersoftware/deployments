@@ -95,6 +95,7 @@ const (
 // Errors
 var (
 	ErrIDNotUUID                      = errors.New("ID is not a valid UUID")
+	ErrEmptyID                        = errors.New("id: cannot be blank")
 	ErrArtifactUsedInActiveDeployment = errors.New("Artifact is used in active deployment")
 	ErrInvalidExpireParam             = errors.New("Invalid expire parameter")
 	ErrArtifactNameMissing            = errors.New(
@@ -1741,16 +1742,12 @@ func (d *DeploymentsApiHandlers) listDeviceDeployments(ctx context.Context,
 	var IDs []string
 	if byDeviceID {
 		did = r.PathParam("id")
-		if !govalidator.IsUUID(did) {
-			d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
-			return
-		}
 	} else {
 		values := r.URL.Query()
 		if values.Has("id") && len(values["id"]) > 0 {
 			IDs = values["id"]
 		} else {
-			d.view.RenderError(w, r, errors.New("id: cannot be blank"), http.StatusBadRequest, l)
+			d.view.RenderError(w, r, ErrEmptyID, http.StatusBadRequest, l)
 			return
 		}
 	}
