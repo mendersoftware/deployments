@@ -2072,11 +2072,6 @@ func TestListDeviceDeployments(t *testing.T) {
 			limit:        MaximumPerPageListDeviceDeployments + 1,
 			responseCode: http.StatusBadRequest,
 		},
-		"ko, wrong device ID": {
-			deviceID:     "dummy",
-			responseCode: http.StatusBadRequest,
-			err:          errors.New("error"),
-		},
 		"ko, wrong limit": {
 			deviceID:     deviceID,
 			limit:        -10,
@@ -2217,11 +2212,6 @@ func TestListDeviceDeploymentsInternal(t *testing.T) {
 			deviceID:     deviceID,
 			limit:        MaximumPerPageListDeviceDeployments + 1,
 			responseCode: http.StatusBadRequest,
-		},
-		"ko, wrong device ID": {
-			deviceID:     "dummy",
-			responseCode: http.StatusBadRequest,
-			err:          errors.New("error"),
 		},
 		"ok, wrong limit": {
 			deviceID:     deviceID,

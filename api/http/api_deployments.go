@@ -1741,10 +1741,6 @@ func (d *DeploymentsApiHandlers) listDeviceDeployments(ctx context.Context,
 	var IDs []string
 	if byDeviceID {
 		did = r.PathParam("id")
-		if !govalidator.IsUUID(did) {
-			d.view.RenderError(w, r, ErrIDNotUUID, http.StatusBadRequest, l)
-			return
-		}
 	} else {
 		values := r.URL.Query()
 		if values.Has("id") && len(values["id"]) > 0 {
