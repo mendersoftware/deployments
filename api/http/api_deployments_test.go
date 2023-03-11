@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -1911,6 +1911,20 @@ func TestListDeviceDeployments(t *testing.T) {
 			},
 			count: 1,
 		},
+		"ok, device ID not UUID": {
+			deviceID: "foo",
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: "foo",
+				Limit:    DefaultPerPage,
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
 		"ok, no records": {
 			deviceID: deviceID,
 			query: &store.ListQueryDeviceDeployments{
@@ -1957,9 +1971,9 @@ func TestListDeviceDeployments(t *testing.T) {
 			limit:        MaximumPerPageListDeviceDeployments + 1,
 			responseCode: http.StatusBadRequest,
 		},
-		"ko, wrong device ID": {
-			deviceID:     "dummy",
-			responseCode: http.StatusBadRequest,
+		"ko, empty device ID": {
+			deviceID:     "",
+			responseCode: http.StatusNotFound,
 			err:          errors.New("error"),
 		},
 		"ko, wrong limit": {
@@ -2057,6 +2071,20 @@ func TestListDeviceDeploymentsInternal(t *testing.T) {
 			},
 			count: 1,
 		},
+		"ok, device ID not UUID": {
+			deviceID: "foo",
+			query: &store.ListQueryDeviceDeployments{
+				DeviceID: "foo",
+				Limit:    DefaultPerPage,
+			},
+			responseCode: http.StatusOK,
+			deployments: []model.DeviceDeploymentListItem{
+				{
+					Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+				},
+			},
+			count: 1,
+		},
 		"ok, no records": {
 			deviceID: deviceID,
 			query: &store.ListQueryDeviceDeployments{
@@ -2104,8 +2132,8 @@ func TestListDeviceDeploymentsInternal(t *testing.T) {
 			responseCode: http.StatusBadRequest,
 		},
 		"ko, wrong device ID": {
-			deviceID:     "dummy",
-			responseCode: http.StatusBadRequest,
+			deviceID:     "",
+			responseCode: http.StatusNotFound,
 			err:          errors.New("error"),
 		},
 		"ok, wrong limit": {
