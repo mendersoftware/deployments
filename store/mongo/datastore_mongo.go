@@ -846,6 +846,39 @@ func (db *DataStoreMongo) InsertUploadIntent(ctx context.Context, link *model.Up
 	return err
 }
 
+func (db *DataStoreMongo) UpdateUploadIntentStatus(
+	ctx context.Context,
+	id string,
+	from, to model.LinkStatus,
+) error {
+	collUploads := db.client.
+		Database(DatabaseName).
+		Collection(CollectionUploadIntents)
+	q := bson.D{
+		{Key: "_id", Value: id},
+		{Key: "status", Value: from},
+	}
+	if idty := identity.FromContext(ctx); idty != nil {
+		q = append(q, bson.E{
+			Key:   "tenant_id",
+			Value: idty.Tenant,
+		})
+	}
+	res, err := collUploads.UpdateOne(ctx, q, bson.D{
+		{Key: "$set", Value: bson.D{{
+			Key: "status", Value: to,
+		}, {
+			Key: "updated_ts", Value: time.Now(),
+		}}},
+	})
+	if err != nil {
+		return err
+	} else if res.MatchedCount == 0 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
 // FindImageByID search storage for image with ID, returns nil if not found
 func (db *DataStoreMongo) FindImageByID(ctx context.Context,
 	id string) (*model.Image, error) {

@@ -62,6 +62,20 @@ func (_m *App) AbortDeviceDeployments(ctx context.Context, deviceID string) erro
 	return r0
 }
 
+// CompleteUpload provides a mock function with given fields: ctx, intentID
+func (_m *App) CompleteUpload(ctx context.Context, intentID string) error {
+	ret := _m.Called(ctx, intentID)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, intentID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CreateDeployment provides a mock function with given fields: ctx, constructor
 func (_m *App) CreateDeployment(ctx context.Context, constructor *model.DeploymentConstructor) (string, error) {
 	ret := _m.Called(ctx, constructor)

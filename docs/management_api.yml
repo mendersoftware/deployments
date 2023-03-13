@@ -1197,13 +1197,51 @@ paths:
         200:
           description: OK
           schema:
-            type: object
-            properties:
-              $ref: "#/definitions/ArtifactUploadLink"
-        400:
-          $ref: "#/responses/InvalidRequestError"
+            $ref: "#/definitions/ArtifactUploadLink"
         401:
           $ref: '#/responses/UnauthorizedError'
+        500:
+          $ref: "#/responses/InternalServerError"
+
+  /artifacts/directupload/{id}/complete:
+    post:
+      operationId: Complete Direct Upload
+      parameters:
+        - name: id
+          in: path
+          description: >-
+            Artifact ID returned by "Request Direct Upload" API.
+          required: true
+          type: string
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: >-
+        Notify the server that the direct upload is completed to make it
+        available in the artifacts API.
+      produces:
+        - application/json
+      responses:
+        202:
+          description: Accepted
+        401:
+          $ref: '#/responses/UnauthorizedError'
+        404:
+          description: A pending direct upload with the given ID was not found.
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              request_id:
+                type: string
+                format: uuid
+                description: "Request identifier (Header: X-Men-Requestid)"
+          examples:
+            application/json:
+              error: "not found"
+              request_id: "b4965265-4475-4d00-8efc-840eaee5cf7b"
         500:
           $ref: "#/responses/InternalServerError"
 

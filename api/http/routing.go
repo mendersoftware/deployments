@@ -33,12 +33,14 @@ const (
 	ApiUrlManagement = "/api/management/v1/deployments"
 	ApiUrlDevices    = "/api/devices/v1/deployments"
 
-	ApiUrlManagementArtifacts             = ApiUrlManagement + "/artifacts"
-	ApiUrlManagementArtifactsList         = ApiUrlManagement + "/artifacts/list"
-	ApiUrlManagementArtifactsGenerate     = ApiUrlManagement + "/artifacts/generate"
-	ApiUrlManagementArtifactsDirectUpload = ApiUrlManagement + "/artifacts/directupload"
-	ApiUrlManagementArtifactsId           = ApiUrlManagement + "/artifacts/#id"
-	ApiUrlManagementArtifactsIdDownload   = ApiUrlManagement + "/artifacts/#id/download"
+	ApiUrlManagementArtifacts               = ApiUrlManagement + "/artifacts"
+	ApiUrlManagementArtifactsList           = ApiUrlManagement + "/artifacts/list"
+	ApiUrlManagementArtifactsGenerate       = ApiUrlManagement + "/artifacts/generate"
+	ApiUrlManagementArtifactsDirectUpload   = ApiUrlManagement + "/artifacts/directupload"
+	ApiUrlManagementArtifactsCompleteUpload = ApiUrlManagementArtifactsDirectUpload +
+		"/#id/complete"
+	ApiUrlManagementArtifactsId         = ApiUrlManagement + "/artifacts/#id"
+	ApiUrlManagementArtifactsIdDownload = ApiUrlManagement + "/artifacts/#id/download"
 
 	ApiUrlManagementDeployments                   = ApiUrlManagement + "/deployments"
 	ApiUrlManagementMultipleDeploymentsStatistics = ApiUrlManagement +
@@ -136,6 +138,10 @@ func NewImagesResourceRoutes(controller *DeploymentsApiHandlers, cfg *Config) []
 		routes = append(routes, rest.Post(
 			ApiUrlManagementArtifactsDirectUpload,
 			controller.UploadLink,
+		))
+		routes = append(routes, rest.Post(
+			ApiUrlManagementArtifactsCompleteUpload,
+			controller.CompleteUpload,
 		))
 	}
 	return routes
