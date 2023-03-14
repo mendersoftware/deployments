@@ -1,4 +1,4 @@
-// Copyright 2021 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -128,7 +128,18 @@ func Middleware() gin.HandlerFunc {
 		l = l.F(logCtx)
 
 		if code < 400 {
-			l.Info()
+			logged := false
+			for pathSuffix, status := range DebugLogsByPathSuffix {
+				if code == status && strings.HasSuffix(c.Request.URL.Path, pathSuffix) {
+					l.Debug()
+					logged = true
+					break
+				}
+			}
+
+			if !logged {
+				l.Info()
+			}
 		} else {
 			if len(c.Errors) > 0 {
 				errs := c.Errors.Errors()
