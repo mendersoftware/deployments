@@ -345,6 +345,113 @@ func TestUploadLink(t *testing.T) {
 	}
 }
 
+func TestCompleteUpload(t *testing.T) {
+	t.Parallel()
+
+	const sampleID = "a5522c47-3c99-459b-ae6b-6049c744db7f"
+
+	type testCase struct {
+		Name string
+
+		ID  string
+		App func(t *testing.T) *mapp.App
+
+		StatusCode        int
+		BodyAssertionFunc func(t *testing.T, body string) bool
+	}
+	testCases := []testCase{{
+		Name: "ok",
+
+		ID: sampleID,
+		App: func(t *testing.T) *mapp.App {
+			app := new(mapp.App)
+			app.On("CompleteUpload", contextMatcher(), sampleID).
+				Return(nil)
+			return app
+		},
+
+		StatusCode: http.StatusAccepted,
+		BodyAssertionFunc: func(t *testing.T, body string) bool {
+			return assert.Empty(t, body, body, "expected body to be empty")
+		},
+	}, {
+		Name: "error/internal",
+
+		ID: sampleID,
+		App: func(t *testing.T) *mapp.App {
+			app := new(mapp.App)
+			app.On("CompleteUpload", contextMatcher(), sampleID).
+				Return(errors.New("internal error"))
+
+			return app
+		},
+
+		StatusCode: http.StatusInternalServerError,
+		BodyAssertionFunc: func(t *testing.T, body string) bool {
+			return assert.Regexp(t,
+				`"error":"internal server error"`,
+				string(body),
+				"unexpected error response body",
+			)
+		},
+	}, {
+		Name: "error/not found",
+
+		ID: sampleID,
+		App: func(t *testing.T) *mapp.App {
+			mockApp := new(mapp.App)
+			mockApp.On("CompleteUpload", contextMatcher(), sampleID).
+				Return(app.ErrUploadNotFound)
+			return mockApp
+		},
+
+		StatusCode: http.StatusNotFound,
+		BodyAssertionFunc: func(t *testing.T, body string) bool {
+			return true
+		},
+	}}
+	pathGen := func(id string) string {
+		return strings.ReplaceAll(
+			ApiUrlManagementArtifactsCompleteUpload, "#id", id,
+		)
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			req, _ := http.NewRequest(
+				http.MethodPost,
+				"https://localhost:8443"+pathGen(tc.ID),
+				nil,
+			)
+			app := tc.App(t)
+			defer app.AssertExpectations(t)
+
+			conf := NewConfig().
+				SetEnableDirectUpload(true)
+			apiHandler, err := NewRouter(
+				ctx,
+				app,
+				nil,
+				conf,
+			)
+			if err != nil {
+				panic(err)
+			}
+			api := rest.NewApi()
+			api.SetApp(apiHandler)
+
+			w := httptest.NewRecorder()
+			api.MakeHandler().ServeHTTP(w, req)
+
+			assert.Equal(t, tc.StatusCode, w.Code, "Unexpected HTTP status code")
+			tc.BodyAssertionFunc(t, w.Body.String())
+		})
+	}
+}
+
 func TestPostDeployment(t *testing.T) {
 	t.Parallel()
 
