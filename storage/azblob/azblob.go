@@ -113,7 +113,7 @@ func (c *client) clientFromContext(
 	ctx context.Context,
 ) (client *container.Client, err error) {
 	client = c.DefaultClient
-	if settings := storage.SettingsFromContext(ctx); settings != nil {
+	if settings, _ := storage.SettingsFromContext(ctx); settings != nil {
 		if err = settings.Validate(); err != nil {
 			return nil, err
 		} else if settings.ConnectionString != nil {

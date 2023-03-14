@@ -33,7 +33,7 @@ func (c *client) credentialsFromContext(
 	ctx context.Context,
 ) (creds *azblob.SharedKeyCredential, err error) {
 	creds = c.credentials
-	if settings := storage.SettingsFromContext(ctx); settings != nil {
+	if settings, _ := storage.SettingsFromContext(ctx); settings != nil {
 		if settings.ConnectionString != nil {
 			creds, err = keyFromConnString(*settings.ConnectionString)
 		} else {

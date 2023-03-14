@@ -119,7 +119,7 @@ func TestSetStorageSettings(t *testing.T) {
 	}
 	contextMatcher := func(t *testing.T, settings *model.StorageSettings) func(context.Context) bool {
 		return func(ctx context.Context) bool {
-			actual := storage.SettingsFromContext(ctx)
+			actual, _ := storage.SettingsFromContext(ctx)
 			if actual == nil {
 				return false
 			}

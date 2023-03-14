@@ -237,7 +237,11 @@ func (d *Deployments) HealthCheck(ctx context.Context) error {
 func (d *Deployments) contextWithStorageSettings(
 	ctx context.Context,
 ) (context.Context, error) {
-	settings, err := d.db.GetStorageSettings(ctx)
+	var err error
+	settings, ok := storage.SettingsFromContext(ctx)
+	if !ok {
+		settings, err = d.db.GetStorageSettings(ctx)
+	}
 	if err != nil {
 		return nil, err
 	} else if settings != nil {
@@ -245,8 +249,6 @@ func (d *Deployments) contextWithStorageSettings(
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		return ctx, nil
 	}
 	return storage.SettingsWithContext(ctx, settings), nil
 }

@@ -62,7 +62,7 @@ func (c *client) clientFromContext(
 	ctx context.Context,
 ) (objStore storage.ObjectStorage, err error) {
 	var ok bool
-	if settings := storage.SettingsFromContext(ctx); settings != nil {
+	if settings, _ := storage.SettingsFromContext(ctx); settings != nil {
 		if objStore, ok = c.providerMap[settings.Type]; !ok {
 			err = ErrInvalidProvider
 		}

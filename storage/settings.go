@@ -26,10 +26,10 @@ func SettingsWithContext(ctx context.Context, set *model.StorageSettings) contex
 	return context.WithValue(ctx, awsSettingsContextKey{}, set)
 }
 
-func SettingsFromContext(ctx context.Context) *model.StorageSettings {
+func SettingsFromContext(ctx context.Context) (*model.StorageSettings, bool) {
 	set, ok := ctx.Value(awsSettingsContextKey{}).(*model.StorageSettings)
 	if ok {
-		return set
+		return set, true
 	}
-	return nil
+	return nil, false
 }

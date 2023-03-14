@@ -28,7 +28,8 @@ import (
 type settings model.StorageSettings
 
 func settingsFromContext(ctx context.Context) *settings {
-	return (*settings)(storage.SettingsFromContext(ctx))
+	s, _ := storage.SettingsFromContext(ctx)
+	return (*settings)(s)
 }
 
 func (s settings) endpointResolver(presign bool) (resolver s3.EndpointResolver) {
