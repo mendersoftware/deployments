@@ -25,6 +25,7 @@ services:
               DEPLOYMENTS_PRESIGN_URL_HOSTNAME: mender-deployments:8080
               DEPLOYMENTS_PRESIGN_URL_SCHEME: http
               DEPLOYMENTS_PRESIGN_SECRET: qF4/MZzQmHTJ+nrlr26b3g==
+              DEPLOYMENTS_STORAGE_ENABLE_DIRECT_UPLOAD: "true"
     mender-workflows-server:
         image: python:3
         command: ["/app/docker-entrypoint.sh"]
@@ -34,3 +35,9 @@ services:
           mender:
             aliases:
               - mock-server
+
+    minio:
+        networks:
+            mender:
+                aliases:
+                    - s3.docker.mender.io

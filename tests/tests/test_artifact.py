@@ -14,6 +14,7 @@
 #    limitations under the License.
 import io
 import pytest
+import time
 from os import urandom
 from os.path import basename
 from uuid import uuid4
@@ -22,7 +23,7 @@ from hashlib import sha256
 import bravado
 import requests
 
-from client import ArtifactsClient
+from client import ArtifactsClient, ArtifactsClientError
 from common import (
     artifact_from_raw_data,
     artifact_rootfs_from_data,
@@ -53,7 +54,6 @@ class TestArtifact:
                 description="bar",
             ).result()
         except bravado.exception.HTTPError as e:
-
             assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
             assert e.response.status_code == 400
         else:
@@ -178,9 +178,7 @@ class TestArtifact:
             self.ac.log.debug("result: %s", res)
             assert len(res[0]) > 0
 
-            res = self.ac.show_artifact(
-                artid
-            ).json()
+            res = self.ac.show_artifact(artid).json()
             self.ac.log.debug("result: %s", res)
 
             # verify its data
@@ -328,7 +326,41 @@ class TestArtifact:
             data = b"foo_bar"
 
             with artifact_rootfs_from_data(
-                    name=artifact_name, data=data, devicetype=device_type, compression=comp
+                name=artifact_name, data=data, devicetype=device_type, compression=comp
             ) as art:
                 self.ac.log.info("uploading artifact (compression: {})".format(comp))
                 self.ac.add_artifact(description, art.size, art)
+
+
+class TestDirectUpload:
+    def test_upload(self, clean_db):
+        mgo = clean_db
+        ac = ArtifactsClient()
+
+        url = ac.make_upload_url()
+        doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
+        assert doc is not None, "Upload intent not found in database"
+        assert doc["status"] == 0
+
+        with artifact_rootfs_from_data(data=b"", compression="none") as artie:
+            requests.put(
+                url.uri,
+                artie.read(),
+                headers={"Content-Type": "application/octet-stream"},
+                verify=False,
+            )
+        rsp = ac.complete_upload(url.id)
+        assert rsp.status_code == 202, "Unexpected HTTP status code"
+
+        doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
+        assert doc["status"] > 0
+
+        # Retry for half a minute
+        for _ in range(60):
+            try:
+                ac.show_artifact(artid=url.id)
+            except ArtifactsClientError:
+                time.sleep(0.5)
+            break
+        else:
+            raise TimeoutError("Timeout waiting for artifact to be processed")
