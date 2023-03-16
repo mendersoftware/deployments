@@ -59,6 +59,8 @@ type DataStore interface {
 	// upload intents
 	InsertUploadIntent(ctx context.Context, link *model.UploadLink) error
 	UpdateUploadIntentStatus(ctx context.Context, id string, from, to model.LinkStatus) error
+	FindUploadLinks(ctx context.Context, expired time.Time) (Iterator[model.UploadLink], error)
+	DeleteUploadLink(ctx context.Context, id string) error
 
 	//device deployment log
 	SaveDeviceDeploymentLog(ctx context.Context, log model.DeploymentLog) error
@@ -164,6 +166,10 @@ type DataStore interface {
 	GetTenantDbs() ([]string, error)
 }
 
-var (
-	ErrNotFound = errors.New("document not found")
-)
+var ErrNotFound = errors.New("document not found")
+
+type Iterator[T interface{}] interface {
+	Next(ctx context.Context) (bool, error)
+	Decode(value *T) error
+	Close(ctx context.Context) error
+}

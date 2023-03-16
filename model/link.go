@@ -46,6 +46,9 @@ const (
 	LinkStatusCompleted
 	LinkStatusAborted
 
+	LinkStatusProcessedBit  = LinkStatus(1 << 7)
+	LinkStatusProcessedMask = ^LinkStatus(LinkStatusProcessedBit)
+
 	linkStatusPending    = "pending"
 	linkStatusProcessing = "processing"
 	linkStatusCompleted  = "completed"
@@ -53,7 +56,7 @@ const (
 )
 
 func (status LinkStatus) MarshalText() (b []byte, err error) {
-	switch status {
+	switch status & LinkStatusProcessedMask {
 	case LinkStatusPending:
 		b = []byte(linkStatusPending)
 	case LinkStatusProcessing:

@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
+	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/client/workflows"
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/store"
@@ -98,6 +99,27 @@ func doMain(args []string) {
 			},
 
 			Action: cmdPropagateReporting,
+		},
+		{
+			Name:  "storage-daemon",
+			Usage: "Start storage daemon cleaning up expired objects from storage",
+			Flags: []cli.Flag{
+				cli.DurationFlag{
+					Name: "interval",
+					Usage: "Time interval to run cleanup routine; " +
+						"a value of 0 runs the daemon for one " +
+						"iteration and terminates (cron mode).",
+					Value: 0,
+				},
+				cli.DurationFlag{
+					Name: "time-jitter",
+					Usage: "The time jitter added for expired links. " +
+						"Links must be expired for `DURATION` " +
+						"to be removed.",
+					Value: time.Second * 3,
+				},
+			},
+			Action: cmdStorageDaemon,
 		},
 	}
 
@@ -176,6 +198,25 @@ func migrate(tenant string, automigrate bool) error {
 	}
 
 	return nil
+}
+
+func cmdStorageDaemon(args *cli.Context) error {
+	ctx := context.Background()
+	objectStorage, err := SetupObjectStorage(ctx)
+	if err != nil {
+		return err
+	}
+	mgo, err := mongo.NewMongoClient(ctx, config.Config)
+	if err != nil {
+		return err
+	}
+	database := mongo.NewDataStoreMongoWithClient(mgo)
+	app := app.NewDeployments(database, objectStorage)
+	return app.CleanupExpiredUploads(
+		ctx,
+		args.Duration("interval"),
+		args.Duration("time-jitter"),
+	)
 }
 
 func cmdPropagateReporting(args *cli.Context) error {

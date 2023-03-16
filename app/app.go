@@ -182,6 +182,9 @@ type Deployments struct {
 	reportingClient reporting.Client
 }
 
+// Compile-time check
+var _ App = &Deployments{}
+
 func NewDeployments(
 	storage store.DataStore,
 	objectStorage storage.ObjectStorage,
