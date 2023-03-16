@@ -60,7 +60,6 @@ type DataStore interface {
 	InsertUploadIntent(ctx context.Context, link *model.UploadLink) error
 	UpdateUploadIntentStatus(ctx context.Context, id string, from, to model.LinkStatus) error
 	FindUploadLinks(ctx context.Context, expired time.Time) (Iterator[model.UploadLink], error)
-	DeleteUploadLink(ctx context.Context, id string) error
 
 	//device deployment log
 	SaveDeviceDeploymentLog(ctx context.Context, log model.DeploymentLog) error

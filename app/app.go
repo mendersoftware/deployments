@@ -59,6 +59,8 @@ const (
 	InventoryStatusAccepted          = "accepted"
 
 	fileSuffixTmp = ".tmp"
+
+	inprogressIdleTime = time.Hour
 )
 
 var (
@@ -718,8 +720,34 @@ func (d *Deployments) processUploadedArtifact(
 	artifactID string,
 	artifact io.ReadCloser) error {
 	linkStatus := model.LinkStatusCompleted
+
 	l := log.FromContext(ctx)
 	defer artifact.Close()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() { // Heatbeat routine
+		ticker := time.NewTicker(inprogressIdleTime / 2)
+		done := ctx.Done()
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				err := d.db.UpdateUploadIntentStatus(
+					ctx,
+					artifactID,
+					model.LinkStatusProcessing,
+					model.LinkStatusProcessing,
+				)
+				if err != nil {
+					l.Errorf("failed to update upload link timestamp: %s", err)
+					cancel()
+					return
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
 	_, err := d.handleArtifact(ctx, &model.MultipartUploadMsg{
 		ArtifactID:     artifactID,
 		ArtifactReader: artifact,

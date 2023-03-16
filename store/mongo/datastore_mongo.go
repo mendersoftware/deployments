@@ -864,12 +864,16 @@ func (db *DataStoreMongo) UpdateUploadIntentStatus(
 			Value: idty.Tenant,
 		})
 	}
-	res, err := collUploads.UpdateOne(ctx, q, bson.D{
-		{Key: "$set", Value: bson.D{{
+	update := bson.D{{
+		Key: "updated_ts", Value: time.Now(),
+	}}
+	if from != to {
+		update = append(update, bson.E{
 			Key: "status", Value: to,
-		}, {
-			Key: "updated_ts", Value: time.Now(),
-		}}},
+		})
+	}
+	res, err := collUploads.UpdateOne(ctx, q, bson.D{
+		{Key: "$set", Value: update},
 	})
 	if err != nil {
 		return err
@@ -902,17 +906,6 @@ func (db *DataStoreMongo) FindUploadLinks(
 	}}
 	cur, err := collUploads.Find(ctx, q)
 	return IteratorFromCursor[model.UploadLink](cur), err
-}
-
-func (db *DataStoreMongo) DeleteUploadLink(ctx context.Context, id string) error {
-	collUploads := db.client.
-		Database(DatabaseName).
-		Collection(CollectionUploadIntents)
-	res, err := collUploads.DeleteOne(ctx, bson.D{{Key: "_id", Value: id}})
-	if err == nil && res.DeletedCount <= 0 {
-		err = store.ErrNotFound
-	}
-	return err
 }
 
 // FindImageByID search storage for image with ID, returns nil if not found

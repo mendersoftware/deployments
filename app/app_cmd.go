@@ -63,9 +63,24 @@ func (d *Deployments) CleanupExpiredUploads(ctx context.Context, interval, jitte
 				break
 			}
 			switch link.Status {
+			case model.LinkStatusProcessing:
+				if link.UpdatedTS.Before(now.Add(-inprogressIdleTime)) {
+					err = d.db.UpdateUploadIntentStatus(
+						ctx,
+						link.ArtifactID,
+						model.LinkStatusProcessing,
+						model.LinkStatusPending,
+					)
+					if err == store.ErrNotFound {
+						err = nil
+					}
+				}
+				// TODO: Call deployments API to restart processing
+				// TODO: Increment retry counter to avoid infinite loop
+
 			case model.LinkStatusAborted,
 				model.LinkStatusCompleted,
-				model.LinkStatusProcessing: // TODO: Handle links in progress
+				model.LinkStatusPending:
 				objectPath := link.ArtifactID + fileSuffixTmp
 				if link.TenantID != "" {
 					objectPath = path.Join(link.TenantID, objectPath)
@@ -74,8 +89,6 @@ func (d *Deployments) CleanupExpiredUploads(ctx context.Context, interval, jitte
 				if err != nil && err != storage.ErrObjectNotFound {
 					break
 				}
-				fallthrough
-			case model.LinkStatusPending:
 				statusNew := link.Status
 				if statusNew == model.LinkStatusPending {
 					statusNew = model.LinkStatusAborted
