@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2022 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -57,9 +57,10 @@ func (mw *AccessLogMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFu
 		// call the handler
 		h(w, r)
 
-		logger := requestlog.GetRequestLogger(r)
 		util := &accessLogUtil{w, r}
-		logger.WithFields(logrus.Fields{
+		logger := requestlog.GetRequestLogger(r)
+		logged := false
+		log := logger.WithFields(logrus.Fields{
 			"type":         TypeHTTP,
 			"ts":           util.StartTime().Round(0),
 			"status":       util.StatusCode(),
@@ -68,7 +69,18 @@ func (mw *AccessLogMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFu
 			"method":       r.Method,
 			"path":         r.URL.Path,
 			"qs":           r.URL.RawQuery,
-		}).Print(mw.executeTextTemplate(util))
+		})
+		for pathSuffix, status := range DebugLogsByPathSuffix {
+			if util.StatusCode() == status && strings.HasSuffix(r.URL.Path, pathSuffix) {
+				log.Debug(mw.executeTextTemplate(util))
+				logged = true
+				break
+			}
+		}
+
+		if !logged {
+			log.Print(mw.executeTextTemplate(util))
+		}
 	}
 }
 
