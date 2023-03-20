@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -222,6 +222,49 @@ func (s *SimpleStorageService) HealthCheck(ctx context.Context) error {
 	return err
 }
 
+type objectReader struct {
+	io.ReadCloser
+	length int64
+}
+
+func (obj objectReader) Length() int64 {
+	return obj.length
+}
+
+func (s *SimpleStorageService) GetObject(
+	ctx context.Context,
+	path string,
+) (io.ReadCloser, error) {
+	bucket, opts, err := s.optionsFromContext(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	params := &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(path),
+
+		RequestPayer: types.RequestPayerRequester,
+	}
+
+	out, err := s.client.GetObject(ctx, params, opts)
+	var rspErr *awsHttp.ResponseError
+	if errors.As(err, &rspErr) {
+		if rspErr.Response.StatusCode == http.StatusNotFound {
+			err = storage.ErrObjectNotFound
+		}
+	}
+	if err != nil {
+		return nil, errors.WithMessage(
+			err,
+			"s3: failed to get object",
+		)
+	}
+	return objectReader{
+		ReadCloser: out.Body,
+		length:     out.ContentLength,
+	}, nil
+}
+
 // Delete removes deleted file from storage.
 // Noop if ID does not exist.
 func (s *SimpleStorageService) DeleteObject(ctx context.Context, path string) error {
@@ -428,11 +471,28 @@ func (s *SimpleStorageService) PutObject(
 	path string,
 	src io.Reader,
 ) error {
-	buf := make([]byte, s.bufferSize)
-	n, err := fillBuffer(buf, src)
+	var (
+		r   io.Reader
+		l   int64
+		n   int
+		err error
+		buf []byte
+	)
+	if objReader, ok := src.(storage.ObjectReader); ok {
+		r = objReader
+		l = objReader.Length()
+	} else {
+		// Peek payload
+		buf = make([]byte, s.bufferSize)
+		n, err = fillBuffer(buf, src)
+		if err == io.EOF {
+			r = bytes.NewReader(buf[:n])
+			l = int64(n)
+		}
+	}
 
 	// If only one part, use PutObject API.
-	if err == io.EOF {
+	if r != nil {
 		var (
 			bucket string
 			opts   func(*s3.Options)
@@ -443,10 +503,11 @@ func (s *SimpleStorageService) PutObject(
 		}
 		// Ordinary single-file upload
 		uploadParams := &s3.PutObjectInput{
-			Body:        bytes.NewReader(buf[:n]),
-			Bucket:      &bucket,
-			Key:         &path,
-			ContentType: s.contentType,
+			Body:          r,
+			Bucket:        &bucket,
+			Key:           &path,
+			ContentType:   s.contentType,
+			ContentLength: l,
 		}
 		_, err = s.client.PutObject(
 			ctx,

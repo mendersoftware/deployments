@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -24,6 +24,31 @@ var ErrStreamTooLarge = errors.New("read too many bytes")
 type ReadCounter interface {
 	io.Reader
 	Count() int64
+}
+
+func CountReads(r io.Reader) ReadCounter {
+	if rc, ok := r.(ReadCounter); ok {
+		return rc
+	}
+	return &readCounter{
+		R: r,
+		N: 0,
+	}
+}
+
+type readCounter struct {
+	R io.Reader
+	N int64
+}
+
+func (rc *readCounter) Read(b []byte) (int, error) {
+	n, err := rc.R.Read(b)
+	rc.N += int64(n)
+	return n, err
+}
+
+func (rc readCounter) Count() int64 {
+	return rc.N
 }
 
 type limitedReader struct {

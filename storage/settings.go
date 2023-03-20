@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -26,10 +26,10 @@ func SettingsWithContext(ctx context.Context, set *model.StorageSettings) contex
 	return context.WithValue(ctx, awsSettingsContextKey{}, set)
 }
 
-func SettingsFromContext(ctx context.Context) *model.StorageSettings {
+func SettingsFromContext(ctx context.Context) (*model.StorageSettings, bool) {
 	set, ok := ctx.Value(awsSettingsContextKey{}).(*model.StorageSettings)
 	if ok {
-		return set
+		return set, true
 	}
-	return nil
+	return nil, false
 }

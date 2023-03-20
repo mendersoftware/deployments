@@ -348,6 +348,99 @@ func TestInsertUploadIntent(t *testing.T) {
 	}
 }
 
+func TestUpdateUploadIntentStatus(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestInsertUploadIntent in short mode.")
+	}
+
+	const (
+		artifactIDOS = "00000000-0000-0000-0000-000000000000"
+		artifactIDMT = "00000000-0000-0000-0000-000000000001"
+		tenantID     = "123456789012345678901234"
+	)
+
+	ctx := context.Background()
+	mgoClient := db.Client()
+	ds := NewDataStoreMongoWithClient(mgoClient)
+	mgoClient.Database(DatabaseName).
+		Collection(CollectionUploadIntents).
+		InsertMany(ctx, []interface{}{model.UploadLink{
+			ArtifactID: artifactIDOS,
+			Link: model.Link{
+				Uri:    "http://localhost:8080",
+				Method: "PUT",
+			},
+			IssuedAt: time.Now().Add(-time.Minute),
+			Status:   model.LinkStatusPending,
+		}, model.UploadLink{
+			ArtifactID: artifactIDMT,
+			Link: model.Link{
+				Uri:      "http://localhost:8080",
+				Method:   "PUT",
+				TenantID: tenantID,
+			},
+			IssuedAt: time.Now().Add(-time.Second * 30),
+			Status:   model.LinkStatusProcessing,
+		}})
+
+	t.Run("ok", func(t *testing.T) {
+		err := ds.UpdateUploadIntentStatus(
+			ctx,
+			artifactIDOS,
+			model.LinkStatusPending,
+			model.LinkStatusProcessing,
+		)
+		assert.NoError(t, err)
+	})
+	t.Run("ok/multi-tenant", func(t *testing.T) {
+		ctx = identity.WithContext(ctx, &identity.Identity{
+			Tenant: tenantID,
+		})
+		err := ds.UpdateUploadIntentStatus(
+			ctx,
+			artifactIDMT,
+			model.LinkStatusProcessing,
+			model.LinkStatusCompleted,
+		)
+		assert.NoError(t, err)
+	})
+	t.Run("error/not found status", func(t *testing.T) {
+		ctx = identity.WithContext(ctx, &identity.Identity{
+			Tenant: tenantID,
+		})
+		err := ds.UpdateUploadIntentStatus(
+			ctx,
+			artifactIDMT,
+			model.LinkStatusPending,
+			model.LinkStatusProcessing,
+		)
+		assert.ErrorIs(t, err, store.ErrNotFound)
+	})
+	t.Run("error/not found id", func(t *testing.T) {
+		ctx = identity.WithContext(ctx, &identity.Identity{
+			Tenant: tenantID,
+		})
+		err := ds.UpdateUploadIntentStatus(
+			ctx,
+			"4a54ab54-05b9-4aaa-bfd9-162703ea3232",
+			model.LinkStatusPending,
+			model.LinkStatusProcessing,
+		)
+		assert.ErrorIs(t, err, store.ErrNotFound)
+	})
+	t.Run("error/context cancelled", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		cancel()
+		err := ds.UpdateUploadIntentStatus(
+			ctx,
+			artifactIDOS,
+			model.LinkStatusProcessing,
+			model.LinkStatusAborted,
+		)
+		assert.ErrorIs(t, err, context.Canceled)
+	})
+}
+
 func TestFindNewerActiveDeployments(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestFindNewerActiveDeployments in short mode.")

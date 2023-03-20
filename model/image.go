@@ -246,7 +246,7 @@ type MultipartUploadMsg struct {
 	// ArtifactID contains the artifact ID
 	ArtifactID string
 	// reader pointing to the beginning of the artifact data
-	ArtifactReader ReadCounter
+	ArtifactReader io.Reader
 }
 
 // MultipartGenerateImageMsg is a structure with fields extracted from the multipart/form-data

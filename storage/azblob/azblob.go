@@ -113,7 +113,7 @@ func (c *client) clientFromContext(
 	ctx context.Context,
 ) (client *container.Client, err error) {
 	client = c.DefaultClient
-	if settings := storage.SettingsFromContext(ctx); settings != nil {
+	if settings, _ := storage.SettingsFromContext(ctx); settings != nil {
 		if err = settings.Validate(); err != nil {
 			return nil, err
 		} else if settings.ConnectionString != nil {
@@ -145,18 +145,22 @@ func (c *client) clientFromContext(
 			}
 		}
 	}
+	if client == nil {
+		return nil, ErrEmptyClient
+	}
 	return client, err
 }
 
 func (c *client) HealthCheck(ctx context.Context) error {
 	azClient, err := c.clientFromContext(ctx)
 	if err != nil {
+		if err == ErrEmptyClient {
+			return nil
+		}
 		return OpError{
 			Op:     OpHealthCheck,
 			Reason: err,
 		}
-	} else if azClient == nil {
-		return nil
 	}
 	_, err = azClient.GetProperties(ctx, &container.GetPropertiesOptions{})
 	if err != nil {
@@ -166,6 +170,49 @@ func (c *client) HealthCheck(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+type objectReader struct {
+	io.ReadCloser
+	length int64
+}
+
+func (r objectReader) Length() int64 {
+	return r.length
+}
+
+func (c *client) GetObject(
+	ctx context.Context,
+	objectPath string,
+) (io.ReadCloser, error) {
+	azClient, err := c.clientFromContext(ctx)
+	if err != nil {
+		return nil, OpError{
+			Op:     OpGetObject,
+			Reason: err,
+		}
+	}
+	bc := azClient.NewBlockBlobClient(objectPath)
+	out, err := bc.DownloadStream(ctx, &blob.DownloadStreamOptions{})
+	if bloberror.HasCode(err,
+		bloberror.BlobNotFound,
+		bloberror.ContainerNotFound,
+		bloberror.ResourceNotFound) {
+		err = storage.ErrObjectNotFound
+	}
+	if err != nil {
+		return nil, OpError{
+			Op:     OpGetObject,
+			Reason: err,
+		}
+	}
+	if out.ContentLength != nil {
+		return objectReader{
+			ReadCloser: out.Body,
+			length:     *out.ContentLength,
+		}, nil
+	}
+	return out.Body, nil
 }
 
 func (c *client) PutObject(
@@ -179,8 +226,6 @@ func (c *client) PutObject(
 			Op:     OpPutObject,
 			Reason: err,
 		}
-	} else if azClient == nil {
-		return nil
 	}
 	bc := azClient.NewBlockBlobClient(objectPath)
 	var blobOpts = &blockblob.UploadStreamOptions{
@@ -210,8 +255,6 @@ func (c *client) DeleteObject(
 			Op:     OpDeleteObject,
 			Reason: err,
 		}
-	} else if azClient == nil {
-		return nil
 	}
 	bc := azClient.NewBlockBlobClient(path)
 	_, err = bc.Delete(ctx, &blob.DeleteOptions{
@@ -243,8 +286,6 @@ func (c *client) StatObject(
 			Op:     OpStatObject,
 			Reason: err,
 		}
-	} else if azClient == nil {
-		return nil, nil
 	}
 	bc := azClient.NewBlockBlobClient(path)
 	if err != nil {
@@ -310,8 +351,6 @@ func (c *client) GetRequest(
 			Op:     OpGetRequest,
 			Reason: err,
 		}
-	} else if azClient == nil {
-		return nil, nil
 	}
 	// Check if object exists
 	bc := azClient.NewBlockBlobClient(objectPath)
@@ -402,8 +441,6 @@ func (c *client) DeleteRequest(
 			Op:     OpGetRequest,
 			Reason: err,
 		}
-	} else if azClient == nil {
-		return nil, nil
 	}
 	bc := azClient.NewBlobClient(path)
 	if err != nil {
@@ -442,8 +479,6 @@ func (c *client) PutRequest(
 			Op:     OpGetRequest,
 			Reason: err,
 		}
-	} else if azClient == nil {
-		return nil, nil
 	}
 	bc := azClient.NewBlobClient(objectPath)
 	if err != nil {

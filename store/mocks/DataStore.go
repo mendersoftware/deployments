@@ -1163,6 +1163,20 @@ func (_m *DataStore) UpdateStatsInc(ctx context.Context, id string, stateFrom mo
 	return r0
 }
 
+// UpdateUploadIntentStatus provides a mock function with given fields: ctx, id, from, to
+func (_m *DataStore) UpdateUploadIntentStatus(ctx context.Context, id string, from model.LinkStatus, to model.LinkStatus) error {
+	ret := _m.Called(ctx, id, from, to)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.LinkStatus, model.LinkStatus) error); ok {
+		r0 = rf(ctx, id, from, to)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 type mockConstructorTestingTNewDataStore interface {
 	mock.TestingT
 	Cleanup(func())

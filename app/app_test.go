@@ -17,6 +17,8 @@ package app
 import (
 	"context"
 	"fmt"
+	"io"
+	"sync"
 	"testing"
 	"time"
 
@@ -30,6 +32,7 @@ import (
 	workflows_mocks "github.com/mendersoftware/deployments/client/workflows/mocks"
 	dconfig "github.com/mendersoftware/deployments/config"
 	"github.com/mendersoftware/deployments/model"
+	"github.com/mendersoftware/deployments/storage"
 	fs_mocks "github.com/mendersoftware/deployments/storage/mocks"
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mocks"
@@ -441,14 +444,18 @@ func TestUploadLink(t *testing.T) {
 		ds := new(mocks.DataStore)
 		deploy := NewDeployments(ds, objStore)
 		objStore.On("PutRequest",
-			ctx,
+			h.ContextMatcher(),
 			regexMatcher(`^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}\`+
 				fileSuffixTmp),
 			time.Minute,
 		).Return(link, nil)
 
-		ds.On("InsertUploadIntent", ctx, matchUpLink).
-			Return(nil)
+		ds.On("GetStorageSettings", ctx).
+			Return(nil, nil).
+			Once().
+			On("InsertUploadIntent", h.ContextMatcher(), matchUpLink).
+			Return(nil).
+			Once()
 		upLink, err := deploy.UploadLink(ctx, time.Minute)
 		assert.NoError(t, err)
 		assert.NotNil(t, upLink)
@@ -464,15 +471,19 @@ func TestUploadLink(t *testing.T) {
 		ds := new(mocks.DataStore)
 		deploy := NewDeployments(ds, objStore)
 		objStore.On("PutRequest",
-			ctx,
+			h.ContextMatcher(),
 			regexMatcher(`^123456789012345678901234/`+
 				`[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}\`+
 				fileSuffixTmp),
 			time.Minute,
 		).Return(link, nil)
 
-		ds.On("InsertUploadIntent", ctx, matchUpLink).
-			Return(nil)
+		ds.On("GetStorageSettings", h.ContextMatcher()).
+			Return(nil, nil).
+			Once().
+			On("InsertUploadIntent", h.ContextMatcher(), matchUpLink).
+			Return(nil).
+			Once()
 		upLink, err := deploy.UploadLink(ctx, time.Minute)
 		assert.NoError(t, err)
 		assert.NotNil(t, upLink)
@@ -488,8 +499,11 @@ func TestUploadLink(t *testing.T) {
 		ds := new(mocks.DataStore)
 		deploy := NewDeployments(ds, objStore)
 		errInternal := errors.New("internal error")
+		ds.On("GetStorageSettings", ctx).
+			Return(nil, nil).
+			Once()
 		objStore.On("PutRequest",
-			ctx,
+			h.ContextMatcher(),
 			regexMatcher(`^123456789012345678901234/`+
 				`[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}\`+
 				fileSuffixTmp),
@@ -512,21 +526,372 @@ func TestUploadLink(t *testing.T) {
 		deploy := NewDeployments(ds, objStore)
 		errInternal := errors.New("internal error")
 		objStore.On("PutRequest",
-			ctx,
+			h.ContextMatcher(),
 			regexMatcher(`^123456789012345678901234/`+
 				`[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}\`+
 				fileSuffixTmp),
 			time.Minute,
 		).Return(link, nil)
 
-		ds.On("InsertUploadIntent", ctx, matchUpLink).
-			Return(errInternal)
+		ds.On("GetStorageSettings", ctx).
+			Return(nil, nil).
+			Once().
+			On("InsertUploadIntent", h.ContextMatcher(), matchUpLink).
+			Return(errInternal).
+			Once()
 		upLink, err := deploy.UploadLink(ctx, time.Minute)
 		assert.ErrorIs(t, err, errInternal)
 		assert.Nil(t, upLink)
 		objStore.AssertExpectations(t)
 		ds.AssertExpectations(t)
 	})
+	t.Run("error/getting storage settings", func(t *testing.T) {
+		ctx := identity.WithContext(context.Background(), &identity.Identity{
+			Tenant: "123456789012345678901234",
+		})
+		objStore := new(fs_mocks.ObjectStorage)
+		ds := new(mocks.DataStore)
+		deploy := NewDeployments(ds, objStore)
+		errInternal := errors.New("internal error")
+		ds.On("GetStorageSettings", ctx).
+			Return(nil, errInternal).
+			Once()
+		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		assert.ErrorIs(t, err, errInternal)
+		assert.Nil(t, upLink)
+		objStore.AssertExpectations(t)
+		ds.AssertExpectations(t)
+	})
+}
+
+type eofReadCloser struct {
+	ch   chan struct{}
+	once *sync.Once
+	err  error
+}
+
+func newEOFReadCloser(closeErr error) *eofReadCloser {
+	return &eofReadCloser{
+		ch:   make(chan struct{}),
+		once: new(sync.Once),
+		err:  closeErr,
+	}
+}
+
+func (r *eofReadCloser) Read([]byte) (int, error) {
+	return 0, io.EOF
+}
+
+func (r *eofReadCloser) Close() error {
+	r.once.Do(func() { close(r.ch) })
+	return r.err
+}
+
+func TestCompleteUpload(t *testing.T) {
+	t.Parallel()
+
+	const intentID = "9bf1bfff-eeb4-49d4-b55d-d717d407888a"
+	var testErr = errors.New("test error")
+
+	type testCase struct {
+		Name string
+
+		Identity      *identity.Identity
+		Database      func(t *testing.T, self *testCase) *mocks.DataStore
+		ObjectStorage func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage
+
+		syncChan chan struct{}
+
+		ErrorAssertionFunc func(t *testing.T, self *testCase, err error)
+	}
+	contextHasIdentity := func(t *testing.T, expected *identity.Identity) interface{} {
+		return mock.MatchedBy(func(ctx context.Context) bool {
+			actual := identity.FromContext(ctx)
+			return assert.Equal(t, expected, actual)
+		})
+	}
+	testCases := []*testCase{{
+		Name: "ok",
+
+		Database: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetStorageSettings", contextHasIdentity(t, self.Identity)).
+				Return(nil, nil).
+				Once().
+				On("UpdateUploadIntentStatus",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					model.LinkStatusPending,
+					model.LinkStatusProcessing).
+				Return(nil).
+				Once().
+				On("UpdateUploadIntentStatus",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					model.LinkStatusProcessing,
+					model.LinkStatusAborted).
+				Return(nil)
+
+			return ds
+		},
+		ObjectStorage: func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage {
+			os := new(fs_mocks.ObjectStorage)
+			r := newEOFReadCloser(nil)
+			os.On("GetObject",
+				contextHasIdentity(t, self.Identity),
+				intentID+fileSuffixTmp).
+				Return(r, nil).
+				Once().
+				On("PutObject",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					mock.AnythingOfType("*io.PipeReader")).
+				Return(nil)
+			self.syncChan = r.ch
+			return os
+		},
+
+		ErrorAssertionFunc: func(t *testing.T, self *testCase, err error) {
+			deadline, ok := t.Deadline()
+			if !ok || time.Until(deadline) > time.Minute {
+				deadline = time.Now().Add(time.Minute)
+			}
+			select {
+			case <-self.syncChan:
+				assert.NoError(t, err)
+			case <-time.After(time.Until(deadline)):
+				assert.FailNow(t,
+					"timed out waiting for processUploadedArtifact"+
+						"to be called")
+			}
+		},
+	}, {
+		Name: "ok/multi-tenancy",
+
+		Identity: &identity.Identity{
+			Tenant: "123456789012345678901234",
+		},
+		Database: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetStorageSettings", contextHasIdentity(t, self.Identity)).
+				Return(nil, nil).
+				Once().
+				On("UpdateUploadIntentStatus",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					model.LinkStatusPending,
+					model.LinkStatusProcessing).
+				Return(nil).
+				Once().
+				On("UpdateUploadIntentStatus",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					model.LinkStatusProcessing,
+					model.LinkStatusAborted).
+				Return(errors.New("internal error"))
+
+			return ds
+		},
+		ObjectStorage: func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage {
+			os := new(fs_mocks.ObjectStorage)
+			r := newEOFReadCloser(nil)
+			objectPath := "123456789012345678901234/" + intentID
+			os.On("GetObject",
+				contextHasIdentity(t, self.Identity),
+				objectPath+fileSuffixTmp).
+				Return(r, nil).
+				Once().
+				On("PutObject",
+					contextHasIdentity(t, self.Identity),
+					objectPath,
+					mock.AnythingOfType("*io.PipeReader")).
+				Return(nil)
+			self.syncChan = r.ch
+			return os
+		},
+
+		ErrorAssertionFunc: func(t *testing.T, self *testCase, err error) {
+			deadline, ok := t.Deadline()
+			if !ok || time.Until(deadline) > time.Minute {
+				deadline = time.Now().Add(time.Minute)
+			}
+			select {
+			case <-self.syncChan:
+				assert.NoError(t, err)
+			case <-time.After(time.Until(deadline)):
+				assert.FailNow(t,
+					"timed out waiting for processUploadedArtifact"+
+						"to be called")
+			}
+		},
+	}, {
+		Name: "error/set status to processing",
+
+		Database: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetStorageSettings", contextHasIdentity(t, self.Identity)).
+				Return(nil, nil).
+				Once().
+				On("UpdateUploadIntentStatus",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					model.LinkStatusPending,
+					model.LinkStatusProcessing).
+				Return(errors.New("internal error")).
+				Once()
+			return ds
+		},
+		ObjectStorage: func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage {
+			os := new(fs_mocks.ObjectStorage)
+			r := newEOFReadCloser(errors.New("close error"))
+			os.On("GetObject",
+				contextHasIdentity(t, self.Identity),
+				intentID+fileSuffixTmp).
+				Return(r, nil).
+				Once()
+			self.syncChan = r.ch
+			return os
+		},
+
+		ErrorAssertionFunc: func(t *testing.T, self *testCase, err error) {
+			deadline, ok := t.Deadline()
+			if !ok || time.Until(deadline) > time.Minute {
+				deadline = time.Now().Add(time.Minute)
+			}
+			select {
+			case <-self.syncChan:
+				assert.Error(t, err)
+			case <-time.After(time.Until(deadline)):
+				assert.FailNow(t,
+					"timed out waiting for processUploadedArtifact"+
+						"to be called")
+			}
+		},
+	}, {
+		Name: "error/already in progress",
+
+		Database: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetStorageSettings", contextHasIdentity(t, self.Identity)).
+				Return(nil, nil).
+				Once().
+				On("UpdateUploadIntentStatus",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					model.LinkStatusPending,
+					model.LinkStatusProcessing).
+				Return(store.ErrNotFound).
+				Once()
+			return ds
+		},
+		ObjectStorage: func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage {
+			os := new(fs_mocks.ObjectStorage)
+			r := newEOFReadCloser(nil)
+			os.On("GetObject",
+				contextHasIdentity(t, self.Identity),
+				intentID+fileSuffixTmp).
+				Return(r, nil).
+				Once()
+			self.syncChan = r.ch
+			return os
+		},
+
+		ErrorAssertionFunc: func(t *testing.T, self *testCase, err error) {
+			deadline, ok := t.Deadline()
+			if !ok || time.Until(deadline) > time.Minute {
+				deadline = time.Now().Add(time.Minute)
+			}
+			select {
+			case <-self.syncChan:
+				assert.ErrorIs(t, err, ErrUploadNotFound)
+			case <-time.After(time.Until(deadline)):
+				assert.FailNow(t,
+					"timed out waiting for processUploadedArtifact"+
+						"to be called")
+			}
+		},
+	}, {
+		Name: "error/object not found",
+
+		Database: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetStorageSettings", contextHasIdentity(t, self.Identity)).
+				Return(nil, nil).
+				Once()
+			return ds
+		},
+		ObjectStorage: func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage {
+			os := new(fs_mocks.ObjectStorage)
+			os.On("GetObject",
+				contextHasIdentity(t, self.Identity),
+				intentID+fileSuffixTmp).
+				Return(nil, storage.ErrObjectNotFound).
+				Once()
+			return os
+		},
+
+		ErrorAssertionFunc: func(t *testing.T, self *testCase, err error) {
+			assert.ErrorIs(t, err, ErrUploadNotFound)
+		},
+	}, {
+		Name: "error/internal storage error",
+
+		Database: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetStorageSettings", contextHasIdentity(t, self.Identity)).
+				Return(nil, nil).
+				Once()
+			return ds
+		},
+		ObjectStorage: func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage {
+			os := new(fs_mocks.ObjectStorage)
+			os.On("GetObject",
+				contextHasIdentity(t, self.Identity),
+				intentID+fileSuffixTmp).
+				Return(nil, testErr).
+				Once()
+			return os
+		},
+
+		ErrorAssertionFunc: func(t *testing.T, self *testCase, err error) {
+			assert.ErrorIs(t, err, testErr)
+		},
+	}, {
+		Name: "error/retrieve storage settings",
+
+		Database: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetStorageSettings", contextHasIdentity(t, self.Identity)).
+				Return(nil, testErr).
+				Once()
+			return ds
+		},
+		ObjectStorage: func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage {
+			os := new(fs_mocks.ObjectStorage)
+			return os
+		},
+
+		ErrorAssertionFunc: func(t *testing.T, self *testCase, err error) {
+			assert.ErrorIs(t, err, testErr)
+		},
+	}}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			ctx := context.Background()
+			if tc.Identity != nil {
+				ctx = identity.WithContext(ctx, tc.Identity)
+			}
+			ds := tc.Database(t, tc)
+			defer ds.AssertExpectations(t)
+			objStore := tc.ObjectStorage(t, tc)
+			defer objStore.AssertExpectations(t)
+			deploy := NewDeployments(ds, objStore)
+
+			err := deploy.CompleteUpload(ctx, intentID)
+			tc.ErrorAssertionFunc(t, tc, err)
+		})
+	}
 }
 
 func TestCreateDeviceConfigurationDeployment(t *testing.T) {

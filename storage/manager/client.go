@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ func (c *client) clientFromContext(
 	ctx context.Context,
 ) (objStore storage.ObjectStorage, err error) {
 	var ok bool
-	if settings := storage.SettingsFromContext(ctx); settings != nil {
+	if settings, _ := storage.SettingsFromContext(ctx); settings != nil {
 		if objStore, ok = c.providerMap[settings.Type]; !ok {
 			err = ErrInvalidProvider
 		}
@@ -79,6 +79,14 @@ func (c *client) HealthCheck(ctx context.Context) (err error) {
 		return err
 	}
 	return objStore.HealthCheck(ctx)
+}
+
+func (c *client) GetObject(ctx context.Context, path string) (io.ReadCloser, error) {
+	objStore, err := c.clientFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return objStore.GetObject(ctx, path)
 }
 
 func (c *client) PutObject(ctx context.Context, path string, src io.Reader) error {

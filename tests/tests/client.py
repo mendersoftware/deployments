@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2022 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -13,14 +13,20 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import hashlib
+import hmac
+import io
+import json
 import logging
 import os.path
 import random
 import socket
 
+from base64 import b64encode
 from datetime import datetime
 from collections import OrderedDict
 from contextlib import contextmanager
+from uuid import uuid4
 
 import docker
 import pytest  # noqa
@@ -87,8 +93,35 @@ class ArtifactsClientError(Exception):
         super().__init__(message)
 
 
+def create_authz(sub, is_user=True, tenant_id=None):
+    hdr = {"alg": "HS256", "typ": "JWT"}
+    claims = {"sub": sub, "mender.user": is_user}
+    if tenant_id is not None:
+        claims["mender.tenant"] = tenant_id
+
+    def _b64encode_url(obj):
+        if isinstance(obj, dict):
+            return (
+                b64encode(json.dumps(obj).encode(), b"-_").decode("UTF-8").rstrip("=")
+            )
+        elif isinstance(obj, str):
+            return b64encode(obj.encode(), b"-_").decode("UTF-8").rstrip("=")
+        else:
+            return b64encode(obj, b"-_").decode("UTF-8").rstrip("=")
+
+    hdr64 = _b64encode_url(hdr)
+    claims64 = _b64encode_url(claims)
+    jwt = f"{hdr64}.{claims64}"
+    sig = hmac.HMAC(b"supersecretsecret", jwt.encode(), digestmod=hashlib.sha256)
+    jwt += f".{_b64encode_url(sig.digest())}"
+    return jwt
+
+
 class ArtifactsClient(SwaggerApiClient):
-    def __init__(self):
+    def __init__(self, sub=None, tenant_id=None):
+        if sub is None:
+            sub = str(uuid4())
+        self._jwt = create_authz(sub, tenant_id=tenant_id)
         self.api_url = DEPLOYMENTS_BASE_URL.format(
             pytest_config.getoption("host"), "management"
         )
@@ -119,7 +152,12 @@ class ArtifactsClient(SwaggerApiClient):
                 "artifact": ("firmware", data, "application/octet-stream", {}),
             }
         )
-        rsp = requests.post(self.make_api_url("/artifacts"), files=files, verify=False)
+        rsp = requests.post(
+            self.make_api_url("/artifacts"),
+            files=files,
+            verify=False,
+            headers={"Authorization": f"Bearer {self._jwt}"},
+        )
         # should have be created
         try:
             assert rsp.status_code == 201
@@ -176,7 +214,10 @@ class ArtifactsClient(SwaggerApiClient):
             }
         )
         rsp = requests.post(
-            self.make_api_url("/artifacts/generate"), files=files, verify=False
+            self.make_api_url("/artifacts/generate"),
+            files=files,
+            verify=False,
+            headers={"Authorization": f"Bearer {self._jwt}"},
         )
         # should have be created
         try:
@@ -194,7 +235,9 @@ class ArtifactsClient(SwaggerApiClient):
         # delete it now (NOTE: not using bravado as bravado does not support
         # DELETE)
         rsp = requests.delete(
-            self.make_api_url(f"/artifacts/{artid}"), verify=False
+            self.make_api_url(f"/artifacts/{artid}"),
+            verify=False,
+            headers={"Authorization": f"Bearer {self._jwt}"},
         )
         try:
             assert rsp.status_code == 204
@@ -204,7 +247,9 @@ class ArtifactsClient(SwaggerApiClient):
     def list_artifacts(self):
         # List artifacts. For use in tests that cannot use bravado
         rsp = requests.get(
-            self.make_api_url("/artifacts"), verify=False
+            self.make_api_url("/artifacts"),
+            verify=False,
+            headers={"Authorization": f"Bearer {self._jwt}"},
         )
         try:
             assert rsp.status_code == 200
@@ -215,7 +260,9 @@ class ArtifactsClient(SwaggerApiClient):
     def show_artifact(self, artid=""):
         # Show artifact. For use in tests that cannot use bravado
         rsp = requests.get(
-            self.make_api_url(f"/artifacts/{artid}"), verify=False
+            self.make_api_url(f"/artifacts/{artid}"),
+            verify=False,
+            headers={"Authorization": f"Bearer {self._jwt}"},
         )
         try:
             assert rsp.status_code == 200
@@ -230,6 +277,53 @@ class ArtifactsClient(SwaggerApiClient):
         artid = self.add_artifact(description=description, size=size, data=data)
         yield artid
         self.delete_artifact(artid)
+
+    class UploadURL:
+        def __init__(self, identifier: str, uri: str, expire: str):
+            self._id = identifier
+            self._uri = uri
+            self._expire = expire
+
+        @property
+        def id(self) -> str:
+            return self._id
+
+        @property
+        def uri(self) -> str:
+            return self._uri
+
+        @property
+        def expire(self) -> str:
+            return self._expire
+
+    def make_upload_url(self):
+        rsp = requests.post(
+            self.make_api_url("/artifacts/directupload"),
+            "",
+            headers={"Authorization": f"Bearer {self._jwt}"},
+        )
+        try:
+            assert rsp.status_code == 200
+        except AssertionError:
+            raise ArtifactsClientError(
+                f"unexpected HTTP status code: {rsp.status_code}", rsp
+            )
+        body = rsp.json()
+        return ArtifactsClient.UploadURL(body["id"], body["uri"], body["expire"])
+
+    def complete_upload(self, identifier):
+        rsp = requests.post(
+            self.make_api_url(f"/artifacts/directupload/{identifier}/complete"),
+            "",
+            headers={"Authorization": f"Bearer {self._jwt}"},
+        )
+        try:
+            assert rsp.status_code == 202
+        except AssertionError:
+            raise ArtifactsClientError(
+                f"unexpected HTTP status code: {rsp.status_code}", rsp
+            )
+        return rsp
 
 
 class SimpleArtifactsClient(ArtifactsClient):
@@ -265,7 +359,9 @@ class DeploymentsClient(SwaggerApiClient):
     def abort_deployment(self, depid):
         """Abort deployment with `ID `depid`"""
         self.client.Management_API.Abort_Deployment(
-            Authorization="foo", deployment_id=depid, Status={"status": "aborted"},
+            Authorization="foo",
+            deployment_id=depid,
+            Status={"status": "aborted"},
         ).result()
 
     @contextmanager
@@ -319,7 +415,9 @@ class DeviceClient(SwaggerApiClient):
         """Obtain next deployment"""
         auth = "Bearer " + token
         res = self.client.Device_API.Check_Update(
-            Authorization=auth, artifact_name=artifact_name, device_type=device_type,
+            Authorization=auth,
+            artifact_name=artifact_name,
+            device_type=device_type,
         ).result()
 
         return res[0]

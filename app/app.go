@@ -41,6 +41,7 @@ import (
 	"github.com/mendersoftware/deployments/storage"
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mongo"
+	"github.com/mendersoftware/deployments/utils"
 )
 
 const (
@@ -78,6 +79,7 @@ var (
 	)
 	ErrModelImageUsedInAnyDeployment = errors.New("Image has already been used in deployment")
 	ErrModelParsingArtifactFailed    = errors.New("Cannot parse artifact file")
+	ErrUploadNotFound                = errors.New("artifact object not found")
 
 	ErrMsgArtifactConflict = "An artifact with the same name has conflicting dependencies"
 
@@ -118,6 +120,7 @@ type App interface {
 	DownloadLink(ctx context.Context, imageID string,
 		expire time.Duration) (*model.Link, error)
 	UploadLink(ctx context.Context, expire time.Duration) (*model.UploadLink, error)
+	CompleteUpload(ctx context.Context, intentID string) error
 	GetImage(ctx context.Context, id string) (*model.Image, error)
 	DeleteImage(ctx context.Context, imageID string) error
 	CreateImage(ctx context.Context,
@@ -234,7 +237,11 @@ func (d *Deployments) HealthCheck(ctx context.Context) error {
 func (d *Deployments) contextWithStorageSettings(
 	ctx context.Context,
 ) (context.Context, error) {
-	settings, err := d.db.GetStorageSettings(ctx)
+	var err error
+	settings, ok := storage.SettingsFromContext(ctx)
+	if !ok {
+		settings, err = d.db.GetStorageSettings(ctx)
+	}
 	if err != nil {
 		return nil, err
 	} else if settings != nil {
@@ -291,7 +298,9 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	// create pipe
 	pR, pW := io.Pipe()
 
-	tee := io.TeeReader(multipartUploadMsg.ArtifactReader, pW)
+	artifactReader := utils.CountReads(multipartUploadMsg.ArtifactReader)
+
+	tee := io.TeeReader(artifactReader, pW)
 
 	uid, err := uuid.Parse(multipartUploadMsg.ArtifactID)
 	if err != nil {
@@ -353,7 +362,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		artifactID,
 		multipartUploadMsg.MetaConstructor,
 		metaArtifactConstructor,
-		multipartUploadMsg.ArtifactReader.Count(),
+		artifactReader.Count(),
 	)
 
 	// save image structure in the system
@@ -677,6 +686,10 @@ func (d *Deployments) UploadLink(
 	ctx context.Context,
 	expire time.Duration,
 ) (*model.UploadLink, error) {
+	ctx, err := d.contextWithStorageSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	artifactID := uuid.New().String()
 	path := model.ImagePathFromContext(ctx, artifactID) + fileSuffixTmp
@@ -695,6 +708,82 @@ func (d *Deployments) UploadLink(
 	}
 
 	return upLink, err
+}
+
+func (d *Deployments) processUploadedArtifact(
+	ctx context.Context,
+	artifactID string,
+	artifact io.ReadCloser) error {
+	linkStatus := model.LinkStatusCompleted
+	l := log.FromContext(ctx)
+	defer artifact.Close()
+	_, err := d.handleArtifact(ctx, &model.MultipartUploadMsg{
+		ArtifactID:     artifactID,
+		ArtifactReader: artifact,
+	})
+	if err != nil {
+		l.Warnf("failed to process artifact %s: %s", artifactID, err)
+		linkStatus = model.LinkStatusAborted
+	}
+	errDB := d.db.UpdateUploadIntentStatus(
+		ctx, artifactID,
+		model.LinkStatusProcessing, linkStatus,
+	)
+	if errDB != nil {
+		l.Warnf("failed to update upload link status: %s", errDB)
+	}
+	return err
+}
+
+func (d *Deployments) CompleteUpload(
+	ctx context.Context,
+	intentID string,
+) error {
+	l := log.FromContext(ctx)
+	idty := identity.FromContext(ctx)
+	ctx, err := d.contextWithStorageSettings(ctx)
+	if err != nil {
+		return err
+	}
+	// Create an async context that does'nt cancel when server connection
+	// closes.
+	ctxAsync := context.Background()
+	ctxAsync = log.WithContext(ctxAsync, l)
+	ctxAsync = identity.WithContext(ctxAsync, idty)
+
+	settings, _ := storage.SettingsFromContext(ctx)
+	ctxAsync = storage.SettingsWithContext(ctxAsync, settings)
+	artifactReader, err := d.objectStorage.GetObject(
+		ctxAsync,
+		model.ImagePathFromContext(ctx, intentID)+fileSuffixTmp,
+	)
+	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotFound) {
+			return ErrUploadNotFound
+		}
+		return err
+	}
+
+	err = d.db.UpdateUploadIntentStatus(
+		ctx,
+		intentID,
+		model.LinkStatusPending,
+		model.LinkStatusProcessing,
+	)
+	if err != nil {
+		errClose := artifactReader.Close()
+		if errClose != nil {
+			l.Warnf("failed to close artifact reader: %s", errClose)
+		}
+		if errors.Is(err, store.ErrNotFound) {
+			return ErrUploadNotFound
+		}
+		return err
+	}
+	go d.processUploadedArtifact( // nolint:errcheck
+		ctxAsync, intentID, artifactReader,
+	)
+	return nil
 }
 
 func getArtifactInfo(info artifact.Info) *model.ArtifactInfo {

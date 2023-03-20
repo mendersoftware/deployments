@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ var (
 //go:generate ../utils/mockgen.sh
 type ObjectStorage interface {
 	HealthCheck(ctx context.Context) error
+	GetObject(ctx context.Context, path string) (io.ReadCloser, error)
 	PutObject(ctx context.Context, path string, src io.Reader) error
 	DeleteObject(ctx context.Context, path string) error
 	StatObject(ctx context.Context, path string) (*ObjectInfo, error)
@@ -51,4 +52,10 @@ type ObjectInfo struct {
 	Size *int64
 
 	LastModified *time.Time
+}
+
+type ObjectReader interface {
+	io.Reader
+
+	Length() int64
 }

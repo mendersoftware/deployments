@@ -15,6 +15,8 @@
 package model
 
 import (
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -27,10 +29,62 @@ type Link struct {
 }
 
 type UploadLink struct {
-	ArtifactID string    `json:"id" bson:"_id"`
-	IssuedAt   time.Time `json:"-" bson:"issued_ts"`
+	ArtifactID string `json:"id" bson:"_id"`
+	Link       `bson:"inline"`
 
-	Link `bson:"inline"`
+	// Internal metadata
+	IssuedAt  time.Time  `json:"-" bson:"issued_ts"`
+	UpdatedTS time.Time  `json:"-" bson:"updated_ts"`
+	Status    LinkStatus `json:"-" bson:"status"`
+}
+
+type LinkStatus uint32
+
+const (
+	LinkStatusPending LinkStatus = (iota << 4)
+	LinkStatusProcessing
+	LinkStatusCompleted
+	LinkStatusAborted
+
+	linkStatusPending    = "pending"
+	linkStatusProcessing = "processing"
+	linkStatusCompleted  = "completed"
+	linkStatusAborted    = "aborted"
+)
+
+func (status LinkStatus) MarshalText() (b []byte, err error) {
+	switch status {
+	case LinkStatusPending:
+		b = []byte(linkStatusPending)
+	case LinkStatusProcessing:
+		b = []byte(linkStatusProcessing)
+	case LinkStatusCompleted:
+		b = []byte(linkStatusCompleted)
+	case LinkStatusAborted:
+		b = []byte(linkStatusAborted)
+	default:
+		err = fmt.Errorf("invalid link status value '%d'", status)
+	}
+	return b, err
+}
+
+func (status *LinkStatus) UnmarshalText(b []byte) error {
+	var err error
+	s := string(b)
+	value := strings.ToLower(s)
+	switch value {
+	case linkStatusPending:
+		*status = LinkStatusPending
+	case linkStatusProcessing:
+		*status = LinkStatusProcessing
+	case linkStatusCompleted:
+		*status = LinkStatusCompleted
+	case linkStatusAborted:
+		*status = LinkStatusAborted
+	default:
+		err = fmt.Errorf("invalid link status %q", s)
+	}
+	return err
 }
 
 func NewLink(uri string, expire time.Time) *Link {

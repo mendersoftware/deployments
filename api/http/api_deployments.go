@@ -32,6 +32,7 @@ import (
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 
@@ -78,6 +79,7 @@ const (
 	ParamPage         = "page"
 	ParamPerPage      = "per_page"
 	ParamSort         = "sort"
+	ParamID           = "id"
 )
 
 const Redacted = "REDACTED"
@@ -446,6 +448,29 @@ func (d *DeploymentsApiHandlers) UploadLink(w rest.ResponseWriter, r *rest.Reque
 	}
 
 	d.view.RenderSuccessGet(w, link)
+}
+
+func (d *DeploymentsApiHandlers) CompleteUpload(w rest.ResponseWriter, r *rest.Request) {
+	ctx := r.Context()
+	l := log.FromContext(ctx)
+
+	artifactID := r.PathParam(ParamID)
+
+	err := d.app.CompleteUpload(ctx, artifactID)
+	switch errors.Cause(err) {
+	case nil:
+		// w.Header().Set("Link", "FEAT: Upload status API")
+		w.WriteHeader(http.StatusAccepted)
+	case app.ErrUploadNotFound:
+		d.view.RenderErrorNotFound(w, r, l)
+	default:
+		l.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteJson(rest_utils.ApiError{ // nolint:errcheck
+			Err:   "internal server error",
+			ReqId: requestid.FromContext(ctx),
+		})
+	}
 }
 
 func (d *DeploymentsApiHandlers) DownloadConfiguration(w rest.ResponseWriter, r *rest.Request) {
