@@ -24,7 +24,56 @@ import (
 	"github.com/mendersoftware/deployments/store"
 )
 
-func (d *Deployments) CleanupExpiredUploads(ctx context.Context, interval, jitter time.Duration) error {
+func (d *Deployments) cleanupExpiredLink(
+	ctx context.Context,
+	link model.UploadLink,
+	now time.Time,
+) (err error) {
+	switch link.Status {
+	case model.LinkStatusProcessing:
+		if link.UpdatedTS.Before(now.Add(-inprogressIdleTime)) {
+			err = d.db.UpdateUploadIntentStatus(
+				ctx,
+				link.ArtifactID,
+				model.LinkStatusProcessing,
+				model.LinkStatusPending,
+			)
+			if err == store.ErrNotFound {
+				err = nil
+			}
+		}
+		// TODO: Call deployments API to restart processing
+		// TODO: Increment retry counter to avoid infinite loop
+
+	case model.LinkStatusAborted,
+		model.LinkStatusCompleted,
+		model.LinkStatusPending:
+		objectPath := link.ArtifactID + fileSuffixTmp
+		if link.TenantID != "" {
+			objectPath = path.Join(link.TenantID, objectPath)
+		}
+		err = d.objectStorage.DeleteObject(ctx, objectPath)
+		if err != nil && err != storage.ErrObjectNotFound {
+			break
+		}
+		statusNew := link.Status
+		if statusNew == model.LinkStatusPending {
+			statusNew = model.LinkStatusAborted
+		}
+		statusNew |= model.LinkStatusProcessedBit
+		err = d.db.UpdateUploadIntentStatus(
+			ctx,
+			link.ArtifactID,
+			link.Status,
+			statusNew,
+		)
+	}
+	return err
+}
+
+func (d *Deployments) CleanupExpiredUploads(
+	ctx context.Context, interval, jitter time.Duration,
+) error {
 	var (
 		err error
 		tc  <-chan time.Time
@@ -62,45 +111,7 @@ func (d *Deployments) CleanupExpiredUploads(ctx context.Context, interval, jitte
 			if err != nil {
 				break
 			}
-			switch link.Status {
-			case model.LinkStatusProcessing:
-				if link.UpdatedTS.Before(now.Add(-inprogressIdleTime)) {
-					err = d.db.UpdateUploadIntentStatus(
-						ctx,
-						link.ArtifactID,
-						model.LinkStatusProcessing,
-						model.LinkStatusPending,
-					)
-					if err == store.ErrNotFound {
-						err = nil
-					}
-				}
-				// TODO: Call deployments API to restart processing
-				// TODO: Increment retry counter to avoid infinite loop
-
-			case model.LinkStatusAborted,
-				model.LinkStatusCompleted,
-				model.LinkStatusPending:
-				objectPath := link.ArtifactID + fileSuffixTmp
-				if link.TenantID != "" {
-					objectPath = path.Join(link.TenantID, objectPath)
-				}
-				err = d.objectStorage.DeleteObject(ctx, objectPath)
-				if err != nil && err != storage.ErrObjectNotFound {
-					break
-				}
-				statusNew := link.Status
-				if statusNew == model.LinkStatusPending {
-					statusNew = model.LinkStatusAborted
-				}
-				statusNew |= model.LinkStatusProcessedBit
-				err = d.db.UpdateUploadIntentStatus(
-					ctx,
-					link.ArtifactID,
-					link.Status,
-					statusNew,
-				)
-			}
+			err = d.cleanupExpiredLink(ctx, link, now)
 		}
 		if err != nil && err != store.ErrNotFound {
 			break
