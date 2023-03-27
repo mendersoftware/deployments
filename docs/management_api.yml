@@ -1597,6 +1597,13 @@ definitions:
         description: An array of artifact's identifiers.
         items:
           type: string
+      groups:
+        type: array
+        description: |
+            An array of groups the devices targeted by the deployment belong to.
+            Available only if the user created the deployment for a group or a single device (if the device was in a static group).
+        items:
+          type: string
       type:
         type: string
         enum:
