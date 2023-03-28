@@ -321,6 +321,7 @@ func TestInsertUploadIntent(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestInsertUploadIntent in short mode.")
 	}
+	db.Wipe()
 
 	ctx := context.Background()
 	mgoClient := db.Client()
@@ -348,10 +349,96 @@ func TestInsertUploadIntent(t *testing.T) {
 	}
 }
 
+func TestFindUploadLinks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestFindUploadLinks in short mode.")
+	}
+	db.Wipe()
+
+	ctx := context.Background()
+	mgoClient := db.Client()
+	ds := NewDataStoreMongoWithClient(mgoClient)
+	links := []model.UploadLink{{
+		Link: model.Link{
+			Expire:   time.Now().Add(-time.Minute).Round(time.Second),
+			TenantID: "123456789012345678901234",
+		},
+		Status:     model.LinkStatusCompleted,
+		ArtifactID: uuid.New().String(),
+	}, {
+		Link: model.Link{
+			Expire: time.Now().Add(-time.Minute * 10).Round(time.Second),
+		},
+		Status:     model.LinkStatusPending,
+		ArtifactID: uuid.New().String(),
+	}, {
+		Link: model.Link{
+			Expire:   time.Now().Add(-time.Minute * 15).Round(time.Second),
+			TenantID: "123456789012345678901234",
+		},
+		ArtifactID: uuid.New().String(),
+	}, {
+		Link: model.Link{
+			Expire:   time.Now().Add(-time.Minute * 20).Round(time.Second),
+			TenantID: "123456789012345678901234",
+		},
+		Status:     model.LinkStatusAborted,
+		ArtifactID: uuid.New().String(),
+	}, {
+		Link: model.Link{
+			Expire:   time.Now().Add(-time.Minute * 25).Round(time.Second),
+			TenantID: "123456789012345678901234",
+		},
+		Status:     model.LinkStatusCompleted | model.LinkStatusProcessedBit,
+		ArtifactID: uuid.Nil.String(),
+	}, {
+		Link: model.Link{
+			Expire:   time.Now().Add(-time.Minute * 30).Round(time.Second),
+			TenantID: "123456789012345678901234",
+		},
+		Status:     model.LinkStatusProcessing,
+		ArtifactID: uuid.New().String(),
+	}}
+	ins := make([]interface{}, len(links))
+	for i := range links {
+		ins[i] = links[i]
+	}
+	_, err := mgoClient.Database(DatabaseName).
+		Collection(CollectionUploadIntents).
+		InsertMany(ctx, ins)
+	if err != nil {
+		panic(err)
+	}
+
+	it, err := ds.FindUploadLinks(ctx, time.Now())
+	if assert.NoError(t, err) {
+		var (
+			i    int
+			more bool
+		)
+		for more, err = it.Next(ctx); more && i < len(links); more, err = it.Next(ctx) {
+			for links[i].Status&model.LinkStatusProcessedBit > 0 {
+				i++
+			}
+			var link model.UploadLink
+			err = it.Decode(&link)
+			if err != nil {
+				break
+			}
+			assert.Equal(t, links[i].ArtifactID, link.ArtifactID)
+
+			i++
+		}
+
+		assert.NoError(t, err)
+	}
+}
+
 func TestUpdateUploadIntentStatus(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestInsertUploadIntent in short mode.")
 	}
+	db.Wipe()
 
 	const (
 		artifactIDOS = "00000000-0000-0000-0000-000000000000"

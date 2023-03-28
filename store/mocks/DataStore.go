@@ -470,6 +470,29 @@ func (_m *DataStore) FindUnfinishedByID(ctx context.Context, id string) (*model.
 	return r0, r1
 }
 
+// FindUploadLinks provides a mock function with given fields: ctx, expired
+func (_m *DataStore) FindUploadLinks(ctx context.Context, expired time.Time) (store.Iterator[model.UploadLink], error) {
+	ret := _m.Called(ctx, expired)
+
+	var r0 store.Iterator[model.UploadLink]
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) store.Iterator[model.UploadLink]); ok {
+		r0 = rf(ctx, expired)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(store.Iterator[model.UploadLink])
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, time.Time) error); ok {
+		r1 = rf(ctx, expired)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetDeviceDeployment provides a mock function with given fields: ctx, deploymentID, deviceID, includeDeleted
 func (_m *DataStore) GetDeviceDeployment(ctx context.Context, deploymentID string, deviceID string, includeDeleted bool) (*model.DeviceDeployment, error) {
 	ret := _m.Called(ctx, deploymentID, deviceID, includeDeleted)
