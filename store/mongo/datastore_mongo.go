@@ -44,6 +44,7 @@ const (
 	CollectionDeployments          = "deployments"
 	CollectionDeviceDeploymentLogs = "devices.logs"
 	CollectionDevices              = "devices"
+	CollectionDevicesLastStatus    = "devices_last_status"
 	CollectionStorageSettings      = "settings"
 	CollectionUploadIntents        = "uploads"
 )
@@ -378,7 +379,8 @@ const (
 // Database keys
 const (
 	// Need to be kept in sync with structure filed names
-	StorageKeyId = "_id"
+	StorageKeyId       = "_id"
+	StorageKeyTenantId = "tenant_id"
 
 	StorageKeyImageProvides    = "meta_artifact.provides"
 	StorageKeyImageProvidesIdx = "meta_artifact.provides_idx"
@@ -860,7 +862,7 @@ func (db *DataStoreMongo) UpdateUploadIntentStatus(
 	}
 	if idty := identity.FromContext(ctx); idty != nil {
 		q = append(q, bson.E{
-			Key:   "tenant_id",
+			Key:   StorageKeyTenantId,
 			Value: idty.Tenant,
 		})
 	}
@@ -1884,7 +1886,11 @@ func (db *DataStoreMongo) DeleteDeviceDeploymentsHistory(ctx context.Context,
 		return err
 	}
 
-	return nil
+	database = db.client.Database(DatabaseName)
+	collDevs = database.Collection(CollectionDevicesLastStatus)
+	_, err := collDevs.DeleteMany(ctx, bson.M{StorageKeyDeviceDeploymentDeviceId: deviceID})
+
+	return err
 }
 
 func (db *DataStoreMongo) DecommissionDeviceDeployments(ctx context.Context,
@@ -2733,4 +2739,38 @@ func (db *DataStoreMongo) UpdateDeploymentsWithArtifactName(
 
 func (db *DataStoreMongo) GetTenantDbs() ([]string, error) {
 	return migrate.GetTenantDbs(context.Background(), db.client, mstore.IsTenantDb(DbName))
+}
+
+func (db *DataStoreMongo) SaveLastDeviceDeploymentStatus(
+	ctx context.Context,
+	deviceDeployment model.DeviceDeployment,
+) error {
+	tenantId := ""
+	id := identity.FromContext(ctx)
+	if id != nil {
+		tenantId = id.Tenant
+	}
+	filter := bson.M{
+		"_id": deviceDeployment.DeviceId,
+	}
+
+	lastStatus := model.DeviceDeploymentLastStatus{
+		DeviceId:               deviceDeployment.DeviceId,
+		DeploymentId:           deviceDeployment.DeploymentId,
+		DeviceDeploymentId:     deviceDeployment.Id,
+		DeviceDeploymentStatus: deviceDeployment.Status,
+		TenantId:               tenantId,
+	}
+
+	database := db.client.Database(DatabaseName)
+	collDevs := database.Collection(CollectionDevicesLastStatus)
+	var err error
+	if deviceDeployment.Status.Successful() {
+		_, err = collDevs.DeleteMany(ctx, filter)
+	} else {
+		replaceOptions := mopts.Replace()
+		replaceOptions.SetUpsert(true)
+		_, err = collDevs.ReplaceOne(ctx, filter, lastStatus, replaceOptions)
+	}
+	return err
 }
