@@ -1470,12 +1470,14 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 	}
 
 	if !ddState.Status.Active() {
+		l := log.FromContext(ctx)
+		if err := d.db.SaveLastDeviceDeploymentStatus(ctx, *dd); err != nil {
+			l.Error(errors.Wrap(err, "failed to save last device deployment status").Error())
+		}
 		if err := d.reindexDevice(ctx, deviceID); err != nil {
-			l := log.FromContext(ctx)
 			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 		}
 		if err := d.reindexDeployment(ctx, dd.DeviceId, dd.DeploymentId, dd.Id); err != nil {
-			l := log.FromContext(ctx)
 			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 		}
 	}

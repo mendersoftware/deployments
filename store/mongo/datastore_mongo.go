@@ -28,6 +28,7 @@ import (
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/mendersoftware/go-lib-micro/config"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 
@@ -43,6 +44,7 @@ const (
 	CollectionDeployments          = "deployments"
 	CollectionDeviceDeploymentLogs = "devices.logs"
 	CollectionDevices              = "devices"
+	CollectionDevicesLastStatus    = "devices_last_status"
 	CollectionStorageSettings      = "settings"
 )
 
@@ -377,6 +379,7 @@ const (
 const (
 	// Need to be kept in sync with structure filed names
 	StorageKeyId = "_id"
+	StorageKeyTenantId = "tenant_id"
 
 	StorageKeyImageProvides    = "meta_artifact.provides"
 	StorageKeyImageProvidesIdx = "meta_artifact.provides_idx"
@@ -2635,4 +2638,34 @@ func (db *DataStoreMongo) UpdateDeploymentsWithArtifactName(
 
 func (db *DataStoreMongo) GetTenantDbs() ([]string, error) {
 	return migrate.GetTenantDbs(context.Background(), db.client, mstore.IsTenantDb(DbName))
+}
+
+func (db *DataStoreMongo) SaveLastDeviceDeploymentStatus(
+	ctx context.Context,
+	deviceDeployment model.DeviceDeployment,
+) error {
+	tenantId := ""
+	id := identity.FromContext(ctx)
+	if id != nil {
+		tenantId = id.Tenant
+	}
+	filter := bson.M{
+		"_id": deviceDeployment.DeviceId,
+	}
+
+	lastStatus := model.DeviceDeploymentLastStatus{
+		DeviceId:               deviceDeployment.DeviceId,
+		DeploymentId:           deviceDeployment.DeploymentId,
+		DeviceDeploymentId:     deviceDeployment.Id,
+		DeviceDeploymentStatus: deviceDeployment.Status,
+		TenantId:               tenantId,
+	}
+
+	database := db.client.Database(DatabaseName)
+	collDevs := database.Collection(CollectionDevicesLastStatus)
+	var err error
+	replaceOptions := mopts.Replace()
+	replaceOptions.SetUpsert(true)
+	_, err = collDevs.ReplaceOne(ctx, filter, lastStatus, replaceOptions)
+	return err
 }

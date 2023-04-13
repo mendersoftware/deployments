@@ -156,4 +156,8 @@ type DataStore interface {
 	) error
 
 	GetTenantDbs() ([]string, error)
+	SaveLastDeviceDeploymentStatus(
+		ctx context.Context,
+		deviceDeployment model.DeviceDeployment,
+	) error
 }
