@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -179,6 +179,11 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 		mock.AnythingOfType("string"),
 		request).Return(nil)
 
+
+	db.On("SaveLastDeviceDeploymentStatus", ctx,
+		mock.AnythingOfType("model.DeviceDeployment"),
+	).Return(nil)
+
 	ds := NewDeployments(&db, fs)
 
 	_, err = ds.GetDeploymentForDeviceWithCurrent(ctx, devId, request)
@@ -355,6 +360,10 @@ func TestDecommissionDevice(t *testing.T) {
 				mock.AnythingOfType("time.Time")).
 				Return(tc.setDeploymentStatusError).
 				Once()
+
+			db.On("SaveLastDeviceDeploymentStatus", ctx,
+				mock.AnythingOfType("model.DeviceDeployment"),
+			).Return(nil)
 
 			ds := NewDeployments(&db, nil)
 
@@ -550,6 +559,10 @@ func TestAbortDeviceDeployments(t *testing.T) {
 				mock.AnythingOfType("time.Time")).
 				Return(tc.setDeploymentStatusError).
 				Once()
+
+			db.On("SaveLastDeviceDeploymentStatus", ctx,
+				mock.AnythingOfType("model.DeviceDeployment"),
+			).Return(nil)
 
 			ds := NewDeployments(&db, nil)
 
