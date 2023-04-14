@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2022 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -26,7 +26,11 @@ from client import (
     InventoryClient,
     SimpleDeviceClient,
 )
-from common import artifact_rootfs_from_data, Device
+from common import (
+    artifact_rootfs_from_data,
+    Device,
+    mongo,
+)
 
 
 class TestDeployment:
@@ -280,7 +284,7 @@ class TestDeployment:
             ).result()[0]
             assert len(res) == devices_qty_on_second_page
 
-    def test_device_deployments_simple(self):
+    def test_device_deployments_simple(self, mongo):
         """Check that device can get next deployment, simple cases:
         - bogus token
         - valid update
@@ -350,8 +354,13 @@ class TestDeployment:
 
                     # verify that device status was properly set
                     self.d.verify_deployment_stats(depid, expected={"failure": 1})
+        last_device_deployment_status = mongo[
+            "deployment_service"
+        ].devices_last_status.find_one({"_id": dev.devid})
+        assert last_device_deployment_status["_id"] == dev.devid
+        assert last_device_deployment_status["device_deployment_status"] == 2304
 
-    def test_device_deployments_already_installed(self):
+    def test_device_deployments_already_installed(self, mongo):
         """Check case with already installed artifact"""
         dev = Device()
 
@@ -393,8 +402,13 @@ class TestDeployment:
                     self.d.verify_deployment_stats(
                         depid, expected={"already-installed": 1}
                     )
+        last_device_deployment_status = mongo[
+            "deployment_service"
+        ].devices_last_status.find_one({"_id": dev.devid})
+        assert last_device_deployment_status["_id"] == dev.devid
+        assert last_device_deployment_status["device_deployment_status"] == 2304
 
-    def test_device_deployments_full(self):
+    def test_device_deployments_full(self, mongo):
         """Check that device can get next deployment, full cycle"""
         dev = Device()
 
@@ -513,6 +527,11 @@ class TestDeployment:
                     # self.d.verify_deployment_stats(
                     #    depid, expected={"already-installed": 1}
                     # )
+        last_device_deployment_status = mongo[
+            "deployment_service"
+        ].devices_last_status.find_one({"_id": dev.devid})
+        assert last_device_deployment_status["_id"] == dev.devid
+        assert last_device_deployment_status["device_deployment_status"] == 2560
 
     def test_device_deployments_logs(self):
         """Check that device can get next deployment, full cycle"""

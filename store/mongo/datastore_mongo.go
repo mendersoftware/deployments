@@ -2639,33 +2639,3 @@ func (db *DataStoreMongo) UpdateDeploymentsWithArtifactName(
 func (db *DataStoreMongo) GetTenantDbs() ([]string, error) {
 	return migrate.GetTenantDbs(context.Background(), db.client, mstore.IsTenantDb(DbName))
 }
-
-func (db *DataStoreMongo) SaveLastDeviceDeploymentStatus(
-	ctx context.Context,
-	deviceDeployment model.DeviceDeployment,
-) error {
-	tenantId := ""
-	id := identity.FromContext(ctx)
-	if id != nil {
-		tenantId = id.Tenant
-	}
-	filter := bson.M{
-		"_id": deviceDeployment.DeviceId,
-	}
-
-	lastStatus := model.DeviceDeploymentLastStatus{
-		DeviceId:               deviceDeployment.DeviceId,
-		DeploymentId:           deviceDeployment.DeploymentId,
-		DeviceDeploymentId:     deviceDeployment.Id,
-		DeviceDeploymentStatus: deviceDeployment.Status,
-		TenantId:               tenantId,
-	}
-
-	database := db.client.Database(DatabaseName)
-	collDevs := database.Collection(CollectionDevicesLastStatus)
-	var err error
-	replaceOptions := mopts.Replace()
-	replaceOptions.SetUpsert(true)
-	_, err = collDevs.ReplaceOne(ctx, filter, lastStatus, replaceOptions)
-	return err
-}

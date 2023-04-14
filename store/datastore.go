@@ -160,4 +160,8 @@ type DataStore interface {
 		ctx context.Context,
 		deviceDeployment model.DeviceDeployment,
 	) error
+	GetLastDeviceDeploymentStatus(
+		ctx context.Context,
+		devicesIds []string,
+	) ([]model.DeviceDeploymentLastStatus, error)
 }

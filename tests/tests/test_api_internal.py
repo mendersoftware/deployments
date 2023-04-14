@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2022 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 import bravado
 import pytest
 import requests
+import uuid
 
 from uuid import uuid4
 
@@ -73,25 +74,20 @@ class TestInternalApiTenantCreate:
             artifacts_client = SimpleArtifactsClient()
 
             artifacts_client.log.info("uploading artifact")
-            artid = api_client_int.add_artifact(
-                tenant_id, description, art.size, art
-            )
+            artid = api_client_int.add_artifact(tenant_id, description, art.size, art)
             assert artid is not None
 
             # verify the artifact has been stored correctly in mongodb
-            artifact = mongo[
-                "deployment_service-{}".format(tenant_id)
-            ].images.find_one({"_id": artid})
+            artifact = mongo["deployment_service-{}".format(tenant_id)].images.find_one(
+                {"_id": artid}
+            )
             assert artifact is not None
             #
             assert artifact["_id"] == artid
             assert artifact["meta_artifact"]["name"] == artifact_name
             assert artifact["meta"]["description"] == description
             assert artifact["size"] == int(art.size)
-            assert (
-                device_type
-                in artifact["meta_artifact"]["device_types_compatible"]
-            )
+            assert device_type in artifact["meta_artifact"]["device_types_compatible"]
             assert len(artifact["meta_artifact"]["updates"]) == 1
             update = artifact["meta_artifact"]["updates"][0]
             assert len(update["files"]) == 1
@@ -119,3 +115,57 @@ class TestInternalApiTenantCreate:
                 api_client_int.add_artifact(
                     tenant_id, description, -1, art, "wrong_uuid4"
                 )
+
+
+class TestInternalApiGetLastDeviceDeploymentStatus:
+    DEVICE_DEPLOYMENT_FAILED = 256
+    DEVICE_DEPLOYMENT_PENDING = 2304
+    DEVICE_DEPLOYMENT_SUCCESS = 2560
+
+    def test_get_statuses(self, api_client_int, mongo, clean_db):
+        # insert something in the db
+        device_ids = [str(uuid.uuid4()), str(uuid.uuid4())]
+        deployment_id = "acaf62f0-6a6f-45e4-9c52-838ee593cb62"
+        device_deployment_id = "b14a36d3-c1a9-408c-b128-bfb4808604f1"
+        devices = [
+            {
+                "_id": device_ids[0],
+                "deployment_id": deployment_id,
+                "device_deployment_id": device_deployment_id,
+                "device_deployment_status": self.DEVICE_DEPLOYMENT_SUCCESS,
+                "tenant_id":"",
+            },
+            {
+                "_id": device_ids[1],
+                "deployment_id": deployment_id,
+                "device_deployment_id": device_deployment_id,
+                "device_deployment_status": self.DEVICE_DEPLOYMENT_SUCCESS,
+                "tenant_id":"",
+            },
+        ]
+        for i in range(len(devices)):
+            mongo["deployment_service"].devices_last_status.insert_one(devices[i])
+
+        for i in range(len(devices)):
+            devices_ids = [device_ids[i]]
+            r = api_client_int.get_last_device_deployment_status(devices_ids, "")
+            r = r["device_deployment_last_statuses"]
+            assert len(r) == len(devices_ids)
+            assert r[0]["device_id"] == device_ids[i]
+            assert r[0]["device_deployment_id"] == device_deployment_id
+            assert r[0]["device_deployment_status"] == "success"
+
+        mongo["deployment_service"].devices_last_status.delete_many({})
+
+        for i in range(len(devices)):
+            mongo["deployment_service"].devices_last_status.insert_one(devices[i])
+        devices_ids = device_ids
+        r = api_client_int.get_last_device_deployment_status(devices_ids, "")
+        r = r["device_deployment_last_statuses"]
+        assert len(r) == len(device_ids)
+
+        mongo["deployment_service"].devices_last_status.delete_many({})
+        devices_ids = device_ids
+        r = api_client_int.get_last_device_deployment_status(devices_ids, "")
+        r = r["device_deployment_last_statuses"]
+        assert len(r) == 0

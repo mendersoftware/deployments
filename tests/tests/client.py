@@ -475,3 +475,17 @@ class InternalApiClient(SwaggerApiClient):
         if resp.json() is None:
             return {}
         return resp.json()
+
+    def get_last_device_deployment_status(self, devices_ids, tenant_id):
+        # return self.client.Internal_API.Get_last_device_deployment_status(
+        #     devicesIds=devices_ids
+        # ).result()
+        url = self.make_api_url(f"/tenants/{tenant_id}/devices/deployments/last")
+        devices_ids_json = json.dumps(devices_ids)
+        resp = requests.post(
+            url, data=devices_ids_json, headers={"Content-Type": "application/json"}
+        )
+        assert resp.status_code == 200
+        if resp.json() is None:
+            return {}
+        return resp.json()
