@@ -269,6 +269,27 @@ func (_m *App) GenerateImage(ctx context.Context, multipartUploadMsg *model.Mult
 	return r0, r1
 }
 
+// GetDeviceDeploymentLastStatus provides a mock function with given fields: ctx, devicesIds
+func (_m *App) GetDeviceDeploymentLastStatus(ctx context.Context, devicesIds []string) (model.DeviceDeploymentLastStatuses, error) {
+	ret := _m.Called(ctx, devicesIds)
+
+	var r0 model.DeviceDeploymentLastStatuses
+	if rf, ok := ret.Get(0).(func(context.Context, []string) model.DeviceDeploymentLastStatuses); ok {
+		r0 = rf(ctx, devicesIds)
+	} else {
+		r0 = ret.Get(0).(model.DeviceDeploymentLastStatuses)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(ctx, devicesIds)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetDeployment provides a mock function with given fields: ctx, deploymentID
 func (_m *App) GetDeployment(ctx context.Context, deploymentID string) (*model.Deployment, error) {
 	ret := _m.Called(ctx, deploymentID)

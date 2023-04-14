@@ -512,6 +512,38 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /tenants/{tenant_id}/devices/deployments/last:
+    post:
+      operationId: Get last device deployment status
+      tags:
+        - Internal API
+      summary: Get status of the last device devployment
+      description: |
+        Return the status of the last unsucessful device deployment.
+      parameters:
+        - name: tenant_id
+          in: path
+          description: Tenant identifier.
+          required: true
+          type: string
+        - name: devicesIds
+          in: body
+          description: An array of device ids for which to return the statuses.
+          schema:
+            $ref: "#/definitions/LastDeviceDeploymentsStatuses"
+          required: true
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      responses:
+        200:
+          description: List of device deployment statuses returned.
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        500:
+          $ref: "#/responses/InternalServerError"
+
 definitions:
   NewTenant:
     description: New tenant descriptor.
@@ -960,3 +992,19 @@ definitions:
           type: string
         version:
           type: integer
+  LastDeviceDeploymentsStatuses:
+    type: object
+    properties:
+      device_deployment_last_statuses:
+        type: array
+        description: Array of device deployment statuses
+        items:
+          type: string
+    required:
+      - device_deployment_last_statuses
+    example:
+      device_deployment_last_statuses:
+        - device_id: "b86dfe3d-a0a6-4838-b374-5fbcb7c956a1"
+          deployment_id: "acaf62f0-6a6f-45e4-9c52-838ee593cb62"
+          device_deployment_id: "b14a36d3-c1a9-408c-b128-bfb4808604f1"
+          device_deployment_status: "success"

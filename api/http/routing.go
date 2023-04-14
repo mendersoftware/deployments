@@ -80,6 +80,8 @@ const (
 		"/tenants/#tenant/storage/settings"
 	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal +
 		"/tenants/#tenant/configuration/deployments/#deployment_id/devices/#device_id"
+	ApiUrlInternalDeviceDeploymentLastStatusDeployments = ApiUrlInternal +
+		"/tenants/#tenant/devices/deployments/last"
 )
 
 // NewRouter defines all REST API routes.
@@ -182,6 +184,10 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 		// Configuration deployments (internal)
 		rest.Post(ApiUrlInternalDeviceConfigurationDeployments,
 			controller.PostDeviceConfigurationDeployment),
+
+		// Last device deployment status deployments (internal)
+		rest.Post(ApiUrlInternalDeviceDeploymentLastStatusDeployments,
+			controller.GetDeviceDeploymentLastStatus),
 
 		// Devices
 		rest.Get(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
