@@ -16,16 +16,17 @@ package model
 
 type DeviceDeploymentLastStatus struct {
 	// Device id
-	DeviceId string `json:"-" bson:"_id"`
+	DeviceId string `json:"device_id" bson:"_id"`
 
 	// Deployment id
-	DeploymentId string `json:"-" bson:"deployment_id"`
+	DeploymentId string `json:"deployment_id" bson:"deployment_id"`
 
 	// Device Deployment id
-	DeviceDeploymentId string `json:"-" bson:"device_deployment_id"`
+	DeviceDeploymentId string `json:"device_deployment_id" bson:"device_deployment_id"`
 
 	// Status
-	DeviceDeploymentStatus DeviceDeploymentStatus `json:"-" bson:"device_deployment_status"`
+	// nolint:lll
+	DeviceDeploymentStatus DeviceDeploymentStatus `json:"device_deployment_status" bson:"device_deployment_status"`
 
 	// Tenant id
 	TenantId string `json:"-" bson:"tenant_id"`

@@ -174,6 +174,13 @@ type App interface {
 		ctx context.Context,
 		artifactName string,
 	) error
+	GetDeviceDeploymentLastStatus(
+		ctx context.Context,
+		devicesIds []string,
+	) (
+		[]model.DeviceDeploymentLastStatus,
+		error,
+	)
 }
 
 type Deployments struct {

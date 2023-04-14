@@ -48,10 +48,7 @@ class TestArtifact:
         # try bogus image data
         try:
             res = self.ac.client.Management_API.Upload_Artifact(
-                Authorization="foo",
-                size=100,
-                artifact="".encode(),
-                description="bar",
+                Authorization="foo", size=100, artifact="".encode(), description="bar",
             ).result()
         except bravado.exception.HTTPError as e:
             assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
@@ -66,12 +63,7 @@ class TestArtifact:
                 {
                     "description": "bar",
                     "size": str(art.size),
-                    "artifact": (
-                        "firmware",
-                        art,
-                        "application/octet-stream",
-                        {},
-                    ),
+                    "artifact": ("firmware", art, "application/octet-stream", {},),
                 }
             )
 
@@ -141,9 +133,7 @@ class TestArtifact:
                     break
 
             self.ac.log.info(
-                "artifact checksum %s expecting %s",
-                dig.hexdigest(),
-                art.checksum,
+                "artifact checksum %s expecting %s", dig.hexdigest(), art.checksum,
             )
             assert dig.hexdigest() == art.checksum
 
@@ -214,9 +204,7 @@ class TestArtifact:
                     break
 
             self.ac.log.info(
-                "artifact checksum %s expecting %s",
-                dig.hexdigest(),
-                art.checksum,
+                "artifact checksum %s expecting %s", dig.hexdigest(), art.checksum,
             )
             assert dig.hexdigest() == art.checksum
 

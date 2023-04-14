@@ -512,6 +512,43 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /tenants/{tenant_id}/device/deployments/last:
+    post:
+      operationId: Get last device deployment status
+      tags:
+        - Internal API
+      summary: Get status of the last device devployment
+      description: |
+        Return the status of the last unsucessful device deployment.
+      parameters:
+        - name: tenant_id
+          in: path
+          description: Tenant identifier.
+          required: true
+          type: string
+        - name: devicesIds
+          in: body
+          description: An array of device ids for which to return the statuses.
+          type: array
+          items:
+            type: string
+          required: true
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      responses:
+        200:
+          description: New configuration deployment created.
+          headers:
+            Location:
+              description: URL of the newly created deployment.
+              type: string
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        500:
+          $ref: "#/responses/InternalServerError"
+
 definitions:
   NewTenant:
     description: New tenant descriptor.
