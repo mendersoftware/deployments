@@ -194,10 +194,6 @@ func (stat DeviceDeploymentStatus) Active() bool {
 		stat <= DeviceDeploymentStatusActiveHigh
 }
 
-func (stat DeviceDeploymentStatus) Successful() bool {
-	return stat == DeviceDeploymentStatusSuccess
-}
-
 // DeviceDeploymentStatus is a helper type for reporting status changes through
 // the layers
 type DeviceDeploymentState struct {

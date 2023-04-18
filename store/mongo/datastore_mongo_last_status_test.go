@@ -66,7 +66,7 @@ func TestSaveLastDeviceDeploymentStatus(t *testing.T) {
 				},
 			},
 		},
-		"deployment successful status removed": {
+		"deployment successful status stored": {
 			deviceDeployments: []model.DeviceDeployment{
 				{
 					Created:      &now,
@@ -157,15 +157,10 @@ func TestSaveLastDeviceDeploymentStatus(t *testing.T) {
 						assert.True(t, found)
 					}
 				} else {
-					if tc.deviceDeployments[len(tc.deviceDeployments)-1].Status == model.DeviceDeploymentStatusSuccess {
-						assert.Equal(t, 0, len(results))
-						t.Logf("expected 0 results and found: %d.", len(results))
-					} else {
-						assert.Equal(t, 1, len(results))
-						t.Logf("expected 1 results and found: %d.", len(results))
-						assert.Equal(t, tc.deviceDeployments[len(tc.deviceDeployments)-1].DeviceId, results[0].DeviceId)
-						assert.Equal(t, tc.deviceDeployments[len(tc.deviceDeployments)-1].Status, results[0].DeviceDeploymentStatus)
-					}
+					assert.Equal(t, 1, len(results))
+					t.Logf("expected 1 results and found: %d.", len(results))
+					assert.Equal(t, tc.deviceDeployments[len(tc.deviceDeployments)-1].DeviceId, results[0].DeviceId)
+					assert.Equal(t, tc.deviceDeployments[len(tc.deviceDeployments)-1].Status, results[0].DeviceDeploymentStatus)
 				}
 			}
 		})

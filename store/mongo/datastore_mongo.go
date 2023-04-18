@@ -2765,12 +2765,8 @@ func (db *DataStoreMongo) SaveLastDeviceDeploymentStatus(
 	database := db.client.Database(DatabaseName)
 	collDevs := database.Collection(CollectionDevicesLastStatus)
 	var err error
-	if deviceDeployment.Status.Successful() {
-		_, err = collDevs.DeleteMany(ctx, filter)
-	} else {
-		replaceOptions := mopts.Replace()
-		replaceOptions.SetUpsert(true)
-		_, err = collDevs.ReplaceOne(ctx, filter, lastStatus, replaceOptions)
-	}
+	replaceOptions := mopts.Replace()
+	replaceOptions.SetUpsert(true)
+	_, err = collDevs.ReplaceOne(ctx, filter, lastStatus, replaceOptions)
 	return err
 }
