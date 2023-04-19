@@ -1018,6 +1018,20 @@ func (_m *DataStore) ProvisionTenant(ctx context.Context, tenantId string) error
 	return r0
 }
 
+// SaveLastDeviceDeploymentStatus provides a mock function with given fields: ctx, deviceDeployment
+func (_m *DataStore) SaveLastDeviceDeploymentStatus(ctx context.Context, deviceDeployment model.DeviceDeployment) error {
+	ret := _m.Called(ctx, deviceDeployment)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, model.DeviceDeployment) error); ok {
+		r0 = rf(ctx, deviceDeployment)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SaveDeviceDeploymentLog provides a mock function with given fields: ctx, log
 func (_m *DataStore) SaveDeviceDeploymentLog(ctx context.Context, log model.DeploymentLog) error {
 	ret := _m.Called(ctx, log)
