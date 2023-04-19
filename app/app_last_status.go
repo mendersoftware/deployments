@@ -48,11 +48,11 @@ func (d *Deployments) GetDeviceDeploymentLastStatus(
 		}, ErrArrayTooBig
 	}
 
-	statuses,err:=d.db.GetLastDeviceDeploymentStatus(ctx, devicesIds)
-	if len(statuses)<1 {
-		statuses=[]model.DeviceDeploymentLastStatus{}
+	statuses, err := d.db.GetLastDeviceDeploymentStatus(ctx, devicesIds)
+	if len(statuses) < 1 {
+		statuses = []model.DeviceDeploymentLastStatus{}
 	}
 	return model.DeviceDeploymentLastStatuses{
 		DeviceDeploymentLastStatuses: statuses,
-	},err
+	}, err
 }

@@ -150,7 +150,7 @@ class TestInternalApiGetLastDeviceDeploymentStatus:
         for i in range(len(devices)):
             devices_ids = [device_ids[i]]
             r = api_client_int.get_last_device_deployment_status(devices_ids, tenant_id)
-            r=r["device_deployment_last_statuses"]
+            r = r["device_deployment_last_statuses"]
             assert len(r) == len(devices_ids)
             assert r[0]["device_id"] == device_ids[i]
             assert r[0]["device_deployment_id"] == device_deployment_id
@@ -162,11 +162,11 @@ class TestInternalApiGetLastDeviceDeploymentStatus:
             mongo["deployment_service"].devices_last_status.insert_one(devices[i])
         devices_ids = device_ids
         r = api_client_int.get_last_device_deployment_status(devices_ids, tenant_id)
-        r=r["device_deployment_last_statuses"]
+        r = r["device_deployment_last_statuses"]
         assert len(r) == len(device_ids)
 
         mongo["deployment_service"].devices_last_status.delete_many({})
         devices_ids = device_ids
         r = api_client_int.get_last_device_deployment_status(devices_ids, tenant_id)
-        r=r["device_deployment_last_statuses"]
+        r = r["device_deployment_last_statuses"]
         assert len(r) == 0
