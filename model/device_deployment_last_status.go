@@ -33,5 +33,7 @@ type DeviceDeploymentLastStatus struct {
 }
 
 type DeviceDeploymentLastStatuses struct {
+	// DeviceDeploymentLastStatuses array of last device deployments statuses
+	// nolint:lll
 	DeviceDeploymentLastStatuses []DeviceDeploymentLastStatus `json:"device_deployment_last_statuses" bson:"device_deployment_last_statuses"`
 }

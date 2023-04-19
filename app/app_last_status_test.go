@@ -112,7 +112,7 @@ func TestGetDeviceDeploymentLastStatus(t *testing.T) {
 			statuses, err := dep.GetDeviceDeploymentLastStatus(ctx, tc.DeviceIds)
 			if tc.ExpectedError == nil {
 				assert.NoError(t, err)
-				assert.Equal(t, len(tc.Statuses), len(statuses))
+				assert.Equal(t, len(tc.Statuses), len(statuses.DeviceDeploymentLastStatuses))
 			} else {
 				assert.Error(t, err)
 				assert.EqualError(t, tc.ExpectedError, err.Error())
