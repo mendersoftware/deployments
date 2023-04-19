@@ -36,16 +36,6 @@ func (d *DeploymentsApiHandlers) GetDeviceDeploymentLastStatus(
 	l.Debugf("starting")
 
 	tenantId := r.PathParam("tenant")
-	if tenantId == "" {
-		l.Error("tenant id cannot be empty")
-		rest_utils.RestErrWithLog(
-			w,
-			r,
-			l,
-			errors.New("empty tenant id"),
-			http.StatusBadRequest,
-		)
-	}
 	var devicesIds []string
 	if err := r.DecodeJsonPayload(&devicesIds); err != nil {
 		l.Errorf("error during DecodeJsonPayload: %s.", err.Error())
