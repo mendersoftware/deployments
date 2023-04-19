@@ -86,7 +86,7 @@ func TestGetDeviceDeploymentLastStatus(t *testing.T) {
 					return false
 				}),
 				mock.AnythingOfType("[]string"),
-			).Return(tc.Statuses, tc.AppError)
+			).Return(model.DeviceDeploymentLastStatuses{DeviceDeploymentLastStatuses:tc.Statuses}, tc.AppError)
 
 			restView := new(view.RESTView)
 			d := NewDeploymentsApiHandlers(nil, restView, app)
