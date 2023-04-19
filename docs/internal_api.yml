@@ -512,7 +512,7 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
-  /tenants/{tenant_id}/device/deployments/last:
+  /tenants/{tenant_id}/devices/deployments/last:
     post:
       operationId: Get last device deployment status
       tags:
@@ -529,9 +529,10 @@ paths:
         - name: devicesIds
           in: body
           description: An array of device ids for which to return the statuses.
-          type: array
-          items:
-            type: string
+          schema:
+            type: array
+            items:
+              type: string
           required: true
       consumes:
         - application/json
@@ -539,11 +540,7 @@ paths:
         - application/json
       responses:
         200:
-          description: New configuration deployment created.
-          headers:
-            Location:
-              description: URL of the newly created deployment.
-              type: string
+          description: List of device deployment statuses returned.
         400:
           $ref: "#/responses/InvalidRequestError"
         500:

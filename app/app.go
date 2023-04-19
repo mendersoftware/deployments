@@ -178,7 +178,7 @@ type App interface {
 		ctx context.Context,
 		devicesIds []string,
 	) (
-		[]model.DeviceDeploymentLastStatus,
+		model.DeviceDeploymentLastStatuses,
 		error,
 	)
 }

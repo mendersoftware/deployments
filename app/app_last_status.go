@@ -35,14 +35,24 @@ var (
 func (d *Deployments) GetDeviceDeploymentLastStatus(
 	ctx context.Context,
 	devicesIds []string,
-) ([]model.DeviceDeploymentLastStatus, error) {
+) (model.DeviceDeploymentLastStatuses, error) {
 	length := len(devicesIds)
 	if length < 1 {
-		return []model.DeviceDeploymentLastStatus{}, ErrNoIdsGiven
+		return model.DeviceDeploymentLastStatuses{
+			DeviceDeploymentLastStatuses: []model.DeviceDeploymentLastStatus{},
+		}, ErrNoIdsGiven
 	}
 	if length > MaxDeviceArrayLength {
-		return []model.DeviceDeploymentLastStatus{}, ErrArrayTooBig
+		return model.DeviceDeploymentLastStatuses{
+			DeviceDeploymentLastStatuses: []model.DeviceDeploymentLastStatus{},
+		}, ErrArrayTooBig
 	}
 
-	return d.db.GetLastDeviceDeploymentStatus(ctx, devicesIds)
+	statuses,err:=d.db.GetLastDeviceDeploymentStatus(ctx, devicesIds)
+	if len(statuses)<1 {
+		statuses=[]model.DeviceDeploymentLastStatus{}
+	}
+	return model.DeviceDeploymentLastStatuses{
+		DeviceDeploymentLastStatuses: statuses,
+	},err
 }

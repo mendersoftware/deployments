@@ -31,3 +31,7 @@ type DeviceDeploymentLastStatus struct {
 	// Tenant id
 	TenantId string `json:"-" bson:"tenant_id"`
 }
+
+type DeviceDeploymentLastStatuses struct {
+	DeviceDeploymentLastStatuses []DeviceDeploymentLastStatus `json:"device_deployment_last_statuses" bson:"device_deployment_last_statuses"`
+}

@@ -81,7 +81,7 @@ const (
 	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal +
 		"/tenants/#tenant/configuration/deployments/#deployment_id/devices/#device_id"
 	ApiUrlInternalDeviceDeploymentLastStatusDeployments = ApiUrlInternal +
-		"/tenants/#tenant/device/deployments/last"
+		"/tenants/#tenant/devices/deployments/last"
 )
 
 // NewRouter defines all REST API routes.
