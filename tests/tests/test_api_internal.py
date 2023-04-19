@@ -145,7 +145,7 @@ class TestInternalApiGetLastDeviceDeploymentStatus:
             },
         ]
         for i in range(len(devices)):
-            mongo["deployment_service"].devices_last_status.insert_one({"device_deployment_last_statuses":devices[i]})
+            mongo["deployment_service"].devices_last_status.insert_one(devices[i])
 
         for i in range(len(devices)):
             devices_ids = [device_ids[i]]
@@ -159,7 +159,7 @@ class TestInternalApiGetLastDeviceDeploymentStatus:
         mongo["deployment_service"].devices_last_status.delete_many({})
 
         for i in range(len(devices)):
-            mongo["deployment_service"].devices_last_status.insert_one({"device_deployment_last_statuses": devices[i]})
+            mongo["deployment_service"].devices_last_status.insert_one(devices[i])
         devices_ids = device_ids
         r = api_client_int.get_last_device_deployment_status(devices_ids, tenant_id)
         r=r["device_deployment_last_statuses"]

@@ -104,10 +104,10 @@ func TestGetDeviceDeploymentLastStatus(t *testing.T) {
 			assert.Equal(t, tc.ResponseCode, recorded.Recorder.Code)
 			if tc.ResponseCode == http.StatusOK {
 				recorded.ContentTypeIsJson()
-				var res []model.DeviceDeploymentLastStatus
+				var res model.DeviceDeploymentLastStatuses
 				recorded.DecodeJsonPayload(&res)
 				t.Logf("got: %+v", res)
-				assert.Equal(t, len(tc.Statuses), len(res))
+				assert.Equal(t, len(tc.Statuses), len(res.DeviceDeploymentLastStatuses))
 			}
 		})
 	}
