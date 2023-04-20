@@ -35,6 +35,8 @@ import (
 
 const (
 	deviceDeploymentsBatchSize = 512
+
+	cliDefaultRateLimit = 50
 )
 
 func main() {
@@ -89,6 +91,11 @@ func doMain(args []string) {
 				cli.StringFlag{
 					Name:  "tenant_id",
 					Usage: "Tenant ID (optional) - propagate for just a single tenant.",
+				},
+				cli.UintFlag{
+					Name:  "rate-limit",
+					Usage: "`N`umber of reindexing batch requests per second",
+					Value: cliDefaultRateLimit,
 				},
 				cli.BoolFlag{
 					Name: "dry-run",
@@ -200,10 +207,17 @@ func cmdPropagateReporting(args *cli.Context) error {
 
 	wflows := workflows.NewClient()
 
+	var requestPeriod time.Duration
+	rateLimit := args.Uint("rate-limit")
+	if rateLimit > 0 {
+		requestPeriod = time.Second / time.Duration(args.Uint("rate-limit"))
+	}
+
 	err = propagateReporting(
 		db,
 		wflows,
 		args.String("tenant_id"),
+		requestPeriod,
 		args.Bool("dry-run"),
 	)
 	if err != nil {
@@ -216,6 +230,7 @@ func propagateReporting(
 	db store.DataStore,
 	wflows workflows.Client,
 	tenant string,
+	requestPeriod time.Duration,
 	dryRun bool,
 ) error {
 	l := log.NewEmpty()
@@ -227,7 +242,7 @@ func propagateReporting(
 
 	var errReturned error
 	for _, d := range dbs {
-		err := tryPropagateReportingForDb(db, wflows, d, dryRun)
+		err := tryPropagateReportingForDb(db, wflows, d, requestPeriod, dryRun)
 		if err != nil {
 			errReturned = err
 			l.Errorf("giving up on DB %s due to fatal error: %s", d, err.Error())
@@ -272,6 +287,7 @@ func tryPropagateReportingForDb(
 	db store.DataStore,
 	wflows workflows.Client,
 	dbname string,
+	requestPeriod time.Duration,
 	dryRun bool,
 ) error {
 	l := log.NewEmpty()
@@ -287,7 +303,7 @@ func tryPropagateReportingForDb(
 		})
 	}
 
-	err := reindexDeploymentsReporting(ctx, db, wflows, tenant, dryRun)
+	err := reindexDeploymentsReporting(ctx, db, wflows, tenant, requestPeriod, dryRun)
 	if err != nil {
 		l.Infof("Done with DB %s, but there were errors: %s.", dbname, err.Error())
 	} else {
@@ -302,10 +318,14 @@ func reindexDeploymentsReporting(
 	db store.DataStore,
 	wflows workflows.Client,
 	tenant string,
+	requestPeriod time.Duration,
 	dryRun bool,
 ) error {
 	var skip int
 
+	done := ctx.Done()
+	ticker := time.NewTicker(requestPeriod)
+	defer ticker.Stop()
 	skip = 0
 	for {
 		dd, err := db.GetDeviceDeployments(ctx, skip, deviceDeploymentsBatchSize, "", nil, true)
@@ -333,6 +353,12 @@ func reindexDeploymentsReporting(
 		skip += deviceDeploymentsBatchSize
 		if len(dd) < deviceDeploymentsBatchSize {
 			break
+		}
+		select {
+		case <-ticker.C:
+
+		case <-done:
+			return ctx.Err()
 		}
 	}
 	return nil
