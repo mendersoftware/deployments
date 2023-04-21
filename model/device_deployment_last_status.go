@@ -37,3 +37,8 @@ type DeviceDeploymentLastStatuses struct {
 	// nolint:lll
 	DeviceDeploymentLastStatuses []DeviceDeploymentLastStatus `json:"device_deployment_last_statuses" bson:"device_deployment_last_statuses"`
 }
+
+type DeviceDeploymentLastStatusReq struct {
+	// Device ids
+	DeviceIds []string `json:"device_ids"`
+}
