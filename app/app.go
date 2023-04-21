@@ -1548,7 +1548,13 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 
 	if !ddState.Status.Active() {
 		l := log.FromContext(ctx)
-		if err := d.db.SaveLastDeviceDeploymentStatus(ctx, *dd); err != nil {
+		ldd := model.DeviceDeployment{
+			DeviceId:     dd.DeviceId,
+			DeploymentId: dd.DeploymentId,
+			Id:           dd.Id,
+			Status:       ddState.Status,
+		}
+		if err := d.db.SaveLastDeviceDeploymentStatus(ctx, ldd); err != nil {
 			l.Error(errors.Wrap(err, "failed to save last device deployment status").Error())
 		}
 		if err := d.reindexDevice(ctx, deviceID); err != nil {
