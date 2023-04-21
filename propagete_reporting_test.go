@@ -16,6 +16,7 @@ package main
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -131,7 +132,7 @@ func TestPropagateReporting(t *testing.T) {
 		t.Run(fmt.Sprintf("tc %s", k), func(t *testing.T) {
 			defer tc.workflowsMock.AssertExpectations(t)
 			defer tc.storeMock.AssertExpectations(t)
-			err := propagateReporting(tc.storeMock, tc.workflowsMock, tc.cmdTenant, tc.cmdDryRun)
+			err := propagateReporting(tc.storeMock, tc.workflowsMock, tc.cmdTenant, time.Microsecond, tc.cmdDryRun)
 			assert.NoError(t, err)
 		})
 	}
