@@ -377,7 +377,7 @@ const (
 // Database keys
 const (
 	// Need to be kept in sync with structure filed names
-	StorageKeyId = "_id"
+	StorageKeyId       = "_id"
 	StorageKeyTenantId = "tenant_id"
 
 	StorageKeyImageProvides    = "meta_artifact.provides"
