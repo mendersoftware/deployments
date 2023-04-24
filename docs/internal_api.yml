@@ -526,11 +526,10 @@ paths:
           description: Tenant identifier.
           required: true
           type: string
-        - name: devicesIds
+        - name: request
           in: body
-          description: An array of device ids for which to return the statuses.
           schema:
-            $ref: "#/definitions/LastDeviceDeploymentsStatuses"
+            $ref: "#/definitions/LastDeviceDeploymentReq"
           required: true
       consumes:
         - application/json
@@ -539,6 +538,8 @@ paths:
       responses:
         200:
           description: List of device deployment statuses returned.
+          schema:
+            $ref: "#/definitions/LastDeviceDeploymentsStatuses"
         400:
           $ref: "#/responses/InvalidRequestError"
         500:
@@ -997,14 +998,32 @@ definitions:
     properties:
       device_deployment_last_statuses:
         type: array
-        description: Array of device deployment statuses
+        items:
+          $ref: "#/definitions/LastDeviceDeployment"
+    required:
+      - device_deployment_last_statuses
+  LastDeviceDeployment:
+    type: object
+    properties:
+      device_id:
+        type: string
+      deployment_id:
+        type: string
+      device_deployment_id:
+        type: string
+      device_deployment_status:
+        type: string
+    example:
+      device_id: "b86dfe3d-a0a6-4838-b374-5fbcb7c956a1"
+      deployment_id: "acaf62f0-6a6f-45e4-9c52-838ee593cb62"
+      device_deployment_id: "b14a36d3-c1a9-408c-b128-bfb4808604f1"
+      device_deployment_status: "success"
+  LastDeviceDeploymentReq:
+    type: object
+    properties:
+      device_ids:
+        type: array
         items:
           type: string
     required:
-      - device_deployment_last_statuses
-    example:
-      device_deployment_last_statuses:
-        - device_id: "b86dfe3d-a0a6-4838-b374-5fbcb7c956a1"
-          deployment_id: "acaf62f0-6a6f-45e4-9c52-838ee593cb62"
-          device_deployment_id: "b14a36d3-c1a9-408c-b128-bfb4808604f1"
-          device_deployment_status: "success"
+      - device_ids

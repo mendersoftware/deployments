@@ -24,6 +24,8 @@ import (
 	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
+
+	"github.com/mendersoftware/deployments/model"
 )
 
 // device deployments last status handler
@@ -36,8 +38,8 @@ func (d *DeploymentsApiHandlers) GetDeviceDeploymentLastStatus(
 	l.Debugf("starting")
 
 	tenantId := r.PathParam("tenant")
-	var devicesIds []string
-	if err := r.DecodeJsonPayload(&devicesIds); err != nil {
+	var req model.DeviceDeploymentLastStatusReq
+	if err := r.DecodeJsonPayload(&req); err != nil {
 		l.Errorf("error during DecodeJsonPayload: %s.", err.Error())
 		rest_utils.RestErrWithLog(
 			w,
@@ -47,9 +49,17 @@ func (d *DeploymentsApiHandlers) GetDeviceDeploymentLastStatus(
 			http.StatusBadRequest,
 		)
 		return
+	} else if len(req.DeviceIds) == 0 {
+		rest_utils.RestErrWithLog(
+			w,
+			r,
+			l,
+			errors.Wrap(err, "device ids array cannot be empty"),
+			http.StatusBadRequest,
+		)
 	}
 
-	l.Debugf("querying %d devices ids", len(devicesIds))
+	l.Debugf("querying %d devices ids", len(req.DeviceIds))
 	ctx := r.Context()
 	if tenantId != "" {
 		ctx = identity.WithContext(
@@ -59,7 +69,7 @@ func (d *DeploymentsApiHandlers) GetDeviceDeploymentLastStatus(
 			},
 		)
 	}
-	lastDeployments, err := d.app.GetDeviceDeploymentLastStatus(ctx, devicesIds)
+	lastDeployments, err := d.app.GetDeviceDeploymentLastStatus(ctx, req.DeviceIds)
 	switch err {
 	default:
 		d.view.RenderInternalError(w, r, err, l)

@@ -358,7 +358,7 @@ class TestDeployment:
             "deployment_service"
         ].devices_last_status.find_one({"_id": dev.devid})
         assert last_device_deployment_status["_id"] == dev.devid
-        assert last_device_deployment_status["device_deployment_status"] == 2304
+        assert last_device_deployment_status["device_deployment_status"] == 256
 
     def test_device_deployments_already_installed(self, mongo):
         """Check case with already installed artifact"""
@@ -406,7 +406,7 @@ class TestDeployment:
             "deployment_service"
         ].devices_last_status.find_one({"_id": dev.devid})
         assert last_device_deployment_status["_id"] == dev.devid
-        assert last_device_deployment_status["device_deployment_status"] == 2304
+        assert last_device_deployment_status["device_deployment_status"] == 3072
 
     def test_device_deployments_full(self, mongo):
         """Check that device can get next deployment, full cycle"""
@@ -531,7 +531,7 @@ class TestDeployment:
             "deployment_service"
         ].devices_last_status.find_one({"_id": dev.devid})
         assert last_device_deployment_status["_id"] == dev.devid
-        assert last_device_deployment_status["device_deployment_status"] == 2560
+        assert last_device_deployment_status["device_deployment_status"] == 256
 
     def test_device_deployments_logs(self):
         """Check that device can get next deployment, full cycle"""

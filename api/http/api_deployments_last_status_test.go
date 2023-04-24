@@ -42,15 +42,17 @@ func TestGetDeviceDeploymentLastStatus(t *testing.T) {
 	tenantId := uuid.New().String()
 	testCases := []struct {
 		Name      string
-		InputBody []string
+		InputBody model.DeviceDeploymentLastStatusReq
 		Statuses  []model.DeviceDeploymentLastStatus
 
 		AppError     error
 		ResponseCode int
 	}{
 		{
-			Name:      "ok, device deployments list",
-			InputBody: []string{deviceIds[0]},
+			Name: "ok, device deployments list",
+			InputBody: model.DeviceDeploymentLastStatusReq{
+				DeviceIds: []string{deviceIds[0]},
+			},
 			Statuses: []model.DeviceDeploymentLastStatus{
 				{
 					DeviceId:               deviceIds[0],
@@ -63,14 +65,18 @@ func TestGetDeviceDeploymentLastStatus(t *testing.T) {
 			ResponseCode: http.StatusOK,
 		},
 		{
-			Name:         "ok, empty device deployments list",
-			InputBody:    deviceIds,
+			Name: "ok, empty device deployments list",
+			InputBody: model.DeviceDeploymentLastStatusReq{
+				DeviceIds: deviceIds,
+			},
 			Statuses:     []model.DeviceDeploymentLastStatus{},
 			ResponseCode: http.StatusOK,
 		},
 		{
-			Name:         "error: app error",
-			InputBody:    deviceIds,
+			Name: "error: app error",
+			InputBody: model.DeviceDeploymentLastStatusReq{
+				DeviceIds: deviceIds,
+			},
 			AppError:     errors.New("some error"),
 			ResponseCode: http.StatusInternalServerError,
 		},
