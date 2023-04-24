@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2022 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 #    limitations under the License.
 
 import logging
+import json
 import os.path
 import random
 import socket
@@ -472,6 +473,20 @@ class InternalApiClient(SwaggerApiClient):
         url = self.make_api_url("/tenants/{}/storage/settings".format(tenant_id))
         resp = requests.get(url)
         assert resp.status_code == status_code
+        if resp.json() is None:
+            return {}
+        return resp.json()
+
+    def get_last_device_deployment_status(self, devices_ids, tenant_id):
+        # return self.client.Internal_API.Get_last_device_deployment_status(
+        #     devicesIds=devices_ids
+        # ).result()
+        url = self.make_api_url(f"/tenants/{tenant_id}/devices/deployments/last")
+        devices_ids_json = json.dumps(devices_ids)
+        resp = requests.post(
+            url, data=devices_ids_json, headers={"Content-Type": "application/json"}
+        )
+        assert resp.status_code == 200
         if resp.json() is None:
             return {}
         return resp.json()

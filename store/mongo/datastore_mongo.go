@@ -43,6 +43,7 @@ const (
 	CollectionDeployments          = "deployments"
 	CollectionDeviceDeploymentLogs = "devices.logs"
 	CollectionDevices              = "devices"
+	CollectionDevicesLastStatus    = "devices_last_status"
 	CollectionStorageSettings      = "settings"
 )
 
@@ -376,7 +377,8 @@ const (
 // Database keys
 const (
 	// Need to be kept in sync with structure filed names
-	StorageKeyId = "_id"
+	StorageKeyId       = "_id"
+	StorageKeyTenantId = "tenant_id"
 
 	StorageKeyImageProvides    = "meta_artifact.provides"
 	StorageKeyImageProvidesIdx = "meta_artifact.provides_idx"

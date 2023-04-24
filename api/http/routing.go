@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -76,6 +76,8 @@ const (
 		"/tenants/#tenant/storage/settings"
 	ApiUrlInternalDeviceConfigurationDeployments = ApiUrlInternal +
 		"/tenants/#tenant/configuration/deployments/#deployment_id/devices/#device_id"
+	ApiUrlInternalDeviceDeploymentLastStatusDeployments = ApiUrlInternal +
+		"/tenants/#tenant/devices/deployments/last"
 )
 
 // NewRouter defines all REST API routes.
@@ -163,6 +165,10 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 		// Configuration deployments (internal)
 		rest.Post(ApiUrlInternalDeviceConfigurationDeployments,
 			controller.PostDeviceConfigurationDeployment),
+
+		// Last device deployment status deployments (internal)
+		rest.Post(ApiUrlInternalDeviceDeploymentLastStatusDeployments,
+			controller.GetDeviceDeploymentLastStatus),
 
 		// Devices
 		rest.Get(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
