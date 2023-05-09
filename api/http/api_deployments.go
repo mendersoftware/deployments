@@ -280,20 +280,6 @@ func redactReleaseName(r *rest.Request) {
 	}
 }
 
-func (d *DeploymentsApiHandlers) GetReleases(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r)
-
-	defer redactReleaseName(r)
-	filter := getReleaseOrImageFilter(r, false)
-	releases, _, err := d.store.GetReleases(r.Context(), filter)
-	if err != nil {
-		d.view.RenderInternalError(w, r, err, l)
-		return
-	}
-
-	d.view.RenderSuccessGet(w, releases)
-}
-
 func (d *DeploymentsApiHandlers) ListReleases(w rest.ResponseWriter, r *rest.Request) {
 	l := requestlog.GetRequestLogger(r)
 

@@ -57,7 +57,6 @@ const (
 	ApiUrlManagementDeploymentsDeviceHistory = ApiUrlManagement + "/deployments/devices/#id/history"
 	ApiUrlManagementDeploymentsDeviceList    = ApiUrlManagement + "/deployments/#id/device_list"
 
-	ApiUrlManagementReleases     = ApiUrlManagement + "/deployments/releases"
 	ApiUrlManagementReleasesList = ApiUrlManagement + "/deployments/releases/list"
 
 	ApiUrlManagementLimitsName = ApiUrlManagement + "/limits/#name"
@@ -245,7 +244,6 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	}
 
 	return []*rest.Route{
-		rest.Get(ApiUrlManagementReleases, controller.GetReleases),
 		rest.Get(ApiUrlManagementReleasesList, controller.ListReleases),
 	}
 }
