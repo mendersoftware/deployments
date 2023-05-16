@@ -121,6 +121,12 @@ storage:
     # Overwrite with environment variable: DEPLOYMENTS_STORAGE_ENABLE_DIRECT_UPLOAD
     # enable_direct_upload: false
 
+    # Direct upload skip verification flag
+    # Turns off the verification and the download of the artifact in the direct upload
+    # scenario. This feature is disabled by default.
+    # Overwrite with environment variable: DEPLOYMENTS_STORAGE_DIRECT_UPLOAD_SKIP_VERIFY
+    # direct_upload_skip_verify: false
+
 
 # AWS configuration section
 aws:

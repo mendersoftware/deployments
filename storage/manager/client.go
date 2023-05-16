@@ -94,6 +94,7 @@ func (c *client) PutObject(ctx context.Context, path string, src io.Reader) erro
 	if err != nil {
 		return err
 	}
+
 	return objStore.PutObject(ctx, path, src)
 }
 

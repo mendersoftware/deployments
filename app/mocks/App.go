@@ -62,13 +62,13 @@ func (_m *App) AbortDeviceDeployments(ctx context.Context, deviceID string) erro
 	return r0
 }
 
-// CompleteUpload provides a mock function with given fields: ctx, intentID
-func (_m *App) CompleteUpload(ctx context.Context, intentID string) error {
-	ret := _m.Called(ctx, intentID)
+// CompleteUpload provides a mock function with given fields: ctx, intentID, skipVerify
+func (_m *App) CompleteUpload(ctx context.Context, intentID string, skipVerify bool) error {
+	ret := _m.Called(ctx, intentID, skipVerify)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, intentID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) error); ok {
+		r0 = rf(ctx, intentID, skipVerify)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -750,13 +750,13 @@ func (_m *App) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID st
 	return r0
 }
 
-// UploadLink provides a mock function with given fields: ctx, expire
-func (_m *App) UploadLink(ctx context.Context, expire time.Duration) (*model.UploadLink, error) {
-	ret := _m.Called(ctx, expire)
+// UploadLink provides a mock function with given fields: ctx, expire, skipVerify
+func (_m *App) UploadLink(ctx context.Context, expire time.Duration, skipVerify bool) (*model.UploadLink, error) {
+	ret := _m.Called(ctx, expire, skipVerify)
 
 	var r0 *model.UploadLink
-	if rf, ok := ret.Get(0).(func(context.Context, time.Duration) *model.UploadLink); ok {
-		r0 = rf(ctx, expire)
+	if rf, ok := ret.Get(0).(func(context.Context, time.Duration, bool) *model.UploadLink); ok {
+		r0 = rf(ctx, expire, skipVerify)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.UploadLink)
@@ -764,8 +764,8 @@ func (_m *App) UploadLink(ctx context.Context, expire time.Duration) (*model.Upl
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, time.Duration) error); ok {
-		r1 = rf(ctx, expire)
+	if rf, ok := ret.Get(1).(func(context.Context, time.Duration, bool) error); ok {
+		r1 = rf(ctx, expire, skipVerify)
 	} else {
 		r1 = ret.Error(1)
 	}
