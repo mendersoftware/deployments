@@ -252,7 +252,7 @@ func TestUploadLink(t *testing.T) {
 		App: func(t *testing.T) *mapp.App {
 			app := new(mapp.App)
 			expire := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
-			app.On("UploadLink", contextMatcher(), mock.AnythingOfType("time.Duration")).
+			app.On("UploadLink", contextMatcher(), mock.AnythingOfType("time.Duration"), false).
 				Return(&model.UploadLink{
 					ArtifactID: "00000000-0000-0000-0000-000000000000",
 					Link: model.Link{
@@ -283,7 +283,7 @@ func TestUploadLink(t *testing.T) {
 
 		App: func(t *testing.T) *mapp.App {
 			app := new(mapp.App)
-			app.On("UploadLink", contextMatcher(), mock.AnythingOfType("time.Duration")).
+			app.On("UploadLink", contextMatcher(), mock.AnythingOfType("time.Duration"), false).
 				Return(nil, errors.New("error generating URL"))
 
 			return app
@@ -298,7 +298,7 @@ func TestUploadLink(t *testing.T) {
 
 		App: func(t *testing.T) *mapp.App {
 			app := new(mapp.App)
-			app.On("UploadLink", contextMatcher(), mock.AnythingOfType("time.Duration")).
+			app.On("UploadLink", contextMatcher(), mock.AnythingOfType("time.Duration"), false).
 				Return(nil, nil)
 
 			return app
@@ -365,7 +365,7 @@ func TestCompleteUpload(t *testing.T) {
 		ID: sampleID,
 		App: func(t *testing.T) *mapp.App {
 			app := new(mapp.App)
-			app.On("CompleteUpload", contextMatcher(), sampleID).
+			app.On("CompleteUpload", contextMatcher(), sampleID, false).
 				Return(nil)
 			return app
 		},
@@ -380,7 +380,7 @@ func TestCompleteUpload(t *testing.T) {
 		ID: sampleID,
 		App: func(t *testing.T) *mapp.App {
 			app := new(mapp.App)
-			app.On("CompleteUpload", contextMatcher(), sampleID).
+			app.On("CompleteUpload", contextMatcher(), sampleID, false).
 				Return(errors.New("internal error"))
 
 			return app
@@ -400,7 +400,7 @@ func TestCompleteUpload(t *testing.T) {
 		ID: sampleID,
 		App: func(t *testing.T) *mapp.App {
 			mockApp := new(mapp.App)
-			mockApp.On("CompleteUpload", contextMatcher(), sampleID).
+			mockApp.On("CompleteUpload", contextMatcher(), sampleID, false).
 				Return(app.ErrUploadNotFound)
 			return mockApp
 		},

@@ -49,6 +49,9 @@ const (
 	SettingStorageEnableDirectUpload        = SettingStorage + ".enable_direct_upload"
 	SettingStorageEnableDirectUploadDefault = false
 
+	SettingDirectUploadSkipVerify        = "direct_upload_skip_verify"
+	SettingDirectUploadSkipVerifyDefault = false
+
 	SettingsStorageDownloadExpireSeconds        = SettingStorage + ".download_expire_seconds"
 	SettingsStorageDownloadExpireSecondsDefault = 900
 	SettingsStorageUploadExpireSeconds          = SettingStorage + ".upload_expire_seconds"
@@ -271,6 +274,7 @@ var (
 		{Key: SettingDefaultStorage, Value: SettingDefaultStorageDefault},
 		{Key: SettingAwsS3Region, Value: SettingAwsS3RegionDefault},
 		{Key: SettingStorageBucket, Value: SettingStorageBucketDefault},
+		{Key: SettingDirectUploadSkipVerify, Value: SettingDirectUploadSkipVerifyDefault},
 		{Key: SettingStorageEnableDirectUpload, Value: SettingStorageEnableDirectUploadDefault},
 		{Key: SettingAwsS3ForcePathStyle, Value: SettingAwsS3ForcePathStyleDefault},
 		{Key: SettingAwsS3UseAccelerate, Value: SettingAwsS3UseAccelerateDefault},

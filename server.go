@@ -68,7 +68,8 @@ func SetupS3(ctx context.Context, defaultOptions *s3.Options) (storage.ObjectSto
 		options.SetExternalURI(c.GetString(dconfig.SettingAwsExternalURI))
 	}
 
-	return s3.New(ctx, bucket, options)
+	storage, err := s3.New(ctx, bucket, options)
+	return storage, err
 }
 
 func SetupBlobStorage(
@@ -163,7 +164,8 @@ func RunServer(ctx context.Context) error {
 		SetPresignHostname(c.GetString(dconfig.SettingPresignHost)).
 		SetPresignScheme(c.GetString(dconfig.SettingPresignScheme)).
 		SetMaxImageSize(c.GetInt64(dconfig.SettingStorageMaxImageSize)).
-		SetEnableDirectUpload(c.GetBool(dconfig.SettingStorageEnableDirectUpload))
+		SetEnableDirectUpload(c.GetBool(dconfig.SettingStorageEnableDirectUpload)).
+		SetEnableDirectUploadSkipVerify(c.GetBool(dconfig.SettingDirectUploadSkipVerify))
 	if key, err := base64.RawStdEncoding.DecodeString(
 		base64Repl.Replace(
 			c.GetString(dconfig.SettingPresignSecret),

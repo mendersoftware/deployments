@@ -137,6 +137,11 @@ func NewImagesResourceRoutes(controller *DeploymentsApiHandlers, cfg *Config) []
 			"direct upload enabled: POST %s",
 			ApiUrlManagementArtifactsDirectUpload,
 		)
+		if cfg.EnableDirectUploadSkipVerify {
+			log.NewEmpty().Info(
+				"direct upload enabled SkipVerify",
+			)
+		}
 		routes = append(routes, rest.Post(
 			ApiUrlManagementArtifactsDirectUpload,
 			controller.UploadLink,

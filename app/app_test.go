@@ -456,7 +456,7 @@ func TestUploadLink(t *testing.T) {
 			On("InsertUploadIntent", h.ContextMatcher(), matchUpLink).
 			Return(nil).
 			Once()
-		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		upLink, err := deploy.UploadLink(ctx, time.Minute, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, upLink)
 		objStore.AssertExpectations(t)
@@ -484,7 +484,7 @@ func TestUploadLink(t *testing.T) {
 			On("InsertUploadIntent", h.ContextMatcher(), matchUpLink).
 			Return(nil).
 			Once()
-		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		upLink, err := deploy.UploadLink(ctx, time.Minute, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, upLink)
 		objStore.AssertExpectations(t)
@@ -510,7 +510,7 @@ func TestUploadLink(t *testing.T) {
 			time.Minute,
 		).Return(nil, errInternal)
 
-		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		upLink, err := deploy.UploadLink(ctx, time.Minute, false)
 		assert.ErrorIs(t, err, errInternal)
 		assert.Nil(t, upLink)
 		objStore.AssertExpectations(t)
@@ -539,7 +539,7 @@ func TestUploadLink(t *testing.T) {
 			On("InsertUploadIntent", h.ContextMatcher(), matchUpLink).
 			Return(errInternal).
 			Once()
-		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		upLink, err := deploy.UploadLink(ctx, time.Minute, false)
 		assert.ErrorIs(t, err, errInternal)
 		assert.Nil(t, upLink)
 		objStore.AssertExpectations(t)
@@ -556,7 +556,7 @@ func TestUploadLink(t *testing.T) {
 		ds.On("GetStorageSettings", ctx).
 			Return(nil, errInternal).
 			Once()
-		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		upLink, err := deploy.UploadLink(ctx, time.Minute, false)
 		assert.ErrorIs(t, err, errInternal)
 		assert.Nil(t, upLink)
 		objStore.AssertExpectations(t)
@@ -888,7 +888,7 @@ func TestCompleteUpload(t *testing.T) {
 			defer objStore.AssertExpectations(t)
 			deploy := NewDeployments(ds, objStore)
 
-			err := deploy.CompleteUpload(ctx, intentID)
+			err := deploy.CompleteUpload(ctx, intentID, false)
 			tc.ErrorAssertionFunc(t, tc, err)
 		})
 	}
