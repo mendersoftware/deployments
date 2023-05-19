@@ -639,14 +639,8 @@ func TestCompleteUpload(t *testing.T) {
 			r := newEOFReadCloser(nil)
 			os.On("GetObject",
 				contextHasIdentity(t, self.Identity),
-				intentID+fileSuffixTmp).
-				Return(r, nil).
-				Once().
-				On("PutObject",
-					contextHasIdentity(t, self.Identity),
-					intentID,
-					mock.AnythingOfType("*io.PipeReader")).
-				Return(nil)
+				intentID).
+				Return(r, nil)
 			self.syncChan = r.ch
 			return os
 		},
@@ -698,14 +692,8 @@ func TestCompleteUpload(t *testing.T) {
 			objectPath := "123456789012345678901234/" + intentID
 			os.On("GetObject",
 				contextHasIdentity(t, self.Identity),
-				objectPath+fileSuffixTmp).
-				Return(r, nil).
-				Once().
-				On("PutObject",
-					contextHasIdentity(t, self.Identity),
-					objectPath,
-					mock.AnythingOfType("*io.PipeReader")).
-				Return(nil)
+				objectPath).
+				Return(r, nil)
 			self.syncChan = r.ch
 			return os
 		},
@@ -746,7 +734,7 @@ func TestCompleteUpload(t *testing.T) {
 			r := newEOFReadCloser(errors.New("close error"))
 			os.On("GetObject",
 				contextHasIdentity(t, self.Identity),
-				intentID+fileSuffixTmp).
+				intentID).
 				Return(r, nil).
 				Once()
 			self.syncChan = r.ch
@@ -789,7 +777,7 @@ func TestCompleteUpload(t *testing.T) {
 			r := newEOFReadCloser(nil)
 			os.On("GetObject",
 				contextHasIdentity(t, self.Identity),
-				intentID+fileSuffixTmp).
+				intentID).
 				Return(r, nil).
 				Once()
 			self.syncChan = r.ch
@@ -824,7 +812,7 @@ func TestCompleteUpload(t *testing.T) {
 			os := new(fs_mocks.ObjectStorage)
 			os.On("GetObject",
 				contextHasIdentity(t, self.Identity),
-				intentID+fileSuffixTmp).
+				intentID).
 				Return(nil, storage.ErrObjectNotFound).
 				Once()
 			return os
@@ -847,7 +835,7 @@ func TestCompleteUpload(t *testing.T) {
 			os := new(fs_mocks.ObjectStorage)
 			os.On("GetObject",
 				contextHasIdentity(t, self.Identity),
-				intentID+fileSuffixTmp).
+				intentID).
 				Return(nil, testErr).
 				Once()
 			return os
@@ -888,7 +876,7 @@ func TestCompleteUpload(t *testing.T) {
 			defer objStore.AssertExpectations(t)
 			deploy := NewDeployments(ds, objStore)
 
-			err := deploy.CompleteUpload(ctx, intentID, false)
+			err := deploy.CompleteUpload(ctx, intentID, true)
 			tc.ErrorAssertionFunc(t, tc, err)
 		})
 	}
