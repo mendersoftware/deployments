@@ -456,7 +456,7 @@ func TestUploadLink(t *testing.T) {
 			On("InsertUploadIntent", h.ContextMatcher(), matchUpLink).
 			Return(nil).
 			Once()
-		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		upLink, err := deploy.UploadLink(ctx, time.Minute, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, upLink)
 		objStore.AssertExpectations(t)
@@ -484,7 +484,7 @@ func TestUploadLink(t *testing.T) {
 			On("InsertUploadIntent", h.ContextMatcher(), matchUpLink).
 			Return(nil).
 			Once()
-		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		upLink, err := deploy.UploadLink(ctx, time.Minute, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, upLink)
 		objStore.AssertExpectations(t)
@@ -510,7 +510,7 @@ func TestUploadLink(t *testing.T) {
 			time.Minute,
 		).Return(nil, errInternal)
 
-		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		upLink, err := deploy.UploadLink(ctx, time.Minute, false)
 		assert.ErrorIs(t, err, errInternal)
 		assert.Nil(t, upLink)
 		objStore.AssertExpectations(t)
@@ -539,7 +539,7 @@ func TestUploadLink(t *testing.T) {
 			On("InsertUploadIntent", h.ContextMatcher(), matchUpLink).
 			Return(errInternal).
 			Once()
-		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		upLink, err := deploy.UploadLink(ctx, time.Minute, false)
 		assert.ErrorIs(t, err, errInternal)
 		assert.Nil(t, upLink)
 		objStore.AssertExpectations(t)
@@ -556,7 +556,7 @@ func TestUploadLink(t *testing.T) {
 		ds.On("GetStorageSettings", ctx).
 			Return(nil, errInternal).
 			Once()
-		upLink, err := deploy.UploadLink(ctx, time.Minute)
+		upLink, err := deploy.UploadLink(ctx, time.Minute, false)
 		assert.ErrorIs(t, err, errInternal)
 		assert.Nil(t, upLink)
 		objStore.AssertExpectations(t)
@@ -599,6 +599,7 @@ func TestCompleteUpload(t *testing.T) {
 		Identity      *identity.Identity
 		Database      func(t *testing.T, self *testCase) *mocks.DataStore
 		ObjectStorage func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage
+		SkipVerify    bool
 
 		syncChan chan struct{}
 
@@ -666,6 +667,56 @@ func TestCompleteUpload(t *testing.T) {
 			}
 		},
 	}, {
+		Name: "ok/skip verify",
+
+		Database: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetStorageSettings", contextHasIdentity(t, self.Identity)).
+				Return(nil, nil).
+				Once().
+				On("UpdateUploadIntentStatus",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					model.LinkStatusPending,
+					model.LinkStatusProcessing).
+				Return(nil).
+				Once().
+				On("UpdateUploadIntentStatus",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					model.LinkStatusProcessing,
+					model.LinkStatusAborted).
+				Return(nil)
+
+			return ds
+		},
+		ObjectStorage: func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage {
+			os := new(fs_mocks.ObjectStorage)
+			r := newEOFReadCloser(nil)
+			os.On("GetObject",
+				contextHasIdentity(t, self.Identity),
+				intentID).
+				Return(r, nil)
+			self.syncChan = r.ch
+			return os
+		},
+		SkipVerify: true,
+
+		ErrorAssertionFunc: func(t *testing.T, self *testCase, err error) {
+			deadline, ok := t.Deadline()
+			if !ok || time.Until(deadline) > time.Minute {
+				deadline = time.Now().Add(time.Minute)
+			}
+			select {
+			case <-self.syncChan:
+				assert.NoError(t, err)
+			case <-time.After(time.Until(deadline)):
+				assert.FailNow(t,
+					"timed out waiting for processUploadedArtifact"+
+						"to be called")
+			}
+		},
+	}, {
 		Name: "ok/multi-tenancy",
 
 		Identity: &identity.Identity{
@@ -709,6 +760,60 @@ func TestCompleteUpload(t *testing.T) {
 			self.syncChan = r.ch
 			return os
 		},
+
+		ErrorAssertionFunc: func(t *testing.T, self *testCase, err error) {
+			deadline, ok := t.Deadline()
+			if !ok || time.Until(deadline) > time.Minute {
+				deadline = time.Now().Add(time.Minute)
+			}
+			select {
+			case <-self.syncChan:
+				assert.NoError(t, err)
+			case <-time.After(time.Until(deadline)):
+				assert.FailNow(t,
+					"timed out waiting for processUploadedArtifact"+
+						"to be called")
+			}
+		},
+	}, {
+		Name: "ok/multi-tenancy/skip verify",
+
+		Identity: &identity.Identity{
+			Tenant: "123456789012345678901234",
+		},
+		Database: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetStorageSettings", contextHasIdentity(t, self.Identity)).
+				Return(nil, nil).
+				Once().
+				On("UpdateUploadIntentStatus",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					model.LinkStatusPending,
+					model.LinkStatusProcessing).
+				Return(nil).
+				Once().
+				On("UpdateUploadIntentStatus",
+					contextHasIdentity(t, self.Identity),
+					intentID,
+					model.LinkStatusProcessing,
+					model.LinkStatusAborted).
+				Return(errors.New("internal error"))
+
+			return ds
+		},
+		ObjectStorage: func(t *testing.T, self *testCase) *fs_mocks.ObjectStorage {
+			os := new(fs_mocks.ObjectStorage)
+			r := newEOFReadCloser(nil)
+			objectPath := "123456789012345678901234/" + intentID
+			os.On("GetObject",
+				contextHasIdentity(t, self.Identity),
+				objectPath).
+				Return(r, nil)
+			self.syncChan = r.ch
+			return os
+		},
+		SkipVerify: true,
 
 		ErrorAssertionFunc: func(t *testing.T, self *testCase, err error) {
 			deadline, ok := t.Deadline()
@@ -888,7 +993,7 @@ func TestCompleteUpload(t *testing.T) {
 			defer objStore.AssertExpectations(t)
 			deploy := NewDeployments(ds, objStore)
 
-			err := deploy.CompleteUpload(ctx, intentID)
+			err := deploy.CompleteUpload(ctx, intentID, tc.SkipVerify)
 			tc.ErrorAssertionFunc(t, tc, err)
 		})
 	}

@@ -138,6 +138,8 @@ type Config struct {
 	MaxImageSize int64
 
 	EnableDirectUpload bool
+	// EnableDirectUploadSkipVerify allows turning off the verification of uploaded artifacts
+	EnableDirectUploadSkipVerify bool
 }
 
 func NewConfig() *Config {
@@ -178,6 +180,11 @@ func (conf *Config) SetEnableDirectUpload(enable bool) *Config {
 	return conf
 }
 
+func (conf *Config) SetEnableDirectUploadSkipVerify(enable bool) *Config {
+	conf.EnableDirectUploadSkipVerify = enable
+	return conf
+}
+
 type DeploymentsApiHandlers struct {
 	view   RESTView
 	store  store.DataStore
@@ -212,6 +219,7 @@ func NewDeploymentsApiHandlers(
 			conf.MaxImageSize = c.MaxImageSize
 		}
 		conf.EnableDirectUpload = c.EnableDirectUpload
+		conf.EnableDirectUploadSkipVerify = c.EnableDirectUploadSkipVerify
 	}
 	return &DeploymentsApiHandlers{
 		store:  store,
@@ -436,7 +444,11 @@ func (d *DeploymentsApiHandlers) UploadLink(w rest.ResponseWriter, r *rest.Reque
 	l := requestlog.GetRequestLogger(r)
 
 	expireSeconds := config.Config.GetInt(dconfig.SettingsStorageUploadExpireSeconds)
-	link, err := d.app.UploadLink(r.Context(), time.Duration(expireSeconds)*time.Second)
+	link, err := d.app.UploadLink(
+		r.Context(),
+		time.Duration(expireSeconds)*time.Second,
+		d.config.EnableDirectUploadSkipVerify,
+	)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
@@ -456,7 +468,7 @@ func (d *DeploymentsApiHandlers) CompleteUpload(w rest.ResponseWriter, r *rest.R
 
 	artifactID := r.PathParam(ParamID)
 
-	err := d.app.CompleteUpload(ctx, artifactID)
+	err := d.app.CompleteUpload(ctx, artifactID, d.config.EnableDirectUploadSkipVerify)
 	switch errors.Cause(err) {
 	case nil:
 		// w.Header().Set("Link", "FEAT: Upload status API")

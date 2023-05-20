@@ -121,8 +121,12 @@ type App interface {
 	) ([]*model.Image, int, error)
 	DownloadLink(ctx context.Context, imageID string,
 		expire time.Duration) (*model.Link, error)
-	UploadLink(ctx context.Context, expire time.Duration) (*model.UploadLink, error)
-	CompleteUpload(ctx context.Context, intentID string) error
+	UploadLink(
+		ctx context.Context,
+		expire time.Duration,
+		skipVerify bool,
+	) (*model.UploadLink, error)
+	CompleteUpload(ctx context.Context, intentID string, skipVerify bool) error
 	GetImage(ctx context.Context, id string) (*model.Image, error)
 	DeleteImage(ctx context.Context, imageID string) error
 	CreateImage(ctx context.Context,
@@ -292,14 +296,16 @@ func (d *Deployments) ProvisionTenant(ctx context.Context, tenant_id string) err
 // Returns image ID and nil on success.
 func (d *Deployments) CreateImage(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
-	return d.handleArtifact(ctx, multipartUploadMsg)
+	return d.handleArtifact(ctx, multipartUploadMsg, false)
 }
 
 // handleArtifact parses artifact and uploads artifact file to the file storage - in parallel,
 // and creates image structure in the system.
 // Returns image ID, artifact file ID and nil on success.
 func (d *Deployments) handleArtifact(ctx context.Context,
-	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
+	multipartUploadMsg *model.MultipartUploadMsg,
+	skipVerify bool,
+) (string, error) {
 
 	l := log.FromContext(ctx)
 	ctx, err := d.contextWithStorageSettings(ctx)
@@ -330,6 +336,11 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	//nolint:errcheck
 	go func() (err error) {
 		defer func() { ch <- err }()
+		if skipVerify {
+			err = nil
+			io.Copy(io.Discard, pR)
+			return nil
+		}
 		err = d.objectStorage.PutObject(
 			ctx, model.ImagePathFromContext(ctx, artifactID), pR,
 		)
@@ -341,7 +352,7 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 
 	// parse artifact
 	// artifact library reads all the data from the given reader
-	metaArtifactConstructor, err := getMetaFromArchive(&tee)
+	metaArtifactConstructor, err := getMetaFromArchive(&tee, skipVerify)
 	if err != nil {
 		_ = pW.CloseWithError(err)
 		<-ch
@@ -352,14 +363,16 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		return artifactID, ErrModelInvalidMetadata
 	}
 
-	// read the rest of the data,
-	// just in case the artifact library did not read all the data from the reader
-	_, err = io.Copy(io.Discard, tee)
-	if err != nil {
-		// CloseWithError will cause the reading end to abort upload.
-		_ = pW.CloseWithError(err)
-		<-ch
-		return artifactID, err
+	if !skipVerify {
+		// read the rest of the data,
+		// just in case the artifact library did not read all the data from the reader
+		_, err = io.Copy(io.Discard, tee)
+		if err != nil {
+			// CloseWithError will cause the reading end to abort upload.
+			_ = pW.CloseWithError(err)
+			<-ch
+			return artifactID, err
+		}
 	}
 
 	// close the pipe
@@ -697,6 +710,7 @@ func (d *Deployments) DownloadLink(ctx context.Context, imageID string,
 func (d *Deployments) UploadLink(
 	ctx context.Context,
 	expire time.Duration,
+	skipVerify bool,
 ) (*model.UploadLink, error) {
 	ctx, err := d.contextWithStorageSettings(ctx)
 	if err != nil {
@@ -705,6 +719,9 @@ func (d *Deployments) UploadLink(
 
 	artifactID := uuid.New().String()
 	path := model.ImagePathFromContext(ctx, artifactID) + fileSuffixTmp
+	if skipVerify {
+		path = model.ImagePathFromContext(ctx, artifactID)
+	}
 	link, err := d.objectStorage.PutRequest(ctx, path, expire)
 	if err != nil {
 		return nil, errors.WithMessage(err, "app: failed to generate signed URL")
@@ -725,7 +742,9 @@ func (d *Deployments) UploadLink(
 func (d *Deployments) processUploadedArtifact(
 	ctx context.Context,
 	artifactID string,
-	artifact io.ReadCloser) error {
+	artifact io.ReadCloser,
+	skipVerify bool,
+) error {
 	linkStatus := model.LinkStatusCompleted
 
 	l := log.FromContext(ctx)
@@ -758,7 +777,9 @@ func (d *Deployments) processUploadedArtifact(
 	_, err := d.handleArtifact(ctx, &model.MultipartUploadMsg{
 		ArtifactID:     artifactID,
 		ArtifactReader: artifact,
-	})
+	},
+		skipVerify,
+	)
 	if err != nil {
 		l.Warnf("failed to process artifact %s: %s", artifactID, err)
 		linkStatus = model.LinkStatusAborted
@@ -776,6 +797,7 @@ func (d *Deployments) processUploadedArtifact(
 func (d *Deployments) CompleteUpload(
 	ctx context.Context,
 	intentID string,
+	skipVerify bool,
 ) error {
 	l := log.FromContext(ctx)
 	idty := identity.FromContext(ctx)
@@ -783,7 +805,7 @@ func (d *Deployments) CompleteUpload(
 	if err != nil {
 		return err
 	}
-	// Create an async context that does'nt cancel when server connection
+	// Create an async context that doesn't cancel when server connection
 	// closes.
 	ctxAsync := context.Background()
 	ctxAsync = log.WithContext(ctxAsync, l)
@@ -791,10 +813,18 @@ func (d *Deployments) CompleteUpload(
 
 	settings, _ := storage.SettingsFromContext(ctx)
 	ctxAsync = storage.SettingsWithContext(ctxAsync, settings)
-	artifactReader, err := d.objectStorage.GetObject(
-		ctxAsync,
-		model.ImagePathFromContext(ctx, intentID)+fileSuffixTmp,
-	)
+	var artifactReader io.ReadCloser
+	if skipVerify {
+		artifactReader, err = d.objectStorage.GetObject(
+			ctxAsync,
+			model.ImagePathFromContext(ctx, intentID),
+		)
+	} else {
+		artifactReader, err = d.objectStorage.GetObject(
+			ctxAsync,
+			model.ImagePathFromContext(ctx, intentID)+fileSuffixTmp,
+		)
+	}
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectNotFound) {
 			return ErrUploadNotFound
@@ -819,7 +849,7 @@ func (d *Deployments) CompleteUpload(
 		return err
 	}
 	go d.processUploadedArtifact( // nolint:errcheck
-		ctxAsync, intentID, artifactReader,
+		ctxAsync, intentID, artifactReader, skipVerify,
 	)
 	return nil
 }
@@ -844,7 +874,7 @@ func getUpdateFiles(uFiles []*handlers.DataFile) ([]model.UpdateFile, error) {
 	return files, nil
 }
 
-func getMetaFromArchive(r *io.Reader) (*model.ArtifactMeta, error) {
+func getMetaFromArchive(r *io.Reader, skipVerify bool) (*model.ArtifactMeta, error) {
 	metaArtifact := model.NewArtifactMeta()
 
 	aReader := areader.NewReader(*r)
@@ -856,9 +886,17 @@ func getMetaFromArchive(r *io.Reader) (*model.ArtifactMeta, error) {
 		return nil
 	}
 
-	err := aReader.ReadArtifact()
-	if err != nil {
-		return nil, errors.Wrap(err, "reading artifact error")
+	var err error
+	if skipVerify {
+		err = aReader.ReadArtifactHeaders()
+		if err != nil {
+			return nil, errors.Wrap(err, "reading artifact error")
+		}
+	} else {
+		err = aReader.ReadArtifact()
+		if err != nil {
+			return nil, errors.Wrap(err, "reading artifact error")
+		}
 	}
 
 	metaArtifact.Info = getArtifactInfo(aReader.GetInfo())
