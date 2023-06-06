@@ -47,10 +47,11 @@ func timePtr(timeStr string) *time.Time {
 	return &t
 }
 
-func TestGetReleases(t *testing.T) {
+func TestGetReleases_1_2_14(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping TestGetReleases in short mode.")
+		t.Skip("skipping TestGetReleases_1_2_14 in short mode.")
 	}
+	db.Wipe()
 
 	inputImgs := []*model.Image{
 		{
@@ -304,12 +305,291 @@ func TestGetReleases(t *testing.T) {
 	for name, tc := range testCases {
 
 		t.Run(name, func(t *testing.T) {
-			releases, count, err := ds.GetReleases(ctx, tc.releaseFilt)
+			releases, count, err := ds.getReleases_1_2_14(ctx, tc.releaseFilt)
 
 			if tc.err != nil {
 				assert.EqualError(t, tc.err, err.Error())
 			} else {
 				assert.NoError(t, err)
+			}
+			//ignore modification timestamp
+			for i := range releases {
+				releases[i].Modified = nil
+			}
+			assert.Equal(t, tc.releases, releases)
+			assert.GreaterOrEqual(t, count, len(tc.releases))
+		})
+	}
+}
+
+func TestGetReleases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestGetReleases in short mode.")
+	}
+	db.Wipe()
+
+	inputImgs := []*model.Image{
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d80",
+			ImageMeta: &model.ImageMeta{
+				Description: "description",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App1 v1.0",
+				DeviceTypesCompatible: []string{"foo"},
+				Updates:               []model.Update{},
+			},
+			Modified: timePtr("2010-09-22T22:00:00+00:00"),
+		},
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d81",
+			ImageMeta: &model.ImageMeta{
+				Description: "description",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App2 v0.1",
+				DeviceTypesCompatible: []string{"foo"},
+				Updates:               []model.Update{},
+			},
+			Modified: timePtr("2010-09-22T23:02:00+00:00"),
+		},
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d82",
+			ImageMeta: &model.ImageMeta{
+				Description: "description",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App1 v1.0",
+				DeviceTypesCompatible: []string{"bar, baz"},
+				Updates:               []model.Update{},
+			},
+			Modified: timePtr("2010-09-22T22:00:01+00:00"),
+		},
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d83",
+			ImageMeta: &model.ImageMeta{
+				Description: "description",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App1 v1.0",
+				DeviceTypesCompatible: []string{"bork"},
+				Updates:               []model.Update{},
+			},
+			Modified: timePtr("2010-09-22T22:00:04+00:00"),
+		},
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d84",
+			ImageMeta: &model.ImageMeta{
+				Description: "extended description",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App2 v0.1",
+				DeviceTypesCompatible: []string{"bar", "baz"},
+				Updates:               []model.Update{},
+			},
+			Modified: timePtr("2010-09-22T23:00:00+00:00"),
+		},
+	}
+
+	// Setup test context
+	ctx := context.Background()
+	ds := NewDataStoreMongoWithClient(db.Client())
+	for _, img := range inputImgs {
+		err := ds.InsertImage(ctx, img)
+		assert.NoError(t, err)
+		if err != nil {
+			assert.FailNow(t,
+				"error setting up image collection for testing")
+		}
+
+		// Convert Depends["device_type"] to bson.A for the sake of
+		// simplifying test case definitions.
+		img.ArtifactMeta.Depends = make(map[string]interface{})
+		img.ArtifactMeta.Depends["device_type"] = make(bson.A,
+			len(img.ArtifactMeta.DeviceTypesCompatible),
+		)
+		for i, devType := range img.ArtifactMeta.DeviceTypesCompatible {
+			img.ArtifactMeta.Depends["device_type"].(bson.A)[i] = devType
+		}
+	}
+
+	testCases := map[string]struct {
+		releaseFilt *model.ReleaseOrImageFilter
+
+		releases []model.Release
+		err      error
+	}{
+		"ok, all": {
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, description partial": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Description: "description",
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, description exact": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Description: "extended description",
+			},
+			releases: []model.Release{
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, sort by modified asc": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort: "modified:asc",
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, sort by modified desc": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort: "modified:desc",
+			},
+			releases: []model.Release{
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+			},
+		},
+		"ok, device type": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				DeviceType: "bork",
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+			},
+		},
+		"ok, with sort and pagination": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort:    "name:desc",
+				Page:    2,
+				PerPage: 1,
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+				},
+			},
+		},
+		"ok, by name": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Name: "App2 v0.1",
+			},
+			releases: []model.Release{
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, not found": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Name: "App3 v1.0",
+			},
+			releases: []model.Release{},
+		},
+	}
+
+	for name, tc := range testCases {
+
+		t.Run(name, func(t *testing.T) {
+			releases, count, err := ds.getReleases_1_2_14(ctx, tc.releaseFilt)
+
+			if tc.err != nil {
+				assert.EqualError(t, tc.err, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			//ignore modification timestamp
+			for i := range releases {
+				releases[i].Modified = nil
 			}
 			assert.Equal(t, tc.releases, releases)
 			assert.GreaterOrEqual(t, count, len(tc.releases))

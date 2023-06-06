@@ -2174,6 +2174,11 @@ definitions:
         type: string
         description: |
             release name.
+      modified:
+        type: string
+        format: date-time
+        description: |
+            Last modification time for the release.
       artifacts:
         type: array
         description: List of artifacts for this release.
