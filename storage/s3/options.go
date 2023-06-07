@@ -15,12 +15,17 @@
 package s3
 
 import (
+	"context"
 	"crypto/tls"
 	"net/http"
+	"net/textproto"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go/middleware"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 
 	"github.com/mendersoftware/deployments/storage"
@@ -66,6 +71,10 @@ type Options struct {
 	// This implicitly sets the upper limit for upload size:
 	// BufferSize * 10000 (defaults to: 5MiB).
 	BufferSize *int
+
+	// UnsignedHeaders forces the driver to skip the named headers from the
+	// being signed.
+	UnsignedHeaders []string
 }
 
 func NewOptions(opts ...*Options) *Options {
@@ -100,6 +109,9 @@ func NewOptions(opts ...*Options) *Options {
 		}
 		if opt.BufferSize != nil {
 			ret.BufferSize = opt.BufferSize
+		}
+		if opt.UnsignedHeaders != nil {
+			ret.UnsignedHeaders = opt.UnsignedHeaders
 		}
 	}
 	return ret
@@ -166,6 +178,61 @@ func (opts *Options) SetBufferSize(bufferSize int) *Options {
 	return opts
 }
 
+func (opts *Options) SetUnsignedHeaders(unsignedHeaders []string) *Options {
+	opts.UnsignedHeaders = unsignedHeaders
+	return opts
+}
+
+type apiOptions func(*middleware.Stack) error
+
+// Google Cloud Storage does not tolerate signing the Accept-Encoding header
+func unsignedHeadersMiddleware(headers []string) apiOptions {
+	signMiddlewareID := (&v4.SignHTTPRequestMiddleware{}).ID()
+	for i := range headers {
+		headers[i] = textproto.CanonicalMIMEHeaderKey(headers[i])
+	}
+	return func(stack *middleware.Stack) error {
+		if _, ok := stack.Finalize.Get("Signing"); !ok {
+			// If the operation does not invoke signing, we're done.
+			return nil
+		}
+		// ... -> RemoveUnsignedHeaders -> Signing -> AddUnsignedHeaders
+		var unsignedHeaders http.Header = make(http.Header)
+		err := stack.Finalize.Insert(middleware.FinalizeMiddlewareFunc(
+			"RemoveUnsignedHeaders", func(
+				ctx context.Context,
+				in middleware.FinalizeInput,
+				next middleware.FinalizeHandler,
+			) (middleware.FinalizeOutput, middleware.Metadata, error) {
+				if req, ok := in.Request.(*smithyhttp.Request); ok {
+					for _, hdr := range headers {
+						if value, ok := req.Header[hdr]; ok {
+							unsignedHeaders[hdr] = value
+							req.Header.Del(hdr)
+						}
+					}
+				}
+				return next.HandleFinalize(ctx, in)
+			}), signMiddlewareID, middleware.Before)
+		if err != nil {
+			return err
+		}
+		return stack.Finalize.Insert(middleware.FinalizeMiddlewareFunc(
+			"AddUnsignedHeaders", func(
+				ctx context.Context,
+				in middleware.FinalizeInput,
+				next middleware.FinalizeHandler,
+			) (middleware.FinalizeOutput, middleware.Metadata, error) {
+				if req, ok := in.Request.(*smithyhttp.Request); ok {
+					for key, value := range unsignedHeaders {
+						req.Header[key] = value
+					}
+				}
+				return next.HandleFinalize(ctx, in)
+			}), signMiddlewareID, middleware.After)
+	}
+}
+
 func (opts *Options) toS3Options() (
 	clientOpts func(*s3.Options),
 	presignOpts func(*s3.PresignOptions),
@@ -176,6 +243,12 @@ func (opts *Options) toS3Options() (
 		}
 		if opts.Region != nil {
 			s3Opts.Region = *opts.Region
+		}
+		if len(opts.UnsignedHeaders) > 0 {
+			s3Opts.APIOptions = append(
+				s3Opts.APIOptions,
+				unsignedHeadersMiddleware(opts.UnsignedHeaders),
+			)
 		}
 		if opts.URI != nil {
 			endpointURI := *opts.URI

@@ -179,8 +179,15 @@ aws:
     # Enable the S3 Transfer Acceleration for the operations that support it.
     # Defaults to: false
     # Overwrite with environment variable: DEPLOYMENTS_AWS_USE_ACCELERATE
-
+    #
     # use_accelerate: false
+
+    # Unsigned Headers excluded from AWS Signature v4 if present.
+    # Defaults to "Accept-Encoding" to remain compatible with GCS.
+    # Also accepts space separated list of header keys.
+    # Overwrite with environment variable: DEPLOYMENTS_AWS_UNSIGNED_HEADERS
+    #
+    # unsigned_headers: ["Accept-Encoding"]
 
     # S3 URI (for mender-deployment)
     # Defaults to: none (s3.amazonaws.com)

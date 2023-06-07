@@ -66,8 +66,11 @@ const (
 	SettingAwsS3UseAccelerateDefault  = false
 	SettingAwsURI                     = SettingsAws + ".uri"
 	SettingAwsExternalURI             = SettingsAws + ".external_uri"
-	SettingsAwsTagArtifact            = SettingsAws + ".tag_artifact"
-	SettingsAwsTagArtifactDefault     = false
+	SettingAwsUnsignedHeaders         = SettingsAws + ".unsigned_headers"
+	SettingAwsUnsignedHeadersDefault  = "Accept-Encoding"
+
+	SettingsAwsTagArtifact        = SettingsAws + ".tag_artifact"
+	SettingsAwsTagArtifactDefault = false
 
 	SettingsAwsAuth      = SettingsAws + ".auth"
 	SettingAwsAuthKeyId  = SettingsAwsAuth + ".key"
@@ -279,6 +282,7 @@ var (
 		{Key: SettingStorageEnableDirectUpload, Value: SettingStorageEnableDirectUploadDefault},
 		{Key: SettingAwsS3ForcePathStyle, Value: SettingAwsS3ForcePathStyleDefault},
 		{Key: SettingAwsS3UseAccelerate, Value: SettingAwsS3UseAccelerateDefault},
+		{Key: SettingAwsUnsignedHeaders, Value: SettingAwsUnsignedHeadersDefault},
 		{Key: SettingStorageMaxImageSize, Value: SettingStorageMaxImageSizeDefault},
 		{Key: SettingsStorageDownloadExpireSeconds,
 			Value: SettingsStorageDownloadExpireSecondsDefault},
