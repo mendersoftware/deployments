@@ -75,6 +75,10 @@ type Options struct {
 	// UnsignedHeaders forces the driver to skip the named headers from the
 	// being signed.
 	UnsignedHeaders []string
+
+	// Transport sets an alternative RoundTripper used by the Go HTTP
+	// client.
+	Transport http.RoundTripper
 }
 
 func NewOptions(opts ...*Options) *Options {
@@ -112,6 +116,9 @@ func NewOptions(opts ...*Options) *Options {
 		}
 		if opt.UnsignedHeaders != nil {
 			ret.UnsignedHeaders = opt.UnsignedHeaders
+		}
+		if opt.Transport != nil {
+			ret.Transport = opt.Transport
 		}
 	}
 	return ret
@@ -180,6 +187,11 @@ func (opts *Options) SetBufferSize(bufferSize int) *Options {
 
 func (opts *Options) SetUnsignedHeaders(unsignedHeaders []string) *Options {
 	opts.UnsignedHeaders = unsignedHeaders
+	return opts
+}
+
+func (opts *Options) SetTransport(transport http.RoundTripper) *Options {
+	opts.Transport = transport
 	return opts
 }
 
@@ -258,14 +270,18 @@ func (opts *Options) toS3Options() (
 				},
 			)
 		}
-		s3Opts.UsePathStyle = opts.ForcePathStyle
-		s3Opts.UseAccelerate = opts.UseAccelerate
-		s3Opts.HTTPClient = &http.Client{
-			Transport: &http.Transport{
+		roundTripper := opts.Transport
+		if roundTripper == nil {
+			roundTripper = &http.Transport{
 				TLSClientConfig: &tls.Config{
 					RootCAs: storage.GetRootCAs(),
 				},
-			},
+			}
+		}
+		s3Opts.UsePathStyle = opts.ForcePathStyle
+		s3Opts.UseAccelerate = opts.UseAccelerate
+		s3Opts.HTTPClient = &http.Client{
+			Transport: roundTripper,
 		}
 	}
 
