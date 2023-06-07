@@ -62,6 +62,8 @@ const (
 	errorCodeIndexNotFound     = 27
 )
 
+var currentDbVersion map[string]*migrate.Version
+
 var (
 	// Indexes (version: 1.2.2)
 	IndexUniqueNameAndDeviceTypeName          = "uniqueNameAndDeviceTypeIndex"
@@ -534,14 +536,13 @@ func (db *DataStoreMongo) Ping(ctx context.Context) error {
 	return res.Err()
 }
 
-func (db *DataStoreMongo) GetReleases(
+func (db *DataStoreMongo) setCurrentDbVersion(
 	ctx context.Context,
-	filt *model.ReleaseOrImageFilter,
-) ([]model.Release, int, error) {
+) error {
 	versions, err := migrate.GetMigrationInfo(
 		ctx, db.client, mstore.DbFromContext(ctx, DatabaseName))
 	if err != nil {
-		return nil, 0, errors.Wrap(err, "failed to list applied migrations")
+		return errors.Wrap(err, "failed to list applied migrations")
 	}
 	var current migrate.Version
 	if len(versions) > 0 {
@@ -551,11 +552,40 @@ func (db *DataStoreMongo) GetReleases(
 		})
 		current = versions[len(versions)-1].Version
 	}
-	latest, err := migrate.NewVersion(DbVersion)
+	if currentDbVersion == nil {
+		currentDbVersion = map[string]*migrate.Version{}
+	}
+	currentDbVersion[mstore.DbFromContext(ctx, DatabaseName)] = &current
+	return nil
+}
+
+func (db *DataStoreMongo) getCurrentDbVersion(
+	ctx context.Context,
+) (*migrate.Version, error) {
+	if currentDbVersion == nil ||
+		currentDbVersion[mstore.DbFromContext(ctx, DatabaseName)] == nil {
+		if err := db.setCurrentDbVersion(ctx); err != nil {
+			return nil, err
+		}
+	}
+	return currentDbVersion[mstore.DbFromContext(ctx, DatabaseName)], nil
+}
+
+func (db *DataStoreMongo) GetReleases(
+	ctx context.Context,
+	filt *model.ReleaseOrImageFilter,
+) ([]model.Release, int, error) {
+	current, err := db.getCurrentDbVersion(ctx)
+	if err != nil {
+		return nil, 0, err
+	} else if current == nil {
+		return nil, 0, errors.New("couldn't get current database version")
+	}
+	target, err := migrate.NewVersion(DbVersion)
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "failed to get latest DB version")
 	}
-	if migrate.VersionIsLess(current, *latest) {
+	if migrate.VersionIsLess(*current, *target) {
 		return db.getReleases_1_2_14(ctx, filt)
 	} else {
 		return db.getReleases_1_2_15(ctx, filt)
