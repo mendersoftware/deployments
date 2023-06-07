@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -181,7 +181,7 @@ func (opts *Options) toS3Options() (
 			endpointURI := *opts.URI
 			s3Opts.EndpointResolver = s3.EndpointResolverFromURL(endpointURI,
 				func(ep *aws.Endpoint) {
-					ep.HostnameImmutable = true
+					ep.HostnameImmutable = opts.ForcePathStyle
 				},
 			)
 		}
