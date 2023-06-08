@@ -67,6 +67,9 @@ func SetupS3(ctx context.Context, defaultOptions *s3.Options) (storage.ObjectSto
 	if c.IsSet(dconfig.SettingAwsExternalURI) {
 		options.SetExternalURI(c.GetString(dconfig.SettingAwsExternalURI))
 	}
+	if c.IsSet(dconfig.SettingAwsUnsignedHeaders) {
+		options.SetUnsignedHeaders(c.GetStringSlice(dconfig.SettingAwsUnsignedHeaders))
+	}
 
 	storage, err := s3.New(ctx, bucket, options)
 	return storage, err
