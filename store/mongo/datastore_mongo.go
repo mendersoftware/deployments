@@ -18,6 +18,7 @@ import (
 	"crypto/tls"
 	"math"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -29,6 +30,7 @@ import (
 
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
+	"github.com/mendersoftware/go-lib-micro/log"
 	"github.com/mendersoftware/go-lib-micro/mongo/migrate"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 
@@ -47,6 +49,7 @@ const (
 	CollectionDevicesLastStatus    = "devices_last_status"
 	CollectionStorageSettings      = "settings"
 	CollectionUploadIntents        = "uploads"
+	CollectionReleases             = "releases"
 )
 
 const DefaultDocumentLimit = 20
@@ -58,6 +61,8 @@ const (
 	errorCodeNamespaceNotFound = 26
 	errorCodeIndexNotFound     = 27
 )
+
+var currentDbVersion map[string]*migrate.Version
 
 var (
 	// Indexes (version: 1.2.2)
@@ -87,6 +92,9 @@ var (
 
 	// Indexes 1.2.13
 	IndexArtifactProvidesName = "artifact_provides"
+
+	// Indexes 1.2.15
+	IndexReleaseNameName = "release_name"
 
 	_false         = false
 	_true          = true
@@ -390,6 +398,26 @@ const (
 	StorageKeyImageDeviceTypes = "meta_artifact.device_types_compatible"
 	StorageKeyImageName        = "meta_artifact.name"
 	StorageKeyImageDescription = "meta.description"
+	StorageKeyImageModified    = "modified"
+
+	// releases
+	StorageKeyReleaseName                      = "_id"
+	StorageKeyReleaseModified                  = "modified"
+	StorageKeyReleaseArtifacts                 = "artifacts"
+	StorageKeyReleaseArtifactsIndexDescription = StorageKeyReleaseArtifacts + ".$." +
+		StorageKeyImageDescription
+	StorageKeyReleaseArtifactsDescription = StorageKeyReleaseArtifacts + "." +
+		StorageKeyImageDescription
+	StorageKeyReleaseArtifactsDeviceTypes = StorageKeyReleaseArtifacts + "." +
+		StorageKeyImageDeviceTypes
+	StorageKeyReleaseArtifactsIndexModified = StorageKeyReleaseArtifacts + ".$." +
+		StorageKeyImageModified
+	StorageKeyReleaseArtifactsId = StorageKeyReleaseArtifacts + "." +
+		StorageKeyId
+	StorageKeyReleaseImageDependsIdx = StorageKeyReleaseArtifacts + "." +
+		StorageKeyImageDependsIdx
+	StorageKeyReleaseImageProvidesIdx = StorageKeyReleaseArtifacts + "." +
+		StorageKeyImageProvidesIdx
 
 	StorageKeyDeviceDeploymentLogMessages = "messages"
 
@@ -497,10 +525,68 @@ func (db *DataStoreMongo) Ping(ctx context.Context) error {
 	return res.Err()
 }
 
+func (db *DataStoreMongo) setCurrentDbVersion(
+	ctx context.Context,
+) error {
+	versions, err := migrate.GetMigrationInfo(
+		ctx, db.client, mstore.DbFromContext(ctx, DatabaseName))
+	if err != nil {
+		return errors.Wrap(err, "failed to list applied migrations")
+	}
+	var current migrate.Version
+	if len(versions) > 0 {
+		// sort applied migrations wrt. version
+		sort.Slice(versions, func(i int, j int) bool {
+			return migrate.VersionIsLess(versions[i].Version, versions[j].Version)
+		})
+		current = versions[len(versions)-1].Version
+	}
+	if currentDbVersion == nil {
+		currentDbVersion = map[string]*migrate.Version{}
+	}
+	currentDbVersion[mstore.DbFromContext(ctx, DatabaseName)] = &current
+	return nil
+}
+
+func (db *DataStoreMongo) getCurrentDbVersion(
+	ctx context.Context,
+) (*migrate.Version, error) {
+	if currentDbVersion == nil ||
+		currentDbVersion[mstore.DbFromContext(ctx, DatabaseName)] == nil {
+		if err := db.setCurrentDbVersion(ctx); err != nil {
+			return nil, err
+		}
+	}
+	return currentDbVersion[mstore.DbFromContext(ctx, DatabaseName)], nil
+}
+
 func (db *DataStoreMongo) GetReleases(
 	ctx context.Context,
 	filt *model.ReleaseOrImageFilter,
 ) ([]model.Release, int, error) {
+	current, err := db.getCurrentDbVersion(ctx)
+	if err != nil {
+		return nil, 0, err
+	} else if current == nil {
+		return nil, 0, errors.New("couldn't get current database version")
+	}
+	target, err := migrate.NewVersion(DbVersion)
+	if err != nil {
+		return nil, 0, errors.Wrap(err, "failed to get latest DB version")
+	}
+	if migrate.VersionIsLess(*current, *target) {
+		return db.getReleases_1_2_14(ctx, filt)
+	} else {
+		return db.getReleases_1_2_15(ctx, filt)
+	}
+}
+
+func (db *DataStoreMongo) getReleases_1_2_14(
+	ctx context.Context,
+	filt *model.ReleaseOrImageFilter,
+) ([]model.Release, int, error) {
+	l := log.FromContext(ctx)
+	l.Infof("get releases method version 1.2.14")
 	var pipe []bson.D
 
 	pipe = []bson.D{}
@@ -615,6 +701,78 @@ func (db *DataStoreMongo) GetReleases(
 		return []model.Release{}, 0, err
 	}
 	return result.Results, result.Count[0].Count, nil
+}
+
+func (db *DataStoreMongo) getReleases_1_2_15(
+	ctx context.Context,
+	filt *model.ReleaseOrImageFilter,
+) ([]model.Release, int, error) {
+	l := log.FromContext(ctx)
+	l.Infof("get releases method version 1.2.15")
+
+	sortField, sortOrder := getReleaseSortFieldAndOrder(filt)
+	if sortField == "" {
+		sortField = "_id"
+	} else if sortField == "name" {
+		sortField = StorageKeyReleaseName
+	}
+	if sortOrder == 0 {
+		sortOrder = 1
+	}
+
+	page := 1
+	perPage := DefaultDocumentLimit
+	if filt != nil {
+		if filt.Page > 0 {
+			page = filt.Page
+		}
+		if filt.PerPage > 0 {
+			perPage = filt.PerPage
+		}
+	}
+
+	opts := &mopts.FindOptions{}
+	opts.SetSort(bson.D{{Key: sortField, Value: sortOrder}})
+	opts.SetSkip(int64((page - 1) * perPage))
+	opts.SetLimit(int64(perPage))
+	projection := bson.M{
+		StorageKeyReleaseImageDependsIdx:  0,
+		StorageKeyReleaseImageProvidesIdx: 0,
+	}
+	opts.SetProjection(projection)
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collReleases := database.Collection(CollectionReleases)
+
+	filter := bson.M{}
+	if filt != nil {
+		if filt.Name != "" {
+			filter[StorageKeyReleaseName] = bson.M{"$regex": filt.Name}
+		}
+		if filt.Description != "" {
+			filter[StorageKeyReleaseArtifactsDescription] = bson.M{"$regex": filt.Description}
+		}
+		if filt.DeviceType != "" {
+			filter[StorageKeyReleaseArtifactsDeviceTypes] = bson.M{"$regex": filt.DeviceType}
+		}
+	}
+	releases := []model.Release{}
+	cursor, err := collReleases.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := cursor.All(ctx, &releases); err != nil {
+		return nil, 0, err
+	}
+
+	// TODO: can we return number of all documents in the collection
+	// using EstimatedDocumentCount?
+	count, err := collReleases.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return releases, int(count), nil
 }
 
 // limits
@@ -2739,4 +2897,71 @@ func (db *DataStoreMongo) UpdateDeploymentsWithArtifactName(
 
 func (db *DataStoreMongo) GetTenantDbs() ([]string, error) {
 	return migrate.GetTenantDbs(context.Background(), db.client, mstore.IsTenantDb(DbName))
+}
+
+func (db *DataStoreMongo) UpdateReleaseArtifactDescription(
+	ctx context.Context,
+	artifactToEdit *model.Image,
+	releaseName string,
+) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collReleases := database.Collection(CollectionReleases)
+
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyReleaseArtifactsIndexDescription: artifactToEdit.ImageMeta.Description,
+			StorageKeyReleaseArtifactsIndexModified:    artifactToEdit.Modified,
+			StorageKeyReleaseModified:                  time.Now(),
+		},
+	}
+	_, err := collReleases.UpdateOne(
+		ctx,
+		bson.M{
+			StorageKeyReleaseName:        releaseName,
+			StorageKeyReleaseArtifactsId: artifactToEdit.Id,
+		},
+		update,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *DataStoreMongo) UpdateReleaseArtifacts(
+	ctx context.Context,
+	artifactToAdd *model.Image,
+	artifactToRemove *model.Image,
+	releaseName string,
+) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collReleases := database.Collection(CollectionReleases)
+
+	opt := &mopts.UpdateOptions{}
+	update := bson.M{
+		"$set": bson.M{
+			StorageKeyReleaseName:     releaseName,
+			StorageKeyReleaseModified: time.Now(),
+		},
+	}
+	if artifactToRemove != nil {
+		update["$pull"] = bson.M{
+			StorageKeyReleaseArtifacts: bson.M{StorageKeyId: artifactToRemove.Id},
+		}
+	}
+	if artifactToAdd != nil {
+		upsert := true
+		opt.Upsert = &upsert
+		update["$push"] = bson.M{StorageKeyReleaseArtifacts: artifactToAdd}
+	}
+	_, err := collReleases.UpdateOne(
+		ctx,
+		bson.M{StorageKeyReleaseName: releaseName},
+		update,
+		opt,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -192,11 +192,16 @@ func migrate(tenant string, automigrate bool) error {
 		_ = dbClient.Disconnect(ctx)
 	}()
 
+	dbVersion := mongo.DbVersion
+	if !automigrate {
+		dbVersion = mongo.DbMinimumVersion
+	}
+
 	if tenant != "" {
 		db := mstore.DbNameForTenant(tenant, mongo.DbName)
-		err = mongo.MigrateSingle(ctx, db, mongo.DbVersion, dbClient, true)
+		err = mongo.MigrateSingle(ctx, db, dbVersion, dbClient, automigrate)
 	} else {
-		err = mongo.Migrate(ctx, mongo.DbVersion, dbClient, true)
+		err = mongo.Migrate(ctx, dbVersion, dbClient, automigrate)
 	}
 	if err != nil {
 		return cli.NewExitError(

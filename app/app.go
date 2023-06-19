@@ -82,6 +82,7 @@ var (
 	ErrModelImageUsedInAnyDeployment = errors.New("Image has already been used in deployment")
 	ErrModelParsingArtifactFailed    = errors.New("Cannot parse artifact file")
 	ErrUploadNotFound                = errors.New("artifact object not found")
+	ErrEmptyArtifact                 = errors.New("artifact cannot be nil")
 
 	ErrMsgArtifactConflict = "An artifact with the same name has conflicting dependencies"
 
@@ -406,6 +407,12 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		}
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
 	}
+
+	// update release
+	if err := d.updateRelease(ctx, image, nil); err != nil {
+		return "", err
+	}
+
 	if err := d.UpdateDeploymentsWithArtifactName(ctx, metaArtifactConstructor.Name); err != nil {
 		return "", errors.Wrap(err, "fail to update deployments")
 	}
@@ -613,6 +620,11 @@ func (d *Deployments) DeleteImage(ctx context.Context, imageID string) error {
 		return errors.Wrap(err, "Deleting image metadata")
 	}
 
+	// update release
+	if err := d.updateRelease(ctx, nil, found); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -665,6 +677,10 @@ func (d *Deployments) EditImage(ctx context.Context, imageID string,
 	_, err = d.db.Update(ctx, foundImage)
 	if err != nil {
 		return false, errors.Wrap(err, "Updating image matadata")
+	}
+
+	if err := d.updateReleaseEditArtifact(ctx, foundImage); err != nil {
+		return false, err
 	}
 
 	return true, nil
@@ -2061,4 +2077,36 @@ func (d *Deployments) reindexDeployment(ctx context.Context,
 		return d.workflowsClient.StartReindexReportingDeployment(ctx, deviceID, deploymentID, ID)
 	}
 	return nil
+}
+
+func (d *Deployments) updateReleaseEditArtifact(
+	ctx context.Context,
+	artifactToEdit *model.Image,
+) error {
+
+	if artifactToEdit == nil {
+		return ErrEmptyArtifact
+	}
+	return d.db.UpdateReleaseArtifactDescription(
+		ctx,
+		artifactToEdit,
+		artifactToEdit.ArtifactMeta.Name,
+	)
+}
+
+func (d *Deployments) updateRelease(
+	ctx context.Context,
+	artifactToAdd *model.Image,
+	artifactToRemove *model.Image,
+) error {
+	name := ""
+	if artifactToRemove != nil {
+		name = artifactToRemove.ArtifactMeta.Name
+	} else if artifactToAdd != nil {
+		name = artifactToAdd.ArtifactMeta.Name
+	} else {
+		return ErrEmptyArtifact
+	}
+
+	return d.db.UpdateReleaseArtifacts(ctx, artifactToAdd, artifactToRemove, name)
 }

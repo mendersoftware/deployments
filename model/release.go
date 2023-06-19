@@ -13,9 +13,12 @@
 //	limitations under the License.
 package model
 
+import "time"
+
 type Release struct {
-	Name      string
-	Artifacts []Image
+	Name      string     `json:"Name" bson:"_id"`
+	Modified  *time.Time `json:"Modified,omitempty" bson:"modified,omitempty"`
+	Artifacts []Image    `json:"Artifacts" bson:"artifacts"`
 }
 
 type ReleaseOrImageFilter struct {
