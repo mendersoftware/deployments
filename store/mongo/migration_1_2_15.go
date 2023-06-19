@@ -39,16 +39,6 @@ func (m *migration_1_2_15) Up(from migrate.Version) error {
 	c := m.client.Database(m.db).Collection(CollectionImages)
 	cr := m.client.Database(m.db).Collection(CollectionReleases)
 
-	// create index for release name
-	storage := NewDataStoreMongoWithClient(m.client)
-	if err := storage.EnsureIndexes(
-		m.db,
-		CollectionReleases,
-		IndexReleaseName,
-	); err != nil {
-		return err
-	}
-
 	cursor, err := c.Find(ctx, bson.M{})
 	if err != nil {
 		return err

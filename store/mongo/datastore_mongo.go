@@ -356,17 +356,6 @@ var (
 			Name:       &IndexArtifactProvidesName,
 		},
 	}
-	// 1.2.15
-	IndexReleaseName = mongo.IndexModel{
-		Keys: bson.D{
-			{Key: StorageKeyReleaseName, Value: 1},
-		},
-		Options: &mopts.IndexOptions{
-			Background: &_false,
-			Name:       &IndexReleaseNameName,
-			Unique:     &_true,
-		},
-	}
 )
 
 // Errors
@@ -412,7 +401,7 @@ const (
 	StorageKeyImageModified    = "modified"
 
 	// releases
-	StorageKeyReleaseName                      = "name"
+	StorageKeyReleaseName                      = "_id"
 	StorageKeyReleaseModified                  = "modified"
 	StorageKeyReleaseArtifacts                 = "artifacts"
 	StorageKeyReleaseArtifactsIndexDescription = StorageKeyReleaseArtifacts + ".$." +
@@ -723,7 +712,9 @@ func (db *DataStoreMongo) getReleases_1_2_15(
 
 	sortField, sortOrder := getReleaseSortFieldAndOrder(filt)
 	if sortField == "" {
-		sortField = "name"
+		sortField = "_id"
+	} else if sortField == "name" {
+		sortField = StorageKeyReleaseName
 	}
 	if sortOrder == 0 {
 		sortOrder = 1
