@@ -322,9 +322,9 @@ func TestGetReleases_1_2_14(t *testing.T) {
 	}
 }
 
-func TestGetReleases(t *testing.T) {
+func TestGetReleases_1_2_15(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping TestGetReleases in short mode.")
+		t.Skip("skipping TestGetReleases_1_2_15 in short mode.")
 	}
 	db.Wipe()
 
@@ -406,6 +406,8 @@ func TestGetReleases(t *testing.T) {
 			assert.FailNow(t,
 				"error setting up image collection for testing")
 		}
+		err = ds.UpdateReleaseArtifacts(ctx, img, nil, img.ArtifactMeta.Name)
+		assert.NoError(t, err)
 
 		// Convert Depends["device_type"] to bson.A for the sake of
 		// simplifying test case definitions.
@@ -580,7 +582,7 @@ func TestGetReleases(t *testing.T) {
 	for name, tc := range testCases {
 
 		t.Run(name, func(t *testing.T) {
-			releases, count, err := ds.getReleases_1_2_14(ctx, tc.releaseFilt)
+			releases, count, err := ds.getReleases_1_2_15(ctx, tc.releaseFilt)
 
 			if tc.err != nil {
 				assert.EqualError(t, tc.err, err.Error())
