@@ -46,6 +46,8 @@ const (
 	SettingStorageMaxImageSize        = SettingStorage + ".max_image_size"
 	SettingStorageMaxImageSizeDefault = 10 * 1024 * 1024 * 1024 // 10 GiB
 
+	SettingStorageProxyURI = SettingStorage + ".proxy_uri"
+
 	SettingStorageEnableDirectUpload        = SettingStorage + ".enable_direct_upload"
 	SettingStorageEnableDirectUploadDefault = false
 

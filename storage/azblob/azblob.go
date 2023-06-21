@@ -25,6 +25,7 @@ import (
 
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
+	"github.com/mendersoftware/deployments/utils"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
@@ -46,6 +47,7 @@ type client struct {
 	DefaultClient *container.Client
 	credentials   *azblob.SharedKeyCredential
 	contentType   *string
+	proxyURL      *url.URL
 	bufferSize    int64
 }
 
@@ -54,6 +56,7 @@ func NewEmpty(ctx context.Context, opts ...*Options) (storage.ObjectStorage, err
 	objStore := &client{
 		bufferSize:  opt.BufferSize,
 		contentType: opt.ContentType,
+		proxyURL:    opt.ProxyURI,
 	}
 	return objStore, nil
 }
@@ -340,7 +343,7 @@ func (c *client) buildSignedURL(
 	// HACK: We cannot use BlockBlobClient.GetSASToken because the API does
 	// not expose the required parameters.
 	urlParts, _ := blob.ParseURL(blobURL)
-	sk, err := c.credentialsFromContext(ctx)
+	sk, proxyURL, err := c.signParamsFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve credentials: %w", err)
 	}
@@ -379,6 +382,10 @@ func (c *client) buildSignedURL(
 		}
 	}
 	baseURL.RawQuery = q.Encode()
+	baseURL, err = utils.RewriteProxyURL(baseURL, proxyURL)
+	if err != nil {
+		return nil, err
+	}
 	return &model.Link{
 		Expire: exp,
 		Method: method,

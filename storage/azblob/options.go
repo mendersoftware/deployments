@@ -16,6 +16,7 @@ package azblob
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 )
@@ -54,6 +55,8 @@ type Options struct {
 	ConnectionString *string
 	SharedKey        *SharedKeyCredentials
 
+	ProxyURI *url.URL
+
 	BufferSize int64
 
 	ContentType *string
@@ -73,6 +76,9 @@ func NewOptions(opts ...*Options) *Options {
 		if o.SharedKey != nil {
 			opt.SharedKey = o.SharedKey
 		}
+		if o.ProxyURI != nil {
+			opt.ProxyURI = o.ProxyURI
+		}
 		if o.ContentType != nil {
 			opt.ContentType = o.ContentType
 		}
@@ -90,6 +96,11 @@ func (opts *Options) SetConnectionString(connStr string) *Options {
 
 func (opts *Options) SetSharedKey(sk SharedKeyCredentials) *Options {
 	opts.SharedKey = &sk
+	return opts
+}
+
+func (opts *Options) SetProxyURI(proxyURI *url.URL) *Options {
+	opts.ProxyURI = proxyURI
 	return opts
 }
 

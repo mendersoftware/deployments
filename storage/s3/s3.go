@@ -21,9 +21,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	awsHttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -33,6 +35,7 @@ import (
 
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
+	"github.com/mendersoftware/deployments/utils"
 )
 
 const (
@@ -525,6 +528,33 @@ func (s *SimpleStorageService) PutObject(
 	return err
 }
 
+func buildLink(
+	req *v4.PresignedHTTPRequest,
+	signDate time.Time,
+	expireAfter time.Duration,
+	proxyURL *url.URL,
+) (*model.Link, error) {
+	signURL, err := url.Parse(req.URL)
+	if err != nil {
+		return nil, fmt.Errorf("s3: failed to parse signed URL: %w", err)
+	}
+	if date, err := time.Parse(
+		req.SignedHeader.Get(paramAmzDate), paramAmzDateFormat,
+	); err == nil {
+		signDate = date
+	}
+	signURL, err = utils.RewriteProxyURL(signURL, proxyURL)
+	if err != nil {
+		return nil, fmt.Errorf("s3: failed to rewrite signed URL to proxy: %w", err)
+	}
+
+	return &model.Link{
+		Uri:    signURL.String(),
+		Expire: signDate.Add(expireAfter),
+		Method: req.Method,
+	}, nil
+}
+
 func (s *SimpleStorageService) PutRequest(
 	ctx context.Context,
 	path string,
@@ -553,17 +583,7 @@ func (s *SimpleStorageService) PutRequest(
 	if err != nil {
 		return nil, err
 	}
-	if date, err := time.Parse(
-		req.SignedHeader.Get(paramAmzDate), paramAmzDateFormat,
-	); err == nil {
-		signDate = date
-	}
-
-	return &model.Link{
-		Uri:    req.URL,
-		Expire: signDate.Add(expireAfter),
-		Method: http.MethodPut,
-	}, nil
+	return buildLink(req, signDate, expireAfter, opts.ProxyURI)
 }
 
 // GetRequest duration is limited to 7 days (AWS limitation)
@@ -603,17 +623,7 @@ func (s *SimpleStorageService) GetRequest(
 	if err != nil {
 		return nil, errors.WithMessage(err, "s3: failed to sign GET request")
 	}
-	if date, err := time.Parse(
-		req.SignedHeader.Get(paramAmzDate), paramAmzDateFormat,
-	); err == nil {
-		signDate = date
-	}
-
-	return &model.Link{
-		Uri:    req.URL,
-		Expire: signDate.Add(expireAfter),
-		Method: http.MethodGet,
-	}, nil
+	return buildLink(req, signDate, expireAfter, opts.ProxyURI)
 }
 
 // DeleteRequest returns a presigned deletion request
@@ -642,17 +652,7 @@ func (s *SimpleStorageService) DeleteRequest(
 	if err != nil {
 		return nil, errors.WithMessage(err, "s3: failed to sign DELETE request")
 	}
-	if date, err := time.Parse(
-		req.SignedHeader.Get(paramAmzDate), paramAmzDateFormat,
-	); err == nil {
-		signDate = date
-	}
-
-	return &model.Link{
-		Uri:    req.URL,
-		Expire: signDate.Add(expireAfter),
-		Method: http.MethodDelete,
-	}, nil
+	return buildLink(req, signDate, expireAfter, opts.ProxyURI)
 }
 
 // presign requests are limited to 7 days
