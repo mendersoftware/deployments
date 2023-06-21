@@ -40,13 +40,13 @@ import (
 func SetupS3(ctx context.Context, defaultOptions *s3.Options) (storage.ObjectStorage, error) {
 	c := config.Config
 
+	bucket := c.GetString(dconfig.SettingStorageBucket)
+
 	// Copy / merge defaultOptions
 	options := s3.NewOptions(defaultOptions).
+		SetBucketName(bucket).
 		SetForcePathStyle(c.GetBool(dconfig.SettingAwsS3ForcePathStyle)).
 		SetUseAccelerate(c.GetBool(dconfig.SettingAwsS3UseAccelerate))
-
-	// Compute the buffer size
-	bucket := c.GetString(dconfig.SettingStorageBucket)
 
 	// The following parameters falls back on AWS_* environment if not set
 	if c.IsSet(dconfig.SettingAwsS3Region) {
@@ -71,7 +71,7 @@ func SetupS3(ctx context.Context, defaultOptions *s3.Options) (storage.ObjectSto
 		options.SetUnsignedHeaders(c.GetStringSlice(dconfig.SettingAwsUnsignedHeaders))
 	}
 
-	storage, err := s3.New(ctx, bucket, options)
+	storage, err := s3.New(ctx, options)
 	return storage, err
 }
 

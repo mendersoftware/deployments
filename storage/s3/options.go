@@ -28,6 +28,7 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 
+	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
 )
 
@@ -44,16 +45,16 @@ var (
 		Error("must be at least 5MiB")
 )
 
-type Options struct {
+// Subset of model.StorageSettings applicable to s3.
+type storageSettings struct {
+	// BucketName defines the bucket name.
+	BucketName *string
+
 	// StaticCredentials that overrides AWS config.
 	StaticCredentials *StaticCredentials `json:"auth"`
 
 	// Region where the bucket lives
 	Region *string
-	// ContentType of the uploaded objects
-	ContentType *string
-	// FilenameSuffix adds the suffix to the content-disposition for object downloads>
-	FilenameSuffix *string
 	// ExternalURI is the URI used for signing requests.
 	ExternalURI *string
 	// URI is the URI for the s3 API.
@@ -63,7 +64,114 @@ type Options struct {
 	ForcePathStyle bool
 	// UseAccelerate enables s3 Accelerate
 	UseAccelerate bool
+}
 
+func newFromParent(defaults *storageSettings, parent *model.StorageSettings) *storageSettings {
+	ret := new(storageSettings)
+	ret.patch(defaults)
+	if parent.Bucket != "" {
+		ret.BucketName = &parent.Bucket
+	}
+	if parent.Region != "" {
+		ret.Region = &parent.Region
+	}
+	if parent.Key != "" && parent.Secret != "" {
+		ret.StaticCredentials = &StaticCredentials{
+			Key:    parent.Key,
+			Secret: parent.Secret,
+			Token:  parent.Token,
+		}
+	}
+	if parent.ExternalUri != "" {
+		ret.ExternalURI = &parent.ExternalUri
+	}
+	if parent.Uri != "" {
+		ret.URI = &parent.Uri
+	}
+	if parent.ForcePathStyle != ret.ForcePathStyle {
+		ret.ForcePathStyle = parent.ForcePathStyle
+	}
+	if parent.UseAccelerate != ret.UseAccelerate {
+		ret.UseAccelerate = parent.UseAccelerate
+	}
+	return ret
+}
+
+func (s storageSettings) Validate() error {
+	return validation.ValidateStruct(&s,
+		validation.Field(&s.StaticCredentials),
+	)
+}
+
+func (s storageSettings) options(opts *s3.Options) {
+	if s.StaticCredentials != nil {
+		opts.Credentials = *s.StaticCredentials
+	}
+	if s.Region != nil {
+		opts.Region = *s.Region
+	}
+	if s.URI != nil {
+		endpointURI := *s.URI
+		opts.EndpointResolver = s3.EndpointResolverFromURL(endpointURI,
+			func(ep *aws.Endpoint) {
+				ep.HostnameImmutable = s.ForcePathStyle
+			},
+		)
+	}
+	opts.UsePathStyle = s.ForcePathStyle
+	opts.UseAccelerate = s.UseAccelerate
+}
+
+func (s storageSettings) presignOptions(opts *s3.PresignOptions) {
+	if s.ExternalURI != nil {
+		presignURL := *s.ExternalURI
+		resolver := s3.EndpointResolverFromURL(presignURL,
+			func(ep *aws.Endpoint) {
+				ep.HostnameImmutable = s.ForcePathStyle
+			},
+		)
+		s3.WithPresignClientFromClientOptions(
+			s.options,
+			s3.WithEndpointResolver(resolver),
+		)(opts)
+	}
+}
+
+func (s *storageSettings) patch(setting *storageSettings) *storageSettings {
+	if setting == nil {
+		return s
+	}
+	if setting.BucketName != nil {
+		s.BucketName = setting.BucketName
+	}
+	if setting.StaticCredentials != nil {
+		s.StaticCredentials = setting.StaticCredentials
+	}
+	if setting.Region != nil {
+		s.Region = setting.Region
+	}
+	if setting.ExternalURI != nil {
+		s.ExternalURI = setting.ExternalURI
+	}
+	if setting.URI != nil {
+		s.URI = setting.URI
+	}
+	if setting.ForcePathStyle != s.ForcePathStyle {
+		s.ForcePathStyle = setting.ForcePathStyle
+	}
+	if setting.UseAccelerate != s.UseAccelerate {
+		s.UseAccelerate = setting.UseAccelerate
+	}
+	return s
+}
+
+type Options struct {
+	storageSettings
+
+	// ContentType of the uploaded objects
+	ContentType *string
+	// FilenameSuffix adds the suffix to the content-disposition for object downloads
+	FilenameSuffix *string
 	// DefaultExpire is the fallback presign expire duration
 	// (defaults to 15min).
 	DefaultExpire *time.Duration
@@ -87,29 +195,12 @@ func NewOptions(opts ...*Options) *Options {
 		BufferSize: &defaultBufferSize,
 	}
 	for _, opt := range opts {
-		if opt.StaticCredentials != nil {
-			ret.StaticCredentials = opt.StaticCredentials
-		}
-		if opt.Region != nil {
-			ret.Region = opt.Region
+		ret.storageSettings.patch(&opt.storageSettings)
+		if opt.DefaultExpire != nil {
+			ret.DefaultExpire = opt.DefaultExpire
 		}
 		if opt.ContentType != nil {
 			ret.ContentType = opt.ContentType
-		}
-		if opt.ExternalURI != nil {
-			ret.ExternalURI = opt.ExternalURI
-		}
-		if opt.URI != nil {
-			ret.URI = opt.URI
-		}
-		if opt.ForcePathStyle != ret.ForcePathStyle {
-			ret.ForcePathStyle = opt.ForcePathStyle
-		}
-		if opt.UseAccelerate != ret.UseAccelerate {
-			ret.UseAccelerate = opt.UseAccelerate
-		}
-		if opt.DefaultExpire != nil {
-			ret.DefaultExpire = opt.DefaultExpire
 		}
 		if opt.BufferSize != nil {
 			ret.BufferSize = opt.BufferSize
@@ -126,9 +217,14 @@ func NewOptions(opts ...*Options) *Options {
 
 func (opts Options) Validate() error {
 	return validation.ValidateStruct(&opts,
-		validation.Field(&opts.StaticCredentials),
+		validation.Field(&opts.storageSettings),
 		validation.Field(&opts.BufferSize, validAtLeast5MiB),
 	)
+}
+
+func (opts *Options) SetBucketName(bucketName string) *Options {
+	opts.storageSettings.BucketName = &bucketName
+	return opts
 }
 
 func (opts *Options) SetStaticCredentials(key, secret, sessionToken string) *Options {
@@ -250,24 +346,11 @@ func (opts *Options) toS3Options() (
 	presignOpts func(*s3.PresignOptions),
 ) {
 	clientOpts = func(s3Opts *s3.Options) {
-		if opts.StaticCredentials != nil {
-			s3Opts.Credentials = *opts.StaticCredentials
-		}
-		if opts.Region != nil {
-			s3Opts.Region = *opts.Region
-		}
+		opts.options(s3Opts)
 		if len(opts.UnsignedHeaders) > 0 {
 			s3Opts.APIOptions = append(
 				s3Opts.APIOptions,
 				unsignedHeadersMiddleware(opts.UnsignedHeaders),
-			)
-		}
-		if opts.URI != nil {
-			endpointURI := *opts.URI
-			s3Opts.EndpointResolver = s3.EndpointResolverFromURL(endpointURI,
-				func(ep *aws.Endpoint) {
-					ep.HostnameImmutable = opts.ForcePathStyle
-				},
 			)
 		}
 		roundTripper := opts.Transport
@@ -278,8 +361,6 @@ func (opts *Options) toS3Options() (
 				},
 			}
 		}
-		s3Opts.UsePathStyle = opts.ForcePathStyle
-		s3Opts.UseAccelerate = opts.UseAccelerate
 		s3Opts.HTTPClient = &http.Client{
 			Transport: roundTripper,
 		}
@@ -290,18 +371,8 @@ func (opts *Options) toS3Options() (
 		expires = *opts.DefaultExpire
 	}
 	presignOpts = func(s3Opts *s3.PresignOptions) {
+		opts.presignOptions(s3Opts)
 		s3.WithPresignExpires(expires)(s3Opts)
-		if opts.ExternalURI != nil {
-			presignURL := *opts.ExternalURI
-			resolver := s3.EndpointResolverFromURL(presignURL,
-				func(ep *aws.Endpoint) {
-					ep.HostnameImmutable = opts.ForcePathStyle
-				},
-			)
-			s3.WithPresignClientFromClientOptions(
-				s3.WithEndpointResolver(resolver),
-			)(s3Opts)
-		}
 	}
 	return clientOpts, presignOpts
 }

@@ -56,7 +56,7 @@ var ErrClientEmpty = stderr.New("s3: storage client credentials not configured")
 type SimpleStorageService struct {
 	client        *s3.Client
 	presignClient *s3.PresignClient
-	bucket        string
+	settings      storageSettings
 	bufferSize    int
 	contentType   *string
 }
@@ -122,6 +122,7 @@ func newClient(
 
 		bufferSize:  *opt.BufferSize,
 		contentType: opt.ContentType,
+		settings:    opt.storageSettings,
 	}, nil
 }
 
@@ -133,13 +134,13 @@ func NewEmpty(ctx context.Context, opts ...*Options) (storage.ObjectStorage, err
 	return newClient(ctx, false, opt)
 }
 
-func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectStorage, error) {
+func New(ctx context.Context, opts ...*Options) (storage.ObjectStorage, error) {
 	opt := NewOptions(opts...)
+
 	s3c, err := newClient(ctx, true, opt)
 	if err != nil {
 		return nil, err
 	}
-	s3c.bucket = bucket
 
 	err = s3c.init(ctx)
 	if err != nil {
@@ -148,9 +149,17 @@ func New(ctx context.Context, bucket string, opts ...*Options) (storage.ObjectSt
 	return s3c, nil
 }
 
+func disableAccelerate(opts *s3.Options) {
+	opts.UseAccelerate = false
+}
+
 func (s *SimpleStorageService) init(ctx context.Context) error {
+	if s.settings.BucketName == nil {
+		return errors.New("s3: failed to initalize storage client: " +
+			"a bucket name is required")
+	}
 	hparams := &s3.HeadBucketInput{
-		Bucket: aws.String(s.bucket),
+		Bucket: s.settings.BucketName,
 	}
 	var rspErr *awsHttp.ResponseError
 
@@ -165,7 +174,7 @@ func (s *SimpleStorageService) init(ctx context.Context) error {
 		case http.StatusForbidden:
 			err = fmt.Errorf(
 				"s3: insufficient permissions for accessing bucket '%s'",
-				s.bucket,
+				*s.settings.BucketName,
 			)
 		}
 	}
@@ -173,10 +182,10 @@ func (s *SimpleStorageService) init(ctx context.Context) error {
 		return err
 	}
 	cparams := &s3.CreateBucketInput{
-		Bucket: aws.String(s.bucket),
+		Bucket: s.settings.BucketName,
 	}
 
-	_, err = s.client.CreateBucket(ctx, cparams)
+	_, err = s.client.CreateBucket(ctx, cparams, disableAccelerate)
 	if err != nil {
 		var errBucket *types.BucketAlreadyOwnedByYou
 		if !errors.As(err, errBucket) {
@@ -188,37 +197,36 @@ func (s *SimpleStorageService) init(ctx context.Context) error {
 		waitTime = time.Until(deadline)
 	}
 	err = s3.NewBucketExistsWaiter(s.client).
-		Wait(ctx, &s3.HeadBucketInput{Bucket: &s.bucket}, waitTime)
+		Wait(ctx, hparams, waitTime)
 	return err
-}
-
-func noOpts(*s3.Options) {
 }
 
 func (s *SimpleStorageService) optionsFromContext(
 	ctx context.Context,
-	presign bool,
-) (bucket string, clientOptions func(*s3.Options), err error) {
-	if settings := settingsFromContext(ctx); settings != nil {
-		bucket = settings.Bucket
-		clientOptions, err = settings.getOptions(presign)
-	} else if s.bucket == "" {
-		return "", nil, ErrClientEmpty
+) (settings *storageSettings, err error) {
+	ss, ok := storage.SettingsFromContext(ctx)
+	if ok && ss != nil {
+		err = ss.Validate()
+		if err == nil {
+			settings = newFromParent(&s.settings, ss)
+		}
 	} else {
-		bucket = s.bucket
-		clientOptions = noOpts
+		settings = &s.settings
+		if settings.BucketName == nil {
+			err = ErrClientEmpty
+		}
 	}
-	return bucket, clientOptions, err
+	return settings, err
 }
 
 func (s *SimpleStorageService) HealthCheck(ctx context.Context) error {
-	bucket, opts, err := s.optionsFromContext(ctx, false)
+	opts, err := s.optionsFromContext(ctx)
 	if err != nil {
 		return err
 	}
 	_, err = s.client.HeadBucket(ctx, &s3.HeadBucketInput{
-		Bucket: aws.String(bucket),
-	}, opts)
+		Bucket: opts.BucketName,
+	}, opts.options)
 	return err
 }
 
@@ -235,18 +243,18 @@ func (s *SimpleStorageService) GetObject(
 	ctx context.Context,
 	path string,
 ) (io.ReadCloser, error) {
-	bucket, opts, err := s.optionsFromContext(ctx, false)
+	opts, err := s.optionsFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 	params := &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
+		Bucket: opts.BucketName,
 		Key:    aws.String(path),
 
 		RequestPayer: types.RequestPayerRequester,
 	}
 
-	out, err := s.client.GetObject(ctx, params, opts)
+	out, err := s.client.GetObject(ctx, params, opts.options)
 	var rspErr *awsHttp.ResponseError
 	if errors.As(err, &rspErr) {
 		if rspErr.Response.StatusCode == http.StatusNotFound {
@@ -268,14 +276,14 @@ func (s *SimpleStorageService) GetObject(
 // Delete removes deleted file from storage.
 // Noop if ID does not exist.
 func (s *SimpleStorageService) DeleteObject(ctx context.Context, path string) error {
-	bucket, opts, err := s.optionsFromContext(ctx, false)
+	opts, err := s.optionsFromContext(ctx)
 	if err != nil {
 		return err
 	}
 
 	params := &s3.DeleteObjectInput{
 		// Required
-		Bucket: aws.String(bucket),
+		Bucket: opts.BucketName,
 		Key:    aws.String(path),
 
 		// Optional
@@ -284,7 +292,7 @@ func (s *SimpleStorageService) DeleteObject(ctx context.Context, path string) er
 
 	// ignore return response which contains charing info
 	// and file versioning data which are not in interest
-	_, err = s.client.DeleteObject(ctx, params, opts)
+	_, err = s.client.DeleteObject(ctx, params, opts.options)
 	var rspErr *awsHttp.ResponseError
 	if errors.As(err, &rspErr) {
 		if rspErr.Response.StatusCode == http.StatusNotFound {
@@ -304,16 +312,16 @@ func (s *SimpleStorageService) StatObject(
 	path string,
 ) (*storage.ObjectInfo, error) {
 
-	bucket, opts, err := s.optionsFromContext(ctx, false)
+	opts, err := s.optionsFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	params := &s3.HeadObjectInput{
-		Bucket: aws.String(bucket),
+		Bucket: opts.BucketName,
 		Key:    aws.String(path),
 	}
-	rsp, err := s.client.HeadObject(ctx, params, opts)
+	rsp, err := s.client.HeadObject(ctx, params, opts.options)
 	var rspErr *awsHttp.ResponseError
 	if errors.As(err, &rspErr) {
 		if rspErr.Response.StatusCode == http.StatusNotFound {
@@ -350,7 +358,7 @@ func (s *SimpleStorageService) uploadMultipart(
 	const maxPartNum = 10000
 	var partNum int32 = 1
 	var rspUpload *s3.UploadPartOutput
-	bucket, opts, err := s.optionsFromContext(ctx, true)
+	opts, err := s.optionsFromContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -360,18 +368,18 @@ func (s *SimpleStorageService) uploadMultipart(
 
 	// Initiate Multipart upload
 	createParams := &s3.CreateMultipartUploadInput{
-		Bucket:      &bucket,
+		Bucket:      opts.BucketName,
 		Key:         &objectPath,
 		ContentType: s.contentType,
 	}
 	rspCreate, err := s.client.CreateMultipartUpload(
-		ctx, createParams, opts,
+		ctx, createParams, opts.options,
 	)
 	if err != nil {
 		return err
 	}
 	uploadParams := &s3.UploadPartInput{
-		Bucket:     &bucket,
+		Bucket:     opts.BucketName,
 		Key:        &objectPath,
 		UploadId:   rspCreate.UploadId,
 		PartNumber: partNum,
@@ -384,7 +392,7 @@ func (s *SimpleStorageService) uploadMultipart(
 	rspUpload, err = s.client.UploadPart(
 		ctx,
 		uploadParams,
-		opts,
+		opts.options,
 	)
 	if err != nil {
 		return err
@@ -410,7 +418,7 @@ func (s *SimpleStorageService) uploadMultipart(
 			rspUpload, err = s.client.UploadPart(
 				ctx,
 				uploadParams,
-				opts,
+				opts.options,
 			)
 			if err != nil {
 				break
@@ -434,7 +442,7 @@ func (s *SimpleStorageService) uploadMultipart(
 	if err == nil || err == io.EOF {
 		// Complete upload
 		uploadParams := &s3.CompleteMultipartUploadInput{
-			Bucket:   &bucket,
+			Bucket:   opts.BucketName,
 			Key:      &objectPath,
 			UploadId: rspCreate.UploadId,
 			MultipartUpload: &types.CompletedMultipartUpload{
@@ -444,19 +452,19 @@ func (s *SimpleStorageService) uploadMultipart(
 		_, err = s.client.CompleteMultipartUpload(
 			ctx,
 			uploadParams,
-			opts,
+			opts.options,
 		)
 	} else {
 		// Abort multipart upload!
 		uploadParams := &s3.AbortMultipartUploadInput{
-			Bucket:   &bucket,
+			Bucket:   opts.BucketName,
 			Key:      &objectPath,
 			UploadId: rspCreate.UploadId,
 		}
 		_, _ = s.client.AbortMultipartUpload(
 			ctx,
 			uploadParams,
-			opts,
+			opts.options,
 		)
 	}
 	return err
@@ -493,18 +501,15 @@ func (s *SimpleStorageService) PutObject(
 
 	// If only one part, use PutObject API.
 	if r != nil {
-		var (
-			bucket string
-			opts   func(*s3.Options)
-		)
-		bucket, opts, err = s.optionsFromContext(ctx, true)
+		var opts *storageSettings
+		opts, err = s.optionsFromContext(ctx)
 		if err != nil {
 			return err
 		}
 		// Ordinary single-file upload
 		uploadParams := &s3.PutObjectInput{
 			Body:          r,
-			Bucket:        &bucket,
+			Bucket:        opts.BucketName,
 			Key:           &path,
 			ContentType:   s.contentType,
 			ContentLength: l,
@@ -512,7 +517,7 @@ func (s *SimpleStorageService) PutObject(
 		_, err = s.client.PutObject(
 			ctx,
 			uploadParams,
-			opts,
+			opts.options,
 		)
 	} else if err == nil {
 		err = s.uploadMultipart(ctx, buf, path, src)
@@ -527,14 +532,14 @@ func (s *SimpleStorageService) PutRequest(
 ) (*model.Link, error) {
 
 	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
-	bucket, opts, err := s.optionsFromContext(ctx, true)
+	opts, err := s.optionsFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	params := &s3.PutObjectInput{
 		// Required
-		Bucket: aws.String(bucket),
+		Bucket: opts.BucketName,
 		Key:    aws.String(path),
 	}
 
@@ -542,8 +547,8 @@ func (s *SimpleStorageService) PutRequest(
 	req, err := s.presignClient.PresignPutObject(
 		ctx,
 		params,
+		opts.presignOptions,
 		s3.WithPresignExpires(expireAfter),
-		s3.WithPresignClientFromClientOptions(opts),
 	)
 	if err != nil {
 		return nil, err
@@ -570,7 +575,7 @@ func (s *SimpleStorageService) GetRequest(
 ) (*model.Link, error) {
 
 	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
-	bucket, opts, err := s.optionsFromContext(ctx, true)
+	opts, err := s.optionsFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -580,7 +585,7 @@ func (s *SimpleStorageService) GetRequest(
 	}
 
 	params := &s3.GetObjectInput{
-		Bucket:              aws.String(bucket),
+		Bucket:              opts.BucketName,
 		Key:                 aws.String(objectPath),
 		ResponseContentType: s.contentType,
 	}
@@ -593,8 +598,8 @@ func (s *SimpleStorageService) GetRequest(
 	signDate := time.Now()
 	req, err := s.presignClient.PresignGetObject(ctx,
 		params,
-		s3.WithPresignExpires(expireAfter),
-		s3.WithPresignClientFromClientOptions(opts))
+		opts.presignOptions,
+		s3.WithPresignExpires(expireAfter))
 	if err != nil {
 		return nil, errors.WithMessage(err, "s3: failed to sign GET request")
 	}
@@ -619,21 +624,21 @@ func (s *SimpleStorageService) DeleteRequest(
 ) (*model.Link, error) {
 
 	expireAfter = capDurationToLimits(expireAfter).Truncate(time.Second)
-	bucket, opts, err := s.optionsFromContext(ctx, true)
+	opts, err := s.optionsFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	params := &s3.DeleteObjectInput{
-		Bucket: aws.String(bucket),
+		Bucket: opts.BucketName,
 		Key:    aws.String(path),
 	}
 
 	signDate := time.Now()
 	req, err := s.presignClient.PresignDeleteObject(ctx,
 		params,
-		s3.WithPresignExpires(expireAfter),
-		s3.WithPresignClientFromClientOptions(opts))
+		opts.presignOptions,
+		s3.WithPresignExpires(expireAfter))
 	if err != nil {
 		return nil, errors.WithMessage(err, "s3: failed to sign DELETE request")
 	}
