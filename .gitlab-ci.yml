@@ -45,17 +45,3 @@ test:acceptance_tests:
 # FIXME Revert the image overrides once templates in mendertesting is updated
 test:static:
   image: golangci/golangci-lint:v1.47.3
-
-test:govendor-check:
-  variables:
-    GOLANG_VERSION: "1.18"
-  image: golang:${GOLANG_VERSION}
-
-test:unit:
-  image: golang:1.18
-
-publish:acceptance:
-  image: golang:1.18-alpine3.16
-
-publish:unittests:
-  image: golang:1.18-alpine3.16
