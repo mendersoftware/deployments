@@ -418,6 +418,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 		for i, devType := range img.ArtifactMeta.DeviceTypesCompatible {
 			img.ArtifactMeta.Depends["device_type"].(bson.A)[i] = devType
 		}
+		time.Sleep(time.Millisecond * 10)
 	}
 
 	testCases := map[string]struct {
