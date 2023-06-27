@@ -46,7 +46,7 @@ responses:
 paths:
   /deployments/releases/{release_name}/tags:
     put:
-      operationId: Replace release tags
+      operationId: Assign Release Tags
       tags:
         - Management API
       security:
@@ -54,8 +54,12 @@ paths:
       summary: |
         Update and replace the tags of a release.
       description: |
-        Returns a collection of releases, allows filtering by release name and sorting
-        by name or last modification date.
+        Assigns tags to releases. The tags will be replaced with the ones
+        defined in the request body.
+
+        LIMITATIONS:
+          * Max 20 tags can be assigned to a single release.
+          * There can be no more than 100 unique tag keys in total.
       parameters:
         - name: release_name
           in: path
