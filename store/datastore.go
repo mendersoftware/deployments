@@ -182,6 +182,11 @@ type DataStore interface {
 		ctx context.Context,
 		devicesIds []string,
 	) ([]model.DeviceDeploymentLastStatus, error)
+	ReplaceReleaseTags(
+		ctx context.Context,
+		releaseName string,
+		tags model.Tags,
+	) error
 }
 
 var ErrNotFound = errors.New("document not found")

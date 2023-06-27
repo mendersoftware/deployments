@@ -1757,3 +1757,93 @@ func TestReindexDeployment(t *testing.T) {
 		})
 	}
 }
+
+func TestReplaceReleaseTags(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		Name string
+
+		context.Context
+		ReleaseName string
+		Tags        model.Tags
+
+		GetDatabase func(t *testing.T, self *testCase) *mocks.DataStore
+
+		Error error
+	}
+	testCases := []testCase{{
+		Name: "ok",
+
+		Context:     context.Background(),
+		ReleaseName: "foobar",
+		Tags:        model.Tags{"foo", "baz"},
+
+		GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("ReplaceReleaseTags", self.Context, self.ReleaseName, self.Tags).
+				Return(nil)
+			return ds
+		},
+	}, {
+		Name: "error/not found",
+
+		Context:     context.Background(),
+		ReleaseName: "foobar",
+		Tags:        model.Tags{"foo", "baz"},
+
+		GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("ReplaceReleaseTags", self.Context, self.ReleaseName, self.Tags).
+				Return(store.ErrNotFound)
+			return ds
+		},
+		Error: ErrReleaseNotFound,
+	}, {
+		Name: "error/too many unique keys",
+
+		Context:     context.Background(),
+		ReleaseName: "foobar",
+		Tags:        model.Tags{"foo", "baz"},
+
+		GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("ReplaceReleaseTags", self.Context, self.ReleaseName, self.Tags).
+				Return(model.ErrTooManyUniqueTags)
+			return ds
+		},
+		Error: model.ErrTooManyUniqueTags,
+	}, {
+		Name: "error/internal error",
+
+		Context:     context.Background(),
+		ReleaseName: "foobar",
+		Tags:        model.Tags{"foo", "baz"},
+
+		GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("ReplaceReleaseTags", self.Context, self.ReleaseName, self.Tags).
+				Return(errors.New("internal error with sensitive info"))
+			return ds
+		},
+		Error: ErrModelInternal,
+	}}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			ds := tc.GetDatabase(t, &tc)
+			defer ds.AssertExpectations(t)
+
+			app := NewDeployments(ds, nil)
+
+			err := app.ReplaceReleaseTags(tc.Context, tc.ReleaseName, tc.Tags)
+			if tc.Error != nil {
+				assert.ErrorIs(t, err, tc.Error)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
