@@ -62,6 +62,10 @@ const (
 	errorCodeIndexNotFound     = 27
 )
 
+const (
+	mongoOpSet = "$set"
+)
+
 var currentDbVersion map[string]*migrate.Version
 
 var (
@@ -93,8 +97,8 @@ var (
 	// Indexes 1.2.13
 	IndexArtifactProvidesName = "artifact_provides"
 
-	// Indexes 1.2.15
-	IndexReleaseNameName = "release_name"
+	// Indexes 1.2.16
+	IndexNameReleaseTags = "release_tags"
 
 	_false         = false
 	_true          = true
@@ -403,6 +407,9 @@ const (
 	// releases
 	StorageKeyReleaseName                      = "_id"
 	StorageKeyReleaseModified                  = "modified"
+	StorageKeyReleaseTags                      = "tags"
+	StorageKeyReleaseTagKey                    = StorageKeyReleaseTags + ".key"
+	StorageKeyReleaseTagValue                  = StorageKeyReleaseTags + ".value"
 	StorageKeyReleaseArtifacts                 = "artifacts"
 	StorageKeyReleaseArtifactsIndexDescription = StorageKeyReleaseArtifacts + ".$." +
 		StorageKeyImageDescription
@@ -2962,6 +2969,76 @@ func (db *DataStoreMongo) UpdateReleaseArtifacts(
 	)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (db *DataStoreMongo) ListReleaseTagKeys(ctx context.Context) ([]string, error) {
+	l := log.FromContext(ctx)
+	tagKeys, err := db.client.
+		Database(mstore.DbFromContext(ctx, DatabaseName)).
+		Collection(CollectionReleases).
+		Distinct(ctx, StorageKeyReleaseTagKey, bson.D{})
+	if err != nil {
+		return nil, errors.WithMessage(err,
+			"mongo: failed to retrieve distinct tag keys")
+	}
+	ret := make([]string, 0, len(tagKeys))
+	for _, elem := range tagKeys {
+		if key, ok := elem.(string); ok {
+			ret = append(ret, key)
+		} else {
+			l.Warnf("unexpected data type (%T) received from distinct call: "+
+				"ignoring result", elem)
+		}
+	}
+
+	return ret, err
+}
+
+func (db *DataStoreMongo) ReplaceReleaseTags(
+	ctx context.Context,
+	releaseName string,
+	tags model.Tags,
+) error {
+	// Check preconditions
+	if len(tags) > model.TagsMaxUniqueKeys {
+		return model.ErrTooManyUniqueTags
+	}
+
+	collReleases := db.client.
+		Database(mstore.DbFromContext(ctx, DatabaseName)).
+		Collection(CollectionReleases)
+
+	// Check if added tags will exceed limits
+	if len(tags) > 0 {
+		inUseTags, err := db.ListReleaseTagKeys(ctx)
+		if err != nil {
+			return errors.WithMessage(err, "mongo: failed to count in-use tags")
+		}
+		tagSet := make(map[string]struct{}, len(inUseTags))
+		for _, tagKey := range inUseTags {
+			tagSet[tagKey] = struct{}{}
+		}
+		for _, tag := range tags {
+			delete(tagSet, tag.Key)
+		}
+		if len(tags)+len(tagSet) > model.TagsMaxUniqueKeys {
+			return model.ErrTooManyUniqueTags
+		}
+	}
+
+	// Update release tags
+	res, err := collReleases.UpdateOne(ctx, bson.D{{
+		Key: StorageKeyReleaseName, Value: releaseName,
+	}}, bson.D{{
+		Key:   mongoOpSet,
+		Value: bson.D{{Key: StorageKeyReleaseTags, Value: tags}},
+	}})
+	if err != nil {
+		return errors.WithMessage(err, "mongo: failed to update release tags")
+	} else if res.MatchedCount <= 0 {
+		return store.ErrNotFound
 	}
 	return nil
 }

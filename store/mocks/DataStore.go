@@ -1041,6 +1041,20 @@ func (_m *DataStore) ProvisionTenant(ctx context.Context, tenantId string) error
 	return r0
 }
 
+// ReplaceReleaseTags provides a mock function with given fields: ctx, releaseName, tags
+func (_m *DataStore) ReplaceReleaseTags(ctx context.Context, releaseName string, tags model.Tags) error {
+	ret := _m.Called(ctx, releaseName, tags)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.Tags) error); ok {
+		r0 = rf(ctx, releaseName, tags)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SaveDeviceDeploymentLog provides a mock function with given fields: ctx, log
 func (_m *DataStore) SaveDeviceDeploymentLog(ctx context.Context, log model.DeploymentLog) error {
 	ret := _m.Called(ctx, log)

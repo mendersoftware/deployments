@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -2576,6 +2577,283 @@ func TestListDeviceDeploymentsByIDsInternal(t *testing.T) {
 			if tc.responseCode == http.StatusOK {
 				assert.Equal(t, tc.deployments, res, "Unexpected response body")
 			}
+		})
+	}
+}
+
+func TestPutReleaseTags(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		Name string
+
+		App func(t *testing.T, self *testCase) *mapp.App
+		*http.Request
+
+		StatusCode int
+	}
+
+	matchTags := func(expected map[string]string) interface{} {
+		return mock.MatchedBy(func(actual interface{}) bool {
+			if tags, ok := actual.(model.Tags); ok {
+				for _, tag := range tags {
+					ok = assert.Contains(t, expected, tag.Key) &&
+						assert.Equal(t, expected[tag.Key], tag.Value)
+					if !ok {
+						break
+					}
+				}
+				return ok
+			}
+			return assert.Fail(t,
+				"invalid argument type %T, expected model.Tags",
+				actual)
+		})
+	}
+
+	testCases := []testCase{{
+		Name: "ok",
+
+		Request: func() *http.Request {
+			b, _ := json.Marshal(model.Tags{{
+				Key: "version", Value: "1.2.3",
+			}})
+
+			req, _ := http.NewRequest(
+				http.MethodPut,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseTags, "#name", "release-mc-release-face")),
+				bytes.NewReader(b),
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			appie := new(mapp.App)
+			expected := map[string]string{
+				"version": "1.2.3",
+			}
+			appie.On("ReplaceReleaseTags",
+				contextMatcher(),
+				"release-mc-release-face",
+				matchTags(expected)).
+				Return(nil)
+			return appie
+		},
+
+		StatusCode: http.StatusNoContent,
+	}, {
+		Name: "error/internal",
+
+		Request: func() *http.Request {
+			b, _ := json.Marshal(model.Tags{{
+				Key: "version", Value: "1.2.3",
+			}})
+
+			req, _ := http.NewRequest(
+				http.MethodPut,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseTags, "#name", "release-mc-release-face")),
+				bytes.NewReader(b),
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			appie := new(mapp.App)
+			expected := map[string]string{
+				"version": "1.2.3",
+			}
+			appie.On("ReplaceReleaseTags",
+				contextMatcher(),
+				"release-mc-release-face",
+				matchTags(expected)).
+				Return(errors.New("internal error"))
+			return appie
+		},
+
+		StatusCode: http.StatusInternalServerError,
+	}, {
+		Name: "error/too many unique tags",
+
+		Request: func() *http.Request {
+			b, _ := json.Marshal(model.Tags{{
+				Key: "version", Value: "1.2.3",
+			}})
+
+			req, _ := http.NewRequest(
+				http.MethodPut,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseTags, "#name", "release-mc-release-face")),
+				bytes.NewReader(b),
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			appie := new(mapp.App)
+			expected := map[string]string{
+				"version": "1.2.3",
+			}
+			appie.On("ReplaceReleaseTags",
+				contextMatcher(),
+				"release-mc-release-face",
+				matchTags(expected)).
+				Return(model.ErrTooManyUniqueTags)
+			return appie
+		},
+
+		StatusCode: http.StatusConflict,
+	}, {
+		Name: "error/release not found",
+
+		Request: func() *http.Request {
+			b, _ := json.Marshal(model.Tags{{
+				Key: "version", Value: "1.2.3",
+			}})
+
+			req, _ := http.NewRequest(
+				http.MethodPut,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseTags, "#name", "release-mc-release-face")),
+				bytes.NewReader(b),
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			appie := new(mapp.App)
+			expected := map[string]string{
+				"version": "1.2.3",
+			}
+			appie.On("ReplaceReleaseTags",
+				contextMatcher(),
+				"release-mc-release-face",
+				matchTags(expected)).
+				Return(app.ErrReleaseNotFound)
+			return appie
+		},
+
+		StatusCode: http.StatusNotFound,
+	}, {
+		Name: "error/too many tags",
+
+		Request: func() *http.Request {
+			tags := make(model.Tags, model.TagsPerReleaseMax+1)
+			for i := range tags {
+				tags[i] = model.Tag{
+					Key:   "field" + strconv.Itoa(i),
+					Value: "value",
+				}
+			}
+			b, _ := json.Marshal(tags)
+
+			req, _ := http.NewRequest(
+				http.MethodPut,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseTags, "#name", "release-mc-release-face")),
+				bytes.NewReader(b),
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			return new(mapp.App)
+		},
+
+		StatusCode: http.StatusBadRequest,
+	}, {
+		Name: "ok/many duplicate tags",
+
+		Request: func() *http.Request {
+			tags := make(model.Tags, model.TagsPerReleaseMax+1)
+			for i := range tags {
+				tags[i] = model.Tag{
+					Key:   "field",
+					Value: "value",
+				}
+			}
+			b, _ := json.Marshal(tags)
+
+			req, _ := http.NewRequest(
+				http.MethodPut,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseTags, "#name", "release-mc-release-face")),
+				bytes.NewReader(b),
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			appie := new(mapp.App)
+			expected := map[string]string{
+				"field": "value",
+			}
+			appie.On("ReplaceReleaseTags",
+				contextMatcher(),
+				"release-mc-release-face",
+				matchTags(expected)).
+				Return(nil)
+			return appie
+		},
+
+		StatusCode: http.StatusNoContent,
+	}, {
+		Name: "error/many duplicate tags",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodPut,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseTags, "#name", "release-mc-release-face")),
+				bytes.NewReader([]byte("not json")),
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			return new(mapp.App)
+		},
+
+		StatusCode: http.StatusBadRequest,
+	}, {
+		Name: "error/empty release name",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodPut,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseTags, "#name", "")),
+				bytes.NewReader([]byte("[]")),
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			return new(mapp.App)
+		},
+
+		StatusCode: http.StatusNotFound,
+	}}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			appie := tc.App(t, &tc)
+			defer appie.AssertExpectations(t)
+
+			handlers := NewDeploymentsApiHandlers(nil, &view.RESTView{}, appie)
+			routes := ReleasesRoutes(handlers)
+			router, _ := rest.MakeRouter(routes...)
+			api := rest.NewApi()
+			api.SetApp(router)
+			handler := api.MakeHandler()
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, tc.Request)
+
+			rsp := w.Result()
+			assert.Equal(t, tc.StatusCode, rsp.StatusCode,
+				"unexpected status code from request")
 		})
 	}
 }

@@ -16,6 +16,8 @@ package mongo
 
 import (
 	"context"
+	"io"
+	"strconv"
 	"testing"
 	"time"
 
@@ -27,8 +29,13 @@ import (
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/go-lib-micro/identity"
+	"github.com/mendersoftware/go-lib-micro/log"
 	ctxstore "github.com/mendersoftware/go-lib-micro/store"
 )
+
+func init() {
+	log.Log.Out = io.Discard
+}
 
 func TestPing(t *testing.T) {
 	if testing.Short() {
@@ -2368,6 +2375,284 @@ func TestIncrementDeploymentTotalSize(t *testing.T) {
 				deployments, _, err := ds.Find(ctx, model.Query{})
 				assert.NoError(t, err)
 				assert.Equal(t, tc.outputDeployments, deployments)
+			}
+		})
+	}
+}
+
+func TestReplaceReleaseTags(t *testing.T) {
+	ctx := context.Background()
+	client := db.Client()
+	db.Wipe()
+
+	type testCase struct {
+		Name string
+
+		context.Context
+
+		Init        func(t *testing.T, self *testCase)
+		ReleaseName string
+
+		Tags model.Tags
+
+		assert.ErrorAssertionFunc
+	}
+
+	testCases := []testCase{{
+		Name: "ok",
+
+		Context: context.Background(),
+
+		Init: func(t *testing.T, self *testCase) {
+			t.Helper()
+			_, err := client.Database(DbName).
+				Collection(CollectionReleases).
+				InsertMany(ctx, []interface{}{model.Release{
+					Name: self.ReleaseName,
+					Tags: model.Tags{{Key: "foo", Value: "bar"}},
+				}, model.Release{
+					Name: "v100.2.3",
+					Tags: model.Tags{{Key: "baz", Value: "bar"}},
+				}})
+			if err != nil {
+				t.Errorf("failed to initialize dataset: %s", err)
+				t.FailNow()
+			}
+		},
+		Tags: func() model.Tags {
+			newTags := make(model.Tags, model.TagsMaxUniqueKeys/2)
+			for i := range newTags {
+				newTags[i] = model.Tag{
+					Key:   "field" + strconv.Itoa(i),
+					Value: "yes",
+				}
+			}
+			return newTags
+		}(),
+		ReleaseName: "v1.0",
+	}, {
+		Name: "clear tags",
+
+		Context: identity.WithContext(context.Background(),
+			&identity.Identity{
+				Tenant: "111111111111111111111111",
+			},
+		),
+
+		Init: func(t *testing.T, self *testCase) {
+			t.Helper()
+			_, err := client.Database(ctxstore.DbFromContext(self, DbName)).
+				Collection(CollectionReleases).
+				InsertMany(self,
+					[]interface{}{model.Release{
+						Name: self.ReleaseName,
+						Tags: func() model.Tags {
+							newTags := make(model.Tags, model.TagsMaxUniqueKeys)
+							for i := range newTags {
+								newTags[i] = model.Tag{
+									Key:   "field" + strconv.Itoa(i),
+									Value: "yes",
+								}
+							}
+							return newTags
+						}(),
+					}, model.Release{
+						Name: "v1.2.3-beta",
+						Tags: model.Tags{{Key: "foo", Value: "bar"}},
+					}})
+			if err != nil {
+				t.Errorf("failed to initialize dataset: %s", err)
+				t.FailNow()
+			}
+		},
+		Tags:        model.Tags{},
+		ReleaseName: "v1.0",
+	}, {
+		Name: "error/too many tags",
+
+		Context: identity.WithContext(context.Background(),
+			&identity.Identity{
+				Tenant: "222222222222222222222222",
+			},
+		),
+
+		Init: func(t *testing.T, self *testCase) {
+			t.Helper()
+			_, err := client.Database(ctxstore.DbFromContext(self, DbName)).
+				Collection(CollectionReleases).
+				InsertMany(self,
+					[]interface{}{model.Release{
+						Name: self.ReleaseName,
+						Tags: func() model.Tags {
+							newTags := make(model.Tags, model.TagsMaxUniqueKeys)
+							for i := range newTags {
+								newTags[i] = model.Tag{
+									Key:   "field" + strconv.Itoa(i),
+									Value: "yes",
+								}
+							}
+							return newTags
+						}(),
+					}, model.Release{
+						Name: "v1.2.3-beta",
+						Tags: model.Tags{{Key: "foo", Value: "bar"}},
+					}})
+			if err != nil {
+				t.Errorf("failed to initialize dataset: %s", err)
+				t.FailNow()
+			}
+		},
+		Tags:        model.Tags{{Key: "oneFieldTooMany", Value: "foobar"}},
+		ReleaseName: "v1.0",
+		ErrorAssertionFunc: func(t assert.TestingT, err error, vargs ...interface{}) bool {
+			return assert.ErrorIs(t, err, model.ErrTooManyUniqueTags)
+		},
+	}, {
+		Name: "error/too many tags in input",
+
+		Context: identity.WithContext(context.Background(),
+			&identity.Identity{
+				Tenant: "333333333333333333333333",
+			},
+		),
+
+		Init: func(t *testing.T, self *testCase) {
+			t.Helper()
+			_, err := client.Database(ctxstore.DbFromContext(self, DbName)).
+				Collection(CollectionReleases).
+				InsertMany(self,
+					[]interface{}{model.Release{
+						Name: self.ReleaseName,
+						Tags: model.Tags{},
+					}, model.Release{
+						Name: "v1.2.3-beta",
+						Tags: model.Tags{{Key: "foo", Value: "bar"}},
+					}})
+			if err != nil {
+				t.Errorf("failed to initialize dataset: %s", err)
+				t.FailNow()
+			}
+		},
+		Tags: func() model.Tags {
+			newTags := make(model.Tags, model.TagsMaxUniqueKeys+1)
+			for i := range newTags {
+				newTags[i] = model.Tag{
+					Key:   "field" + strconv.Itoa(i),
+					Value: "yes",
+				}
+			}
+			return newTags
+		}(),
+		ReleaseName: "v1.0",
+		ErrorAssertionFunc: func(t assert.TestingT, err error, vargs ...interface{}) bool {
+			return assert.ErrorIs(t, err, model.ErrTooManyUniqueTags)
+		},
+	}, {
+		Name: "error/no documents",
+
+		Context: context.Background(),
+		Init:    func(t *testing.T, self *testCase) {},
+
+		Tags:        model.Tags{},
+		ReleaseName: "not_found",
+		ErrorAssertionFunc: func(t assert.TestingT, err error, vargs ...interface{}) bool {
+			return assert.ErrorIs(t, err, store.ErrNotFound)
+		},
+	}, {
+		Name: "error/aggregate/decode error",
+
+		Context: identity.WithContext(ctx, &identity.Identity{
+			Tenant: "deadbeefdeadbeefdeadbeef",
+		}),
+		Init: func(t *testing.T, self *testCase) {
+			t.Helper()
+			_, err := client.Database(ctxstore.DbFromContext(self, DbName)).
+				Collection(CollectionReleases).
+				InsertMany(self,
+					[]interface{}{model.Release{
+						Name: self.ReleaseName,
+						Tags: model.Tags{},
+					}, map[string]interface{}{
+						StorageKeyReleaseName: "v1.2.3-beta",
+						StorageKeyReleaseTags: []map[string]interface{}{{
+							"key":   123,
+							"value": true,
+						}},
+					}})
+			if err != nil {
+				t.Errorf("failed to initialize dataset: %s", err)
+				t.FailNow()
+			}
+		},
+
+		Tags:        model.Tags{{Key: "foo", Value: "bar"}},
+		ReleaseName: "v1.0",
+	}, {
+		Name: "error/aggregate context cancelled",
+
+		Context: func() context.Context {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			return ctx
+		}(),
+		Init: func(t *testing.T, self *testCase) {},
+
+		Tags:        model.Tags{{Key: "oneMore", Value: "tag"}},
+		ReleaseName: "v1.0",
+		ErrorAssertionFunc: func(t assert.TestingT, err error, vargs ...interface{}) bool {
+			return assert.ErrorIs(t, err, context.Canceled)
+		},
+	}, {
+		Name: "error/update context cancelled",
+
+		Context: func() context.Context {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			return ctx
+		}(),
+		Init: func(t *testing.T, self *testCase) {},
+
+		Tags:        model.Tags{},
+		ReleaseName: "v1.0",
+		ErrorAssertionFunc: func(t assert.TestingT, err error, vargs ...interface{}) bool {
+			return assert.ErrorIs(t, err, context.Canceled)
+		},
+	}}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			var tenantID string
+			if id := identity.FromContext(tc.Context); id != nil {
+				tenantID = id.Tenant
+			}
+			err := MigrateSingle(ctx,
+				ctxstore.DbNameForTenant(tenantID, DbName),
+				DbVersion,
+				client,
+				true)
+			if err != nil {
+				panic(err)
+			}
+			tc.Init(t, &tc)
+
+			ds := NewDataStoreMongoWithClient(client)
+			err = ds.ReplaceReleaseTags(tc.Context, tc.ReleaseName, tc.Tags)
+			if tc.ErrorAssertionFunc == nil {
+				if assert.NoError(t, err) {
+					var release model.Release
+					err := client.Database(
+						ctxstore.DbNameForTenant(tenantID, DbName)).
+						Collection(CollectionReleases).
+						FindOne(ctx, bson.D{}).
+						Decode(&release)
+					if assert.NoError(t, err, "failed to decode updated release") {
+						assert.EqualValues(t, tc.Tags, release.Tags)
+					}
+				}
+			} else {
+				tc.ErrorAssertionFunc(t, err)
 			}
 		})
 	}

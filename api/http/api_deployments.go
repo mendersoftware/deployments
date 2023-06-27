@@ -16,6 +16,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -1942,6 +1943,53 @@ func (d *DeploymentsApiHandlers) PutTenantStorageSettingsHandler(
 	err = d.app.SetStorageSettings(ctx, settings)
 	if err != nil {
 		rest_utils.RestErrWithLogInternal(w, r, l, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (d *DeploymentsApiHandlers) PutReleaseTags(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
+	defer r.Body.Close()
+	ctx := r.Context()
+	l := log.FromContext(ctx)
+
+	releaseName := r.PathParam(ParamName)
+	if releaseName == "" {
+		err := errors.New("path parameter 'release_name' cannot be empty")
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusNotFound)
+		return
+	}
+
+	var tags model.Tags
+	dec := json.NewDecoder(r.Body)
+	if err := dec.Decode(&tags); err != nil {
+		rest_utils.RestErrWithLog(w, r, l,
+			errors.WithMessage(err,
+				"malformed JSON in request body"),
+			http.StatusBadRequest)
+		return
+	}
+	if err := tags.Validate(); err != nil {
+		rest_utils.RestErrWithLog(w, r, l,
+			errors.WithMessage(err,
+				"invalid request body"),
+			http.StatusBadRequest)
+		return
+	}
+
+	err := d.app.ReplaceReleaseTags(ctx, releaseName, tags)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, app.ErrReleaseNotFound) {
+			status = http.StatusNotFound
+		} else if errors.Is(err, model.ErrTooManyUniqueTags) {
+			status = http.StatusConflict
+		}
+		rest_utils.RestErrWithLog(w, r, l, err, status)
 		return
 	}
 

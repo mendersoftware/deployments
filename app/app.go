@@ -100,6 +100,9 @@ var (
 	ErrDuplicateDeployment     = errors.New("Deployment with given ID already exists")
 	ErrInvalidDeploymentID     = errors.New("Deployment ID must be a valid UUID")
 	ErrConflictingRequestData  = errors.New("Device provided conflicting request data")
+
+	// releases
+	ErrReleaseNotFound = errors.New("release not found")
 )
 
 //deployments
@@ -186,6 +189,9 @@ type App interface {
 		model.DeviceDeploymentLastStatuses,
 		error,
 	)
+
+	// releases
+	ReplaceReleaseTags(ctx context.Context, releaseName string, tags model.Tags) error
 }
 
 type Deployments struct {
@@ -2109,4 +2115,28 @@ func (d *Deployments) updateRelease(
 	}
 
 	return d.db.UpdateReleaseArtifacts(ctx, artifactToAdd, artifactToRemove, name)
+}
+
+func (d *Deployments) ReplaceReleaseTags(
+	ctx context.Context,
+	releaseName string,
+	tags model.Tags,
+) error {
+	err := d.db.ReplaceReleaseTags(ctx, releaseName, tags)
+	if err != nil {
+		switch err {
+		case store.ErrNotFound:
+			err = ErrReleaseNotFound
+
+		case model.ErrTooManyTags, model.ErrTooManyUniqueTags:
+			// pass
+
+		default:
+			// Rewrite internal errors
+			log.FromContext(ctx).
+				Errorf("failed to replace tags in database: %s", err.Error())
+			err = ErrModelInternal
+		}
+	}
+	return err
 }
