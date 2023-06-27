@@ -2815,3 +2815,120 @@ func TestPutReleaseTags(t *testing.T) {
 		})
 	}
 }
+
+func TestListReleaseTags(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		Name string
+
+		App func(t *testing.T, self *testCase) *mapp.App
+		*http.Request
+
+		StatusCode int
+		Tags       model.Tags
+	}
+
+	testCases := []testCase{{
+		Name: "ok",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseAllTags,
+						"#name", "release-mc-release-face"),
+				),
+				nil,
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			appie := new(mapp.App)
+			appie.On("ListReleaseTags",
+				contextMatcher()).
+				Return(self.Tags, nil)
+			return appie
+		},
+
+		StatusCode: http.StatusOK,
+		Tags:       model.Tags{"bar", "baz", "foo"},
+	}, {
+		Name: "error/internal",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseAllTags,
+						"#name", "release-mc-release-face"),
+				),
+				nil,
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			appie := new(mapp.App)
+			appie.On("ListReleaseTags",
+				contextMatcher()).
+				Return(nil, errors.New("internal error"))
+			return appie
+		},
+
+		StatusCode: http.StatusInternalServerError,
+	}, {
+		Name: "error/internal",
+
+		Request: func() *http.Request {
+			req, _ := http.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("http://localhost:1234%s",
+					strings.ReplaceAll(ApiUrlManagementV2ReleaseAllTags,
+						"#name", "release-mc-release-face"),
+				),
+				nil,
+			)
+			return req
+		}(),
+
+		App: func(t *testing.T, self *testCase) *mapp.App {
+			appie := new(mapp.App)
+			appie.On("ListReleaseTags",
+				contextMatcher()).
+				Return(nil, errors.New("internal error"))
+			return appie
+		},
+
+		StatusCode: http.StatusInternalServerError,
+	}}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			appie := tc.App(t, &tc)
+			defer appie.AssertExpectations(t)
+
+			handlers := NewDeploymentsApiHandlers(nil, &view.RESTView{}, appie)
+			routes := ReleasesRoutes(handlers)
+			router, _ := rest.MakeRouter(routes...)
+			api := rest.NewApi()
+			api.SetApp(router)
+			handler := api.MakeHandler()
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, tc.Request)
+
+			rsp := w.Result()
+			assert.Equal(t, tc.StatusCode, rsp.StatusCode,
+				"unexpected status code from request")
+			if tc.Tags != nil {
+				var actual model.Tags
+				err := json.Unmarshal(w.Body.Bytes(), &actual)
+				if assert.NoError(t, err, "unexpected request body") {
+					assert.Equal(t, tc.Tags, actual)
+				}
+			}
+		})
+	}
+}

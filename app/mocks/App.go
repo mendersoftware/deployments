@@ -650,6 +650,29 @@ func (_m *App) ListImages(ctx context.Context, filters *model.ReleaseOrImageFilt
 	return r0, r1, r2
 }
 
+// ListReleaseTags provides a mock function with given fields: ctx
+func (_m *App) ListReleaseTags(ctx context.Context) (model.Tags, error) {
+	ret := _m.Called(ctx)
+
+	var r0 model.Tags
+	if rf, ok := ret.Get(0).(func(context.Context) model.Tags); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(model.Tags)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // LookupDeployment provides a mock function with given fields: ctx, query
 func (_m *App) LookupDeployment(ctx context.Context, query model.Query) ([]*model.Deployment, int64, error) {
 	ret := _m.Called(ctx, query)
