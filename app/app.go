@@ -192,6 +192,7 @@ type App interface {
 
 	// releases
 	ReplaceReleaseTags(ctx context.Context, releaseName string, tags model.Tags) error
+	ListReleaseTags(ctx context.Context) ([]string, error)
 }
 
 type Deployments struct {
@@ -2115,6 +2116,16 @@ func (d *Deployments) updateRelease(
 	}
 
 	return d.db.UpdateReleaseArtifacts(ctx, artifactToAdd, artifactToRemove, name)
+}
+
+func (d *Deployments) ListReleaseTags(ctx context.Context) ([]string, error) {
+	tags, err := d.db.ListReleaseTagKeys(ctx)
+	if err != nil {
+		log.FromContext(ctx).
+			Errorf("failed to list release tags: %s", err)
+		err = ErrModelInternal
+	}
+	return tags, err
 }
 
 func (d *Deployments) ReplaceReleaseTags(

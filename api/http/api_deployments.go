@@ -1953,7 +1953,6 @@ func (d *DeploymentsApiHandlers) PutReleaseTags(
 	w rest.ResponseWriter,
 	r *rest.Request,
 ) {
-	defer r.Body.Close()
 	ctx := r.Context()
 	l := log.FromContext(ctx)
 
@@ -1994,4 +1993,31 @@ func (d *DeploymentsApiHandlers) PutReleaseTags(
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (d *DeploymentsApiHandlers) GetReleaseTagKeys(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
+	ctx := r.Context()
+	l := log.FromContext(ctx)
+
+	releaseName := r.PathParam(ParamName)
+	if releaseName == "" {
+		err := errors.New("path parameter 'release_name' cannot be empty")
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusNotFound)
+		return
+	}
+
+	tags, err := d.app.ListReleaseTags(ctx)
+	if err != nil {
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	err = w.WriteJson(tags)
+	if err != nil {
+		l.Errorf("failed to serialize JSON response: %s", err.Error())
+	}
 }
