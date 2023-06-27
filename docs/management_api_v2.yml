@@ -91,6 +91,47 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /deployments/releases/{release_name}/tags/keys:
+    get:
+      operationId: List Tags
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: |
+        Lists all available tags for releases.
+      parameters:
+        - name: release_name
+          in: path
+          description: Name of the release
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response.
+          schema:
+            type: array
+            description: Release tag keys.
+            items:
+              type: string
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: "#/responses/UnauthorizedError"
+        409:
+          description: Too many unique tag keys in use.
+          schema:
+            $ref: "#/definitions/Error"
+
+          examples:
+            application/json:
+              error: "the total number of unique tags has been exceeded"
+              request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+        500:
+          $ref: "#/responses/InternalServerError"
+
 
 definitions:
   Tags:
