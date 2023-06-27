@@ -4,7 +4,7 @@ info:
   version: '2'
   description: |
     Version 2 of the API for deployments management.
-    Intended for use by the web GUI.
+    Intended for use by the web UI.
 
 host: 'hosted.mender.io'
 basePath: '/api/management/v2/deployments'
@@ -54,8 +54,8 @@ paths:
       summary: |
         Update and replace the tags of a release.
       description: |
-        Assigns tags to releases. The tags will be replaced with the ones
-        defined in the request body.
+        Assigns tags to a release. The tags associated with the release will be
+        replaced with the ones defined in the request body.
 
         LIMITATIONS:
           * Max 20 tags can be assigned to a single release.
@@ -91,11 +91,46 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /deployments/releases/all/tags:
+    get:
+      operationId: List Release Tags
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: |
+        Lists all available tags for releases.
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response.
+          schema:
+            $ref: "#/definitions/Tags"
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: "#/responses/UnauthorizedError"
+        409:
+          description: Too many unique tag keys in use.
+          schema:
+            $ref: "#/definitions/Error"
+
+          examples:
+            application/json:
+              error: "the total number of unique tags has been exceeded"
+              request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+        500:
+          $ref: "#/responses/InternalServerError"
+
 
 definitions:
   Tags:
-    description: Filter tags
     type: array
+    description: |-
+      Tags assigned to the release used for filtering releases. Each tag
+      must be valid a ASCII string and contain only lowercase and uppercase
+      letters, digits, underscores, periods and hyphens.
     items:
       type: string
 
