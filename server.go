@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/base64"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/go-lib-micro/config"
+	"github.com/mendersoftware/go-lib-micro/log"
 
 	api "github.com/mendersoftware/deployments/api/http"
 	"github.com/mendersoftware/deployments/app"
@@ -40,13 +42,13 @@ import (
 func SetupS3(ctx context.Context, defaultOptions *s3.Options) (storage.ObjectStorage, error) {
 	c := config.Config
 
+	bucket := c.GetString(dconfig.SettingStorageBucket)
+
 	// Copy / merge defaultOptions
 	options := s3.NewOptions(defaultOptions).
+		SetBucketName(bucket).
 		SetForcePathStyle(c.GetBool(dconfig.SettingAwsS3ForcePathStyle)).
 		SetUseAccelerate(c.GetBool(dconfig.SettingAwsS3UseAccelerate))
-
-	// Compute the buffer size
-	bucket := c.GetString(dconfig.SettingStorageBucket)
 
 	// The following parameters falls back on AWS_* environment if not set
 	if c.IsSet(dconfig.SettingAwsS3Region) {
@@ -67,11 +69,19 @@ func SetupS3(ctx context.Context, defaultOptions *s3.Options) (storage.ObjectSto
 	if c.IsSet(dconfig.SettingAwsExternalURI) {
 		options.SetExternalURI(c.GetString(dconfig.SettingAwsExternalURI))
 	}
+	if c.IsSet(dconfig.SettingStorageProxyURI) {
+		rawURL := c.GetString(dconfig.SettingStorageProxyURI)
+		proxyURL, err := url.Parse(rawURL)
+		if err != nil {
+			return nil, errors.WithMessage(err, "invalid setting `storage.proxy_uri`")
+		}
+		options.SetProxyURI(proxyURL)
+	}
 	if c.IsSet(dconfig.SettingAwsUnsignedHeaders) {
 		options.SetUnsignedHeaders(c.GetStringSlice(dconfig.SettingAwsUnsignedHeaders))
 	}
 
-	storage, err := s3.New(ctx, bucket, options)
+	storage, err := s3.New(ctx, options)
 	return storage, err
 }
 
@@ -97,6 +107,18 @@ func SetupBlobStorage(
 			creds.URI = &uri
 		}
 		options.SetSharedKey(creds)
+	}
+	if c.IsSet(dconfig.SettingStorageProxyURI) {
+		rawURL := c.GetString(dconfig.SettingStorageProxyURI)
+		proxyURL, err := url.Parse(rawURL)
+		if err != nil {
+			return nil, errors.WithMessage(err, `invalid setting "storage.proxy_uri"`)
+		}
+		if !strings.HasPrefix(strings.ToLower(proxyURL.Scheme), "https") {
+			log.FromContext(ctx).
+				Warnf(`setting "storage.proxy_uri" (%s) is not using https`, rawURL)
+		}
+		options.SetProxyURI(proxyURL)
 	}
 	return azblob.New(ctx, c.GetString(dconfig.SettingStorageBucket), options)
 }

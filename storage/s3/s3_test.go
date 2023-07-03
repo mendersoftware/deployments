@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/mendersoftware/deployments/model"
@@ -66,7 +67,7 @@ func TestHealthCheck(t *testing.T) {
 				Token:  "token",
 			},
 		}),
-		bucket: "test",
+		settings: storageSettings{BucketName: aws.String("test")},
 	}
 
 	err = sss.HealthCheck(context.Background())
@@ -183,6 +184,7 @@ func TestNewClient(t *testing.T) {
 	})
 
 	options := NewOptions().
+		SetBucketName(bucketName).
 		SetBufferSize(5*1024*1024).
 		SetContentType("test").
 		SetDefaultExpire(time.Minute).
@@ -193,9 +195,10 @@ func TestNewClient(t *testing.T) {
 		SetUseAccelerate(true).
 		SetUnsignedHeaders([]string{"Accept-Encoding"}).
 		SetTransport(rt)
+	t.Log(options.storageSettings)
 
 	go func() {
-		_, err := New(ctx, bucketName, options) //nolint:errcheck
+		_, err := New(ctx, options) //nolint:errcheck
 		assert.NoError(t, err)
 		cancel()
 	}()
@@ -272,6 +275,7 @@ func newTestServerAndClient(
 	}
 
 	opt := NewOptions().
+		SetBucketName("bucket").
 		SetRegion("region").
 		SetStaticCredentials("test", "secret", "token")
 	opts = append([]*Options{opt}, opts...)
@@ -279,7 +283,7 @@ func newTestServerAndClient(
 	opt = NewOptions(opts...).
 		SetTransport(httpTransport)
 
-	sss, err := New(context.Background(), "bucket", opt)
+	sss, err := New(context.Background(), opt)
 	if err != nil {
 		panic(err)
 	}
@@ -311,7 +315,7 @@ func TestGetObject(t *testing.T) {
 				assert.Equal(t, "bucket.s3.region.amazonaws.com", r.Host)
 
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("imagine artifacts"))
+				_, _ = w.Write([]byte("imagine artifacts"))
 			}
 		},
 		Body: []byte("imagine artifacts"),

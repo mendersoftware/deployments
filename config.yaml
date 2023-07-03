@@ -96,6 +96,11 @@ storage:
     # Overwrite with environment variable: DEPLOYMENTS_STORAGE_BUCKET
     bucket: "mender-artifact-storage"
 
+    # storage.proxy_uri: Rewrites presigned URLs to target proxy instead of the
+    # direct URL to the backend.
+    # Overwrite with environment variable: DEPLOYMENTS_STORAGE_PROXY_URI
+    # proxy_uri
+
     # Maximum image size in bytes
     # Defaults to: 10GB
     # Overwrite with environment variable: DEPLOYMENTS_STORAGE_MAX_IMAGE_SIZE

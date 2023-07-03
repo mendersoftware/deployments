@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -65,10 +65,15 @@ type StorageSettings struct {
 	Region string `json:"region" bson:"region"`
 	// Bucket is the name of the bucket (s3) or container (azblob) storing artifacts.
 	Bucket string `json:"bucket" bson:"bucket"`
+
 	// Uri contains the (private) URI used to call the storage APIs.
 	Uri string `json:"uri" bson:"uri"`
 	// ExternalUri contains the public bucket / container URI.
 	ExternalUri string `json:"external_uri" bson:"external_uri"`
+	// ProxyURI is used for rewriting presigned requests, pointing the
+	// requests to the proxy URL instead of the direct URL to s3.
+	ProxyURI *string `json:"proxy_uri,omitempty" bson:"proxy_uri,omitempty"`
+
 	// Key contains the key identifier (azblob: account name) used to
 	// authenticate with the storage APIs.
 	Key string `json:"key,omitempty" bson:"key,omitempty"`

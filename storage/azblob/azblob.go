@@ -25,6 +25,7 @@ import (
 
 	"github.com/mendersoftware/deployments/model"
 	"github.com/mendersoftware/deployments/storage"
+	"github.com/mendersoftware/deployments/utils"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
@@ -46,6 +47,7 @@ type client struct {
 	DefaultClient *container.Client
 	credentials   *azblob.SharedKeyCredential
 	contentType   *string
+	proxyURL      *url.URL
 	bufferSize    int64
 }
 
@@ -54,6 +56,7 @@ func NewEmpty(ctx context.Context, opts ...*Options) (storage.ObjectStorage, err
 	objStore := &client{
 		bufferSize:  opt.BufferSize,
 		contentType: opt.ContentType,
+		proxyURL:    opt.ProxyURI,
 	}
 	return objStore, nil
 }
@@ -317,17 +320,60 @@ func (c *client) StatObject(
 	}, nil
 }
 
-func buildSignedURL(
+func (c *client) buildSignedURL(
+	ctx context.Context,
+	method string,
 	blobURL string,
-	SASParams sas.QueryParameters,
-) (string, error) {
+	expire time.Duration,
+	filename string,
+) (*model.Link, error) {
+	var permissions sas.BlobPermissions
+	switch method {
+	case http.MethodGet:
+		permissions = sas.BlobPermissions{Read: true}
+	case http.MethodDelete:
+		permissions = sas.BlobPermissions{Delete: true}
+	case http.MethodPut:
+		permissions = sas.BlobPermissions{Create: true, Write: true}
+	default:
+		return nil, fmt.Errorf("invalid HTTP method %q", method)
+	}
+	now := time.Now().UTC()
+	exp := now.Add(expire)
+	// HACK: We cannot use BlockBlobClient.GetSASToken because the API does
+	// not expose the required parameters.
+	urlParts, _ := blob.ParseURL(blobURL)
+	sk, proxyURL, err := c.signParamsFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve credentials: %w", err)
+	}
+	var contentDisposition string
+	if filename != "" {
+		contentDisposition = fmt.Sprintf(
+			`attachment; filename="%s"`, filename,
+		)
+	}
+
+	qParams, err := sas.BlobSignatureValues{
+		ContainerName: urlParts.ContainerName,
+		BlobName:      urlParts.BlobName,
+
+		Permissions:        permissions.String(),
+		ContentDisposition: contentDisposition,
+
+		StartTime:  now.UTC(),
+		ExpiryTime: exp.UTC(),
+	}.SignWithSharedKey(sk)
+	if err != nil {
+		return nil, err
+	}
 	baseURL, err := url.Parse(blobURL)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	qSAS, err := url.ParseQuery(SASParams.Encode())
+	qSAS, err := url.ParseQuery(qParams.Encode())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	q := baseURL.Query()
 	for key, values := range qSAS {
@@ -336,7 +382,15 @@ func buildSignedURL(
 		}
 	}
 	baseURL.RawQuery = q.Encode()
-	return baseURL.String(), nil
+	baseURL, err = utils.RewriteProxyURL(baseURL, proxyURL)
+	if err != nil {
+		return nil, err
+	}
+	return &model.Link{
+		Expire: exp,
+		Method: method,
+		Uri:    baseURL.String(),
+	}, nil
 }
 
 func (c *client) GetRequest(
@@ -376,46 +430,13 @@ func (c *client) GetRequest(
 			Reason:  err,
 		}
 	}
-	now := time.Now().UTC()
-	exp := now.Add(duration)
-	// HACK: We cannot use BlockBlobClient.GetSASToken because the API does
-	// not expose the required parameters.
-	urlParts, _ := blob.ParseURL(bc.URL())
-	sk, err := c.credentialsFromContext(ctx)
-	if err != nil {
-		return nil, OpError{
-			Op:      OpGetRequest,
-			Message: "failed to retrieve credentials",
-			Reason:  err,
-		}
-	}
-	var contentDisposition string
-	if filename != "" {
-		contentDisposition = fmt.Sprintf(
-			`attachment; filename="%s"`, filename,
-		)
-	}
-	permissions := &sas.BlobPermissions{
-		Read: true,
-	}
-	qParams, err := sas.BlobSignatureValues{
-		ContainerName: urlParts.ContainerName,
-		BlobName:      urlParts.BlobName,
-
-		Permissions:        permissions.String(),
-		ContentDisposition: contentDisposition,
-
-		StartTime:  now.UTC(),
-		ExpiryTime: exp.UTC(),
-	}.SignWithSharedKey(sk)
-	if err != nil {
-		return nil, OpError{
-			Op:      OpGetRequest,
-			Message: "failed to build signed URL",
-			Reason:  err,
-		}
-	}
-	uri, err := buildSignedURL(bc.URL(), qParams)
+	link, err := c.buildSignedURL(
+		ctx,
+		http.MethodGet,
+		bc.URL(),
+		duration,
+		filename,
+	)
 	if err != nil {
 		return nil, OpError{
 			Op:      OpGetRequest,
@@ -423,11 +444,7 @@ func (c *client) GetRequest(
 			Reason:  err,
 		}
 	}
-	return &model.Link{
-		Uri:    uri,
-		Expire: exp,
-		Method: http.MethodGet,
-	}, nil
+	return link, nil
 }
 
 func (c *client) DeleteRequest(
@@ -450,9 +467,7 @@ func (c *client) DeleteRequest(
 			Reason:  err,
 		}
 	}
-	now := time.Now().UTC()
-	exp := now.Add(duration)
-	uri, err := bc.GetSASURL(sas.BlobPermissions{Delete: true}, now, exp)
+	link, err := c.buildSignedURL(ctx, http.MethodDelete, bc.URL(), duration, "")
 	if err != nil {
 		return nil, OpError{
 			Op:      OpDeleteRequest,
@@ -461,11 +476,7 @@ func (c *client) DeleteRequest(
 		}
 	}
 
-	return &model.Link{
-		Uri:    uri,
-		Expire: exp,
-		Method: http.MethodDelete,
-	}, nil
+	return link, nil
 }
 
 func (c *client) PutRequest(
@@ -488,12 +499,7 @@ func (c *client) PutRequest(
 			Reason:  err,
 		}
 	}
-	now := time.Now().UTC()
-	exp := now.Add(duration)
-	uri, err := bc.GetSASURL(sas.BlobPermissions{
-		Create: true,
-		Write:  true,
-	}, now, exp)
+	link, err := c.buildSignedURL(ctx, http.MethodPut, bc.URL(), duration, "")
 	if err != nil {
 		return nil, OpError{
 			Op:      OpPutRequest,
@@ -501,13 +507,8 @@ func (c *client) PutRequest(
 			Reason:  err,
 		}
 	}
-	hdrs := map[string]string{
+	link.Header = map[string]string{
 		headerBlobType: blobTypeBlock,
 	}
-	return &model.Link{
-		Uri:    uri,
-		Expire: exp,
-		Method: http.MethodPut,
-		Header: hdrs,
-	}, nil
+	return link, nil
 }
