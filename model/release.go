@@ -17,6 +17,7 @@ package model
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -100,11 +101,36 @@ var (
 		" characters")
 )
 
+type InvalidCharacterError struct {
+	Source string
+	Char   rune
+}
+
+func (err *InvalidCharacterError) Error() string {
+	return fmt.Sprintf(`invalid character '%c' in string "%s"`, err.Char, err.Source)
+}
+
 func (tag Tag) Validate() error {
 	if len(tag) < 1 {
 		return ErrTagEmpty
 	} else if len(tag) > TagMaxLength {
 		return ErrTagTooLong
+	}
+	for _, c := range tag { // [A-Za-z0-9-_.]
+		if c >= 'A' && c <= 'Z' {
+			continue
+		} else if c >= 'a' && c <= 'z' {
+			continue
+		} else if c >= '0' && c <= '9' {
+			continue
+		} else if c == '-' || c == '_' || c == '.' {
+			continue
+		} else {
+			return &InvalidCharacterError{
+				Source: string(tag),
+				Char:   c,
+			}
+		}
 	}
 	return nil
 }

@@ -17,6 +17,7 @@ package model
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,19 +25,32 @@ import (
 
 func TestReleaseTags(t *testing.T) {
 
-	tooLong := make(Tags, TagsMaxPerRelease+1)
-	for i := range tooLong {
-		tooLong[i] = Tag(strconv.Itoa(i))
-	}
-	err := tooLong.Validate()
-	assert.ErrorIs(t, err, ErrTooManyTags)
+	t.Run("Validate", func(t *testing.T) {
+		tooLong := make(Tags, TagsMaxPerRelease+1)
+		for i := range tooLong {
+			tooLong[i] = Tag(strconv.Itoa(i))
+		}
+		err := tooLong.Validate()
+		assert.ErrorIs(t, err, ErrTooManyTags)
 
-	var emptyTag Tag
-	err = emptyTag.Validate()
-	assert.ErrorIs(t, err, ErrTagEmpty)
+		invalidTags := Tags{"Va1_id", "invælid"}
+		err = invalidTags.Validate()
+		var charErr *InvalidCharacterError
+		assert.ErrorAs(t, err, &charErr)
 
-	t.Run("unmarshal tags", func(t *testing.T) {
+		tooLongTag := Tag(strings.Repeat("veryLongTag", 100))
+		err = tooLongTag.Validate()
+		assert.ErrorIs(t, err, ErrTagTooLong)
+
+		var emptyTag Tag
+		err = emptyTag.Validate()
+		assert.ErrorIs(t, err, ErrTagEmpty)
+	})
+
+	t.Run("JSON serialization", func(t *testing.T) {
 		var tags Tags
+		b, _ := json.Marshal(tags)
+		assert.Equal(t, []byte(`[]`), b)
 		err := json.Unmarshal(
 			[]byte(`["tag", "tag", "more-tags"]`),
 			&tags,
