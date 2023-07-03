@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -132,15 +132,18 @@ func mergeFlattenOptions(opts []*FlattenOptions) *FlattenOptions {
 // to create queries from structs; the resulting document respects the struct
 // declaration order with a depth first expansion of embedded fields. Please
 // note, however, that there are no ordering guarantees on map-types.
-// type Foo struct {
-//     Bar: map[string]string{
-//         "baz": "foo"
-//     },  `bson:"bar"`
-// }
+//
+//	type Foo struct {
+//	    Bar: map[string]string{
+//	        "baz": "foo"
+//	    },  `bson:"bar"`
+//	}
+//
 // Becomes:
-// bson.D{
-//   {Key: "bar.baz", Value: "foo"}
-// }
+//
+//	bson.D{
+//	  {Key: "bar.baz", Value: "foo"}
+//	}
 func FlattenDocument(
 	mapping interface{}, options ...*FlattenOptions,
 ) (doc bson.D, err error) {

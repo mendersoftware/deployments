@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -32,9 +32,14 @@ package log
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"os"
 	"path"
 	"runtime"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -42,6 +47,20 @@ import (
 var (
 	// log is a global logger instance
 	Log = logrus.New()
+)
+
+const (
+	envLogFormat        = "LOG_FORMAT"
+	envLogLevel         = "LOG_LEVEL"
+	envLogDisableCaller = "LOG_DISABLE_CALLER_CONTEXT"
+
+	logFormatJSON    = "json"
+	logFormatJSONAlt = "ndjson"
+
+	logFieldCaller    = "caller"
+	logFieldCallerFmt = "%s@%s:%d"
+
+	pkgSirupsen = "github.com/sirupsen/logrus"
 )
 
 type loggerContextKeyType int
@@ -59,17 +78,89 @@ type ContextLogger interface {
 
 // init initializes the global logger to sane defaults.
 func init() {
-	Log.Formatter = &logrus.TextFormatter{
-		FullTimestamp: true,
+	var opts Options
+	switch strings.ToLower(os.Getenv(envLogFormat)) {
+	case logFormatJSON, logFormatJSONAlt:
+		opts.Format = FormatJSON
+	default:
+		opts.Format = FormatConsole
 	}
-	Log.Level = logrus.InfoLevel
-	Log.Hooks.Add(ContextHook{})
+	opts.Level = Level(logrus.InfoLevel)
+	if lvl := os.Getenv(envLogLevel); lvl != "" {
+		logLevel, err := logrus.ParseLevel(lvl)
+		if err == nil {
+			opts.Level = Level(logLevel)
+		}
+	}
+	opts.TimestampFormat = time.RFC3339
+	opts.DisableCaller, _ = strconv.ParseBool(os.Getenv(envLogDisableCaller))
+	Configure(opts)
+
 	Log.ExitFunc = func(int) {}
+}
+
+type Level logrus.Level
+
+const (
+	LevelPanic = Level(logrus.PanicLevel)
+	LevelFatal = Level(logrus.FatalLevel)
+	LevelError = Level(logrus.ErrorLevel)
+	LevelWarn  = Level(logrus.WarnLevel)
+	LevelInfo  = Level(logrus.InfoLevel)
+	LevelDebug = Level(logrus.DebugLevel)
+	LevelTrace = Level(logrus.TraceLevel)
+)
+
+type Format int
+
+const (
+	FormatConsole Format = iota
+	FormatJSON
+)
+
+type Options struct {
+	TimestampFormat string
+
+	Level Level
+
+	DisableCaller bool
+
+	Format Format
+
+	Output io.Writer
+}
+
+func Configure(opts Options) {
+	Log = logrus.New()
+
+	if opts.Output != nil {
+		Log.SetOutput(opts.Output)
+	}
+	Log.SetLevel(logrus.Level(opts.Level))
+
+	if !opts.DisableCaller {
+		Log.AddHook(ContextHook{})
+	}
+
+	var formatter logrus.Formatter
+
+	switch opts.Format {
+	case FormatConsole:
+		formatter = &logrus.TextFormatter{
+			FullTimestamp:   true,
+			TimestampFormat: opts.TimestampFormat,
+		}
+	case FormatJSON:
+		formatter = &logrus.JSONFormatter{
+			TimestampFormat: opts.TimestampFormat,
+		}
+	}
+	Log.Formatter = formatter
 }
 
 // Setup allows to override the global logger setup.
 func Setup(debug bool) {
-	if debug == true {
+	if debug {
 		Log.Level = logrus.DebugLevel
 	}
 }
@@ -121,25 +212,55 @@ func (hook ContextHook) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
-func (hook ContextHook) Fire(entry *logrus.Entry) error {
-	//'skip' = 6 is the default call stack skip, which
-	//works ootb when Error(), Warn(), etc. are called
-	//for Errorf(), Warnf(), etc. - we have to skip 1 lvl up
-	for skip := 6; skip < 8; skip++ {
-		if pc, file, line, ok := runtime.Caller(skip); ok {
-			funcName := runtime.FuncForPC(pc).Name()
+func fmtCaller(frame runtime.Frame) string {
+	return fmt.Sprintf(
+		logFieldCallerFmt,
+		path.Base(frame.Function),
+		path.Base(frame.File),
+		frame.Line,
+	)
+}
 
-			//detect if we're still in logrus (formatting funcs)
-			if !strings.Contains(funcName, "github.com/sirupsen/logrus") {
-				entry.Data["file"] = path.Base(file)
-				entry.Data["func"] = path.Base(funcName)
-				entry.Data["line"] = line
+func (hook ContextHook) Fire(entry *logrus.Entry) error {
+	const (
+		minCallDepth = 6 // logrus.Logger.Log
+		maxCallDepth = 8 // logrus.Logger.<Level>f
+	)
+	var pcs [1 + maxCallDepth - minCallDepth]uintptr
+	if _, ok := entry.Data[logFieldCaller]; !ok {
+		// We don't know how deep we are in the callstack since the hook can be fired
+		// at different levels. Search between depth 6 -> 8.
+		i := runtime.Callers(minCallDepth, pcs[:])
+		frames := runtime.CallersFrames(pcs[:i])
+		var caller *runtime.Frame
+		for frame, _ := frames.Next(); frame.PC != 0; frame, _ = frames.Next() {
+			if !strings.HasPrefix(frame.Function, pkgSirupsen) {
+				caller = &frame
 				break
 			}
 		}
+		if caller != nil {
+			entry.Data[logFieldCaller] = fmtCaller(*caller)
+		}
 	}
-
 	return nil
+}
+
+// WithCallerContext returns a new logger with caller set to the parent caller
+// context. The skipParents select how many caller contexts to skip, a value of
+// 0 sets the context to the caller of this function.
+func (l *Logger) WithCallerContext(skipParents int) *Logger {
+	const calleeDepth = 2
+	var pc [1]uintptr
+	newEntry := l
+	i := runtime.Callers(calleeDepth+skipParents, pc[:])
+	frame, _ := runtime.CallersFrames(pc[:i]).
+		Next()
+	if frame.Func != nil {
+		newEntry = &Logger{Entry: l.Dup()}
+		newEntry.Data[logFieldCaller] = fmtCaller(frame)
+	}
+	return newEntry
 }
 
 // Grab an instance of Logger that may have been passed in context.Context.
