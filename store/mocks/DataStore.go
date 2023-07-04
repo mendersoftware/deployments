@@ -1013,6 +1013,29 @@ func (_m *DataStore) ListImages(ctx context.Context, filt *model.ReleaseOrImageF
 	return r0, r1, r2
 }
 
+// ListReleaseTags provides a mock function with given fields: ctx
+func (_m *DataStore) ListReleaseTags(ctx context.Context) (model.Tags, error) {
+	ret := _m.Called(ctx)
+
+	var r0 model.Tags
+	if rf, ok := ret.Get(0).(func(context.Context) model.Tags); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(model.Tags)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Ping provides a mock function with given fields: ctx
 func (_m *DataStore) Ping(ctx context.Context) error {
 	ret := _m.Called(ctx)
@@ -1034,6 +1057,20 @@ func (_m *DataStore) ProvisionTenant(ctx context.Context, tenantId string) error
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
 		r0 = rf(ctx, tenantId)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// ReplaceReleaseTags provides a mock function with given fields: ctx, releaseName, tags
+func (_m *DataStore) ReplaceReleaseTags(ctx context.Context, releaseName string, tags model.Tags) error {
+	ret := _m.Called(ctx, releaseName, tags)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.Tags) error); ok {
+		r0 = rf(ctx, releaseName, tags)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -1,0 +1,149 @@
+swagger: '2.0'
+info:
+  title: Deployments v2
+  version: '2'
+  description: |
+    Version 2 of the API for deployments management.
+    Intended for use by the web UI.
+
+host: 'hosted.mender.io'
+basePath: '/api/management/v2/deployments'
+schemes:
+  - https
+
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  ManagementJWT:
+    type: apiKey
+    in: header
+    name: Authorization
+    description: |
+      API token issued by User Authentication service.
+      Format: 'Bearer [JWT]'
+
+responses:
+  InvalidRequestError: # 400
+    description: Bad request, see error message for details.
+    schema:
+      $ref: "#/definitions/Error"
+  UnauthorizedError: # 401
+    description: Unauthorized.
+    schema:
+      $ref: "#/definitions/Error"
+  UnprocessableEntityError: # 422
+    description: Unprocessable Entity.
+    schema:
+      $ref: "#/definitions/Error"
+  InternalServerError: # 500
+    description: Internal Server Error.
+    schema:
+      $ref: "#/definitions/Error"
+
+paths:
+  /deployments/releases/{release_name}/tags:
+    put:
+      operationId: Assign Release Tags
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: |
+        Update and replace the tags of a release.
+      description: |
+        Assigns tags to a release. The tags associated with the release will be
+        replaced with the ones defined in the request body.
+
+        LIMITATIONS:
+          * Max 20 tags can be assigned to a single release.
+          * There can be no more than 100 unique tag keys in total.
+      parameters:
+        - name: release_name
+          in: path
+          description: Name of the release
+          required: true
+          type: string
+        - name: tags
+          in: body
+          schema:
+            $ref: "#/definitions/Tags"
+      produces:
+        - application/json
+      responses:
+        204:
+          description: Successful response.
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: "#/responses/UnauthorizedError"
+        409:
+          description: Too many unique tag keys in use.
+          schema:
+            $ref: "#/definitions/Error"
+
+          examples:
+            application/json:
+              error: "the total number of unique tags has been exceeded"
+              request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+        500:
+          $ref: "#/responses/InternalServerError"
+
+  /deployments/releases/all/tags:
+    get:
+      operationId: List Release Tags
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: |
+        Lists all available tags for releases.
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response.
+          schema:
+            $ref: "#/definitions/Tags"
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: "#/responses/UnauthorizedError"
+        409:
+          description: Too many unique tag keys in use.
+          schema:
+            $ref: "#/definitions/Error"
+
+          examples:
+            application/json:
+              error: "the total number of unique tags has been exceeded"
+              request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+        500:
+          $ref: "#/responses/InternalServerError"
+
+
+definitions:
+  Tags:
+    type: array
+    description: |-
+      Tags assigned to the release used for filtering releases. Each tag
+      must be valid a ASCII string and contain only lowercase and uppercase
+      letters, digits, underscores, periods and hyphens.
+    items:
+      type: string
+
+  Error:
+    description: Error descriptor.
+    type: object
+    properties:
+      error:
+        description: Description of the error.
+        type: string
+      request_id:
+        description: Request ID (same as in X-MEN-RequestID header).
+        type: string
+    example:
+      error: "failed to decode device group data: JSON payload is empty"
+      request_id: "f7881e82-0492-49fb-b459-795654e7188a"

@@ -11,14 +11,146 @@
 //	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //	See the License for the specific language governing permissions and
 //	limitations under the License.
+
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+)
+
+const (
+	TagsMaxPerRelease = 20  // Maximum number of tags per release.
+	TagsMaxUnique     = 100 // Maximum number of unique tags.
+)
+
+var (
+	ErrTooManyTags = errors.New(
+		"the total number of tags per exceeded maximum of " +
+			strconv.Itoa(TagsMaxPerRelease),
+	)
+	ErrTooManyUniqueTags = errors.New(
+		"the total number of unique tags (" +
+			strconv.Itoa(TagsMaxUnique) +
+			") has been exceeded",
+	)
+)
+
+type Tags []Tag
+
+func (tags Tags) Validate() (err error) {
+	if len(tags) > TagsMaxPerRelease {
+		return ErrTooManyTags
+	}
+	for _, tag := range tags {
+		if err = tag.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (tags Tags) MarshalJSON() ([]byte, error) {
+	if len(tags) == 0 {
+		return []byte{'[', ']'}, nil
+	}
+	return json.Marshal([]Tag(tags))
+}
+
+func (tags *Tags) Dedup() {
+	// Deduplicate tags:
+	s := *tags
+	sort.Slice(s, func(i, j int) bool {
+		return s[i] < s[j]
+	})
+	i, j := 0, 0
+	for j < len(s) {
+		if s[i] != s[j] {
+			i++
+			s[i] = s[j]
+		}
+		j++
+	}
+	*tags = s[:i+1]
+}
+
+func (tags *Tags) UnmarshalJSON(b []byte) error {
+	err := json.Unmarshal(b, (*[]Tag)(tags))
+	if err != nil {
+		return err
+	}
+	tags.Dedup()
+	return nil
+}
+
+type Tag string
+
+const (
+	TagMaxLength = 1024
+)
+
+var (
+	ErrTagEmpty   = errors.New("tag cannot be empty")
+	ErrTagTooLong = errors.New("tag must be less than " +
+		strconv.Itoa(TagMaxLength) +
+		" characters")
+)
+
+type InvalidCharacterError struct {
+	Source string
+	Char   rune
+}
+
+func (err *InvalidCharacterError) Error() string {
+	return fmt.Sprintf(`invalid character '%c' in string "%s"`, err.Char, err.Source)
+}
+
+func (tag Tag) Validate() error {
+	if len(tag) < 1 {
+		return ErrTagEmpty
+	} else if len(tag) > TagMaxLength {
+		return ErrTagTooLong
+	}
+	for _, c := range tag { // [A-Za-z0-9-_.]
+		if c >= 'A' && c <= 'Z' {
+			continue
+		} else if c >= 'a' && c <= 'z' {
+			continue
+		} else if c >= '0' && c <= '9' {
+			continue
+		} else if c == '-' || c == '_' || c == '.' {
+			continue
+		} else {
+			return &InvalidCharacterError{
+				Source: string(tag),
+				Char:   c,
+			}
+		}
+	}
+	return nil
+}
+
+func (tag *Tag) UnmarshalJSON(b []byte) error {
+	// Convert tag to lower case
+	var s string
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
+	}
+	*tag = Tag(strings.ToLower(s))
+	return nil
+}
 
 type Release struct {
 	Name      string     `json:"Name" bson:"_id"`
 	Modified  *time.Time `json:"Modified,omitempty" bson:"modified,omitempty"`
 	Artifacts []Image    `json:"Artifacts" bson:"artifacts"`
+	Tags      Tags       `json:"tags" bson:"tags,omitempty"`
 }
 
 type ReleaseOrImageFilter struct {

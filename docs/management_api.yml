@@ -2184,6 +2184,14 @@ definitions:
         description: List of artifacts for this release.
         items:
           $ref: "#/definitions/Artifact"
+      tags:
+        type: array
+        description: |-
+          Tags assigned to the release used for filtering releases. Each tag
+          must be valid a ASCII string and contain only lowercase and uppercase
+          letters, digits, underscores, periods and hyphens.
+        items:
+          type: string
     example:
       name: my-app-v1.0.1
       artifacts:
