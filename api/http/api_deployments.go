@@ -715,8 +715,16 @@ func (d *DeploymentsApiHandlers) newImageWithContext(
 		d.view.RenderSuccessPost(w, r, imgID)
 		return
 	}
-	if cErr, ok := err.(*model.ConflictError); ok {
-		d.view.RenderError(w, r, cErr, http.StatusConflict, l)
+	var cErr *model.ConflictError
+	if errors.As(err, &cErr) {
+		w.WriteHeader(http.StatusConflict)
+		_ = cErr.WithRequestID(requestid.FromContext(ctx))
+		err = w.WriteJson(cErr)
+		if err != nil {
+			l.Error(err)
+		} else {
+			l.Error(cErr.Error())
+		}
 		return
 	}
 	cause := errors.Cause(err)

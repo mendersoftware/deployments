@@ -1,4 +1,4 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -14,20 +14,49 @@
 
 package model
 
-import "fmt"
+import (
+	"encoding/json"
+	"errors"
+)
 
 type ConflictError struct {
-	Conflicts string
-	Err       error
+	Err       error       `json:"error"`
+	Metadata  interface{} `json:"metadata,omitempty"`
+	RequestID string      `json:"request_id,omitempty"`
 }
 
-func NewConflictError(errMsg, conflicts string) *ConflictError {
+var _ error = &ConflictError{}
+
+func NewConflictError(err error) *ConflictError {
 	return &ConflictError{
-		Conflicts: conflicts,
-		Err:       fmt.Errorf("%s: %s", errMsg, conflicts),
+		Err: jsonErrorWrapper{err},
 	}
 }
 
 func (ce *ConflictError) Error() string {
 	return ce.Err.Error()
+}
+
+func (ce *ConflictError) WithMetadata(metadata interface{}) *ConflictError {
+	ce.Metadata = metadata
+	return ce
+}
+
+func (ce *ConflictError) WithRequestID(requestID string) *ConflictError {
+	ce.RequestID = requestID
+	return ce
+}
+
+// jsonErrorWrapper ensures that the error is marshaled to a string with the
+// error message.
+type jsonErrorWrapper struct {
+	error
+}
+
+func (err jsonErrorWrapper) MarshalJSON() ([]byte, error) {
+	return json.Marshal(err.Error())
+}
+
+func (err jsonErrorWrapper) Unwrap() error {
+	return errors.Unwrap(err.error)
 }

@@ -1105,6 +1105,18 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         401:
           $ref: '#/responses/UnauthorizedError'
+        409:
+          description: |
+            An artifact with the same name and matching dependency requirements already exists.
+          schema:
+            $ref: "#/definitions/ErrorExt"
+          examples:
+            application/json:
+              error: "an artifact with the same name and depends already exists"
+              request_id: "e4dde7e9-9424-4311-8648-86e24b542410"
+              metadata:
+                conflict:
+                  want: cookies
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -1514,6 +1526,26 @@ definitions:
     example:
       error: "failed to decode request body: JSON payload is empty"
       request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+    required: [error]
+  ErrorExt:
+    description: Error descriptor with additional metadata.
+    type: object
+    properties:
+      error:
+        description: Description of the error.
+        type: string
+      request_id:
+        description: Request ID (same as in X-MEN-RequestID header).
+        type: string
+      metadata:
+        type: object
+        additionalProperties: true
+    required: [error]
+    example:
+      error: "error description"
+      request_id: "11de4197-d8cf-4bd2-8a3a-29f88f238e7b"
+      metadata:
+        additional: properties
   NewDeployment:
     type: object
     properties:
