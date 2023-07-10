@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -41,11 +41,10 @@ import (
 
 func TestPostArtifacts(t *testing.T) {
 	var testConflictError = model.NewConflictError(
-		store_mongo.ErrMsgConflictingDepends,
-		`{meta_artifact.artifact_name: "foobar", `+
-			`meta_artifact.depends_idx: {`+
-			`"device_type": "arm6", "checksum": "2"}}`,
-	)
+		store_mongo.ErrConflictingDepends,
+	).WithMetadata(map[string]interface{}{
+		"conflict": map[string]interface{}{"device_type": "arm6"},
+	})
 
 	imageBody := []byte("123456790")
 
@@ -159,7 +158,7 @@ func TestPostArtifacts(t *testing.T) {
 			responseCode:       http.StatusConflict,
 			// no slashes will be present in the real response - must be added
 			// because we're comparing to body, _ := recorded.DecodedBody(), which does does funny formatting
-			responseBody:           store_mongo.ErrMsgConflictingDepends,
+			responseBody:           store_mongo.ErrConflictingDepends.Error(),
 			appCreateImage:         true,
 			appCreateImageResponse: "24436884-a710-4d20-aec4-82c89fbfe29e",
 			appCreateImageError:    testConflictError,
@@ -214,11 +213,10 @@ func TestPostArtifacts(t *testing.T) {
 func TestPostArtifactsInternal(t *testing.T) {
 	imageBody := []byte("123456790")
 	var testConflictError = model.NewConflictError(
-		store_mongo.ErrMsgConflictingDepends,
-		`{meta_artifact.artifact_name: "foobar", `+
-			`meta_artifact.depends_idx: {`+
-			`"device_type": "arm6", "checksum": "2"}}`,
-	)
+		store_mongo.ErrConflictingDepends,
+	).WithMetadata(map[string]interface{}{
+		"conflict": map[string]interface{}{"device_type": "arm6"},
+	})
 
 	testCases := []struct {
 		requestBodyObject      []h.Part
@@ -330,7 +328,7 @@ func TestPostArtifactsInternal(t *testing.T) {
 			responseCode:       http.StatusConflict,
 			// no slashes will be present in the real response - must be added
 			// because we're comparing to body, _ := recorded.DecodedBody(), which does does funny formatting
-			responseBody:           store_mongo.ErrMsgConflictingDepends,
+			responseBody:           store_mongo.ErrConflictingDepends.Error(),
 			appCreateImage:         true,
 			appCreateImageResponse: "24436884-a710-4d20-aec4-82c89fbfe29e",
 			appCreateImageError:    testConflictError,

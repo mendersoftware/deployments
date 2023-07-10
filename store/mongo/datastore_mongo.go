@@ -381,11 +381,9 @@ var (
 
 	ErrLimitNotFound      = errors.New("limit not found")
 	ErrDevicesCountFailed = errors.New("failed to count devices")
-)
-
-const (
-	ErrMsgConflictingDepends = "An artifact with the same name has " +
-		"conflicting depends"
+	ErrConflictingDepends = errors.New(
+		"an artifact with the same name and depends already exists",
+	)
 )
 
 // Database keys
@@ -961,6 +959,26 @@ func (db *DataStoreMongo) ImagesByName(
 	return images, nil
 }
 
+func newDependsConflictError(mgoErr mongo.WriteError) *model.ConflictError {
+	var err error
+	conflictErr := model.NewConflictError(ErrConflictingDepends)
+	// Try to lookup the document that caused the index violation:
+	if raw, ok := mgoErr.Raw.Lookup("keyValue").DocumentOK(); ok {
+		if raw, ok = raw.Lookup(StorageKeyImageDependsIdx).DocumentOK(); ok {
+			var conflicts map[string]interface{}
+			err = bson.Unmarshal([]byte(raw), &conflicts)
+			if err == nil {
+				_ = conflictErr.WithMetadata(
+					map[string]interface{}{
+						"conflict": conflicts,
+					},
+				)
+			}
+		}
+	}
+	return conflictErr
+}
+
 // Insert persists object
 func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Image) error {
 
@@ -980,21 +998,16 @@ func (db *DataStoreMongo) InsertImage(ctx context.Context, image *model.Image) e
 
 	_, err := collImg.InsertOne(ctx, image)
 	if err != nil {
-		if except, ok := err.(mongo.WriteException); ok {
-			var conflicts string
-			if len(except.WriteErrors) > 0 {
-				err := except.WriteErrors[0]
-				yamlStart := strings.IndexByte(err.Message, '{')
-				if yamlStart != -1 {
-					conflicts = err.Message[yamlStart:]
+		var wExc mongo.WriteException
+		if errors.As(err, &wExc) {
+			for _, wErr := range wExc.WriteErrors {
+				if !mongo.IsDuplicateKeyError(wErr) {
+					continue
 				}
+				return newDependsConflictError(wErr)
 			}
-			conflictErr := model.NewConflictError(
-				ErrMsgConflictingDepends,
-				conflicts,
-			)
-			return conflictErr
 		}
+		return err
 	}
 
 	return nil
