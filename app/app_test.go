@@ -1278,11 +1278,14 @@ func TestDeleteDeviceDeploymentsHistory(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(fmt.Sprintf("test case %s", name), func(t *testing.T) {
 
+			rc := new(reporting_mocks.Client)
+			defer rc.AssertExpectations(t)
 			defer tc.workflowsMock.AssertExpectations(t)
 			defer tc.storeMock.AssertExpectations(t)
 			ds := &Deployments{
 				db:              tc.storeMock,
 				workflowsClient: tc.workflowsMock,
+				reportingClient: rc,
 			}
 
 			err := ds.DeleteDeviceDeploymentsHistory(ctx, deviceID)
