@@ -140,11 +140,11 @@ func (am ArtifactMeta) MarshalBSON() ([]byte, error) {
 // which is called if ArtifactMeta is marshaled as an embedded document.
 func (am ArtifactMeta) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	if err := am.Validate(); err != nil {
-		return bsontype.Null, nil, err
+		return bson.TypeNull, nil, err
 	}
 	dependsIdx, err := doc.UnwindMap(am.Depends)
 	if err != nil {
-		return bsontype.Null, nil, err
+		return bson.TypeNull, nil, err
 	}
 	doc := doc.DocumentFromStruct(am, bson.E{
 		Key: "depends_idx", Value: dependsIdx,
