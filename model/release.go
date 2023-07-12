@@ -146,11 +146,49 @@ func (tag *Tag) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type Notes string
+
+var (
+	NotesLengthMaximumCharacters = 1024
+
+	ErrReleaseNotesTooLong  = errors.New("release notes too long")
+	ErrCharactersNotAllowed = errors.New("release notes contain characters which are not allowed")
+)
+
+func allowedByte(c byte) bool {
+	// at this point I am unsure if we can restrict the charset for the notes, it will make
+	// it difficult to use
+	return true
+}
+
+func (n Notes) Validate() error {
+	length := len(n)
+	if length > NotesLengthMaximumCharacters {
+		return ErrReleaseNotesTooLong
+	}
+	for i := 0; i < length; i++ {
+		if !allowedByte(n[i]) {
+			return ErrCharactersNotAllowed
+		}
+	}
+
+	return nil
+}
+
 type Release struct {
 	Name      string     `json:"Name" bson:"_id"`
 	Modified  *time.Time `json:"Modified,omitempty" bson:"modified,omitempty"`
 	Artifacts []Image    `json:"Artifacts" bson:"artifacts"`
 	Tags      Tags       `json:"tags" bson:"tags,omitempty"`
+	Notes     Notes      `json:"notes" bson:"notes,omitempty"`
+}
+
+type ReleasePatch struct {
+	Notes Notes `json:"notes" bson:"notes,omitempty"`
+}
+
+func (r ReleasePatch) Validate() error {
+	return r.Notes.Validate()
 }
 
 type ReleaseOrImageFilter struct {

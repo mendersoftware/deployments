@@ -100,9 +100,6 @@ var (
 	ErrDuplicateDeployment     = errors.New("Deployment with given ID already exists")
 	ErrInvalidDeploymentID     = errors.New("Deployment ID must be a valid UUID")
 	ErrConflictingRequestData  = errors.New("Device provided conflicting request data")
-
-	// releases
-	ErrReleaseNotFound = errors.New("release not found")
 )
 
 //deployments
@@ -192,6 +189,7 @@ type App interface {
 
 	// releases
 	ReplaceReleaseTags(ctx context.Context, releaseName string, tags model.Tags) error
+	UpdateRelease(ctx context.Context, releaseName string, release model.ReleasePatch) error
 	ListReleaseTags(ctx context.Context) (model.Tags, error)
 }
 
@@ -2084,70 +2082,4 @@ func (d *Deployments) reindexDeployment(ctx context.Context,
 		return d.workflowsClient.StartReindexReportingDeployment(ctx, deviceID, deploymentID, ID)
 	}
 	return nil
-}
-
-func (d *Deployments) updateReleaseEditArtifact(
-	ctx context.Context,
-	artifactToEdit *model.Image,
-) error {
-
-	if artifactToEdit == nil {
-		return ErrEmptyArtifact
-	}
-	return d.db.UpdateReleaseArtifactDescription(
-		ctx,
-		artifactToEdit,
-		artifactToEdit.ArtifactMeta.Name,
-	)
-}
-
-func (d *Deployments) updateRelease(
-	ctx context.Context,
-	artifactToAdd *model.Image,
-	artifactToRemove *model.Image,
-) error {
-	name := ""
-	if artifactToRemove != nil {
-		name = artifactToRemove.ArtifactMeta.Name
-	} else if artifactToAdd != nil {
-		name = artifactToAdd.ArtifactMeta.Name
-	} else {
-		return ErrEmptyArtifact
-	}
-
-	return d.db.UpdateReleaseArtifacts(ctx, artifactToAdd, artifactToRemove, name)
-}
-
-func (d *Deployments) ListReleaseTags(ctx context.Context) (model.Tags, error) {
-	tags, err := d.db.ListReleaseTags(ctx)
-	if err != nil {
-		log.FromContext(ctx).
-			Errorf("failed to list release tags: %s", err)
-		err = ErrModelInternal
-	}
-	return tags, err
-}
-
-func (d *Deployments) ReplaceReleaseTags(
-	ctx context.Context,
-	releaseName string,
-	tags model.Tags,
-) error {
-	err := d.db.ReplaceReleaseTags(ctx, releaseName, tags)
-	if err != nil {
-		switch err {
-		case store.ErrNotFound:
-			err = ErrReleaseNotFound
-
-		case model.ErrTooManyTags, model.ErrTooManyUniqueTags:
-			// pass
-
-		default:
-			// Rewrite internal errors
-			log.FromContext(ctx).
-				Errorf("failed to replace tags in database: %s", err.Error())
-			err = ErrModelInternal
-		}
-	}
-	return err
 }
