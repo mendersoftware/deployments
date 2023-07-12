@@ -1992,7 +1992,10 @@ func (d *Deployments) DeleteDeviceDeploymentsHistory(ctx context.Context, device
 		deviceDeployments[i].DeviceID = d.DeviceId
 		deviceDeployments[i].DeploymentID = d.DeploymentId
 	}
-	return d.workflowsClient.StartReindexReportingDeploymentBatch(ctx, deviceDeployments)
+	if d.reportingClient != nil {
+		err = d.workflowsClient.StartReindexReportingDeploymentBatch(ctx, deviceDeployments)
+	}
+	return err
 }
 
 // Storage settings
