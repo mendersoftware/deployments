@@ -1,16 +1,16 @@
-// Copyright 2017 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
+//	Licensed under the Apache License, Version 2.0 (the "License");
+//	you may not use this file except in compliance with the License.
+//	You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//	    http://www.apache.org/licenses/LICENSE-2.0
 //
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
+//	Unless required by applicable law or agreed to in writing, software
+//	distributed under the License is distributed on an "AS IS" BASIS,
+//	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//	See the License for the specific language governing permissions and
+//	limitations under the License.
 package testing
 
 import (
@@ -47,12 +47,10 @@ type BaseResponse struct {
 	Body        interface{}
 }
 
-//
 func (b *BaseResponse) CheckStatus(t *testing.T, recorded *test.Recorded) {
 	recorded.CodeIs(b.Status)
 }
 
-//
 func (b *BaseResponse) CheckContentType(t *testing.T, recorded *test.Recorded) {
 	mediaType, params, _ := mime.ParseMediaType(recorded.Recorder.HeaderMap.Get("Content-Type"))
 	charset := params["charset"]
@@ -73,14 +71,12 @@ func (b *BaseResponse) CheckContentType(t *testing.T, recorded *test.Recorded) {
 	}
 }
 
-//
 func (b *BaseResponse) CheckHeaders(t *testing.T, recorded *test.Recorded) {
 	for name, value := range b.Headers {
 		assert.Equal(t, value, recorded.Recorder.HeaderMap.Get(name))
 	}
 }
 
-//
 func (b *BaseResponse) CheckBody(t *testing.T, recorded *test.Recorded) {
 	if b.Body != nil {
 		recorded.BodyIs(b.Body.(string))
@@ -93,7 +89,6 @@ type JSONResponse struct {
 	BaseResponse
 }
 
-//
 func NewJSONResponse(status int, headers map[string]string, body interface{}) *JSONResponse {
 	return &JSONResponse{
 		BaseResponse: BaseResponse{
@@ -105,7 +100,6 @@ func NewJSONResponse(status int, headers map[string]string, body interface{}) *J
 	}
 }
 
-//
 func (j *JSONResponse) CheckBody(t *testing.T, recorded *test.Recorded) {
 	if j.Body != nil {
 		assert.NotEmpty(t, recorded.Recorder.Body.String())

@@ -1,16 +1,16 @@
-// Copyright 2020 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
+//	Licensed under the Apache License, Version 2.0 (the "License");
+//	you may not use this file except in compliance with the License.
+//	You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//	    http://www.apache.org/licenses/LICENSE-2.0
 //
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
+//	Unless required by applicable law or agreed to in writing, software
+//	distributed under the License is distributed on an "AS IS" BASIS,
+//	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//	See the License for the specific language governing permissions and
+//	limitations under the License.
 package rest_utils
 
 import (
@@ -27,31 +27,36 @@ import (
 // return selected http code + error message directly taken from error
 // log error
 func RestErrWithLog(w rest.ResponseWriter, r *rest.Request, l *log.Logger, e error, code int) {
-	RestErrWithLogMsg(w, r, l, e, code, "")
+	l = l.WithCallerContext(1)
+	restErrWithLogMsg(w, r, l, e, code, "", logrus.ErrorLevel)
 }
 
 // return http 500, with an "internal error" message
 // log full error
 func RestErrWithLogInternal(w rest.ResponseWriter, r *rest.Request, l *log.Logger, e error) {
 	msg := "internal error"
-	RestErrWithLogMsg(w, r, l, e, http.StatusInternalServerError, msg)
+	l = l.WithCallerContext(1)
+	restErrWithLogMsg(w, r, l, e, http.StatusInternalServerError, msg, logrus.ErrorLevel)
 }
 
 // return an error code with an overriden message (to avoid exposing the details)
 // log full error as debug
 func RestErrWithDebugMsg(w rest.ResponseWriter, r *rest.Request, l *log.Logger, e error, code int, msg string) {
+	l = l.WithCallerContext(1)
 	restErrWithLogMsg(w, r, l, e, code, msg, logrus.DebugLevel)
 }
 
 // return an error code with an overriden message (to avoid exposing the details)
 // log full error as info
 func RestErrWithInfoMsg(w rest.ResponseWriter, r *rest.Request, l *log.Logger, e error, code int, msg string) {
+	l = l.WithCallerContext(1)
 	restErrWithLogMsg(w, r, l, e, code, msg, logrus.InfoLevel)
 }
 
 // return an error code with an overriden message (to avoid exposing the details)
 // log full error as warning
 func RestErrWithWarningMsg(w rest.ResponseWriter, r *rest.Request, l *log.Logger, e error, code int, msg string) {
+	l = l.WithCallerContext(1)
 	restErrWithLogMsg(w, r, l, e, code, msg, logrus.WarnLevel)
 }
 
@@ -59,24 +64,28 @@ func RestErrWithWarningMsg(w rest.ResponseWriter, r *rest.Request, l *log.Logger
 // return an error code with an overriden message (to avoid exposing the details)
 // log full error as error
 func RestErrWithLogMsg(w rest.ResponseWriter, r *rest.Request, l *log.Logger, e error, code int, msg string) {
+	l = l.WithCallerContext(1)
 	restErrWithLogMsg(w, r, l, e, code, msg, logrus.ErrorLevel)
 }
 
 // return an error code with an overriden message (to avoid exposing the details)
 // log full error as error
 func RestErrWithErrorMsg(w rest.ResponseWriter, r *rest.Request, l *log.Logger, e error, code int, msg string) {
+	l = l.WithCallerContext(1)
 	restErrWithLogMsg(w, r, l, e, code, msg, logrus.ErrorLevel)
 }
 
 // return an error code with an overriden message (to avoid exposing the details)
 // log full error as fatal
 func RestErrWithFatalMsg(w rest.ResponseWriter, r *rest.Request, l *log.Logger, e error, code int, msg string) {
+	l = l.WithCallerContext(1)
 	restErrWithLogMsg(w, r, l, e, code, msg, logrus.FatalLevel)
 }
 
 // return an error code with an overriden message (to avoid exposing the details)
 // log full error as panic
 func RestErrWithPanicMsg(w rest.ResponseWriter, r *rest.Request, l *log.Logger, e error, code int, msg string) {
+	l = l.WithCallerContext(1)
 	restErrWithLogMsg(w, r, l, e, code, msg, logrus.PanicLevel)
 }
 
@@ -101,16 +110,16 @@ func restErrWithLogMsg(w rest.ResponseWriter, r *rest.Request, l *log.Logger,
 	}
 	switch logLevel {
 	case logrus.DebugLevel:
-		l.F(log.Ctx{}).Debug(e.Error())
+		l.Debug(e.Error())
 	case logrus.InfoLevel:
-		l.F(log.Ctx{}).Info(e.Error())
+		l.Info(e.Error())
 	case logrus.WarnLevel:
-		l.F(log.Ctx{}).Warn(e.Error())
+		l.Warn(e.Error())
 	case logrus.ErrorLevel:
-		l.F(log.Ctx{}).Error(e.Error())
+		l.Error(e.Error())
 	case logrus.FatalLevel:
-		l.F(log.Ctx{}).Fatal(e.Error())
+		l.Fatal(e.Error())
 	case logrus.PanicLevel:
-		l.F(log.Ctx{}).Panic(e.Error())
+		l.Panic(e.Error())
 	}
 }
