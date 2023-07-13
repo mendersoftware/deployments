@@ -2652,3 +2652,182 @@ func TestReplaceReleaseTags(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateRelease(t *testing.T) {
+	ctx := context.Background()
+	client := db.Client()
+	db.Wipe()
+
+	longReleaseNotes := make([]byte, model.NotesLengthMaximumCharacters+1)
+	for i := range longReleaseNotes {
+		longReleaseNotes[i] = '1'
+	}
+
+	type testCase struct {
+		Name string
+
+		context.Context
+
+		Init        func(t *testing.T, self *testCase)
+		ReleaseName string
+
+		Release       model.ReleasePatch
+		ReleaseUpdate model.ReleasePatch
+
+		assert.ErrorAssertionFunc
+	}
+
+	testCases := []testCase{
+		{
+			Name: "ok",
+
+			Context: context.Background(),
+
+			Init: func(t *testing.T, self *testCase) {
+				t.Helper()
+				_, err := client.Database(DbName).
+					Collection(CollectionReleases).
+					InsertMany(ctx, []interface{}{model.Release{
+						Name: self.ReleaseName,
+						Tags: model.Tags{"bar", "foo"},
+					}, model.Release{
+						Name: "v100.2.3",
+						Tags: model.Tags{"bar", "baz"},
+					}})
+				if err != nil {
+					t.Errorf("failed to initialize dataset: %s", err)
+					t.FailNow()
+				}
+			},
+			Release: model.ReleasePatch{
+				Notes: "New release 2023",
+			},
+			ReleaseUpdate: model.ReleasePatch{
+				Notes: "Brand New release 2023",
+			},
+			ReleaseName: "v1.0",
+		},
+		{
+			Name: "ok same update",
+
+			Context: context.Background(),
+
+			Init: func(t *testing.T, self *testCase) {
+				t.Helper()
+				_, err := client.Database(DbName).
+					Collection(CollectionReleases).
+					InsertMany(ctx, []interface{}{model.Release{
+						Name: self.ReleaseName,
+						Tags: model.Tags{"bar", "foo"},
+					}, model.Release{
+						Name: "v100.2.4",
+						Tags: model.Tags{"bar", "baz"},
+					}})
+				if err != nil {
+					t.Errorf("failed to initialize dataset: %s", err)
+					t.FailNow()
+				}
+			},
+			Release: model.ReleasePatch{
+				Notes: "New release 2023",
+			},
+			ReleaseUpdate: model.ReleasePatch{
+				Notes: "New release 2023",
+			},
+			ReleaseName: "v1.1",
+		},
+		{
+			Name: "error/notes too long",
+
+			Context: identity.WithContext(context.Background(),
+				&identity.Identity{
+					Tenant: "222222222222222222222222",
+				},
+			),
+
+			Init: func(t *testing.T, self *testCase) {
+				t.Helper()
+				_, err := client.Database(ctxstore.DbFromContext(self, DbName)).
+					Collection(CollectionReleases).
+					InsertMany(self,
+						[]interface{}{model.Release{
+							Name: self.ReleaseName,
+							Tags: func() model.Tags {
+								newTags := make(model.Tags, model.TagsMaxUnique)
+								for i := range newTags {
+									newTags[i] = model.Tag(
+										"field" + strconv.Itoa(i),
+									)
+								}
+								return newTags
+							}(),
+						}, model.Release{
+							Name: "v1.2.3-beta",
+							Tags: model.Tags{"bar", "foo"},
+						}})
+				if err != nil {
+					t.Errorf("failed to initialize dataset: %s", err)
+					t.FailNow()
+				}
+			},
+			Release: model.ReleasePatch{
+				Notes: model.Notes(longReleaseNotes),
+			},
+			ReleaseName: "v1.0",
+			ErrorAssertionFunc: func(t assert.TestingT, err error, vargs ...interface{}) bool {
+				return assert.ErrorIs(t, err, model.ErrReleaseNotesTooLong)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			var tenantID string
+			if id := identity.FromContext(tc.Context); id != nil {
+				tenantID = id.Tenant
+			}
+			err := MigrateSingle(ctx,
+				ctxstore.DbNameForTenant(tenantID, DbName),
+				DbVersion,
+				client,
+				true)
+			if err != nil {
+				panic(err)
+			}
+			tc.Init(t, &tc)
+
+			ds := NewDataStoreMongoWithClient(client)
+			err = ds.UpdateRelease(tc.Context, tc.ReleaseName, tc.Release)
+			if tc.ErrorAssertionFunc == nil {
+				if assert.NoError(t, err) {
+					var release model.Release
+					err = client.Database(
+						ctxstore.DbNameForTenant(tenantID, DbName)).
+						Collection(CollectionReleases).
+						FindOne(ctx, bson.D{
+							{StorageKeyReleaseName, tc.ReleaseName},
+						}).
+						Decode(&release)
+					if assert.NoError(t, err, "failed to decode updated release") {
+						assert.Equal(t, tc.Release.Notes, release.Notes)
+					}
+					err = ds.UpdateRelease(tc.Context, tc.ReleaseName, tc.ReleaseUpdate)
+					err = client.Database(
+						ctxstore.DbNameForTenant(tenantID, DbName)).
+						Collection(CollectionReleases).
+						FindOne(ctx, bson.D{
+							{StorageKeyReleaseName, tc.ReleaseName},
+						}).
+						Decode(&release)
+					if assert.NoError(t, err, "failed to decode updated release") {
+						assert.Equal(t, tc.ReleaseUpdate.Notes, release.Notes)
+					}
+				}
+			} else {
+				tc.ErrorAssertionFunc(t, err)
+			}
+		})
+	}
+}

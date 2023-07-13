@@ -84,16 +84,16 @@ func (d *DeploymentsApiHandlers) PatchRelease(w rest.ResponseWriter, r *rest.Req
 		return
 	}
 
-	var tags model.ReleasePatch
+	var release model.ReleasePatch
 	dec := json.NewDecoder(r.Body)
-	if err := dec.Decode(&tags); err != nil {
+	if err := dec.Decode(&release); err != nil {
 		rest_utils.RestErrWithLog(w, r, l,
 			errors.WithMessage(err,
 				"malformed JSON in request body"),
 			http.StatusBadRequest)
 		return
 	}
-	if err := tags.Notes.Validate(); err != nil {
+	if err := release.Validate(); err != nil {
 		rest_utils.RestErrWithLog(w, r, l,
 			errors.WithMessage(err,
 				"invalid request body"),
@@ -101,7 +101,7 @@ func (d *DeploymentsApiHandlers) PatchRelease(w rest.ResponseWriter, r *rest.Req
 		return
 	}
 
-	err := d.app.UpdateRelease(ctx, releaseName, tags)
+	err := d.app.UpdateRelease(ctx, releaseName, release)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, app.ErrReleaseNotFound) {
