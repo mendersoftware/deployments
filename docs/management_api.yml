@@ -222,6 +222,9 @@ paths:
                   noartifact: 0
                   already-installed: 0
                   aborted: 0
+                  pause_before_installing: 1
+                  pause_before_rebooting: 1
+                  pause_before_committing: 1
               - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
                 stats:
                   success: 3
@@ -233,6 +236,9 @@ paths:
                   noartifact: 0
                   already-installed: 0
                   aborted: 0
+                  pause_before_installing: 1
+                  pause_before_rebooting: 1
+                  pause_before_committing: 1
           schema:
             type: array
             items:
@@ -413,6 +419,9 @@ paths:
               noartifact: 0
               already-installed: 0
               aborted: 0
+              pause_before_installing: 1
+              pause_before_rebooting: 1
+              pause_before_committing: 1
           schema:
             $ref: "#/definitions/DeploymentStatusStatistics"
         401:
@@ -774,13 +783,14 @@ paths:
                         type: rootfs
                     signed: false
                     updates:
-                      type_info: "rootfs-image"
-                      files:
-                        - name: rootfs-image-1
-                          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                          size: 123
-                          date: 2016-03-11T13:03:17.063+0000
-                      meta_data: {}
+                      - type_info:
+                          type: "rootfs-image"
+                        files:
+                          - name: rootfs-image-1
+                            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                            size: 123
+                            date: 2016-03-11T13:03:17.063+0000
+                        meta_data: {}
                     artifact_provides:
                       artifact_name: "test"
                       rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -801,13 +811,14 @@ paths:
                         type: rootfs
                     signed: false
                     updates:
-                      type_info: "rootfs-image"
-                      files:
-                        - name: rootfs-image-1
-                          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                          size: 123
-                          date: 2016-03-11T13:03:17.063+0000
-                      meta_data: {}
+                      - type_info:
+                          type: "rootfs-image"
+                        files:
+                          - name: rootfs-image-1
+                            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                            size: 123
+                            date: 2016-03-11T13:03:17.063+0000
+                        meta_data: {}
                     artifact_provides:
                       artifact_name: "test"
                       rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -830,13 +841,14 @@ paths:
                         type: rootfs
                     signed: false
                     updates:
-                      type_info: "rootfs-image"
-                      files:
-                        - name: rootfs-image-1
-                          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                          size: 123
-                          date: 2016-03-11T13:03:17.063+0000
-                      meta_data: {}
+                      - type_info:
+                          type: "rootfs-image"
+                        files:
+                          - name: rootfs-image-1
+                            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                            size: 123
+                            date: 2016-03-11T13:03:17.063+0000
+                        meta_data: {}
                     artifact_provides:
                       artifact_name: "test"
                       rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -928,13 +940,14 @@ paths:
                         type: rootfs
                     signed: false
                     updates:
-                      type_info: "rootfs-image"
-                      files:
-                        - name: rootfs-image-1
-                          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                          size: 123
-                          date: 2016-03-11T13:03:17.063+0000
-                      meta_data: {}
+                      - type_info:
+                          type: "rootfs-image"
+                        files:
+                          - name: rootfs-image-1
+                            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                            size: 123
+                            date: 2016-03-11T13:03:17.063+0000
+                        meta_data: {}
                     artifact_provides:
                       artifact_name: "test"
                       rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -955,13 +968,14 @@ paths:
                         type: rootfs
                     signed: false
                     updates:
-                      type_info: "rootfs-image"
-                      files:
-                        - name: rootfs-image-1
-                          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                          size: 123
-                          date: 2016-03-11T13:03:17.063+0000
-                      meta_data: {}
+                      - type_info:
+                          type: "rootfs-image"
+                        files:
+                          - name: rootfs-image-1
+                            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                            size: 123
+                            date: 2016-03-11T13:03:17.063+0000
+                        meta_data: {}
                     artifact_provides:
                       artifact_name: "test"
                       rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -984,13 +998,14 @@ paths:
                         type: rootfs
                     signed: false
                     updates:
-                      type_info: "rootfs-image"
-                      files:
-                        - name: rootfs-image-1
-                          checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                          size: 123
-                          date: 2016-03-11T13:03:17.063+0000
-                      meta_data: {}
+                      - type_info:
+                          type: "rootfs-image"
+                        files:
+                          - name: rootfs-image-1
+                            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                            size: 123
+                            date: 2016-03-11T13:03:17.063+0000
+                        meta_data: {}
                     artifact_provides:
                       artifact_name: "test"
                       rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -1344,13 +1359,14 @@ paths:
                   type: rootfs
               signed: false
               updates:
-                type_info: "rootfs-image"
-                files:
-                  - name: rootfs-image-1
-                    checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                    size: 123
-                    date: 2016-03-11T13:03:17.063+0000
-                meta_data: {}
+                - type_info:
+                    type: "rootfs-image"
+                  files:
+                    - name: rootfs-image-1
+                      checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                      size: 123
+                      date: 2016-03-11T13:03:17.063+0000
+                  meta_data: {}
               artifact_provides:
                 artifact_name: "test"
                 rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -1864,13 +1880,14 @@ definitions:
               type: rootfs
           signed: false
           updates:
-            type_info: "rootfs-image"
-            files:
-              - name: rootfs-image-1
-                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                size: 123
-                date: 2016-03-11T13:03:17.063+0000
-            meta_data: {}
+            - type_info:
+                type: "rootfs-image"
+              files:
+                - name: rootfs-image-1
+                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                  size: 123
+                  date: 2016-03-11T13:03:17.063+0000
+              meta_data: {}
           artifact_provides:
             artifact_name: "test"
             rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -1925,13 +1942,14 @@ definitions:
                 type: rootfs
             signed: false
             updates:
-              type_info: "rootfs-image"
-              files:
-                - name: rootfs-image-1
-                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                  size: 123
-                  date: 2016-03-11T13:03:17.063+0000
-              meta_data: {}
+              - type_info:
+                  type: "rootfs-image"
+                files:
+                  - name: rootfs-image-1
+                    checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                    size: 123
+                    date: 2016-03-11T13:03:17.063+0000
+                meta_data: {}
             artifact_provides:
               artifact_name: "test"
               rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -2070,13 +2088,14 @@ definitions:
           type: rootfs
       signed: false
       updates:
-        type_info: "rootfs-image"
-        files:
-          - name: rootfs-image-1
-            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-            size: 123
-            date: 2016-03-11T13:03:17.063+0000
-        meta_data: {}
+        - type_info:
+            type: "rootfs-image"
+          files:
+            - name: rootfs-image-1
+              checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+              size: 123
+              date: 2016-03-11T13:03:17.063+0000
+          meta_data: {}
       artifact_provides:
         artifact_name: "test"
         rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -2204,13 +2223,14 @@ definitions:
               type: rootfs
           signed: false
           updates:
-            type_info: "rootfs-image"
-            files:
-              - name: rootfs-image-1
-                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                size: 123
-                date: 2016-03-11T13:03:17.063+0000
-            meta_data: {}
+            - type_info:
+                type: "rootfs-image"
+              files:
+                - name: rootfs-image-1
+                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                  size: 123
+                  date: 2016-03-11T13:03:17.063+0000
+              meta_data: {}
           artifact_provides:
             artifact_name: "test"
             rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -2231,13 +2251,14 @@ definitions:
               type: rootfs
           signed: false
           updates:
-            type_info: "rootfs-image"
-            files:
-              - name: rootfs-image-1
-                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                size: 123
-                date: 2016-03-11T13:03:17.063+0000
-            meta_data: {}
+            - type_info:
+                type: "rootfs-image"
+              files:
+                - name: rootfs-image-1
+                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                  size: 123
+                  date: 2016-03-11T13:03:17.063+0000
+              meta_data: {}
           artifact_provides:
             artifact_name: "test"
             rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"

@@ -80,6 +80,7 @@ paths:
               Internal API error
           schema:
             $ref: '#/definitions/Error'
+
   /tenants/{id}/storage/settings:
     get:
       operationId: Get Storage Settings
@@ -104,7 +105,7 @@ paths:
         500:
           description: Internal error.
           schema:
-            $ref: "#/responses/InternalServerError"
+            $ref: "#/definitions/Error"
     put:
       operationId: Set Storage Settings
       tags:
@@ -135,6 +136,7 @@ paths:
           description: Internal server error.
           schema:
             $ref: "#/definitions/Error"
+
   /tenants/{id}/limits/storage:
     get:
       operationId: Get Storage Usage
@@ -186,6 +188,7 @@ paths:
           description: Internal server error.
           schema:
             $ref: "#/definitions/Error"
+
   /tenants:
     post:
       operationId: Create Tenant
@@ -462,6 +465,7 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         500:
           $ref: "#/responses/InternalServerError"
+
   /tenants/{tenant_id}/configuration/deployments/{deployment_id}/devices/{device_id}:
     post:
       operationId: Create Deployment
@@ -780,13 +784,14 @@ definitions:
                 type: rootfs
             signed: false
             updates:
-              type_info: "rootfs-image"
-              files:
-                - name: rootfs-image-1
-                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                  size: 123
-                  date: 2016-03-11T13:03:17.063+0000
-              meta_data: {}
+              - type_info:
+                  type: "rootfs-image"
+                files:
+                  - name: rootfs-image-1
+                    checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                    size: 123
+                    date: 2016-03-11T13:03:17.063+0000
+                meta_data: {}
             artifact_provides:
               artifact_name: "test"
               rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
@@ -913,13 +918,14 @@ definitions:
               type: rootfs
           signed: false
           updates:
-            type_info: "rootfs-image"
-            files:
-              - name: rootfs-image-1
-                checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
-                size: 123
-                date: 2016-03-11T13:03:17.063+0000
-            meta_data: {}
+            - type_info:
+                type: "rootfs-image"
+              files:
+                - name: rootfs-image-1
+                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                  size: 123
+                  date: 2016-03-11T13:03:17.063+0000
+              meta_data: {}
           artifact_provides:
             artifact_name: "test"
             rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
