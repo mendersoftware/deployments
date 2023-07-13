@@ -201,7 +201,7 @@ func (db *DataStoreMongo) UpdateRelease(
 		},
 	)
 	if err != nil {
-		return errors.WithMessage(err, "mongo: failed to update release tags")
+		return errors.WithMessage(err, "mongo: failed to update release")
 	} else if res.MatchedCount <= 0 {
 		return store.ErrNotFound
 	}

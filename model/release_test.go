@@ -15,6 +15,7 @@
 package model
 
 import (
+	b64 "encoding/base64"
 	"encoding/json"
 	"strconv"
 	"strings"
@@ -61,4 +62,23 @@ func TestReleaseTags(t *testing.T) {
 		err = json.Unmarshal([]byte(`{}`), &tags)
 		assert.Error(t, err)
 	})
+}
+
+func TestReleaseNotesValidation(t *testing.T) {
+	longNotes := make([]byte, NotesLengthMaximumCharacters+1)
+	for i := range longNotes {
+		longNotes[i] = '1'
+	}
+	var notes Notes
+	notes = Notes(longNotes)
+	err := notes.Validate()
+	assert.ErrorIs(t, err, ErrReleaseNotesTooLong)
+
+	randomBytesBase64 := "zT2AkjJAP34PTuqq2JyXKgOVlY7k9gcnvSivs5jUbz8Wt6tb7OgZY7zJi5VyJeVwaaJkmdzb6KeojVg5YKt4wTj6Miiys5DBw0//Q+XAnpJdsPQM/a/GZzQzYUYBj1coHt1nAFFQebLbQc22IQOYJ4VUwhhxOoOhb90f2KtHgdIBylQWPPfYoDMat9J1E2S4TZjkfwxUKX9qq7zNCtm+HLFUfZh7zvK69PTyfVSnid7Gk7rJEX778whBAr690YNwdmTnBHLWNFErX7nSbDH3mPK5XvJasWEH/gUy6RphTv4DjWk9Dn7Dps3+9ksUVz+8qoBQ/jwSOfSjuHICewlSRMnoQWHKEsqn6p9p/xksMtS5Bh2ftQUwn3cfs6JGQmfaThJo0bKHML9eDZl+i5sSE85dzhCv7ZRLd0G9+n5097cOHE02QP2t1K7u5UNZ+DQ4dU1gXu+2qIqQUpuK5OnwAgw4jc60mROOsDLBtfu9Vfp8kr9E7OBlKg2aY5OxigF1toWhWYWsPc1jNCAYf/uyO7eHboNXeX6nPjpsjmy/M6EHCtfGlZtdVH4p8Pd8kLIjp6sasLRmT0AMihV7PbkHqdO+EAvrFDZR9jQkYd6KzSEMWbRKh0AoDONj+RSyQC0esUl94XXQoXu0T4R52pUA3Gal7SYce2c9pV7rfl0M2o4="
+	raw, err := b64.StdEncoding.DecodeString(randomBytesBase64)
+	assert.NoError(t, err)
+	notes = Notes(raw)
+	err = notes.Validate()
+	assert.Error(t, err)
+	assert.True(t, strings.HasPrefix(err.Error(), "invalid character '"))
 }

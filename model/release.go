@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 )
 
 const (
@@ -155,10 +156,17 @@ var (
 	ErrCharactersNotAllowed = errors.New("release notes contain characters which are not allowed")
 )
 
-func allowedByte(c byte) bool {
-	// at this point I am unsure if we can restrict the charset for the notes, it will make
-	// it difficult to use
-	return true
+type InvalidCharError struct {
+	Offset int
+	Char   byte
+}
+
+func (err *InvalidCharError) Error() string {
+	return fmt.Sprintf(`invalid character '%c' at offset %d`, err.Char, err.Offset)
+}
+
+func IsNotGraphic(r rune) bool {
+	return !unicode.IsGraphic(r)
 }
 
 func (n Notes) Validate() error {
@@ -166,9 +174,10 @@ func (n Notes) Validate() error {
 	if length > NotesLengthMaximumCharacters {
 		return ErrReleaseNotesTooLong
 	}
-	for i := 0; i < length; i++ {
-		if !allowedByte(n[i]) {
-			return ErrCharactersNotAllowed
+	if i := strings.IndexFunc(string(n), IsNotGraphic); i > 0 {
+		return &InvalidCharError{
+			Char:   n[i],
+			Offset: i,
 		}
 	}
 

@@ -787,6 +787,20 @@ func (_m *App) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID st
 	return r0
 }
 
+// UpdateRelease provides a mock function with given fields: ctx, releaseName, release
+func (_m *App) UpdateRelease(ctx context.Context, releaseName string, release model.ReleasePatch) error {
+	ret := _m.Called(ctx, releaseName, release)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.ReleasePatch) error); ok {
+		r0 = rf(ctx, releaseName, release)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UploadLink provides a mock function with given fields: ctx, expire, skipVerify
 func (_m *App) UploadLink(ctx context.Context, expire time.Duration, skipVerify bool) (*model.UploadLink, error) {
 	ret := _m.Called(ctx, expire, skipVerify)
