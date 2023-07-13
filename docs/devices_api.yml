@@ -72,7 +72,7 @@ paths:
               artifact:
                 artifact_name: my-app-0.1
                 source:
-                  uri: 'https://aws.my_update_bucket.com/image_123'
+                  uri: "https://aws.myupdatebucket.com/image123"
                   expire: 2016-03-11T13:03:17.063493443Z
                 device_types_compatible:
                   - rspi
@@ -295,7 +295,7 @@ definitions:
       artifact:
         artifact_name: my-app-0.1
         source:
-          uri: 'https://aws.my_update_bucket.com/image_123'
+          uri: "https://aws.myupdatebucket.com/image123"
           expire: 2016-03-11T13:03:17.063493443Z
         device_types_compatible:
           - rspi
