@@ -32,6 +32,8 @@ from common import (
     clean_minio,
     MinioClient,
     mongo,
+    Lock,
+    MONGO_LOCK_FILE,
 )
 
 
@@ -45,310 +47,342 @@ class TestArtifact:
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_new_bogus_empty(self):
-        # try bogus image data
-        try:
-            res = self.ac.client.Management_API.Upload_Artifact(
-                Authorization="foo", size=100, artifact="".encode(), description="bar",
-            ).result()
-        except bravado.exception.HTTPError as e:
-            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
-            assert e.response.status_code == 400
-        else:
-            raise AssertionError("expected to fail")
+        with Lock(MONGO_LOCK_FILE) as l:
+            # try bogus image data
+            try:
+                res = self.ac.client.Management_API.Upload_Artifact(
+                    Authorization="foo",
+                    size=100,
+                    artifact="".encode(),
+                    description="bar",
+                ).result()
+            except bravado.exception.HTTPError as e:
+                assert (
+                    sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
+                )
+                assert e.response.status_code == 400
+            else:
+                raise AssertionError("expected to fail")
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_new_bogus_data(self):
-        with artifact_from_raw_data(b"foo_bar") as art:
-            files = ArtifactsClient.make_upload_meta(
-                {
-                    "description": "bar",
-                    "size": str(art.size),
-                    "artifact": ("firmware", art, "application/octet-stream", {},),
-                }
-            )
+        with Lock(MONGO_LOCK_FILE) as l:
+            with artifact_from_raw_data(b"foo_bar") as art:
+                files = ArtifactsClient.make_upload_meta(
+                    {
+                        "description": "bar",
+                        "size": str(art.size),
+                        "artifact": ("firmware", art, "application/octet-stream", {},),
+                    }
+                )
 
-            rsp = requests.post(self.ac.make_api_url("/artifacts"), files=files)
-
-            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
-            assert rsp.status_code == 400
+                rsp = requests.post(self.ac.make_api_url("/artifacts"), files=files)
+                l.unlock()
+                assert (
+                    sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
+                )
+                assert rsp.status_code == 400
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_valid(self):
-        artifact_name = str(uuid4())
-        description = f"description for foo {artifact_name}"
-        device_type = f"project-{str(uuid4())}"
-        data = b"foo_bar"
+        with Lock(MONGO_LOCK_FILE) as l:
+            artifact_name = str(uuid4())
+            description = f"description for foo {artifact_name}"
+            device_type = f"project-{str(uuid4())}"
+            data = b"foo_bar"
 
-        # generate artifact
-        with artifact_rootfs_from_data(
-            name=artifact_name, data=data, devicetype=device_type
-        ) as art:
-            self.ac.log.info("uploading artifact")
-            artid = self.ac.add_artifact(description, art.size, art)
+            # generate artifact
+            with artifact_rootfs_from_data(
+                name=artifact_name, data=data, devicetype=device_type
+            ) as art:
+                self.ac.log.info("uploading artifact")
+                artid = self.ac.add_artifact(description, art.size, art)
 
-            # artifacts listing should not be empty now
-            res = self.ac.client.Management_API.List_Artifacts().result()
-            self.ac.log.debug("result: %s", res)
-            assert len(res[0]) > 0
+                # artifacts listing should not be empty now
+                res = self.ac.client.Management_API.List_Artifacts().result()
+                self.ac.log.debug("result: %s", res)
+                assert len(res[0]) > 0
 
-            res = self.ac.client.Management_API.Show_Artifact(
-                Authorization="foo", id=artid
-            ).result()[0]
-            self.ac.log.info("artifact: %s", res)
-
-            # verify its data
-            assert res.id == artid
-            assert res.name == artifact_name
-            assert res.description == description
-            assert res.size == int(art.size)
-            assert device_type in res.device_types_compatible
-            assert len(res.updates) == 1
-            update = res.updates[0]
-            assert len(update.files) == 1
-            uf = update.files[0]
-            assert uf.size == len(data)
-            assert uf.checksum
-            # TODO: verify uf signature once it's supported
-            # assert uf.signature
-
-            # try to fetch the update
-            res = self.ac.client.Management_API.Download_Artifact(
-                Authorization="foo", id=artid
-            ).result()[0]
-            self.ac.log.info("download result %s", res)
-            assert res.uri
-            # fetch it now (disable SSL verification)
-            rsp = requests.get(res.uri, verify=False, stream=True)
-
-            assert rsp.status_code == 200
-            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
-
-            # receive artifact and compare its checksum
-            dig = sha256()
-            while True:
-                rspdata = rsp.raw.read()
-                if rspdata:
-                    dig.update(rspdata)
-                else:
-                    break
-
-            self.ac.log.info(
-                "artifact checksum %s expecting %s", dig.hexdigest(), art.checksum,
-            )
-            assert dig.hexdigest() == art.checksum
-
-            # delete it now
-            self.ac.delete_artifact(artid)
-
-            # should be unavailable now
-            try:
                 res = self.ac.client.Management_API.Show_Artifact(
                     Authorization="foo", id=artid
-                ).result()
-            except bravado.exception.HTTPError as e:
-                assert e.response.status_code == 404
-            else:
-                raise AssertionError("expected to fail")
+                ).result()[0]
+                self.ac.log.info("artifact: %s", res)
+
+                # verify its data
+                assert res.id == artid
+                assert res.name == artifact_name
+                assert res.description == description
+                assert res.size == int(art.size)
+                assert device_type in res.device_types_compatible
+                assert len(res.updates) == 1
+                update = res.updates[0]
+                assert len(update.files) == 1
+                uf = update.files[0]
+                assert uf.size == len(data)
+                assert uf.checksum
+                # TODO: verify uf signature once it's supported
+                # assert uf.signature
+
+                # try to fetch the update
+                res = self.ac.client.Management_API.Download_Artifact(
+                    Authorization="foo", id=artid
+                ).result()[0]
+                self.ac.log.info("download result %s", res)
+                assert res.uri
+                # fetch it now (disable SSL verification)
+                rsp = requests.get(res.uri, verify=False, stream=True)
+
+                assert rsp.status_code == 200
+                assert (
+                    sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
+                )
+
+                # receive artifact and compare its checksum
+                dig = sha256()
+                while True:
+                    rspdata = rsp.raw.read()
+                    if rspdata:
+                        dig.update(rspdata)
+                    else:
+                        break
+
+                self.ac.log.info(
+                    "artifact checksum %s expecting %s", dig.hexdigest(), art.checksum,
+                )
+                assert dig.hexdigest() == art.checksum
+
+                # delete it now
+                self.ac.delete_artifact(artid)
+
+                # should be unavailable now
+                try:
+                    res = self.ac.client.Management_API.Show_Artifact(
+                        Authorization="foo", id=artid
+                    ).result()
+                except bravado.exception.HTTPError as e:
+                    assert e.response.status_code == 404
+                else:
+                    raise AssertionError("expected to fail")
+            l.unlock()
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_bootstrap_valid(self):
-        artifact_name = str(uuid4())
-        description = f"description for foo {artifact_name}"
-        device_type = f"project-{str(uuid4())}"
+        with Lock(MONGO_LOCK_FILE) as l:
+            artifact_name = str(uuid4())
+            description = f"description for foo {artifact_name}"
+            device_type = f"project-{str(uuid4())}"
 
-        # generate artifact
-        with artifact_bootstrap_from_data(
-            name=artifact_name, devicetype=device_type
-        ) as art:
-            self.ac.log.info("uploading artifact")
-            artid = self.ac.add_artifact(description, art.size, art)
+            # generate artifact
+            with artifact_bootstrap_from_data(
+                name=artifact_name, devicetype=device_type
+            ) as art:
+                self.ac.log.info("uploading artifact")
+                artid = self.ac.add_artifact(description, art.size, art)
 
-            # artifacts listing should not be empty now
-            res = self.ac.list_artifacts().json()
-            self.ac.log.debug("result: %s", res)
-            assert len(res[0]) > 0
+                # artifacts listing should not be empty now
+                res = self.ac.list_artifacts().json()
+                self.ac.log.debug("result: %s", res)
+                assert len(res[0]) > 0
 
-            res = self.ac.show_artifact(artid).json()
-            self.ac.log.debug("result: %s", res)
+                res = self.ac.show_artifact(artid).json()
+                self.ac.log.debug("result: %s", res)
 
-            # verify its data
-            assert res["id"] == artid
-            assert res["name"] == artifact_name
-            assert res["description"] == description
-            assert res["size"] == int(art.size)
-            assert device_type in res["device_types_compatible"]
-            assert len(res["updates"]) == 1
-            update = res["updates"][0]
-            assert update["type_info"]["type"] is None
-            assert update["files"] is None
+                # verify its data
+                assert res["id"] == artid
+                assert res["name"] == artifact_name
+                assert res["description"] == description
+                assert res["size"] == int(art.size)
+                assert device_type in res["device_types_compatible"]
+                assert len(res["updates"]) == 1
+                update = res["updates"][0]
+                assert update["type_info"]["type"] is None
+                assert update["files"] is None
 
-            # try to fetch the update
-            res = self.ac.client.Management_API.Download_Artifact(
-                Authorization="foo", id=artid
-            ).result()[0]
-            self.ac.log.info("download result %s", res)
-            assert res.uri
-            # fetch it now (disable SSL verification)
-            rsp = requests.get(res.uri, verify=False, stream=True)
-
-            assert rsp.status_code == 200
-            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
-
-            # receive artifact and compare its checksum
-            dig = sha256()
-            while True:
-                rspdata = rsp.raw.read()
-                if rspdata:
-                    dig.update(rspdata)
-                else:
-                    break
-
-            self.ac.log.info(
-                "artifact checksum %s expecting %s", dig.hexdigest(), art.checksum,
-            )
-            assert dig.hexdigest() == art.checksum
-
-            # delete it now
-            self.ac.delete_artifact(artid)
-
-            # should be unavailable now
-            try:
-                res = self.ac.client.Management_API.Show_Artifact(
+                # try to fetch the update
+                res = self.ac.client.Management_API.Download_Artifact(
                     Authorization="foo", id=artid
-                ).result()
-            except bravado.exception.HTTPError as e:
-                assert e.response.status_code == 404
-            else:
-                raise AssertionError("expected to fail")
+                ).result()[0]
+                self.ac.log.info("download result %s", res)
+                assert res.uri
+                # fetch it now (disable SSL verification)
+                rsp = requests.get(res.uri, verify=False, stream=True)
+
+                assert rsp.status_code == 200
+                assert (
+                    sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
+                )
+
+                # receive artifact and compare its checksum
+                dig = sha256()
+                while True:
+                    rspdata = rsp.raw.read()
+                    if rspdata:
+                        dig.update(rspdata)
+                    else:
+                        break
+
+                self.ac.log.info(
+                    "artifact checksum %s expecting %s", dig.hexdigest(), art.checksum,
+                )
+                assert dig.hexdigest() == art.checksum
+
+                # delete it now
+                self.ac.delete_artifact(artid)
+
+                # should be unavailable now
+                try:
+                    res = self.ac.client.Management_API.Show_Artifact(
+                        Authorization="foo", id=artid
+                    ).result()
+                except bravado.exception.HTTPError as e:
+                    assert e.response.status_code == 404
+                else:
+                    raise AssertionError("expected to fail")
+            l.unlock()
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_valid_multipart(self):
         """
         Uploads an artifact > 10MiB to cover the multipart upload scenario.
         """
-        artifact_name = str(uuid4())
-        description = "description for foo " + artifact_name
-        device_type = "project-" + str(uuid4())
-        data = urandom(1024 * 1024 * 15)
+        with Lock(MONGO_LOCK_FILE) as l:
+            artifact_name = str(uuid4())
+            description = "description for foo " + artifact_name
+            device_type = "project-" + str(uuid4())
+            data = urandom(1024 * 1024 * 15)
 
-        # generate artifact
-        with artifact_rootfs_from_data(
-            name=artifact_name, data=data, devicetype=device_type
-        ) as art:
-            self.ac.log.info("uploading artifact")
-            artid = self.ac.add_artifact(description, art.size, art)
+            # generate artifact
+            with artifact_rootfs_from_data(
+                name=artifact_name, data=data, devicetype=device_type
+            ) as art:
+                self.ac.log.info("uploading artifact")
+                artid = self.ac.add_artifact(description, art.size, art)
 
-            # artifacts listing should not be empty now
-            res = self.ac.client.Management_API.List_Artifacts().result()
-            self.ac.log.debug("result: %s", res)
-            assert len(res[0]) > 0
+                # artifacts listing should not be empty now
+                res = self.ac.client.Management_API.List_Artifacts().result()
+                self.ac.log.debug("result: %s", res)
+                assert len(res[0]) > 0
 
-            res = self.ac.client.Management_API.Show_Artifact(
-                Authorization="foo", id=artid
-            ).result()[0]
-            self.ac.log.info("artifact: %s", res)
+                res = self.ac.client.Management_API.Show_Artifact(
+                    Authorization="foo", id=artid
+                ).result()[0]
+                self.ac.log.info("artifact: %s", res)
 
-            # verify its data
-            assert res.id == artid
-            assert res.name == artifact_name
-            assert res.description == description
-            assert res.size == int(art.size)
-            assert device_type in res.device_types_compatible
-            assert len(res.updates) == 1
-            update = res.updates[0]
-            assert len(update.files) == 1
-            uf = update.files[0]
-            assert uf["size"] == len(data)
-            assert uf["checksum"]
+                # verify its data
+                assert res.id == artid
+                assert res.name == artifact_name
+                assert res.description == description
+                assert res.size == int(art.size)
+                assert device_type in res.device_types_compatible
+                assert len(res.updates) == 1
+                update = res.updates[0]
+                assert len(update.files) == 1
+                uf = update.files[0]
+                assert uf["size"] == len(data)
+                assert uf["checksum"]
+            l.unlock()
 
     def test_single_artifact(self):
         # try with bogus image ID
-        try:
-            res = self.ac.client.Management_API.Show_Artifact(
-                Authorization="foo", id="foo"
-            ).result()
-        except bravado.exception.HTTPError as e:
-            assert e.response.status_code == 400
-        else:
-            raise AssertionError("expected to fail")
+        with Lock(MONGO_LOCK_FILE) as l:
+            try:
+                res = self.ac.client.Management_API.Show_Artifact(
+                    Authorization="foo", id="foo"
+                ).result()
+            except bravado.exception.HTTPError as e:
+                assert e.response.status_code == 400
+            else:
+                raise AssertionError("expected to fail")
 
-        # try with nonexistent image ID
-        try:
-            res = self.ac.client.Management_API.Show_Artifact(
-                Authorization="foo", id=uuid4()
-            ).result()
-        except bravado.exception.HTTPError as e:
-            assert e.response.status_code == 404
-        else:
-            raise AssertionError("expected to fail")
+            # try with nonexistent image ID
+            try:
+                res = self.ac.client.Management_API.Show_Artifact(
+                    Authorization="foo", id=uuid4()
+                ).result()
+            except bravado.exception.HTTPError as e:
+                assert e.response.status_code == 404
+            else:
+                raise AssertionError("expected to fail")
+            l.unlock()
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_generate_valid(self):
-        artifact_name = str(uuid4())
-        description = "description for foo " + artifact_name
-        device_type = "project-" + str(uuid4())
-        data = b"foo_bar"
-
-        # generate artifact
-        self.ac.log.info("uploading artifact")
-        artid = self.ac.generate_artifact(
-            name=artifact_name,
-            description=description,
-            device_types_compatible=device_type,
-            type="single_file",
-            args="",
-            data=data,
-        )
-
-        # the file has been stored
-        assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
-
-    @pytest.mark.usefixtures("clean_minio", "clean_db")
-    def test_compressed_artifacts_valid(self):
-        """Create and upload artifacts with different compressions"""
-        compressions = ["gzip", "lzma"]
-        for comp in compressions:
+        with Lock(MONGO_LOCK_FILE) as l:
             artifact_name = str(uuid4())
             description = "description for foo " + artifact_name
             device_type = "project-" + str(uuid4())
             data = b"foo_bar"
 
-            with artifact_rootfs_from_data(
-                name=artifact_name, data=data, devicetype=device_type, compression=comp
-            ) as art:
-                self.ac.log.info("uploading artifact (compression: {})".format(comp))
-                self.ac.add_artifact(description, art.size, art)
+            # generate artifact
+            self.ac.log.info("uploading artifact")
+            artid = self.ac.generate_artifact(
+                name=artifact_name,
+                description=description,
+                device_types_compatible=device_type,
+                type="single_file",
+                args="",
+                data=data,
+            )
+
+            # the file has been stored
+            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
+            l.unlock()
+
+    @pytest.mark.usefixtures("clean_minio", "clean_db")
+    def test_compressed_artifacts_valid(self):
+        """Create and upload artifacts with different compressions"""
+        with Lock(MONGO_LOCK_FILE) as l:
+            compressions = ["gzip", "lzma"]
+            for comp in compressions:
+                artifact_name = str(uuid4())
+                description = "description for foo " + artifact_name
+                device_type = "project-" + str(uuid4())
+                data = b"foo_bar"
+
+                with artifact_rootfs_from_data(
+                    name=artifact_name,
+                    data=data,
+                    devicetype=device_type,
+                    compression=comp,
+                ) as art:
+                    self.ac.log.info(
+                        "uploading artifact (compression: {})".format(comp)
+                    )
+                    self.ac.add_artifact(description, art.size, art)
+            l.unlock()
 
 
 class TestDirectUpload:
     def test_upload(self, clean_db):
-        mgo = clean_db
-        ac = ArtifactsClient()
+        with Lock(MONGO_LOCK_FILE) as l:
+            mgo = clean_db
+            ac = ArtifactsClient()
 
-        url = ac.make_upload_url()
-        doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
-        assert doc is not None, "Upload intent not found in database"
-        assert doc["status"] == 0
+            url = ac.make_upload_url()
+            doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
+            assert doc is not None, "Upload intent not found in database"
+            assert doc["status"] == 0
 
-        with artifact_rootfs_from_data(data=b"", compression="none") as artie:
-            requests.put(
-                url.uri,
-                artie.read(),
-                headers={"Content-Type": "application/octet-stream"},
-                verify=False,
-            )
-        rsp = ac.complete_upload(url.id)
-        assert rsp.status_code == 202, "Unexpected HTTP status code"
+            with artifact_rootfs_from_data(data=b"", compression="none") as artie:
+                requests.put(
+                    url.uri,
+                    artie.read(),
+                    headers={"Content-Type": "application/octet-stream"},
+                    verify=False,
+                )
+            rsp = ac.complete_upload(url.id)
+            assert rsp.status_code == 202, "Unexpected HTTP status code"
 
-        doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
-        assert doc["status"] > 0
+            doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
+            assert doc["status"] > 0
 
-        # Retry for half a minute
-        for _ in range(60):
-            try:
-                ac.show_artifact(artid=url.id)
-            except ArtifactsClientError:
-                time.sleep(0.5)
-            break
-        else:
-            raise TimeoutError("Timeout waiting for artifact to be processed")
+            # Retry for half a minute
+            for _ in range(60):
+                try:
+                    ac.show_artifact(artid=url.id)
+                except ArtifactsClientError:
+                    time.sleep(0.5)
+                break
+            else:
+                raise TimeoutError("Timeout waiting for artifact to be processed")
+            l.unlock()

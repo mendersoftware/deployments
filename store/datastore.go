@@ -189,6 +189,11 @@ type DataStore interface {
 		releaseName string,
 		tags model.Tags,
 	) error
+	UpdateRelease(
+		ctx context.Context,
+		releaseName string,
+		release model.ReleasePatch,
+	) error
 	ListReleaseTags(ctx context.Context) (model.Tags, error)
 }
 

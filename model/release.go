@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 )
 
 const (
@@ -146,11 +147,57 @@ func (tag *Tag) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type Notes string
+
+var (
+	NotesLengthMaximumCharacters = 1024
+
+	ErrReleaseNotesTooLong  = errors.New("release notes too long")
+	ErrCharactersNotAllowed = errors.New("release notes contain characters which are not allowed")
+)
+
+type InvalidCharError struct {
+	Offset int
+	Char   byte
+}
+
+func (err *InvalidCharError) Error() string {
+	return fmt.Sprintf(`invalid character '%c' at offset %d`, err.Char, err.Offset)
+}
+
+func IsNotGraphic(r rune) bool {
+	return !unicode.IsGraphic(r)
+}
+
+func (n Notes) Validate() error {
+	length := len(n)
+	if length > NotesLengthMaximumCharacters {
+		return ErrReleaseNotesTooLong
+	}
+	if i := strings.IndexFunc(string(n), IsNotGraphic); i > 0 {
+		return &InvalidCharError{
+			Char:   n[i],
+			Offset: i,
+		}
+	}
+
+	return nil
+}
+
 type Release struct {
 	Name      string     `json:"Name" bson:"_id"`
 	Modified  *time.Time `json:"Modified,omitempty" bson:"modified,omitempty"`
 	Artifacts []Image    `json:"Artifacts" bson:"artifacts"`
 	Tags      Tags       `json:"tags" bson:"tags,omitempty"`
+	Notes     Notes      `json:"notes" bson:"notes,omitempty"`
+}
+
+type ReleasePatch struct {
+	Notes Notes `json:"notes" bson:"notes,omitempty"`
+}
+
+func (r ReleasePatch) Validate() error {
+	return r.Notes.Validate()
 }
 
 type ReleaseOrImageFilter struct {

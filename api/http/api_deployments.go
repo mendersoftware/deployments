@@ -16,7 +16,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -230,17 +229,17 @@ func NewDeploymentsApiHandlers(
 	}
 }
 
-func (u *DeploymentsApiHandlers) AliveHandler(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) AliveHandler(w rest.ResponseWriter, r *rest.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (u *DeploymentsApiHandlers) HealthHandler(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) HealthHandler(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	l := log.FromContext(ctx)
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
-	err := u.app.HealthCheck(ctx)
+	err := d.app.HealthCheck(ctx)
 	if err != nil {
 		rest_utils.RestErrWithLog(w, r, l, err, http.StatusServiceUnavailable)
 		return
@@ -279,49 +278,6 @@ func getReleaseOrImageFilter(r *rest.Request, paginated bool) *model.ReleaseOrIm
 	}
 
 	return filter
-}
-
-func redactReleaseName(r *rest.Request) {
-	q := r.URL.Query()
-	if q.Get(ParamName) != "" {
-		q.Set(ParamName, Redacted)
-		r.URL.RawQuery = q.Encode()
-	}
-}
-
-func (d *DeploymentsApiHandlers) GetReleases(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r)
-
-	defer redactReleaseName(r)
-	filter := getReleaseOrImageFilter(r, false)
-	releases, _, err := d.store.GetReleases(r.Context(), filter)
-	if err != nil {
-		d.view.RenderInternalError(w, r, err, l)
-		return
-	}
-
-	d.view.RenderSuccessGet(w, releases)
-}
-
-func (d *DeploymentsApiHandlers) ListReleases(w rest.ResponseWriter, r *rest.Request) {
-	l := requestlog.GetRequestLogger(r)
-
-	defer redactReleaseName(r)
-	filter := getReleaseOrImageFilter(r, true)
-	releases, totalCount, err := d.store.GetReleases(r.Context(), filter)
-	if err != nil {
-		d.view.RenderInternalError(w, r, err, l)
-		return
-	}
-
-	hasNext := totalCount > int(filter.Page*filter.PerPage)
-	links := rest_utils.MakePageLinkHdrs(r, uint64(filter.Page), uint64(filter.PerPage), hasNext)
-	for _, l := range links {
-		w.Header().Add("Link", l)
-	}
-	w.Header().Add(hdrTotalCount, strconv.Itoa(totalCount))
-
-	d.view.RenderSuccessGet(w, releases)
 }
 
 type limitResponse struct {
@@ -1955,70 +1911,4 @@ func (d *DeploymentsApiHandlers) PutTenantStorageSettingsHandler(
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (d *DeploymentsApiHandlers) PutReleaseTags(
-	w rest.ResponseWriter,
-	r *rest.Request,
-) {
-	ctx := r.Context()
-	l := log.FromContext(ctx)
-
-	releaseName := r.PathParam(ParamName)
-	if releaseName == "" {
-		err := errors.New("path parameter 'release_name' cannot be empty")
-		rest_utils.RestErrWithLog(w, r, l, err, http.StatusNotFound)
-		return
-	}
-
-	var tags model.Tags
-	dec := json.NewDecoder(r.Body)
-	if err := dec.Decode(&tags); err != nil {
-		rest_utils.RestErrWithLog(w, r, l,
-			errors.WithMessage(err,
-				"malformed JSON in request body"),
-			http.StatusBadRequest)
-		return
-	}
-	if err := tags.Validate(); err != nil {
-		rest_utils.RestErrWithLog(w, r, l,
-			errors.WithMessage(err,
-				"invalid request body"),
-			http.StatusBadRequest)
-		return
-	}
-
-	err := d.app.ReplaceReleaseTags(ctx, releaseName, tags)
-	if err != nil {
-		status := http.StatusInternalServerError
-		if errors.Is(err, app.ErrReleaseNotFound) {
-			status = http.StatusNotFound
-		} else if errors.Is(err, model.ErrTooManyUniqueTags) {
-			status = http.StatusConflict
-		}
-		rest_utils.RestErrWithLog(w, r, l, err, status)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (d *DeploymentsApiHandlers) GetReleaseTagKeys(
-	w rest.ResponseWriter,
-	r *rest.Request,
-) {
-	ctx := r.Context()
-	l := log.FromContext(ctx)
-
-	tags, err := d.app.ListReleaseTags(ctx)
-	if err != nil {
-		rest_utils.RestErrWithLog(w, r, l, err, http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	err = w.WriteJson(tags)
-	if err != nil {
-		l.Errorf("failed to serialize JSON response: %s", err.Error())
-	}
 }

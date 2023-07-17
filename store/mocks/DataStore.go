@@ -1232,6 +1232,20 @@ func (_m *DataStore) UpdateDeviceDeploymentStatus(ctx context.Context, deviceID 
 	return r0, r1
 }
 
+// UpdateRelease provides a mock function with given fields: ctx, releaseName, release
+func (_m *DataStore) UpdateRelease(ctx context.Context, releaseName string, release model.ReleasePatch) error {
+	ret := _m.Called(ctx, releaseName, release)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.ReleasePatch) error); ok {
+		r0 = rf(ctx, releaseName, release)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateReleaseArtifactDescription provides a mock function with given fields: ctx, artifactToEdit, releaseName
 func (_m *DataStore) UpdateReleaseArtifactDescription(ctx context.Context, artifactToEdit *model.Image, releaseName string) error {
 	ret := _m.Called(ctx, artifactToEdit, releaseName)
