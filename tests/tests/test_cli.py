@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2021 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -83,23 +83,31 @@ class TestMigration:
 @pytest.mark.last
 class TestCliMigrate:
     def test_ok_no_db(self, cli, clean_db, mongo):
-        cli.migrate()
-        TestMigration.verify(cli, mongo, DB_NAME, DB_VERSION)
+        with Lock() as l:
+            cli.migrate()
+            TestMigration.verify(cli, mongo, DB_NAME, DB_VERSION)
+            l.unlock()
 
     @pytest.mark.parametrize("migrated_db", ["0.0.1"], indirect=True)
     def test_ok_stale_db(self, cli, migrated_db, mongo):
-        cli.migrate()
-        TestMigration.verify(cli, mongo, DB_NAME, DB_VERSION)
+        with Lock() as l:
+            cli.migrate()
+            TestMigration.verify(cli, mongo, DB_NAME, DB_VERSION)
+            l.unlock()
 
     @pytest.mark.parametrize("migrated_db", ["1.1.0"], indirect=True)
     def test_ok_current_db(self, cli, migrated_db, mongo):
-        cli.migrate()
-        TestMigration.verify(cli, mongo, DB_NAME, DB_VERSION)
+        with Lock() as l:
+            cli.migrate()
+            TestMigration.verify(cli, mongo, DB_NAME, DB_VERSION)
+            l.unlock()
 
     @pytest.mark.parametrize("migrated_db", ["2.0.0"], indirect=True)
     def test_ok_future_db(self, cli, migrated_db, mongo):
-        cli.migrate()
-        TestMigration.verify(cli, mongo, DB_NAME, "2.0.0")
+        with Lock() as l:
+            cli.migrate()
+            TestMigration.verify(cli, mongo, DB_NAME, "2.0.0")
+            l.unlock()
 
 
 @pytest.mark.last
@@ -108,18 +116,20 @@ class TestCliMigrateMultiTenant:
         "tenant_id", list(MIGRATED_TENANT_DBS) + ["tenant-new-1", "tenant-new-2"]
     )
     def test_ok(self, cli, mongo, migrated_tenant_dbs, tenant_id):
-        cli.migrate(tenant_id)
+        with Lock() as l:
+            cli.migrate(tenant_id)
 
-        dbname = make_tenant_db(tenant_id)
-        # a 'future' version won't be migrated, make an exception
-        init_ver = MIGRATED_TENANT_DBS.get(tenant_id, "0.0.0")
-        if init_ver < DB_VERSION:
-            TestMigration.verify(cli, mongo, dbname, DB_VERSION)
-        else:
-            TestMigration.verify(cli, mongo, dbname, MIGRATED_TENANT_DBS[tenant_id])
+            dbname = make_tenant_db(tenant_id)
+            # a 'future' version won't be migrated, make an exception
+            init_ver = MIGRATED_TENANT_DBS.get(tenant_id, "0.0.0")
+            if init_ver < DB_VERSION:
+                TestMigration.verify(cli, mongo, dbname, DB_VERSION)
+            else:
+                TestMigration.verify(cli, mongo, dbname, MIGRATED_TENANT_DBS[tenant_id])
 
-        # verify other tenant dbs not touched
-        others = [t for t in MIGRATED_TENANT_DBS if t != tenant_id]
-        for t in others:
-            dbname = make_tenant_db(t)
-            TestMigration.verify(cli, mongo, dbname, MIGRATED_TENANT_DBS[t])
+            # verify other tenant dbs not touched
+            others = [t for t in MIGRATED_TENANT_DBS if t != tenant_id]
+            for t in others:
+                dbname = make_tenant_db(t)
+                TestMigration.verify(cli, mongo, dbname, MIGRATED_TENANT_DBS[t])
+            l.unlock()

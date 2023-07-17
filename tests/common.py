@@ -23,6 +23,7 @@ import string
 import json
 import pytest
 import minio
+import time
 
 from typing import List
 
@@ -35,6 +36,33 @@ from pymongo import MongoClient
 DB_NAME = "deployment_service"
 DB_MIGRATION_COLLECTION = "migration_info"
 DB_VERSION = "1.2.1"
+
+MONGO_LOCK_FILE = "/mongo-lock"
+
+
+class Lock:
+    def __init__(self):
+        letters = string.ascii_lowercase
+        self.hash = "".join(random.choice(letters) for i in range(128))
+
+    def __enter__(self):
+        while os.path.exists(MONGO_LOCK_FILE):
+            time.sleep(0.1)
+        with open(MONGO_LOCK_FILE, "w") as fh:
+            fh.write(self.hash)
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.unlock()
+
+    def unlock(self):
+        if not os.path.exists(MONGO_LOCK_FILE):
+            return
+        with open(MONGO_LOCK_FILE, "r") as fh:
+            hash = fh.read()
+            if hash != self.hash:
+                return
+        os.remove(MONGO_LOCK_FILE)
 
 
 class Artifact(metaclass=abc.ABCMeta):
@@ -257,9 +285,17 @@ def clean_minio():
 
 def mongo_cleanup(mongo):
     dbs = mongo.list_database_names()
-    dbs = [d for d in dbs if d not in ["local", "admin", "config"]]
+    dbs = [
+        d for d in dbs if d not in ["local", "admin", "config", "deployment_service"]
+    ]
     for d in dbs:
         mongo.drop_database(d)
+    db = mongo["deployment_service"]
+    collections = db.list_collection_names()
+    for c in collections:
+        if c == "migration_info":
+            continue
+        db.drop_collection(c)
 
 
 @pytest.fixture(scope="session")
