@@ -28,13 +28,14 @@ from common import (
     clean_db,
     clean_minio,
     Lock,
+    MONGO_LOCK_FILE,
 )
 from client import SimpleArtifactsClient, ArtifactsClientError
 
 
 class TestInternalApiTenantCreate:
     def test_create_ok(self, api_client_int, clean_db):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             _, r = api_client_int.create_tenant("foobar")
             l.unlock()
             assert r.status_code == 201
@@ -46,7 +47,7 @@ class TestInternalApiTenantCreate:
             )
 
     def test_create_twice(self, api_client_int, clean_db):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             _, r = api_client_int.create_tenant("foobar")
             assert r.status_code == 201
 
@@ -63,7 +64,7 @@ class TestInternalApiTenantCreate:
 
     @pytest.mark.usefixtures("clean_minio")
     def test_artifacts_valid(self, api_client_int, mongo):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             artifact_name = str(uuid4())
             description = "description for foo " + artifact_name
             device_type = "project-" + str(uuid4())
@@ -134,7 +135,7 @@ class TestInternalApiGetLastDeviceDeploymentStatus:
     DEVICE_DEPLOYMENT_SUCCESS = 2560
 
     def test_get_statuses(self, api_client_int, mongo, clean_db):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             # insert something in the db
             device_ids = [str(uuid.uuid4()), str(uuid.uuid4())]
             deployment_id = "acaf62f0-6a6f-45e4-9c52-838ee593cb62"

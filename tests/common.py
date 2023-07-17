@@ -41,14 +41,15 @@ MONGO_LOCK_FILE = "/mongo-lock"
 
 
 class Lock:
-    def __init__(self):
+    def __init__(self, lock_file):
         letters = string.ascii_lowercase
         self.hash = "".join(random.choice(letters) for i in range(128))
+        self.lock_file = lock_file
 
     def __enter__(self):
-        while os.path.exists(MONGO_LOCK_FILE):
+        while os.path.exists(self.lock_file):
             time.sleep(0.1)
-        with open(MONGO_LOCK_FILE, "w") as fh:
+        with open(self.lock_file, "w") as fh:
             fh.write(self.hash)
         return self
 
@@ -56,13 +57,13 @@ class Lock:
         self.unlock()
 
     def unlock(self):
-        if not os.path.exists(MONGO_LOCK_FILE):
+        if not os.path.exists(self.lock_file):
             return
-        with open(MONGO_LOCK_FILE, "r") as fh:
+        with open(self.lock_file, "r") as fh:
             hash = fh.read()
             if hash != self.hash:
                 return
-        os.remove(MONGO_LOCK_FILE)
+        os.remove(self.lock_file)
 
 
 class Artifact(metaclass=abc.ABCMeta):

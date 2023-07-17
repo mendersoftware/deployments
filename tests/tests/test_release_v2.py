@@ -31,6 +31,7 @@ from common import (
     mongo,
     cli,
     Lock,
+    MONGO_LOCK_FILE,
 )
 
 from config import pytest_config
@@ -43,7 +44,7 @@ class TestRelease:
 
     @pytest.mark.usefixtures("clean_minio")
     def test_get_all_releases(self, mongo, cli):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             cli.migrate()
             with artifacts_added_from_data(
                 [

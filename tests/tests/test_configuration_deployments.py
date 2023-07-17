@@ -26,7 +26,8 @@ from urllib.parse import urlparse, parse_qs, urlencode, quote
 from client import DeploymentsClient, ArtifactsClient
 
 from bson.objectid import ObjectId
-from common import api_client_int, mongo, clean_db, Device, Lock
+from common import api_client_int, mongo, clean_db, Device, Lock, MONGO_LOCK_FILE
+
 
 from client import SimpleDeviceClient, InventoryClient
 
@@ -41,7 +42,7 @@ def inventory_add_dev(dev, tenant_id):
 
 class TestInternalApiPostConfigurationDeployment:
     def test_ok(self, api_client_int, clean_db, mongo):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             tenant_id = str(ObjectId())
             _, r = api_client_int.create_tenant(tenant_id)
             assert r.status_code == 201
@@ -74,7 +75,7 @@ class TestInternalApiPostConfigurationDeployment:
             l.unlock()
 
     def test_fail_missing_name(self, api_client_int, clean_db):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             tenant_id = str(ObjectId())
             _, r = api_client_int.create_tenant(tenant_id)
             assert r.status_code == 201
@@ -93,7 +94,7 @@ class TestInternalApiPostConfigurationDeployment:
             l.unlock()
 
     def test_fail_missing_configuration(self, api_client_int, clean_db):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             tenant_id = str(ObjectId())
             _, r = api_client_int.create_tenant(tenant_id)
             assert r.status_code == 201
@@ -112,7 +113,7 @@ class TestInternalApiPostConfigurationDeployment:
             l.unlock()
 
     def test_fail_wrong_deployment_id(self, api_client_int, clean_db):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             tenant_id = str(ObjectId())
             _, r = api_client_int.create_tenant(tenant_id)
             assert r.status_code == 201
@@ -133,7 +134,7 @@ class TestInternalApiPostConfigurationDeployment:
             l.unlock()
 
     def test_fail_duplicate_deployment(self, api_client_int, clean_db):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             tenant_id = str(ObjectId())
             _, r = api_client_int.create_tenant(tenant_id)
             assert r.status_code == 201
@@ -180,7 +181,7 @@ class TestDevicesApiGetConfigurationDeploymentLink:
         """
 
         # set up deployment
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             tenant_id = str(ObjectId())
             _, r = api_client_int.create_tenant(tenant_id)
             assert r.status_code == 201
@@ -237,7 +238,7 @@ class TestDevicesApiGetConfigurationDeploymentLink:
              Simulate invalid or malicious download requests.
         """
         # for reference - get a real, working link to an actual deployment
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             tenant_id = str(ObjectId())
             _, r = api_client_int.create_tenant(tenant_id)
             assert r.status_code == 201
@@ -346,7 +347,7 @@ class TestDeviceApiGetConfigurationDeploymentNext:
 
     def test_fail_no_upgrade(self, api_client_int, clean_db, mongo):
         # start with a valid deployment
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             tenant_id = str(ObjectId())
             _, r = api_client_int.create_tenant(tenant_id)
             assert r.status_code == 201

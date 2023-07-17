@@ -28,6 +28,7 @@ from common import (
     MinioClient,
     mongo,
     Lock,
+    MONGO_LOCK_FILE,
 )
 
 
@@ -42,7 +43,7 @@ class TestRelease:
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_get_all_releases(self):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             with artifacts_added_from_data(
                 [
                     ("foo", "device-type-1"),
@@ -77,7 +78,7 @@ class TestRelease:
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_get_release_with_bootstrap_artifact(self):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             artifact_name = str(uuid4())
             description = f"description for foo {artifact_name}"
             device_type = f"project-{str(uuid4())}"
@@ -118,7 +119,7 @@ class TestRelease:
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_get_releases_by_name(self):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             with artifacts_added_from_data(
                 [
                     ("foo", "device-type-1"),
@@ -141,7 +142,7 @@ class TestRelease:
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_get_releases_by_name_no_result(self):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             with artifacts_added_from_data(
                 [
                     ("foo", "device-type-1"),

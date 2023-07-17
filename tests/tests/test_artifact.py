@@ -33,6 +33,7 @@ from common import (
     MinioClient,
     mongo,
     Lock,
+    MONGO_LOCK_FILE,
 )
 
 
@@ -46,7 +47,7 @@ class TestArtifact:
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_new_bogus_empty(self):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             # try bogus image data
             try:
                 res = self.ac.client.Management_API.Upload_Artifact(
@@ -65,7 +66,7 @@ class TestArtifact:
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_new_bogus_data(self):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             with artifact_from_raw_data(b"foo_bar") as art:
                 files = ArtifactsClient.make_upload_meta(
                     {
@@ -84,7 +85,7 @@ class TestArtifact:
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_valid(self):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             artifact_name = str(uuid4())
             description = f"description for foo {artifact_name}"
             device_type = f"project-{str(uuid4())}"
@@ -166,7 +167,7 @@ class TestArtifact:
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_bootstrap_valid(self):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             artifact_name = str(uuid4())
             description = f"description for foo {artifact_name}"
             device_type = f"project-{str(uuid4())}"
@@ -244,7 +245,7 @@ class TestArtifact:
         """
         Uploads an artifact > 10MiB to cover the multipart upload scenario.
         """
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             artifact_name = str(uuid4())
             description = "description for foo " + artifact_name
             device_type = "project-" + str(uuid4())
@@ -283,7 +284,7 @@ class TestArtifact:
 
     def test_single_artifact(self):
         # try with bogus image ID
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             try:
                 res = self.ac.client.Management_API.Show_Artifact(
                     Authorization="foo", id="foo"
@@ -306,7 +307,7 @@ class TestArtifact:
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_artifacts_generate_valid(self):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             artifact_name = str(uuid4())
             description = "description for foo " + artifact_name
             device_type = "project-" + str(uuid4())
@@ -330,7 +331,7 @@ class TestArtifact:
     @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_compressed_artifacts_valid(self):
         """Create and upload artifacts with different compressions"""
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             compressions = ["gzip", "lzma"]
             for comp in compressions:
                 artifact_name = str(uuid4())
@@ -353,7 +354,7 @@ class TestArtifact:
 
 class TestDirectUpload:
     def test_upload(self, clean_db):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             mgo = clean_db
             ac = ArtifactsClient()
 

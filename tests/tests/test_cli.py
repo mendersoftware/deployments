@@ -83,28 +83,28 @@ class TestMigration:
 @pytest.mark.last
 class TestCliMigrate:
     def test_ok_no_db(self, cli, clean_db, mongo):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             cli.migrate()
             TestMigration.verify(cli, mongo, DB_NAME, DB_VERSION)
             l.unlock()
 
     @pytest.mark.parametrize("migrated_db", ["0.0.1"], indirect=True)
     def test_ok_stale_db(self, cli, migrated_db, mongo):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             cli.migrate()
             TestMigration.verify(cli, mongo, DB_NAME, DB_VERSION)
             l.unlock()
 
     @pytest.mark.parametrize("migrated_db", ["1.1.0"], indirect=True)
     def test_ok_current_db(self, cli, migrated_db, mongo):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             cli.migrate()
             TestMigration.verify(cli, mongo, DB_NAME, DB_VERSION)
             l.unlock()
 
     @pytest.mark.parametrize("migrated_db", ["2.0.0"], indirect=True)
     def test_ok_future_db(self, cli, migrated_db, mongo):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             cli.migrate()
             TestMigration.verify(cli, mongo, DB_NAME, "2.0.0")
             l.unlock()
@@ -116,7 +116,7 @@ class TestCliMigrateMultiTenant:
         "tenant_id", list(MIGRATED_TENANT_DBS) + ["tenant-new-1", "tenant-new-2"]
     )
     def test_ok(self, cli, mongo, migrated_tenant_dbs, tenant_id):
-        with Lock() as l:
+        with Lock(MONGO_LOCK_FILE) as l:
             cli.migrate(tenant_id)
 
             dbname = make_tenant_db(tenant_id)

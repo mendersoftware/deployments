@@ -161,7 +161,7 @@ type InvalidCharError struct {
 	Char   byte
 }
 
-func (err InvalidCharError) Error() string {
+func (err *InvalidCharError) Error() string {
 	return fmt.Sprintf(`invalid character '%c' at offset %d`, err.Char, err.Offset)
 }
 
@@ -175,7 +175,7 @@ func (n Notes) Validate() error {
 		return ErrReleaseNotesTooLong
 	}
 	if i := strings.IndexFunc(string(n), IsNotGraphic); i > 0 {
-		return InvalidCharError{
+		return &InvalidCharError{
 			Char:   n[i],
 			Offset: i,
 		}
