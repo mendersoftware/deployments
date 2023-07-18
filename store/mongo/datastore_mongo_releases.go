@@ -92,6 +92,18 @@ func (db *DataStoreMongo) UpdateReleaseArtifacts(
 	if err != nil {
 		return err
 	}
+	if artifactToRemove != nil {
+		r := collReleases.FindOneAndDelete(
+			ctx,
+			bson.M{
+				StorageKeyReleaseName:      releaseName,
+				StorageKeyReleaseArtifacts: bson.M{"$size": 0},
+			},
+		)
+		if r.Err() != nil {
+			return err
+		}
+	}
 	return nil
 }
 
