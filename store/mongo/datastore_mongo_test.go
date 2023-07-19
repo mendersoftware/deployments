@@ -603,6 +603,43 @@ func TestGetReleases_1_2_15(t *testing.T) {
 			}
 			assert.Equal(t, tc.releases, releases)
 			assert.GreaterOrEqual(t, count, len(tc.releases))
+			countsByName := make(map[string]int, len(inputImgs))
+			for _, img := range inputImgs {
+				if v, ok := countsByName[img.ArtifactMeta.Name]; ok {
+					countsByName[img.ArtifactMeta.Name] = v + 1
+				} else {
+					countsByName[img.ArtifactMeta.Name] = 1
+				}
+			}
+			for _, img := range inputImgs {
+				err = ds.UpdateReleaseArtifacts(ctx, nil, img, img.ArtifactMeta.Name)
+				countsByName[img.ArtifactMeta.Name] = countsByName[img.ArtifactMeta.Name] - 1
+				if countsByName[img.ArtifactMeta.Name] > 0 {
+					_, count, _ = ds.getReleases_1_2_15(ctx, &model.ReleaseOrImageFilter{
+						Name: img.ArtifactMeta.Name,
+					})
+					assert.True(t, count > 0, "before the removal of the last artifact the release should still exist")
+				}
+				assert.NoError(t, err)
+			}
+			_, count, _ = ds.getReleases_1_2_15(ctx, tc.releaseFilt)
+			assert.Equal(t, count, 0, "after the removal of the last artifact the release should vanish")
+			// we have to re-add the images for the rest of the tests
+			for _, img := range inputImgs {
+				err = ds.UpdateReleaseArtifacts(ctx, img, nil, img.ArtifactMeta.Name)
+				assert.NoError(t, err)
+
+				// Convert Depends["device_type"] to bson.A for the sake of
+				// simplifying test case definitions.
+				img.ArtifactMeta.Depends = make(map[string]interface{})
+				img.ArtifactMeta.Depends["device_type"] = make(bson.A,
+					len(img.ArtifactMeta.DeviceTypesCompatible),
+				)
+				for i, devType := range img.ArtifactMeta.DeviceTypesCompatible {
+					img.ArtifactMeta.Depends["device_type"].(bson.A)[i] = devType
+				}
+				time.Sleep(time.Millisecond * 10)
+			}
 		})
 	}
 }
