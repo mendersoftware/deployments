@@ -237,8 +237,8 @@ github.com/mattn/go-isatty v0.0.17 h1:BTarxUcIeDqL27Mc+vyvdWYSL28zpIhv3RoTdsLMPn
 github.com/mattn/go-isatty v0.0.17/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=
 github.com/mendersoftware/go-lib-micro v0.0.0-20230703070409-85a5f596f20f h1:4O9/nQbef/rjdNuifdwJMVxppmwv8dG1+h5RPoawF/8=
 github.com/mendersoftware/go-lib-micro v0.0.0-20230703070409-85a5f596f20f/go.mod h1:CzHZy8q4qhNfokk7KtKF7vb8RSLPCC2B1sD1vMVER14=
-github.com/mendersoftware/mender-artifact v0.0.0-20230706175941-9550bab1266f h1:32TnZAN+YT56+2RQx7CMRuPKTdESDC79zXPtexk7ez4=
-github.com/mendersoftware/mender-artifact v0.0.0-20230706175941-9550bab1266f/go.mod h1:XFcXvPrRpPLEPFnfolnVdyRdJGR0I+ngNS1obklInRk=
+github.com/mendersoftware/mender-artifact v0.0.0-20230719072949-38034200891a h1:kFmdYStWZTB8U4q+4QCTWa8MwHPXyWVItaay2rSrNDo=
+github.com/mendersoftware/mender-artifact v0.0.0-20230719072949-38034200891a/go.mod h1:XFcXvPrRpPLEPFnfolnVdyRdJGR0I+ngNS1obklInRk=
 github.com/mendersoftware/openssl v0.0.0-20220610125625-9fe59ddd6ba4 h1:RNC/c9KxP541F5MdM8ejzSIIRyvF2l74mj6PvvwDdvE=
 github.com/mendersoftware/openssl v0.0.0-20220610125625-9fe59ddd6ba4/go.mod h1:tikEC94q+Y0TU6r19L6mHzwruoTNYPEkrQPvsHEcQyU=
 github.com/mendersoftware/progressbar v0.0.3 h1:AUdBGPvXO0l9i39rmXKZbEAPet2FzBeiG8b30D5/2Vc=
