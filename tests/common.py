@@ -176,6 +176,41 @@ def artifact_rootfs_from_data(
 
 
 @contextmanager
+def artifact_update_module_from_data(
+    name: str = "foo",
+    data: bytes = None,
+    devicetype: str = "hammer",
+    update_type: str = "app",
+):
+    with tempfile.NamedTemporaryFile(prefix="menderout") as tmender:
+        logging.info("writing mender artifact to temp file %s", tmender.name)
+
+        with tempfile.NamedTemporaryFile(prefix="menderin") as tdata:
+            logging.info("writing update data to temp file %s", tdata.name)
+            tdata.write(data)
+            tdata.flush()
+
+            cmd = (
+                f"mender-artifact write module-image"
+                + f' -T "{update_type}"'
+                + f' --device-type "{devicetype}"'
+                + f' --file "{tdata.name}"'
+                + f' --artifact-name "{name}"'
+                + f' --output-path "{tmender.name}"'
+            )
+            rc = subprocess.call(cmd, shell=True)
+            if rc:
+                logging.error("mender-artifact call '%s' failed with code %d", cmd, rc)
+                raise RuntimeError(
+                    "mender-artifact command '{}' failed with code {}".format(cmd, rc)
+                )
+
+            # bring up temp mender artifact
+            with artifact_from_mender_file(tmender.name) as fa:
+                yield fa
+
+
+@contextmanager
 def artifact_bootstrap_from_data(
     name: str = "foo",
     devicetype: str = "hammer",
@@ -219,6 +254,27 @@ def artifacts_added_from_data(artifacts):
         # generate artifact
         with artifact_rootfs_from_data(
             name=name, data=data, devicetype=device_type
+        ) as art:
+            logging.info("uploading artifact")
+            artid = ac.add_artifact("foo", art.size, art)
+            out_artifacts.append(artid)
+
+    yield out_artifacts
+
+    for artid in out_artifacts:
+        ac.delete_artifact(artid)
+
+
+@contextmanager
+def artifacts_update_module_added_from_data(artifacts):
+    data = b"foo_bar"
+    out_artifacts = []
+    ac = ArtifactsClient()
+
+    for (name, device_type, update_type) in artifacts:
+        # generate artifact
+        with artifact_update_module_from_data(
+            name=name, data=data, devicetype=device_type, update_type=update_type
         ) as art:
             logging.info("uploading artifact")
             artid = ac.add_artifact("foo", art.size, art)

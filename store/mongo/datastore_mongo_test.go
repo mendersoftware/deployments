@@ -335,6 +335,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 	}
 	db.Wipe()
 
+	artifactType := "app"
 	inputImgs := []*model.Image{
 		{
 			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d80",
@@ -345,7 +346,6 @@ func TestGetReleases_1_2_15(t *testing.T) {
 			ArtifactMeta: &model.ArtifactMeta{
 				Name:                  "App1 v1.0",
 				DeviceTypesCompatible: []string{"foo"},
-				Updates:               []model.Update{},
 			},
 			Modified: timePtr("2010-09-22T22:00:00+00:00"),
 		},
@@ -401,6 +401,25 @@ func TestGetReleases_1_2_15(t *testing.T) {
 			},
 			Modified: timePtr("2010-09-22T23:00:00+00:00"),
 		},
+		{
+			Id: "6d4f6e27-c3bb-438c-ad9c-d9de30e59d85",
+			ImageMeta: &model.ImageMeta{
+				Description: "description2",
+			},
+
+			ArtifactMeta: &model.ArtifactMeta{
+				Name:                  "App4 v2.0",
+				DeviceTypesCompatible: []string{"foo2"},
+				Updates: []model.Update{
+					{
+						TypeInfo: model.ArtifactUpdateTypeInfo{
+							Type: &artifactType,
+						},
+					},
+				},
+			},
+			Modified: timePtr("2023-09-22T22:00:00+00:00"),
+		},
 	}
 
 	// Setup test context
@@ -451,6 +470,12 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[4],
 					},
 				},
+				{
+					Name: "App4 v2.0",
+					Artifacts: []model.Image{
+						*inputImgs[5],
+					},
+				},
 			},
 		},
 		"ok, description partial": {
@@ -471,6 +496,12 @@ func TestGetReleases_1_2_15(t *testing.T) {
 					Artifacts: []model.Image{
 						*inputImgs[1],
 						*inputImgs[4],
+					},
+				},
+				{
+					Name: "App4 v2.0",
+					Artifacts: []model.Image{
+						*inputImgs[5],
 					},
 				},
 			},
@@ -509,6 +540,12 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[4],
 					},
 				},
+				{
+					Name: "App4 v2.0",
+					Artifacts: []model.Image{
+						*inputImgs[5],
+					},
+				},
 			},
 		},
 		"ok, sort by modified desc": {
@@ -516,6 +553,12 @@ func TestGetReleases_1_2_15(t *testing.T) {
 				Sort: "modified:desc",
 			},
 			releases: []model.Release{
+				{
+					Name: "App4 v2.0",
+					Artifacts: []model.Image{
+						*inputImgs[5],
+					},
+				},
 				{
 					Name: "App2 v0.1",
 					Artifacts: []model.Image{
@@ -556,11 +599,10 @@ func TestGetReleases_1_2_15(t *testing.T) {
 			},
 			releases: []model.Release{
 				{
-					Name: "App1 v1.0",
+					Name: "App2 v0.1",
 					Artifacts: []model.Image{
-						*inputImgs[0],
-						*inputImgs[2],
-						*inputImgs[3],
+						*inputImgs[1],
+						*inputImgs[4],
 					},
 				},
 			},
@@ -575,6 +617,19 @@ func TestGetReleases_1_2_15(t *testing.T) {
 					Artifacts: []model.Image{
 						*inputImgs[1],
 						*inputImgs[4],
+					},
+				},
+			},
+		},
+		"ok, by update_type": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				UpdateType: artifactType,
+			},
+			releases: []model.Release{
+				{
+					Name: "App4 v2.0",
+					Artifacts: []model.Image{
+						*inputImgs[5],
 					},
 				},
 			},
@@ -603,6 +658,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 			}
 			assert.Equal(t, tc.releases, releases)
 			assert.GreaterOrEqual(t, count, len(tc.releases))
+
 			countsByName := make(map[string]int, len(inputImgs))
 			for _, img := range inputImgs {
 				if v, ok := countsByName[img.ArtifactMeta.Name]; ok {
