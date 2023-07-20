@@ -23,6 +23,7 @@ from client import DeploymentsClient, ArtifactsClient
 from common import (
     artifacts_added_from_data,
     artifact_bootstrap_from_data,
+    artifacts_update_module_added_from_data,
     clean_db,
     clean_minio,
     MinioClient,
@@ -135,6 +136,53 @@ class TestRelease:
                 release = res[0]
                 assert release.Name == "bar"
                 assert len(release.Artifacts) == 1
+                artifact = release.Artifacts[0]
+                l.unlock()
+                assert artifact["name"] == "bar"
+                assert artifact["device_types_compatible"] == ["device-type-2"]
+
+    @pytest.mark.usefixtures("clean_minio", "clean_db")
+    def test_get_releases_by_update_type(self):
+        with Lock(MONGO_LOCK_FILE) as l:
+            with artifacts_update_module_added_from_data(
+                [
+                    ("foo", "device-type-1", "app"),
+                    ("foo", "device-type-2", "single-file"),
+                    ("bar", "device-type-2", "directory"),
+                ]
+            ):
+                rsp = self.d.client.Management_API.List_Releases(
+                    Authorization="foo", update_type="app"
+                ).result()
+                res = rsp[0]
+                assert len(res) == 1
+                release = res[0]
+                assert release.Name == "foo"
+                assert len(release.Artifacts) > 0
+                artifact = release.Artifacts[0]
+                assert artifact["name"] == "foo"
+                assert artifact["device_types_compatible"] == ["device-type-1"]
+
+                rsp = self.d.client.Management_API.List_Releases(
+                    Authorization="foo", update_type="single-file"
+                ).result()
+                res = rsp[0]
+                assert len(res) == 1
+                release = res[0]
+                assert release.Name == "foo"
+                assert len(release.Artifacts) > 0
+                artifact = release.Artifacts[1]
+                assert artifact["name"] == "foo"
+                assert artifact["device_types_compatible"] == ["device-type-2"]
+
+                rsp = self.d.client.Management_API.List_Releases(
+                    Authorization="foo", update_type="directory"
+                ).result()
+                res = rsp[0]
+                assert len(res) == 1
+                release = res[0]
+                assert release.Name == "bar"
+                assert len(release.Artifacts) > 0
                 artifact = release.Artifacts[0]
                 l.unlock()
                 assert artifact["name"] == "bar"

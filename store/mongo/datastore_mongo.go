@@ -100,6 +100,9 @@ var (
 	// Indexes 1.2.16
 	IndexNameReleaseTags = "release_tags"
 
+	// Indexes 1.2.17
+	IndexNameReleaseUpdateTypes = "release_update_types"
+
 	_false         = false
 	_true          = true
 	StorageIndexes = mongo.IndexModel{
@@ -399,6 +402,7 @@ const (
 	StorageKeyImageSize        = "size"
 	StorageKeyImageDeviceTypes = "meta_artifact.device_types_compatible"
 	StorageKeyImageName        = "meta_artifact.name"
+	StorageKeyUpdateType       = "meta_artifact.updates.typeinfo.type"
 	StorageKeyImageDescription = "meta.description"
 	StorageKeyImageModified    = "modified"
 
@@ -414,6 +418,8 @@ const (
 		StorageKeyImageDescription
 	StorageKeyReleaseArtifactsDeviceTypes = StorageKeyReleaseArtifacts + "." +
 		StorageKeyImageDeviceTypes
+	StorageKeyReleaseArtifactsUpdateTypes = StorageKeyReleaseArtifacts + "." +
+		StorageKeyUpdateType
 	StorageKeyReleaseArtifactsIndexModified = StorageKeyReleaseArtifacts + ".$." +
 		StorageKeyImageModified
 	StorageKeyReleaseArtifactsId = StorageKeyReleaseArtifacts + "." +
@@ -758,6 +764,9 @@ func (db *DataStoreMongo) getReleases_1_2_15(
 		}
 		if filt.DeviceType != "" {
 			filter[StorageKeyReleaseArtifactsDeviceTypes] = bson.M{"$regex": filt.DeviceType}
+		}
+		if filt.UpdateType != "" {
+			filter[StorageKeyReleaseArtifactsUpdateTypes] = bson.M{"$eq": filt.UpdateType}
 		}
 	}
 	releases := []model.Release{}
