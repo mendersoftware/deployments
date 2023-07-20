@@ -765,6 +765,11 @@ paths:
           description: Release device type filter.
           required: false
           type: string
+        - name: update_type
+          in: query
+          description: Update type filter.
+          required: false
+          type: string
       produces:
         - application/json
       responses:

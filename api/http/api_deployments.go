@@ -71,6 +71,7 @@ const (
 	// Common HTTP form parameters
 	ParamArtifactName = "artifact_name"
 	ParamDeviceType   = "device_type"
+	ParamUpdateType   = "update_type"
 	ParamDeploymentID = "deployment_id"
 	ParamDeviceID     = "device_id"
 	ParamTenantID     = "tenant_id"
@@ -255,6 +256,7 @@ func getReleaseOrImageFilter(r *rest.Request, paginated bool) *model.ReleaseOrIm
 		Name:        q.Get(ParamName),
 		Description: q.Get(ParamDescription),
 		DeviceType:  q.Get(ParamDeviceType),
+		UpdateType:  q.Get(ParamUpdateType),
 	}
 
 	if paginated {
