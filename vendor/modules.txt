@@ -293,7 +293,7 @@ github.com/mendersoftware/go-lib-micro/rest_utils
 github.com/mendersoftware/go-lib-micro/store
 github.com/mendersoftware/go-lib-micro/strings
 github.com/mendersoftware/go-lib-micro/testing
-# github.com/mendersoftware/mender-artifact v0.0.0-20230706175941-9550bab1266f
+# github.com/mendersoftware/mender-artifact v0.0.0-20230719072949-38034200891a
 ## explicit; go 1.17
 github.com/mendersoftware/mender-artifact/areader
 github.com/mendersoftware/mender-artifact/artifact
