@@ -235,8 +235,8 @@ github.com/mattn/go-isatty v0.0.14 h1:yVuAays6BHfxijgZPzw+3Zlu5yQgKGP2/hcQbHb7S9
 github.com/mattn/go-isatty v0.0.14/go.mod h1:7GGIvUiUoEMVVmxf/4nioHXj79iQHKdU27kJ6hsGG94=
 github.com/mendersoftware/go-lib-micro v0.0.0-20221025103319-e1f941fb3145 h1:ALhDv8wnoQJ4sgUm1mTcPuJd7uj589rg8mqX0SMEwTA=
 github.com/mendersoftware/go-lib-micro v0.0.0-20221025103319-e1f941fb3145/go.mod h1:E/DE4gIsSGq6iybd4IBq+4O/CkAwL/5xeU6zwlgWmW8=
-github.com/mendersoftware/mender-artifact v0.0.0-20230224072157-cd8a5f429019 h1:QCSgp3BgyFGGDLug9qMWo4A7lf9TNc7HX+wn/4npWnw=
-github.com/mendersoftware/mender-artifact v0.0.0-20230224072157-cd8a5f429019/go.mod h1:uReGFG8ZbLZD37QcX541+LIjcVqHrmaKnG2BSd/KhJg=
+github.com/mendersoftware/mender-artifact v0.0.0-20230719072949-38034200891a h1:kFmdYStWZTB8U4q+4QCTWa8MwHPXyWVItaay2rSrNDo=
+github.com/mendersoftware/mender-artifact v0.0.0-20230719072949-38034200891a/go.mod h1:XFcXvPrRpPLEPFnfolnVdyRdJGR0I+ngNS1obklInRk=
 github.com/mendersoftware/openssl v0.0.0-20220610125625-9fe59ddd6ba4 h1:RNC/c9KxP541F5MdM8ejzSIIRyvF2l74mj6PvvwDdvE=
 github.com/mendersoftware/openssl v0.0.0-20220610125625-9fe59ddd6ba4/go.mod h1:tikEC94q+Y0TU6r19L6mHzwruoTNYPEkrQPvsHEcQyU=
 github.com/mendersoftware/progressbar v0.0.3 h1:AUdBGPvXO0l9i39rmXKZbEAPet2FzBeiG8b30D5/2Vc=
@@ -297,8 +297,8 @@ github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
-github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
-github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
+github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/subosito/gotenv v1.4.1 h1:jyEFiXpy21Wm81FBN71l9VoMMV8H8jG+qIK3GCpY6Qs=
 github.com/subosito/gotenv v1.4.1/go.mod h1:ayKnFf/c6rvx/2iiLrJUk1e6plDbT3edrFNGqEflhK0=
 github.com/tidwall/pretty v1.0.0 h1:HsD+QiTn7sK6flMKIvNmpqz1qrpP3Ps6jOKIKMooyg4=
