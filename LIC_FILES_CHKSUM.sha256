@@ -103,6 +103,7 @@ c8a84b926246b4ac76e3810722858b0f83bdea8378de49911dccbefd70b0692e  vendor/github.
 6d13d89b6c33df37f92553cc95cec278d8770ddc78c9de84620cc16dfb48cef6  vendor/github.com/youmark/pkcs8/LICENSE
 b73277f7730993ef8e7f80aed83e5309762fed4d77eced982abb2c00657c074d  vendor/golang.org/x/arch/LICENSE
 d18f6323b71b0b768bb5e9616e36da390fbd39369a81807cca352de4e4e6aa0b  vendor/gopkg.in/yaml.v3/LICENSE
+4335e2ceb33d8d7e75125192466ae8604617b0a67492b919604fe52dc56018d9  vendor/github.com/gabriel-vasile/mimetype/LICENSE
 #
 # MPL-2.0
 bef1747eda88b9ed46e94830b0d978c3499dad5dfe38d364971760881901dadd  vendor/github.com/hashicorp/hcl/LICENSE
