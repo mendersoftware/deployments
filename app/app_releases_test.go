@@ -175,6 +175,65 @@ func TestListReleaseTags(t *testing.T) {
 	}
 }
 
+func TestGetReleasesUpdateTypes(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		Name string
+
+		context.Context
+
+		GetDatabase func(t *testing.T, self *testCase) *mocks.DataStore
+
+		Types []string
+		Error error
+	}
+	testCases := []testCase{{
+		Name: "ok",
+
+		Context: context.Background(),
+		Types:   []string{"field1", "field2"},
+
+		GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetUpdateTypes", self.Context).
+				Return(self.Types, nil)
+			return ds
+		},
+	}, {
+		Name: "error/internal error",
+
+		Context: context.Background(),
+
+		GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+			ds := new(mocks.DataStore)
+			ds.On("GetUpdateTypes", self.Context).
+				Return([]string{}, errors.New("internal error with sensitive info"))
+			return ds
+		},
+		Error: ErrModelInternal,
+	}}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			ds := tc.GetDatabase(t, &tc)
+			defer ds.AssertExpectations(t)
+
+			app := NewDeployments(ds, nil)
+
+			tags, err := app.GetReleasesUpdateTypes(tc.Context)
+			if tc.Error != nil {
+				assert.ErrorIs(t, err, tc.Error)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.Types, tags)
+			}
+		})
+	}
+}
+
 func TestUpdateRelease(t *testing.T) {
 	t.Parallel()
 

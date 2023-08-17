@@ -50,6 +50,7 @@ const (
 	CollectionStorageSettings      = "settings"
 	CollectionUploadIntents        = "uploads"
 	CollectionReleases             = "releases"
+	CollectionUpdateTypes          = "update_types"
 )
 
 const DefaultDocumentLimit = 20
@@ -102,6 +103,9 @@ var (
 
 	// Indexes 1.2.17
 	IndexNameReleaseUpdateTypes = "release_update_types"
+
+	// Indexes 1.2.18
+	IndexNameAggregatedUpdateTypes = "aggregated_release_update_types"
 
 	_false         = false
 	_true          = true
@@ -471,6 +475,8 @@ const (
 	StorageKeyStorageSettingsToken          = "token"
 	StorageKeyStorageSettingsForcePathStyle = "force_path_style"
 	StorageKeyStorageSettingsUseAccelerate  = "use_accelerate"
+
+	StorageKeyStorageReleaseUpdateTypes = "update_types"
 
 	ArtifactDependsDeviceType = "device_type"
 )

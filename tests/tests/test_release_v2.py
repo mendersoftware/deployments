@@ -26,6 +26,7 @@ from client import DeploymentsClient, ArtifactsClient
 from common import (
     artifacts_added_from_data,
     artifact_bootstrap_from_data,
+    artifacts_update_module_added_from_data,
     clean_minio,
     MinioClient,
     mongo,
@@ -66,6 +67,11 @@ class TestRelease:
                     + pytest_config.getoption("host")
                     + f"/api/management/v1/deployments/deployments/releases?name=%s"
                 )
+                get_types_url = (
+                    "http://"
+                    + pytest_config.getoption("host")
+                    + f"/api/management/v2/deployments/releases/all/types"
+                )
                 release_name = "bar"
                 for release_notes in [
                     "New Release security fixes 2023",
@@ -98,3 +104,41 @@ class TestRelease:
                 releases = json.loads(r.text)
                 assert len(releases) > 0
                 assert releases[0]["notes"] == ""
+
+                r = requests.get(
+                    get_types_url,
+                    verify=False,
+                    headers={"Authorization": "Bearer foo"},
+                )
+                types = json.loads(r.text)
+                assert len(types) == 1
+                assert types[0] == "rootfs-image"
+
+    @pytest.mark.usefixtures("clean_minio")
+    def test_get_all_releases_types(self, mongo, cli):
+        with Lock(MONGO_LOCK_FILE) as l:
+            cli.migrate()
+            with artifacts_update_module_added_from_data(
+                [
+                    ("foo", "device-type-1", "app"),
+                    ("foo", "device-type-2", "single-file"),
+                    ("bar", "device-type-2", "directory"),
+                ]
+            ):
+                # this is a hack, since the swagger client is not prepared for the
+                # specifications of API v2 in a separate file, and we are supposed
+                # to move to openapi -- hence the fallback to requests.
+                get_types_url = (
+                    "http://"
+                    + pytest_config.getoption("host")
+                    + f"/api/management/v2/deployments/releases/all/types"
+                )
+
+                r = requests.get(
+                    get_types_url,
+                    verify=False,
+                    headers={"Authorization": "Bearer foo"},
+                )
+                types = json.loads(r.text)
+                assert len(types) > 0
+                assert types == ["rootfs-image", "app", "single-file", "directory"]
