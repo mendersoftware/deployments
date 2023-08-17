@@ -767,6 +767,29 @@ func (_m *DataStore) GetTenantDbs() ([]string, error) {
 	return r0, r1
 }
 
+// GetUpdateTypes provides a mock function with given fields: ctx
+func (_m *DataStore) GetUpdateTypes(ctx context.Context) ([]string, error) {
+	ret := _m.Called(ctx)
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(context.Context) []string); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // HasDeploymentForDevice provides a mock function with given fields: ctx, deploymentID, deviceID
 func (_m *DataStore) HasDeploymentForDevice(ctx context.Context, deploymentID string, deviceID string) (bool, error) {
 	ret := _m.Called(ctx, deploymentID, deviceID)
@@ -1113,6 +1136,20 @@ func (_m *DataStore) SaveLastDeviceDeploymentStatus(ctx context.Context, deviceD
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, model.DeviceDeployment) error); ok {
 		r0 = rf(ctx, deviceDeployment)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SaveUpdateTypes provides a mock function with given fields: ctx, updateTypes
+func (_m *DataStore) SaveUpdateTypes(ctx context.Context, updateTypes []string) error {
+	ret := _m.Called(ctx, updateTypes)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, []string) error); ok {
+		r0 = rf(ctx, updateTypes)
 	} else {
 		r0 = ret.Error(0)
 	}

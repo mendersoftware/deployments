@@ -396,6 +396,8 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		artifactReader.Count(),
 	)
 
+	// here
+	// image.ArtifactMeta.Updates[0].TypeInfo
 	// save image structure in the system
 	if err = d.db.InsertImage(ctx, image); err != nil {
 		// Try to remove the storage from s3.
@@ -412,7 +414,27 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		}
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
 	}
-
+	i := 0
+	var updateTypes []string
+	if image.ArtifactMeta != nil {
+		updateTypes = make([]string, len(image.ArtifactMeta.Updates))
+		for _, t := range image.ArtifactMeta.Updates {
+			if t.TypeInfo.Type == nil {
+				continue
+			}
+			updateTypes[i] = *t.TypeInfo.Type
+			i++
+		}
+	}
+	if i > 0 {
+		err = d.db.SaveUpdateTypes(ctx, updateTypes[:i])
+		if err != nil {
+			l.Errorf(
+				"error while saving the update types for the artifact: %s",
+				err.Error(),
+			)
+		}
+	}
 	// update release
 	if err := d.updateRelease(ctx, image, nil); err != nil {
 		return "", err
