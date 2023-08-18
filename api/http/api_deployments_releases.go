@@ -189,7 +189,7 @@ func (d *DeploymentsApiHandlers) GetReleasesUpdateTypes(
 	ctx := r.Context()
 	l := log.FromContext(ctx)
 
-	updateTypes, err := d.store.GetUpdateTypes(ctx)
+	updateTypes, err := d.app.GetReleasesUpdateTypes(ctx)
 	if err != nil {
 		rest_utils.RestErrWithLog(w, r, l, err, http.StatusInternalServerError)
 		return

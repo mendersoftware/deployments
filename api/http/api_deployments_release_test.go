@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -28,7 +27,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	//"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/mendersoftware/deployments/app"
 	mapp "github.com/mendersoftware/deployments/app/mocks"
@@ -382,6 +381,100 @@ func TestListReleaseTags(t *testing.T) {
 				err := json.Unmarshal(w.Body.Bytes(), &actual)
 				if assert.NoError(t, err, "unexpected request body") {
 					assert.Equal(t, tc.Tags, actual)
+				}
+			}
+		})
+	}
+}
+
+func TestGetReleasesUpdateTypes(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		Name string
+
+		App func(t *testing.T, self *testCase) *mapp.App
+		*http.Request
+
+		StatusCode int
+		Types      []string
+	}
+
+	testCases := []testCase{
+		{
+			Name: "ok",
+
+			Request: func() *http.Request {
+				req, _ := http.NewRequest(
+					http.MethodGet,
+					fmt.Sprintf("http://localhost:1234%s",
+						ApiUrlManagementV2ReleaseAllUpdateTypes,
+					),
+					nil,
+				)
+				return req
+			}(),
+
+			App: func(t *testing.T, self *testCase) *mapp.App {
+				appie := new(mapp.App)
+				appie.On("GetReleasesUpdateTypes",
+					contextMatcher()).
+					Return(self.Types, nil)
+				return appie
+			},
+
+			StatusCode: http.StatusOK,
+			Types:      []string{"bar", "baz", "foo"},
+		},
+		{
+			Name: "error/internal",
+
+			Request: func() *http.Request {
+				req, _ := http.NewRequest(
+					http.MethodGet,
+					fmt.Sprintf("http://localhost:1234%s",
+						ApiUrlManagementV2ReleaseAllUpdateTypes,
+					),
+					nil,
+				)
+				return req
+			}(),
+
+			App: func(t *testing.T, self *testCase) *mapp.App {
+				appie := new(mapp.App)
+				appie.On("GetReleasesUpdateTypes",
+					contextMatcher()).
+					Return([]string{}, errors.New("internal"))
+				return appie
+			},
+
+			StatusCode: http.StatusInternalServerError,
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			appie := tc.App(t, &tc)
+			defer appie.AssertExpectations(t)
+
+			handlers := NewDeploymentsApiHandlers(nil, &view.RESTView{}, appie)
+			routes := ReleasesRoutes(handlers)
+			router, _ := rest.MakeRouter(routes...)
+			api := rest.NewApi()
+			api.SetApp(router)
+			handler := api.MakeHandler()
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, tc.Request)
+
+			rsp := w.Result()
+			assert.Equal(t, tc.StatusCode, rsp.StatusCode,
+				"unexpected status code from request")
+			if tc.Types != nil {
+				var actual []string
+				err := json.Unmarshal(w.Body.Bytes(), &actual)
+				if assert.NoError(t, err, "unexpected request body") {
+					assert.Equal(t, tc.Types, actual)
 				}
 			}
 		})

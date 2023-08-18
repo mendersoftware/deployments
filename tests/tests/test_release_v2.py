@@ -139,7 +139,6 @@ class TestRelease:
                     verify=False,
                     headers={"Authorization": "Bearer foo"},
                 )
-                self.d.log.debug("get types result: %s", r.text)
                 types = json.loads(r.text)
                 assert len(types) > 0
                 assert types == ["rootfs-image", "app", "single-file", "directory"]

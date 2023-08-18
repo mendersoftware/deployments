@@ -191,6 +191,7 @@ type App interface {
 	ReplaceReleaseTags(ctx context.Context, releaseName string, tags model.Tags) error
 	UpdateRelease(ctx context.Context, releaseName string, release model.ReleasePatch) error
 	ListReleaseTags(ctx context.Context) (model.Tags, error)
+	GetReleasesUpdateTypes(ctx context.Context) ([]string, error)
 }
 
 type Deployments struct {
@@ -396,8 +397,6 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		artifactReader.Count(),
 	)
 
-	// here
-	// image.ArtifactMeta.Updates[0].TypeInfo
 	// save image structure in the system
 	if err = d.db.InsertImage(ctx, image); err != nil {
 		// Try to remove the storage from s3.

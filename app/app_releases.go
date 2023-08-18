@@ -72,6 +72,16 @@ func (d *Deployments) ListReleaseTags(ctx context.Context) (model.Tags, error) {
 	return tags, err
 }
 
+func (d *Deployments) GetReleasesUpdateTypes(ctx context.Context) ([]string, error) {
+	updateTypes, err := d.db.GetUpdateTypes(ctx)
+	if err != nil {
+		log.FromContext(ctx).
+			Errorf("failed to list release update types: %s", err)
+		err = ErrModelInternal
+	}
+	return updateTypes, err
+}
+
 func (d *Deployments) ReplaceReleaseTags(
 	ctx context.Context,
 	releaseName string,
