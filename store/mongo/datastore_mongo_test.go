@@ -2967,8 +2967,10 @@ func TestSaveUpdateTypes(t *testing.T) {
 					DeleteMany(ctx, bson.M{})
 				_, err := client.Database(DbName).
 					Collection(CollectionUpdateTypes).
-					InsertOne(ctx, map[string][]string{
-						StorageKeyStorageReleaseUpdateTypes: {"type0", "type1"},
+					InsertOne(ctx, bson.M{
+						StorageKeyStorageReleaseUpdateTypes: []string{"type0", "type1"},
+						StorageKeyTenantId:                  "",
+						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
 					})
 				if err != nil {
 					t.Errorf("failed to initialize dataset: %s", err)
@@ -2990,8 +2992,10 @@ func TestSaveUpdateTypes(t *testing.T) {
 					DeleteMany(ctx, bson.M{})
 				_, err := client.Database(DbName).
 					Collection(CollectionUpdateTypes).
-					InsertOne(ctx, map[string][]string{
-						StorageKeyStorageReleaseUpdateTypes: {"type1", "type2"},
+					InsertOne(ctx, bson.M{
+						StorageKeyStorageReleaseUpdateTypes: []string{"type1", "type2"},
+						StorageKeyTenantId:                  "",
+						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
 					})
 				if err != nil {
 					t.Errorf("failed to initialize dataset: %s", err)
@@ -2999,7 +3003,32 @@ func TestSaveUpdateTypes(t *testing.T) {
 				}
 			},
 			UpdateTypes:         []string{"type0", "type1", "type2", "type3"},
-			ExpectedUpdateTypes: []string{"type0", "type1", "type2", "type3"},
+			ExpectedUpdateTypes: []string{"type1", "type2", "type0", "type3"},
+		},
+		{
+			Name: "ok empty add",
+
+			Context: context.Background(),
+
+			Init: func(t *testing.T, self *testCase) {
+				t.Helper()
+				client.Database(DbName).
+					Collection(CollectionUpdateTypes).
+					DeleteMany(ctx, bson.M{})
+				_, err := client.Database(DbName).
+					Collection(CollectionUpdateTypes).
+					InsertOne(ctx, bson.M{
+						StorageKeyStorageReleaseUpdateTypes: []string{"type1", "type2"},
+						StorageKeyTenantId:                  "",
+						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
+					})
+				if err != nil {
+					t.Errorf("failed to initialize dataset: %s", err)
+					t.FailNow()
+				}
+			},
+			UpdateTypes:         []string{},
+			ExpectedUpdateTypes: []string{"type1", "type2"},
 		},
 		{
 			Name: "ok newly added with tenant",
@@ -3035,8 +3064,10 @@ func TestSaveUpdateTypes(t *testing.T) {
 					DeleteMany(ctx, bson.M{})
 				_, err := client.Database(DbName).
 					Collection(CollectionUpdateTypes).
-					InsertOne(ctx, map[string][]string{
-						StorageKeyStorageReleaseUpdateTypes: {"type0", "type1"},
+					InsertOne(ctx, bson.M{
+						StorageKeyStorageReleaseUpdateTypes: []string{"type0", "type1"},
+						StorageKeyTenantId:                  "222222222222222222222222",
+						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
 					})
 				if err != nil {
 					t.Errorf("failed to initialize dataset: %s", err)
@@ -3062,8 +3093,10 @@ func TestSaveUpdateTypes(t *testing.T) {
 					DeleteMany(ctx, bson.M{})
 				_, err := client.Database(DbName).
 					Collection(CollectionUpdateTypes).
-					InsertOne(ctx, map[string][]string{
-						StorageKeyStorageReleaseUpdateTypes: {"type1", "type2"},
+					InsertOne(ctx, bson.M{
+						StorageKeyStorageReleaseUpdateTypes: []string{"type1", "type2"},
+						StorageKeyTenantId:                  "222222222222222222222222",
+						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
 					})
 				if err != nil {
 					t.Errorf("failed to initialize dataset: %s", err)
@@ -3071,7 +3104,36 @@ func TestSaveUpdateTypes(t *testing.T) {
 				}
 			},
 			UpdateTypes:         []string{"type0", "type1", "type2", "type3"},
-			ExpectedUpdateTypes: []string{"type0", "type1", "type2", "type3"},
+			ExpectedUpdateTypes: []string{"type1", "type2", "type0", "type3"},
+		},
+		{
+			Name: "ok empty add with tenant",
+
+			Context: identity.WithContext(context.Background(),
+				&identity.Identity{
+					Tenant: "222222222222222222222222",
+				},
+			),
+
+			Init: func(t *testing.T, self *testCase) {
+				t.Helper()
+				client.Database(DbName).
+					Collection(CollectionUpdateTypes).
+					DeleteMany(ctx, bson.M{})
+				_, err := client.Database(DbName).
+					Collection(CollectionUpdateTypes).
+					InsertOne(ctx, bson.M{
+						StorageKeyStorageReleaseUpdateTypes: []string{"type1", "type2"},
+						StorageKeyTenantId:                  "222222222222222222222222",
+						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
+					})
+				if err != nil {
+					t.Errorf("failed to initialize dataset: %s", err)
+					t.FailNow()
+				}
+			},
+			UpdateTypes:         []string{},
+			ExpectedUpdateTypes: []string{"type1", "type2"},
 		},
 	}
 	for i := range testCases {

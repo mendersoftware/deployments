@@ -191,6 +191,7 @@ type App interface {
 	ReplaceReleaseTags(ctx context.Context, releaseName string, tags model.Tags) error
 	UpdateRelease(ctx context.Context, releaseName string, release model.ReleasePatch) error
 	ListReleaseTags(ctx context.Context) (model.Tags, error)
+	GetReleasesUpdateTypes(ctx context.Context) ([]string, error)
 }
 
 type Deployments struct {
@@ -396,8 +397,6 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		artifactReader.Count(),
 	)
 
-	// here
-	// image.ArtifactMeta.Updates[0].TypeInfo
 	// save image structure in the system
 	if err = d.db.InsertImage(ctx, image); err != nil {
 		// Try to remove the storage from s3.
@@ -414,10 +413,9 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		}
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
 	}
-	i := 0
-	var updateTypes []string
-	if image.ArtifactMeta != nil {
-		updateTypes = make([]string, len(image.ArtifactMeta.Updates))
+	if image.ArtifactMeta != nil && len(image.ArtifactMeta.Updates) > 0 {
+		i := 0
+		updateTypes := make([]string, len(image.ArtifactMeta.Updates))
 		for _, t := range image.ArtifactMeta.Updates {
 			if t.TypeInfo.Type == nil {
 				continue
@@ -425,8 +423,6 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 			updateTypes[i] = *t.TypeInfo.Type
 			i++
 		}
-	}
-	if i > 0 {
 		err = d.db.SaveUpdateTypes(ctx, updateTypes[:i])
 		if err != nil {
 			l.Errorf(
