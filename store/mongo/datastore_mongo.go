@@ -104,6 +104,9 @@ var (
 	// Indexes 1.2.17
 	IndexNameReleaseUpdateTypes = "release_update_types"
 
+	// Indexes 1.2.18
+	IndexNameAggregatedUpdateTypes = "aggregated_release_update_types"
+
 	_false         = false
 	_true          = true
 	StorageIndexes = mongo.IndexModel{

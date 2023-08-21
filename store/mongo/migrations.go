@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	DbVersion        = "1.2.17"
+	DbVersion        = "1.2.18"
 	DbMinimumVersion = "1.2.14"
 	DbName           = "deployment_service"
 )
@@ -139,6 +139,10 @@ func MigrateSingle(ctx context.Context,
 			db:     db,
 		},
 		&migration_1_2_17{
+			client: client,
+			db:     db,
+		},
+		&migration_1_2_18{
 			client: client,
 			db:     db,
 		},
