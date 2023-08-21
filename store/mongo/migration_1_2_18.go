@@ -44,7 +44,7 @@ func (m *migration_1_2_18) Up(from migrate.Version) error {
 				Value: 1,
 			},
 		},
-		Options: mopts.Index().SetName(IndexNameAggregatedUpdateTypes),
+		Options: mopts.Index().SetName(IndexNameAggregatedUpdateTypes).SetUnique(true),
 	})
 	if err != nil {
 		return fmt.Errorf("mongo(1.2.18): failed to create index: %w", err)

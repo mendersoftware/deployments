@@ -239,7 +239,6 @@ func (db *DataStoreMongo) SaveUpdateTypes(ctx context.Context, updateTypes []str
 	_, err := c.UpdateOne(
 		ctx,
 		bson.M{
-			StorageKeyId:       StorageKeyStorageReleaseUpdateTypes,
 			StorageKeyTenantId: tenantId,
 		},
 		bson.M{
@@ -266,7 +265,6 @@ func (db *DataStoreMongo) GetUpdateTypes(ctx context.Context) ([]string, error) 
 	result := c.FindOne(
 		ctx,
 		bson.M{
-			StorageKeyId:       StorageKeyStorageReleaseUpdateTypes,
 			StorageKeyTenantId: tenantId,
 		},
 	)

@@ -2970,7 +2970,6 @@ func TestSaveUpdateTypes(t *testing.T) {
 					InsertOne(ctx, bson.M{
 						StorageKeyStorageReleaseUpdateTypes: []string{"type0", "type1"},
 						StorageKeyTenantId:                  "",
-						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
 					})
 				if err != nil {
 					t.Errorf("failed to initialize dataset: %s", err)
@@ -2995,7 +2994,6 @@ func TestSaveUpdateTypes(t *testing.T) {
 					InsertOne(ctx, bson.M{
 						StorageKeyStorageReleaseUpdateTypes: []string{"type1", "type2"},
 						StorageKeyTenantId:                  "",
-						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
 					})
 				if err != nil {
 					t.Errorf("failed to initialize dataset: %s", err)
@@ -3020,7 +3018,6 @@ func TestSaveUpdateTypes(t *testing.T) {
 					InsertOne(ctx, bson.M{
 						StorageKeyStorageReleaseUpdateTypes: []string{"type1", "type2"},
 						StorageKeyTenantId:                  "",
-						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
 					})
 				if err != nil {
 					t.Errorf("failed to initialize dataset: %s", err)
@@ -3044,6 +3041,16 @@ func TestSaveUpdateTypes(t *testing.T) {
 				client.Database(DbName).
 					Collection(CollectionUpdateTypes).
 					DeleteMany(ctx, bson.M{})
+				_, err := client.Database(DbName).
+					Collection(CollectionUpdateTypes).
+					InsertOne(ctx, bson.M{
+						StorageKeyStorageReleaseUpdateTypes: []string{"other_tenant_type0", "other_tenant_type1"},
+						StorageKeyTenantId:                  "322222222222222222222222",
+					})
+				if err != nil {
+					t.Errorf("failed to initialize dataset: %s", err)
+					t.FailNow()
+				}
 			},
 			UpdateTypes:         []string{"type0", "type1", "type2", "type3"},
 			ExpectedUpdateTypes: []string{"type0", "type1", "type2", "type3"},
@@ -3067,7 +3074,6 @@ func TestSaveUpdateTypes(t *testing.T) {
 					InsertOne(ctx, bson.M{
 						StorageKeyStorageReleaseUpdateTypes: []string{"type0", "type1"},
 						StorageKeyTenantId:                  "222222222222222222222222",
-						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
 					})
 				if err != nil {
 					t.Errorf("failed to initialize dataset: %s", err)
@@ -3096,7 +3102,6 @@ func TestSaveUpdateTypes(t *testing.T) {
 					InsertOne(ctx, bson.M{
 						StorageKeyStorageReleaseUpdateTypes: []string{"type1", "type2"},
 						StorageKeyTenantId:                  "222222222222222222222222",
-						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
 					})
 				if err != nil {
 					t.Errorf("failed to initialize dataset: %s", err)
@@ -3125,7 +3130,6 @@ func TestSaveUpdateTypes(t *testing.T) {
 					InsertOne(ctx, bson.M{
 						StorageKeyStorageReleaseUpdateTypes: []string{"type1", "type2"},
 						StorageKeyTenantId:                  "222222222222222222222222",
-						StorageKeyId:                        StorageKeyStorageReleaseUpdateTypes,
 					})
 				if err != nil {
 					t.Errorf("failed to initialize dataset: %s", err)
