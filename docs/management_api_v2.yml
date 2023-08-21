@@ -171,7 +171,7 @@ paths:
         200:
           description: Successful response.
           schema:
-            $ref: "#/definitions/Tags"
+            $ref: "#/definitions/UpdateTypes"
         400:
           $ref: "#/responses/InvalidRequestError"
         401:
@@ -198,6 +198,13 @@ definitions:
       Tags assigned to the release used for filtering releases. Each tag
       must be valid a ASCII string and contain only lowercase and uppercase
       letters, digits, underscores, periods and hyphens.
+    items:
+      type: string
+
+  UpdateTypes:
+    type: array
+    description: |-
+      Update types as present in the images.
     items:
       type: string
 
