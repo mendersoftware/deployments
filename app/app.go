@@ -413,10 +413,9 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		}
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
 	}
-	i := 0
-	var updateTypes []string
-	if image.ArtifactMeta != nil {
-		updateTypes = make([]string, len(image.ArtifactMeta.Updates))
+	if image.ArtifactMeta != nil && len(image.ArtifactMeta.Updates) > 0 {
+		i := 0
+		updateTypes := make([]string, len(image.ArtifactMeta.Updates))
 		for _, t := range image.ArtifactMeta.Updates {
 			if t.TypeInfo.Type == nil {
 				continue
@@ -424,8 +423,6 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 			updateTypes[i] = *t.TypeInfo.Type
 			i++
 		}
-	}
-	if i > 0 {
 		err = d.db.SaveUpdateTypes(ctx, updateTypes[:i])
 		if err != nil {
 			l.Errorf(

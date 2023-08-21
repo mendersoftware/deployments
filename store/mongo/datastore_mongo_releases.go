@@ -226,6 +226,10 @@ func (db *DataStoreMongo) SaveUpdateTypes(ctx context.Context, updateTypes []str
 	database := db.client.Database(DatabaseName)
 	c := database.Collection(CollectionUpdateTypes)
 
+	if len(updateTypes) < 1 {
+		return nil
+	}
+
 	tenantId := ""
 	if id := identity.FromContext(ctx); id != nil {
 		tenantId = id.Tenant
