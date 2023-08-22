@@ -195,6 +195,8 @@ type DataStore interface {
 		release model.ReleasePatch,
 	) error
 	ListReleaseTags(ctx context.Context) (model.Tags, error)
+	SaveUpdateTypes(ctx context.Context, updateTypes []string) error
+	GetUpdateTypes(ctx context.Context) ([]string, error)
 }
 
 var ErrNotFound = errors.New("document not found")
