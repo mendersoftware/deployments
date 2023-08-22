@@ -208,6 +208,8 @@ var _ App = &Deployments{}
 func NewDeployments(
 	storage store.DataStore,
 	objectStorage storage.ObjectStorage,
+	maxActiveDeployments int64,
+	withAuditLogs bool,
 ) *Deployments {
 	return &Deployments{
 		db:              storage,
@@ -304,6 +306,28 @@ func (d *Deployments) ProvisionTenant(ctx context.Context, tenant_id string) err
 func (d *Deployments) CreateImage(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
 	return d.handleArtifact(ctx, multipartUploadMsg, false)
+}
+
+func (d *Deployments) saveUpdateTypes(ctx context.Context, image *model.Image) {
+	l := log.FromContext(ctx)
+	if image != nil && image.ArtifactMeta != nil && len(image.ArtifactMeta.Updates) > 0 {
+		i := 0
+		updateTypes := make([]string, len(image.ArtifactMeta.Updates))
+		for _, t := range image.ArtifactMeta.Updates {
+			if t.TypeInfo.Type == nil {
+				continue
+			}
+			updateTypes[i] = *t.TypeInfo.Type
+			i++
+		}
+		err := d.db.SaveUpdateTypes(ctx, updateTypes[:i])
+		if err != nil {
+			l.Errorf(
+				"error while saving the update types for the artifact: %s",
+				err.Error(),
+			)
+		}
+	}
 }
 
 // handleArtifact parses artifact and uploads artifact file to the file storage - in parallel,
@@ -413,24 +437,8 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		}
 		return artifactID, errors.Wrap(err, "Fail to store the metadata")
 	}
-	if image.ArtifactMeta != nil && len(image.ArtifactMeta.Updates) > 0 {
-		i := 0
-		updateTypes := make([]string, len(image.ArtifactMeta.Updates))
-		for _, t := range image.ArtifactMeta.Updates {
-			if t.TypeInfo.Type == nil {
-				continue
-			}
-			updateTypes[i] = *t.TypeInfo.Type
-			i++
-		}
-		err = d.db.SaveUpdateTypes(ctx, updateTypes[:i])
-		if err != nil {
-			l.Errorf(
-				"error while saving the update types for the artifact: %s",
-				err.Error(),
-			)
-		}
-	}
+	d.saveUpdateTypes(ctx, image)
+
 	// update release
 	if err := d.updateRelease(ctx, image, nil); err != nil {
 		return "", err

@@ -44,7 +44,7 @@ func (r *BogusReader) Read(b []byte) (int, error) {
 func TestGenerateImageError(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs)
+	d := NewDeployments(&db, fs, 0, false)
 
 	testCases := []struct {
 		multipartGenerateImage *model.MultipartGenerateImageMsg
@@ -72,7 +72,7 @@ func TestGenerateImageError(t *testing.T) {
 func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs)
+	d := NewDeployments(&db, fs, 0, false)
 
 	db.On("IsArtifactUnique",
 		h.ContextMatcher(),
@@ -102,7 +102,7 @@ func TestGenerateImageArtifactIsNotUnique(t *testing.T) {
 func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs)
+	d := NewDeployments(&db, fs, 0, false)
 
 	db.On("IsArtifactUnique",
 		h.ContextMatcher(),
@@ -132,7 +132,7 @@ func TestGenerateImageErrorWhileCheckingIfArtifactIsNotUnique(t *testing.T) {
 func TestGenerateImageErrorWhileUploading(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs)
+	d := NewDeployments(&db, fs, 0, false)
 	ctx := context.Background()
 
 	fs.On("PutObject",
@@ -173,7 +173,7 @@ func TestGenerateImageErrorWhileUploading(t *testing.T) {
 func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs)
+	d := NewDeployments(&db, fs, 0, false)
 	ctx := context.Background()
 
 	fs.On("PutObject",
@@ -225,7 +225,7 @@ func TestGenerateImageErrorS3GetRequest(t *testing.T) {
 func TestGenerateImageErrorS3DeleteRequest(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs)
+	d := NewDeployments(&db, fs, 0, false)
 	ctx := context.Background()
 
 	fs.On("PutObject",
@@ -286,7 +286,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 	generateErr := errors.New("failed to start workflow: generate_artifact")
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs)
+	d := NewDeployments(&db, fs, 0, false)
 	ctx := context.Background()
 
 	fs.On("GetRequest",
@@ -358,7 +358,7 @@ func TestGenerateImageErrorWhileStartingWorkflow(t *testing.T) {
 func TestGenerateImageErrorWhileStartingWorkflowAndFailsWhenCleaningUp(t *testing.T) {
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs)
+	d := NewDeployments(&db, fs, 0, false)
 	ctx := context.Background()
 
 	workflowsClient := &workflows_mocks.Client{}
@@ -432,7 +432,7 @@ func TestGenerateImageSuccessful(t *testing.T) {
 	ctx := context.Background()
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs)
+	d := NewDeployments(&db, fs, 0, false)
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
 		Name:                  "name",
@@ -499,7 +499,7 @@ func TestGenerateImageSuccessfulWithTenant(t *testing.T) {
 	ctx := context.Background()
 	db := mocks.DataStore{}
 	fs := &fs_mocks.ObjectStorage{}
-	d := NewDeployments(&db, fs)
+	d := NewDeployments(&db, fs, 0, false)
 
 	multipartGenerateImage := &model.MultipartGenerateImageMsg{
 		Name:                  "name",
@@ -648,7 +648,7 @@ func TestGenerateConfigurationImage(t *testing.T) {
 			defer ds.AssertExpectations(t)
 			ds.On("FindDeploymentByID", ctx, tc.DeploymentID).
 				Return(tc.Deployment, tc.StoreError)
-			d := NewDeployments(ds, nil)
+			d := NewDeployments(ds, nil, 0, false)
 			artieFact, err := d.GenerateConfigurationImage(
 				ctx, tc.DeviceType, tc.DeploymentID,
 			)

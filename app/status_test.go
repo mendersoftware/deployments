@@ -89,7 +89,7 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 		model.DeploymentStatusInProgress,
 		mock.AnythingOfType("time.Time")).Return(nil).Once()
 
-	ds := NewDeployments(&db, fs)
+	ds := NewDeployments(&db, fs, 0, false)
 
 	err = ds.UpdateDeviceDeploymentStatus(ctx, fakeDeployment.Id, fakeDeviceDeployment.DeviceId, ddStatusNew)
 	assert.NoError(t, err)
@@ -200,7 +200,7 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 		mock.AnythingOfType("model.DeviceDeployment"),
 	).Return(nil)
 
-	ds := NewDeployments(&db, fs)
+	ds := NewDeployments(&db, fs, 0, false)
 
 	_, err = ds.GetDeploymentForDeviceWithCurrent(ctx, devId, request)
 	assert.NoError(t, err)
@@ -381,7 +381,7 @@ func TestDecommissionDevice(t *testing.T) {
 				mock.AnythingOfType("model.DeviceDeployment"),
 			).Return(nil)
 
-			ds := NewDeployments(&db, nil)
+			ds := NewDeployments(&db, nil, 0, false)
 
 			err := ds.DecommissionDevice(ctx, tc.inputDeviceId)
 			if tc.outputError != nil {
@@ -580,7 +580,7 @@ func TestAbortDeviceDeployments(t *testing.T) {
 				mock.AnythingOfType("model.DeviceDeployment"),
 			).Return(nil)
 
-			ds := NewDeployments(&db, nil)
+			ds := NewDeployments(&db, nil, 0, false)
 
 			err := ds.AbortDeviceDeployments(ctx, tc.inputDeviceId)
 			if tc.outputError != nil {

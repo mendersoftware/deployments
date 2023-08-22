@@ -104,7 +104,7 @@ func TestReplaceReleaseTags(t *testing.T) {
 			ds := tc.GetDatabase(t, &tc)
 			defer ds.AssertExpectations(t)
 
-			app := NewDeployments(ds, nil)
+			app := NewDeployments(ds, nil, 0, false)
 
 			err := app.ReplaceReleaseTags(tc.Context, tc.ReleaseName, tc.Tags)
 			if tc.Error != nil {
@@ -162,7 +162,7 @@ func TestListReleaseTags(t *testing.T) {
 			ds := tc.GetDatabase(t, &tc)
 			defer ds.AssertExpectations(t)
 
-			app := NewDeployments(ds, nil)
+			app := NewDeployments(ds, nil, 0, false)
 
 			tags, err := app.ListReleaseTags(tc.Context)
 			if tc.Error != nil {
@@ -221,7 +221,7 @@ func TestGetReleasesUpdateTypes(t *testing.T) {
 			ds := tc.GetDatabase(t, &tc)
 			defer ds.AssertExpectations(t)
 
-			app := NewDeployments(ds, nil)
+			app := NewDeployments(ds, nil, 0, false)
 
 			tags, err := app.GetReleasesUpdateTypes(tc.Context)
 			if tc.Error != nil {
@@ -302,7 +302,7 @@ func TestUpdateRelease(t *testing.T) {
 			ds := tc.GetDatabase(t, &tc)
 			defer ds.AssertExpectations(t)
 
-			app := NewDeployments(ds, nil)
+			app := NewDeployments(ds, nil, 0, false)
 
 			err := app.UpdateRelease(tc.Context, tc.ReleaseName, tc.Release)
 			if tc.Error != nil {
