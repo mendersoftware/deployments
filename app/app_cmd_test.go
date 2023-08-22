@@ -154,7 +154,7 @@ func TestCleanupExpiredUploads(t *testing.T) {
 			}
 		}
 
-		app := NewDeployments(database, objectStore)
+		app := NewDeployments(database, objectStore, 0, false)
 
 		err := app.CleanupExpiredUploads(ctx, 0, jitter)
 		assert.NoError(t, err)
@@ -181,7 +181,7 @@ func TestCleanupExpiredUploads(t *testing.T) {
 			Return(iterator, nil).
 			Once()
 
-		app := NewDeployments(database, objectStore)
+		app := NewDeployments(database, objectStore, 0, false)
 
 		go func() {
 			select {
@@ -232,7 +232,7 @@ func TestCleanupExpiredUploads(t *testing.T) {
 				Once()
 		}
 
-		app := NewDeployments(database, objectStore)
+		app := NewDeployments(database, objectStore, 0, false)
 
 		err := app.CleanupExpiredUploads(ctx, 0, jitter)
 		assert.ErrorIs(t, err, errInternal)
@@ -256,7 +256,7 @@ func TestCleanupExpiredUploads(t *testing.T) {
 			Return(nil, errInternal).
 			Once()
 
-		app := NewDeployments(database, objectStore)
+		app := NewDeployments(database, objectStore, 0, false)
 
 		err := app.CleanupExpiredUploads(ctx, 0, jitter)
 		assert.ErrorIs(t, err, errInternal)

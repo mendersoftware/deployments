@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -122,7 +122,7 @@ func TestGetReleases(t *testing.T) {
 			fileStorage := &fs_mocks.ObjectStorage{}
 
 			restView := new(view.RESTView)
-			app := app.NewDeployments(store, fileStorage)
+			app := app.NewDeployments(store, fileStorage, 0, false)
 
 			c := NewDeploymentsApiHandlers(store, restView, app)
 
@@ -235,7 +235,7 @@ func TestListReleases(t *testing.T) {
 			fileStorage := &fs_mocks.ObjectStorage{}
 
 			restView := new(view.RESTView)
-			app := app.NewDeployments(store, fileStorage)
+			app := app.NewDeployments(store, fileStorage, 0, false)
 
 			c := NewDeploymentsApiHandlers(store, restView, app)
 

@@ -175,7 +175,7 @@ func RunServer(ctx context.Context) error {
 		return errors.WithMessage(err, "main: failed to setup storage client")
 	}
 
-	app := app.NewDeployments(ds, objStore)
+	app := app.NewDeployments(ds, objStore, 0, false)
 	if addr := c.GetString(dconfig.SettingReportingAddr); addr != "" {
 		c := reporting.NewClient(addr)
 		app = app.WithReporting(c)
