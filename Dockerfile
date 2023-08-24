@@ -18,7 +18,8 @@ RUN env CGO_ENABLED=1 go build
 FROM scratch
 EXPOSE 8080
 COPY --from=builder /etc_extra/ /etc/
-COPY --from=builder /lib/ld-musl-x86_64.so.1 /lib/ld-musl-x86_64.so.1
+# with ld-musl-*.so.1 we target all the platforms
+COPY --from=builder /lib/ld-musl-*.so.1 /lib/
 COPY --from=builder /usr/lib/liblzma.so.5 /usr/lib/liblzma.so.5
 COPY --from=builder /usr/lib/libssl.so.1.1 /usr/lib/libssl.so.1.1
 COPY --from=builder /usr/lib/libcrypto.so.1.1 /usr/lib/libcrypto.so.1.1
