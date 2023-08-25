@@ -78,11 +78,17 @@ func (db *DataStoreMongo) UpdateReleaseArtifacts(
 		update["$pull"] = bson.M{
 			StorageKeyReleaseArtifacts: bson.M{StorageKeyId: artifactToRemove.Id},
 		}
+		update["$inc"] = bson.M{
+			StorageKeyReleaseArtifactsCount: -1,
+		}
 	}
 	if artifactToAdd != nil {
 		upsert := true
 		opt.Upsert = &upsert
 		update["$push"] = bson.M{StorageKeyReleaseArtifacts: artifactToAdd}
+		update["$inc"] = bson.M{
+			StorageKeyReleaseArtifactsCount: 1,
+		}
 	}
 	_, err := collReleases.UpdateOne(
 		ctx,

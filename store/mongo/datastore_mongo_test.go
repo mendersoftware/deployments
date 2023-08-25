@@ -422,6 +422,16 @@ func TestGetReleases_1_2_15(t *testing.T) {
 		},
 	}
 
+	releaseNameToTags := make(map[string]model.Tags, 8)
+	releaseNameToTags["App4 v2.0"] = model.Tags{
+		"demo",
+	}
+	releaseNameToTags["App1 v1.0"] = model.Tags{
+		"production",
+	}
+	releaseNameToTags["App2 v0.1"] = model.Tags{
+		"root-fs",
+	}
 	// Setup test context
 	ctx := context.Background()
 	ds := NewDataStoreMongoWithClient(db.Client())
@@ -462,6 +472,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[2],
 						*inputImgs[3],
 					},
+					ArtifactsCount: 3,
 				},
 				{
 					Name: "App2 v0.1",
@@ -469,12 +480,14 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[1],
 						*inputImgs[4],
 					},
+					ArtifactsCount: 2,
 				},
 				{
 					Name: "App4 v2.0",
 					Artifacts: []model.Image{
 						*inputImgs[5],
 					},
+					ArtifactsCount: 1,
 				},
 			},
 		},
@@ -490,6 +503,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[2],
 						*inputImgs[3],
 					},
+					ArtifactsCount: 3,
 				},
 				{
 					Name: "App2 v0.1",
@@ -497,12 +511,14 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[1],
 						*inputImgs[4],
 					},
+					ArtifactsCount: 2,
 				},
 				{
 					Name: "App4 v2.0",
 					Artifacts: []model.Image{
 						*inputImgs[5],
 					},
+					ArtifactsCount: 1,
 				},
 			},
 		},
@@ -517,6 +533,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[1],
 						*inputImgs[4],
 					},
+					ArtifactsCount: 2,
 				},
 			},
 		},
@@ -532,6 +549,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[2],
 						*inputImgs[3],
 					},
+					ArtifactsCount: 3,
 				},
 				{
 					Name: "App2 v0.1",
@@ -539,12 +557,14 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[1],
 						*inputImgs[4],
 					},
+					ArtifactsCount: 2,
 				},
 				{
 					Name: "App4 v2.0",
 					Artifacts: []model.Image{
 						*inputImgs[5],
 					},
+					ArtifactsCount: 1,
 				},
 			},
 		},
@@ -558,6 +578,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 					Artifacts: []model.Image{
 						*inputImgs[5],
 					},
+					ArtifactsCount: 1,
 				},
 				{
 					Name: "App2 v0.1",
@@ -565,6 +586,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[1],
 						*inputImgs[4],
 					},
+					ArtifactsCount: 2,
 				},
 				{
 					Name: "App1 v1.0",
@@ -573,6 +595,137 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[2],
 						*inputImgs[3],
 					},
+					ArtifactsCount: 3,
+				},
+			},
+		},
+		"ok, sort by artifacts count asc": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort: "artifacts_count:asc",
+			},
+			releases: []model.Release{
+				{
+					Name: "App4 v2.0",
+					Artifacts: []model.Image{
+						*inputImgs[5],
+					},
+					ArtifactsCount: 1,
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+					ArtifactsCount: 2,
+				},
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+					ArtifactsCount: 3,
+				},
+			},
+		},
+		"ok, sort by artifacts count desc": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort: "artifacts_count:desc",
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+					ArtifactsCount: 3,
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+					ArtifactsCount: 2,
+				},
+				{
+					Name: "App4 v2.0",
+					Artifacts: []model.Image{
+						*inputImgs[5],
+					},
+					ArtifactsCount: 1,
+				},
+			},
+		},
+		"ok, sort by tags asc": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort: "tags:asc",
+			},
+			releases: []model.Release{
+				{
+					Name: "App4 v2.0",
+					Artifacts: []model.Image{
+						*inputImgs[5],
+					},
+					ArtifactsCount: 1,
+					Tags:           releaseNameToTags["App4 v2.0"],
+				},
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+					ArtifactsCount: 3,
+					Tags:           releaseNameToTags["App1 v1.0"],
+				},
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+					ArtifactsCount: 2,
+					Tags:           releaseNameToTags["App2 v0.1"],
+				},
+			},
+		},
+		"ok, sort by tags desc": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Sort: "tags:desc",
+			},
+			releases: []model.Release{
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+					ArtifactsCount: 2,
+					Tags:           releaseNameToTags["App2 v0.1"],
+				},
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+					ArtifactsCount: 3,
+					Tags:           releaseNameToTags["App1 v1.0"],
+				},
+				{
+					Name: "App4 v2.0",
+					Artifacts: []model.Image{
+						*inputImgs[5],
+					},
+					ArtifactsCount: 1,
+					Tags:           releaseNameToTags["App4 v2.0"],
 				},
 			},
 		},
@@ -588,6 +741,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[2],
 						*inputImgs[3],
 					},
+					ArtifactsCount: 3,
 				},
 			},
 		},
@@ -604,6 +758,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[1],
 						*inputImgs[4],
 					},
+					ArtifactsCount: 2,
 				},
 			},
 		},
@@ -618,6 +773,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[1],
 						*inputImgs[4],
 					},
+					ArtifactsCount: 2,
 				},
 			},
 		},
@@ -631,6 +787,7 @@ func TestGetReleases_1_2_15(t *testing.T) {
 					Artifacts: []model.Image{
 						*inputImgs[5],
 					},
+					ArtifactsCount: 1,
 				},
 			},
 		},
@@ -645,6 +802,9 @@ func TestGetReleases_1_2_15(t *testing.T) {
 	for name, tc := range testCases {
 
 		t.Run(name, func(t *testing.T) {
+			for _, r := range tc.releases {
+				ds.ReplaceReleaseTags(ctx, r.Name, r.Tags)
+			}
 			releases, count, err := ds.getReleases_1_2_15(ctx, tc.releaseFilt)
 
 			if tc.err != nil {
