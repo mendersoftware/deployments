@@ -315,7 +315,7 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 					testCase.InputImagesByNameError)
 
 			fs := &fs_mocks.ObjectStorage{}
-			ds := NewDeployments(&db, fs)
+			ds := NewDeployments(&db, fs, 0, false)
 
 			mockInventoryClient := &inventory_mocks.Client{}
 			if testCase.CallGetDeviceGroups {
@@ -442,7 +442,7 @@ func TestUploadLink(t *testing.T) {
 		ctx := context.Background()
 		objStore := new(fs_mocks.ObjectStorage)
 		ds := new(mocks.DataStore)
-		deploy := NewDeployments(ds, objStore)
+		deploy := NewDeployments(ds, objStore, 0, false)
 		objStore.On("PutRequest",
 			h.ContextMatcher(),
 			regexMatcher(`^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}\`+
@@ -469,7 +469,7 @@ func TestUploadLink(t *testing.T) {
 		})
 		objStore := new(fs_mocks.ObjectStorage)
 		ds := new(mocks.DataStore)
-		deploy := NewDeployments(ds, objStore)
+		deploy := NewDeployments(ds, objStore, 0, false)
 		objStore.On("PutRequest",
 			h.ContextMatcher(),
 			regexMatcher(`^123456789012345678901234/`+
@@ -497,7 +497,7 @@ func TestUploadLink(t *testing.T) {
 		})
 		objStore := new(fs_mocks.ObjectStorage)
 		ds := new(mocks.DataStore)
-		deploy := NewDeployments(ds, objStore)
+		deploy := NewDeployments(ds, objStore, 0, false)
 		errInternal := errors.New("internal error")
 		ds.On("GetStorageSettings", ctx).
 			Return(nil, nil).
@@ -523,7 +523,7 @@ func TestUploadLink(t *testing.T) {
 		})
 		objStore := new(fs_mocks.ObjectStorage)
 		ds := new(mocks.DataStore)
-		deploy := NewDeployments(ds, objStore)
+		deploy := NewDeployments(ds, objStore, 0, false)
 		errInternal := errors.New("internal error")
 		objStore.On("PutRequest",
 			h.ContextMatcher(),
@@ -551,7 +551,7 @@ func TestUploadLink(t *testing.T) {
 		})
 		objStore := new(fs_mocks.ObjectStorage)
 		ds := new(mocks.DataStore)
-		deploy := NewDeployments(ds, objStore)
+		deploy := NewDeployments(ds, objStore, 0, false)
 		errInternal := errors.New("internal error")
 		ds.On("GetStorageSettings", ctx).
 			Return(nil, errInternal).
@@ -991,7 +991,7 @@ func TestCompleteUpload(t *testing.T) {
 			defer ds.AssertExpectations(t)
 			objStore := tc.ObjectStorage(t, tc)
 			defer objStore.AssertExpectations(t)
-			deploy := NewDeployments(ds, objStore)
+			deploy := NewDeployments(ds, objStore, 0, false)
 
 			err := deploy.CompleteUpload(ctx, intentID, tc.SkipVerify)
 			tc.ErrorAssertionFunc(t, tc, err)

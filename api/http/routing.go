@@ -62,10 +62,11 @@ const (
 
 	ApiUrlManagementLimitsName = ApiUrlManagement + "/limits/#name"
 
-	ApiUrlManagementV2               = "/api/management/v2/deployments"
-	ApiUrlManagementV2ReleasesName   = ApiUrlManagementV2 + "/deployments/releases/#name"
-	ApiUrlManagementV2ReleaseTags    = ApiUrlManagementV2ReleasesName + "/tags"
-	ApiUrlManagementV2ReleaseAllTags = ApiUrlManagementV2 + "/releases/all/tags"
+	ApiUrlManagementV2                      = "/api/management/v2/deployments"
+	ApiUrlManagementV2ReleasesName          = ApiUrlManagementV2 + "/deployments/releases/#name"
+	ApiUrlManagementV2ReleaseTags           = ApiUrlManagementV2ReleasesName + "/tags"
+	ApiUrlManagementV2ReleaseAllTags        = ApiUrlManagementV2 + "/releases/all/tags"
+	ApiUrlManagementV2ReleaseAllUpdateTypes = ApiUrlManagementV2 + "/releases/all/types"
 
 	ApiUrlDevicesDeploymentsNext  = ApiUrlDevices + "/device/deployments/next"
 	ApiUrlDevicesDeploymentStatus = ApiUrlDevices + "/device/deployments/#id/status"
@@ -259,6 +260,7 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 		rest.Get(ApiUrlManagementReleasesList, controller.ListReleases),
 		rest.Put(ApiUrlManagementV2ReleaseTags, controller.PutReleaseTags),
 		rest.Get(ApiUrlManagementV2ReleaseAllTags, controller.GetReleaseTagKeys),
+		rest.Get(ApiUrlManagementV2ReleaseAllUpdateTypes, controller.GetReleasesUpdateTypes),
 		rest.Patch(ApiUrlManagementV2ReleasesName, controller.PatchRelease),
 	}
 }

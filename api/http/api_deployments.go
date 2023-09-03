@@ -614,7 +614,7 @@ func getImageMetaFromBody(r *rest.Request) (*model.ImageMeta, error) {
 
 // NewImage is the Multipart Image/Meta upload handler.
 // Request should be of type "multipart/form-data". The parts are
-// key/valyue pairs of metadata information except the last one,
+// key/value pairs of metadata information except the last one,
 // which must contain the artifact file.
 func (d *DeploymentsApiHandlers) NewImage(w rest.ResponseWriter, r *rest.Request) {
 	d.newImageWithContext(r.Context(), w, r)

@@ -223,7 +223,7 @@ func cmdStorageDaemon(args *cli.Context) error {
 		return err
 	}
 	database := mongo.NewDataStoreMongoWithClient(mgo)
-	app := app.NewDeployments(database, objectStorage)
+	app := app.NewDeployments(database, objectStorage, 0, false)
 	return app.CleanupExpiredUploads(
 		ctx,
 		args.Duration("interval"),

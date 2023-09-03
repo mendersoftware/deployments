@@ -181,3 +181,23 @@ func (d *DeploymentsApiHandlers) GetReleaseTagKeys(
 		l.Errorf("failed to serialize JSON response: %s", err.Error())
 	}
 }
+
+func (d *DeploymentsApiHandlers) GetReleasesUpdateTypes(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
+	ctx := r.Context()
+	l := log.FromContext(ctx)
+
+	updateTypes, err := d.app.GetReleasesUpdateTypes(ctx)
+	if err != nil {
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	err = w.WriteJson(updateTypes)
+	if err != nil {
+		l.Errorf("failed to serialize JSON response: %s", err.Error())
+	}
+}

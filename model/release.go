@@ -185,11 +185,12 @@ func (n Notes) Validate() error {
 }
 
 type Release struct {
-	Name      string     `json:"Name" bson:"_id"`
-	Modified  *time.Time `json:"Modified,omitempty" bson:"modified,omitempty"`
-	Artifacts []Image    `json:"Artifacts" bson:"artifacts"`
-	Tags      Tags       `json:"tags" bson:"tags,omitempty"`
-	Notes     Notes      `json:"notes" bson:"notes,omitempty"`
+	Name           string     `json:"Name" bson:"_id"`
+	Modified       *time.Time `json:"Modified,omitempty" bson:"modified,omitempty"`
+	Artifacts      []Image    `json:"Artifacts" bson:"artifacts"`
+	ArtifactsCount int        `json:"ArtifactsCount" bson:"artifacts_count"`
+	Tags           Tags       `json:"tags" bson:"tags,omitempty"`
+	Notes          Notes      `json:"notes" bson:"notes,omitempty"`
 }
 
 type ReleasePatch struct {

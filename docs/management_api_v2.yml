@@ -156,6 +156,29 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
+  /deployments/releases/all/types:
+    get:
+      operationId: List Release Types
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: |
+        Lists all release update types.
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response.
+          schema:
+            $ref: "#/definitions/UpdateTypes"
+        400:
+          $ref: "#/responses/InvalidRequestError"
+        401:
+          $ref: "#/responses/UnauthorizedError"
+        500:
+          $ref: "#/responses/InternalServerError"
+
 
 definitions:
   ReleaseUpdate:
@@ -175,6 +198,13 @@ definitions:
       Tags assigned to the release used for filtering releases. Each tag
       must be valid a ASCII string and contain only lowercase and uppercase
       letters, digits, underscores, periods and hyphens.
+    items:
+      type: string
+
+  UpdateTypes:
+    type: array
+    description: |-
+      Update types as present in the images.
     items:
       type: string
 

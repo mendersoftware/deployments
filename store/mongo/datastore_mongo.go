@@ -50,6 +50,7 @@ const (
 	CollectionStorageSettings      = "settings"
 	CollectionUploadIntents        = "uploads"
 	CollectionReleases             = "releases"
+	CollectionUpdateTypes          = "update_types"
 )
 
 const DefaultDocumentLimit = 20
@@ -102,6 +103,12 @@ var (
 
 	// Indexes 1.2.17
 	IndexNameReleaseUpdateTypes = "release_update_types"
+
+	// Indexes 1.2.18
+	IndexNameAggregatedUpdateTypes = "aggregated_release_update_types"
+
+	// Indexes 1.2.19
+	IndexNameReleaseArtifactsCount = "release_artifacts_count"
 
 	_false         = false
 	_true          = true
@@ -412,6 +419,7 @@ const (
 	StorageKeyReleaseTags                      = "tags"
 	StorageKeyReleaseNotes                     = "notes"
 	StorageKeyReleaseArtifacts                 = "artifacts"
+	StorageKeyReleaseArtifactsCount            = "artifacts_count"
 	StorageKeyReleaseArtifactsIndexDescription = StorageKeyReleaseArtifacts + ".$." +
 		StorageKeyImageDescription
 	StorageKeyReleaseArtifactsDescription = StorageKeyReleaseArtifacts + "." +
@@ -471,6 +479,8 @@ const (
 	StorageKeyStorageSettingsToken          = "token"
 	StorageKeyStorageSettingsForcePathStyle = "force_path_style"
 	StorageKeyStorageSettingsUseAccelerate  = "use_accelerate"
+
+	StorageKeyStorageReleaseUpdateTypes = "update_types"
 
 	ArtifactDependsDeviceType = "device_type"
 )
@@ -1205,7 +1215,11 @@ func (db *DataStoreMongo) DeleteImage(ctx context.Context, id string) error {
 func getReleaseSortFieldAndOrder(filt *model.ReleaseOrImageFilter) (string, int) {
 	if filt != nil && filt.Sort != "" {
 		sortParts := strings.SplitN(filt.Sort, ":", 2)
-		if len(sortParts) == 2 && (sortParts[0] == "name" || sortParts[0] == "modified") {
+		if len(sortParts) == 2 &&
+			(sortParts[0] == "name" ||
+				sortParts[0] == "modified" ||
+				sortParts[0] == "artifacts_count" ||
+				sortParts[0] == "tags") {
 			sortField := sortParts[0]
 			sortOrder := 1
 			if sortParts[1] == model.SortDirectionDescending {

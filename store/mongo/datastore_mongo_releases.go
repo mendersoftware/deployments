@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
 	mstore "github.com/mendersoftware/go-lib-micro/store"
 
@@ -77,11 +78,17 @@ func (db *DataStoreMongo) UpdateReleaseArtifacts(
 		update["$pull"] = bson.M{
 			StorageKeyReleaseArtifacts: bson.M{StorageKeyId: artifactToRemove.Id},
 		}
+		update["$inc"] = bson.M{
+			StorageKeyReleaseArtifactsCount: -1,
+		}
 	}
 	if artifactToAdd != nil {
 		upsert := true
 		opt.Upsert = &upsert
 		update["$push"] = bson.M{StorageKeyReleaseArtifacts: artifactToAdd}
+		update["$inc"] = bson.M{
+			StorageKeyReleaseArtifactsCount: 1,
+		}
 	}
 	_, err := collReleases.UpdateOne(
 		ctx,
@@ -218,4 +225,63 @@ func (db *DataStoreMongo) UpdateRelease(
 		return store.ErrNotFound
 	}
 	return nil
+}
+
+// Save the possibly new update types
+func (db *DataStoreMongo) SaveUpdateTypes(ctx context.Context, updateTypes []string) error {
+	database := db.client.Database(DatabaseName)
+	c := database.Collection(CollectionUpdateTypes)
+
+	if len(updateTypes) < 1 {
+		return nil
+	}
+
+	tenantId := ""
+	if id := identity.FromContext(ctx); id != nil {
+		tenantId = id.Tenant
+	}
+	options := mopts.UpdateOptions{}
+	options.SetUpsert(true)
+	_, err := c.UpdateOne(
+		ctx,
+		bson.M{
+			StorageKeyTenantId: tenantId,
+		},
+		bson.M{
+			"$addToSet": bson.M{
+				StorageKeyStorageReleaseUpdateTypes: bson.M{
+					"$each": updateTypes,
+				},
+			},
+		},
+		&options,
+	)
+	return err
+}
+
+// Get the update types
+func (db *DataStoreMongo) GetUpdateTypes(ctx context.Context) ([]string, error) {
+	database := db.client.Database(DatabaseName)
+	c := database.Collection(CollectionUpdateTypes)
+
+	tenantId := ""
+	if id := identity.FromContext(ctx); id != nil {
+		tenantId = id.Tenant
+	}
+	result := c.FindOne(
+		ctx,
+		bson.M{
+			StorageKeyTenantId: tenantId,
+		},
+	)
+	type updateType struct {
+		UpdateTypes []string `bson:"update_types"`
+	}
+	var updateTypes updateType
+	err := result.Decode(&updateTypes)
+	if err != nil {
+		return []string{}, err
+	} else {
+		return updateTypes.UpdateTypes, nil
+	}
 }
