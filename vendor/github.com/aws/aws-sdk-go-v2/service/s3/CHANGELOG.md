@@ -1,3 +1,37 @@
+# v1.38.5 (2023-08-21)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.38.4 (2023-08-18)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.38.3 (2023-08-17)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.38.2 (2023-08-07)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.38.1 (2023-08-01)
+
+* No change notes available for this release.
+
+# v1.38.0 (2023-07-31)
+
+* **Feature**: Adds support for smithy-modeled endpoint resolution. A new rules-based endpoint resolution will be added to the SDK which will supercede and deprecate existing endpoint resolution. Specifically, EndpointResolver will be deprecated while BaseEndpoint and EndpointResolverV2 will take its place. For more information, please see the Endpoints section in our Developer Guide.
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.37.1 (2023-07-28)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.37.0 (2023-07-13)
+
+* **Feature**: S3 Inventory now supports Object Access Control List and Object Owner as available object metadata fields in inventory reports.
+* **Dependency Update**: Updated to the latest SDK module versions
+
 # v1.36.0 (2023-06-28)
 
 * **Feature**: The S3 LISTObjects, ListObjectsV2 and ListObjectVersions API now supports a new optional header x-amz-optional-object-attributes. If header contains RestoreStatus as the value, then S3 will include Glacier restore status i.e. isRestoreInProgress and RestoreExpiryDate in List response.
