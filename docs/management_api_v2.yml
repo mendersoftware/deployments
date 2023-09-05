@@ -46,7 +46,7 @@ responses:
 paths:
   /deployments/releases/{release_name}:
     patch:
-      operationId: Patch Release
+      operationId: Update Release information
       tags:
         - Management API
       security:
