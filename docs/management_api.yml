@@ -2253,6 +2253,10 @@ definitions:
           letters, digits, underscores, periods and hyphens.
         items:
           type: string
+      notes:
+        type: string
+        description: |
+          Additional information describing a Release limited to 1024 characters. Please use the v2 API to set this field.
     example:
       name: my-app-v1.0.1
       artifacts:
