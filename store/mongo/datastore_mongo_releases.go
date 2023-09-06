@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/mendersoftware/go-lib-micro/identity"
@@ -279,6 +280,9 @@ func (db *DataStoreMongo) GetUpdateTypes(ctx context.Context) ([]string, error) 
 	}
 	var updateTypes updateType
 	err := result.Decode(&updateTypes)
+	if err == mongo.ErrNoDocuments {
+		return []string{}, nil
+	}
 	if err != nil {
 		return []string{}, err
 	} else {

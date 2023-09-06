@@ -27,6 +27,7 @@ from common import (
     artifacts_added_from_data,
     artifact_bootstrap_from_data,
     artifacts_update_module_added_from_data,
+    clean_db,
     clean_minio,
     MinioClient,
     mongo,
@@ -142,3 +143,24 @@ class TestRelease:
                 types = json.loads(r.text)
                 assert len(types) > 0
                 assert types == ["rootfs-image", "app", "single-file", "directory"]
+
+    @pytest.mark.usefixtures("clean_db", "clean_minio")
+    def test_get_all_releases_types(self, mongo, cli):
+        with Lock(MONGO_LOCK_FILE) as l:
+            cli.migrate()
+            # this is a hack, since the swagger client is not prepared for the
+            # specifications of API v2 in a separate file, and we are supposed
+            # to move to openapi -- hence the fallback to requests.
+            get_types_url = (
+                "http://"
+                + pytest_config.getoption("host")
+                + f"/api/management/v2/deployments/releases/all/types"
+            )
+
+            r = requests.get(
+                get_types_url,
+                verify=False,
+                headers={"Authorization": "Bearer foo"},
+            )
+            types = json.loads(r.text)
+            assert types == []
