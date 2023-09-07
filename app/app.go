@@ -1749,14 +1749,16 @@ func (d *Deployments) GetDeviceDeploymentListForDevice(ctx context.Context,
 	for i, deviceDeployment := range deviceDeployments {
 		deploymentIDs[i] = deviceDeployment.DeploymentId
 	}
-
-	deployments, _, err := d.db.Find(ctx, model.Query{
-		IDs:          deploymentIDs,
-		Limit:        len(deviceDeployments),
-		DisableCount: true,
-	})
-	if err != nil {
-		return nil, -1, errors.Wrap(err, "retrieving the list of deployments")
+	var deployments []*model.Deployment
+	if len(deviceDeployments) > 0 {
+		deployments, _, err = d.db.Find(ctx, model.Query{
+			IDs:          deploymentIDs,
+			Limit:        len(deviceDeployments),
+			DisableCount: true,
+		})
+		if err != nil {
+			return nil, -1, errors.Wrap(err, "retrieving the list of deployments")
+		}
 	}
 
 	deploymentsMap := make(map[string]*model.Deployment, len(deployments))

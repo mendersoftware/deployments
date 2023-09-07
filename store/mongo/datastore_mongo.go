@@ -2590,7 +2590,7 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 	andq := []bson.M{}
 
 	// filter by IDs
-	if len(match.IDs) > 0 {
+	if match.IDs != nil {
 		tq := bson.M{
 			"_id": bson.M{
 				"$in": match.IDs,
@@ -2706,6 +2706,8 @@ func (db *DataStoreMongo) findOptions(match model.Query) *mopts.FindOptions {
 	}
 	if match.Limit > 0 {
 		options.SetLimit(int64(match.Limit))
+	} else {
+		options.SetLimit(DefaultDocumentLimit)
 	}
 	return options
 }
