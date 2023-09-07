@@ -124,7 +124,7 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
-  /deployments/releases/all/tags:
+  /releases/all/tags:
     get:
       operationId: List Release Tags
       tags:
@@ -156,7 +156,7 @@ paths:
         500:
           $ref: "#/responses/InternalServerError"
 
-  /deployments/releases/all/types:
+  /releases/all/types:
     get:
       operationId: List Release Types
       tags:
