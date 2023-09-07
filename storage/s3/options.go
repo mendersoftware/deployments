@@ -22,7 +22,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go/middleware"
@@ -116,11 +115,7 @@ func (s storageSettings) options(opts *s3.Options) {
 	}
 	if s.URI != nil {
 		endpointURI := *s.URI
-		opts.EndpointResolver = s3.EndpointResolverFromURL(endpointURI,
-			func(ep *aws.Endpoint) {
-				ep.HostnameImmutable = s.ForcePathStyle
-			},
-		)
+		opts.BaseEndpoint = &endpointURI
 	}
 	opts.UsePathStyle = s.ForcePathStyle
 	opts.UseAccelerate = s.UseAccelerate
@@ -129,14 +124,12 @@ func (s storageSettings) options(opts *s3.Options) {
 func (s storageSettings) presignOptions(opts *s3.PresignOptions) {
 	if s.ExternalURI != nil {
 		presignURL := *s.ExternalURI
-		resolver := s3.EndpointResolverFromURL(presignURL,
-			func(ep *aws.Endpoint) {
-				ep.HostnameImmutable = s.ForcePathStyle
-			},
-		)
+		applyURL := func(opts *s3.Options) {
+			opts.BaseEndpoint = &presignURL
+		}
 		s3.WithPresignClientFromClientOptions(
 			s.options,
-			s3.WithEndpointResolver(resolver),
+			applyURL,
 		)(opts)
 	}
 }
