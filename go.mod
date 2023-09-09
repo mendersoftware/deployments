@@ -7,10 +7,10 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.1.0
 	github.com/ant0ine/go-json-rest v3.3.3-0.20170913041208-ebb33769ae01+incompatible
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
-	github.com/aws/aws-sdk-go-v2 v1.20.0
+	github.com/aws/aws-sdk-go-v2 v1.21.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.31
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.36.0
-	github.com/aws/smithy-go v1.14.0
+	github.com/aws/smithy-go v1.14.2
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/google/uuid v1.3.1
 	github.com/mendersoftware/go-lib-micro v0.0.0-20230703070409-85a5f596f20f
