@@ -64,7 +64,7 @@ func TestPutReleaseTags(t *testing.T) {
 
 		App: func(t *testing.T, self *testCase) *mapp.App {
 			appie := new(mapp.App)
-			expectedTags := model.Tags{"one", "three", "two"}
+			expectedTags := model.Tags{"one", "two", "three"}
 			appie.On("ReplaceReleaseTags",
 				contextMatcher(),
 				"release-mc-release-face",
@@ -91,7 +91,7 @@ func TestPutReleaseTags(t *testing.T) {
 
 		App: func(t *testing.T, self *testCase) *mapp.App {
 			appie := new(mapp.App)
-			expectedTags := model.Tags{"one", "three", "two"}
+			expectedTags := model.Tags{"one", "two", "three"}
 			appie.On("ReplaceReleaseTags",
 				contextMatcher(),
 				"release-mc-release-face",
@@ -118,7 +118,7 @@ func TestPutReleaseTags(t *testing.T) {
 
 		App: func(t *testing.T, self *testCase) *mapp.App {
 			appie := new(mapp.App)
-			expectedTags := model.Tags{"one", "three", "two"}
+			expectedTags := model.Tags{"one", "two", "three"}
 			appie.On("ReplaceReleaseTags",
 				contextMatcher(),
 				"release-mc-release-face",
@@ -145,7 +145,7 @@ func TestPutReleaseTags(t *testing.T) {
 
 		App: func(t *testing.T, self *testCase) *mapp.App {
 			appie := new(mapp.App)
-			expectedTags := model.Tags{"one", "three", "two"}
+			expectedTags := model.Tags{"one", "two", "three"}
 			appie.On("ReplaceReleaseTags",
 				contextMatcher(),
 				"release-mc-release-face",
