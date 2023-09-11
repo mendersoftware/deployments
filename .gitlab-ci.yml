@@ -1,5 +1,7 @@
 variables:
   DOCKER_REPOSITORY: mendersoftware/deployments
+  MULTIPLATFORM_BUILD: "true"
+  MULTIPLATFORM_PLATFORMS: "linux/amd64,linux/arm64"
 
 stages:
   - test_prep
@@ -41,6 +43,22 @@ test:acceptance_tests:
       for cover in $@; do
         tail -n +2 $cover >> tests/coverage-acceptance.txt;
       done
+
+# excludes non multiplatform build job
+build:docker:
+  rules:
+    - when: never
+
+# excludes non multiplatform build job
+publish:image:
+  rules:
+    - when: never
+
+# excludes non multiplatform build job
+publish:image:mender:
+  rules:
+    - when: never
+
 
 # FIXME Revert the image overrides once templates in mendertesting is updated
 test:static:
