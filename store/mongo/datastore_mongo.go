@@ -468,6 +468,7 @@ const (
 	StorageKeyDeploymentMaxDevices   = "max_devices"
 	StorageKeyDeploymentType         = "type"
 	StorageKeyDeploymentTotalSize    = "statistics.total_size"
+	StorageKeyDeploymentDeviceList   = "devicelist"
 
 	StorageKeyStorageSettingsDefaultID      = "settings"
 	StorageKeyStorageSettingsBucket         = "bucket"
@@ -2941,4 +2942,48 @@ func (db *DataStoreMongo) UpdateDeploymentsWithArtifactName(
 
 func (db *DataStoreMongo) GetTenantDbs() ([]string, error) {
 	return migrate.GetTenantDbs(context.Background(), db.client, mstore.IsTenantDb(DbName))
+}
+
+// Get the oldest active deployment for the device
+// which was created after createdAfter
+func (db *DataStoreMongo) FindOldestActiveDeploymentForDevice(ctx context.Context, deviceID string, createdAfter *time.Time) (*model.Deployment, error) {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	c := database.Collection(CollectionDeployments)
+
+	// use an aggregation pipeline to fetch only the oldest active deployment
+	pipeline := []bson.M{
+		{
+			"$match": bson.M{
+				StorageKeyDeploymentCreated:    bson.M{"$gt": createdAfter},
+				StorageKeyDeploymentActive:     true,
+				StorageKeyDeploymentDeviceList: bson.M{"$in": []string{deviceID}},
+			},
+		},
+		{
+			"$sort": bson.M{StorageKeyDeploymentCreated: 1},
+		},
+		{
+			"$limit": 1,
+		},
+	}
+
+	var deployment *model.Deployment
+
+	cursor, err := c.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get deployments")
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		if err := cursor.Decode(&deployment); err != nil {
+			return nil, errors.Wrap(err, "failed to get deployments")
+		}
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, errors.Wrap(err, "failed to get deployments")
+	}
+
+	return deployment, nil
 }

@@ -42,6 +42,7 @@ import (
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mongo"
 	"github.com/mendersoftware/deployments/utils"
+	mdriver "go.mongodb.org/mongo-driver/mongo"
 )
 
 const (
@@ -1318,35 +1319,22 @@ func (d *Deployments) getNewDeploymentForDevice(ctx context.Context,
 		lastDeployment = deviceDeployment.Created
 	}
 
-	//get deployments newer then last device deployment
-	//iterate over deployments and check if the device is part of the deployment or not
-	for skip := 0; true; skip += 100 {
-		deployments, err := d.db.FindNewerActiveDeployments(ctx, lastDeployment, skip, 100)
-		if err != nil {
-			return nil, nil, errors.Wrap(err,
-				"Failed to search for newer active deployments")
-		}
-		if len(deployments) == 0 {
+	deployment, err := d.db.FindOldestActiveDeploymentForDevice(ctx, deviceID, lastDeployment)
+	if err != nil {
+		if err == mdriver.ErrNoDocuments {
 			return nil, nil, nil
 		}
-
-		for _, deployment := range deployments {
-			ok, err := d.isDevicePartOfDeployment(ctx, deviceID, deployment)
-			if err != nil {
-				return nil, nil, err
-			}
-			if ok {
-				deviceDeployment, err := d.createDeviceDeploymentWithStatus(ctx,
-					deviceID, deployment, model.DeviceDeploymentStatusPending)
-				if err != nil {
-					return nil, nil, err
-				}
-				return deployment, deviceDeployment, nil
-			}
-		}
+		return nil, nil, errors.Wrap(err,
+			"Failed to search for newer active deployments")
 	}
 
-	return nil, nil, nil
+	deviceDeployment, err = d.createDeviceDeploymentWithStatus(ctx,
+		deviceID, deployment, model.DeviceDeploymentStatusPending)
+	if err != nil {
+		return nil, nil, err
+	}
+	return deployment, deviceDeployment, nil
+
 }
 
 func (d *Deployments) createDeviceDeploymentWithStatus(
