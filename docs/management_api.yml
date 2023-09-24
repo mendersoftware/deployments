@@ -743,12 +743,12 @@ paths:
         - ManagementJWT: []
       summary: |
         List releases
+      description: |
+        Returns a collection of releases, allows filtering by release name.
 
         DEPRECATED: this end-point is deprecated because it doesn't support
         pagination and will be removed in the future, please use the
         /deployments/releases/list end-point instead.
-      description: |
-        Returns a collection of releases, allows filtering by release name.
       parameters:
         - name: name
           in: query
@@ -874,16 +874,21 @@ paths:
 
   /deployments/releases/list:
     get:
+      deprecated: true
       operationId: List Releases with pagination
       tags:
         - Management API
       security:
         - ManagementJWT: []
       summary: |
-        List releases
+        List releases with pagination
       description: |
         Returns a collection of releases, allows filtering by release name and sorting
         by name or last modification date.
+
+        DEPRECATED: due to a mismatch in the capitalization of the fields of the response
+        body and lack of support for advanced filters and sorting, we have deprecated this
+        endpoint. Please use the v2 /deployments/releases end-point instead.
       parameters:
         - name: name
           in: query
@@ -927,10 +932,14 @@ paths:
           required: false
           type: string
           enum:
-            - name:asc
-            - name:desc
+            - artifacts_count:asc
+            - artifacts_count:desc
             - modified:asc
             - modified:desc
+            - name:asc
+            - name:desc
+            - tags:asc
+            - tags:desc
           default: "name:asc"
       produces:
         - application/json
@@ -1050,13 +1059,13 @@ paths:
       security:
         - ManagementJWT: []
       summary: |
-        List known artifacts
+        List all the artifacts
+      description: |
+        Returns a collection of all artifacts.
 
         DEPRECATED: this end-point is deprecated because it doesn't support
         pagination and will be removed in the future, please use the
         /artifacts/list end-point instead.
-      description: |
-        Returns a collection of all artifacts.
       produces:
         - application/json
       parameters:

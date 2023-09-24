@@ -30,6 +30,13 @@ import (
 	"github.com/mendersoftware/deployments/model"
 )
 
+type listReleasesVersion int64
+
+const (
+	listReleasesV1 listReleasesVersion = iota
+	listReleasesV2
+)
+
 func redactReleaseName(r *rest.Request) {
 	q := r.URL.Query()
 	if q.Get(ParamName) != "" {
@@ -42,21 +49,22 @@ func (d *DeploymentsApiHandlers) GetReleases(w rest.ResponseWriter, r *rest.Requ
 	l := requestlog.GetRequestLogger(r)
 
 	defer redactReleaseName(r)
-	filter := getReleaseOrImageFilter(r, false)
+	filter := getReleaseOrImageFilter(r, listReleasesV1, false)
 	releases, _, err := d.store.GetReleases(r.Context(), filter)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
 		return
 	}
 
-	d.view.RenderSuccessGet(w, releases)
+	d.view.RenderSuccessGet(w, model.ConvertReleasesToV1(releases))
 }
 
-func (d *DeploymentsApiHandlers) ListReleases(w rest.ResponseWriter, r *rest.Request) {
+func (d *DeploymentsApiHandlers) listReleases(w rest.ResponseWriter, r *rest.Request,
+	version listReleasesVersion) {
 	l := requestlog.GetRequestLogger(r)
 
 	defer redactReleaseName(r)
-	filter := getReleaseOrImageFilter(r, true)
+	filter := getReleaseOrImageFilter(r, version, true)
 	releases, totalCount, err := d.store.GetReleases(r.Context(), filter)
 	if err != nil {
 		d.view.RenderInternalError(w, r, err, l)
@@ -70,7 +78,19 @@ func (d *DeploymentsApiHandlers) ListReleases(w rest.ResponseWriter, r *rest.Req
 	}
 	w.Header().Add(hdrTotalCount, strconv.Itoa(totalCount))
 
-	d.view.RenderSuccessGet(w, releases)
+	if version == listReleasesV1 {
+		d.view.RenderSuccessGet(w, model.ConvertReleasesToV1(releases))
+	} else {
+		d.view.RenderSuccessGet(w, releases)
+	}
+}
+
+func (d *DeploymentsApiHandlers) ListReleases(w rest.ResponseWriter, r *rest.Request) {
+	d.listReleases(w, r, listReleasesV1)
+}
+
+func (d *DeploymentsApiHandlers) ListReleasesV2(w rest.ResponseWriter, r *rest.Request) {
+	d.listReleases(w, r, listReleasesV2)
 }
 
 func (d *DeploymentsApiHandlers) PatchRelease(w rest.ResponseWriter, r *rest.Request) {

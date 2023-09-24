@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -81,4 +82,36 @@ func TestReleaseNotesValidation(t *testing.T) {
 	err = notes.Validate()
 	assert.Error(t, err)
 	assert.True(t, strings.HasPrefix(err.Error(), "invalid character '"))
+}
+
+func TestConvertReleasesToV1(t *testing.T) {
+	now := time.Now()
+	releases := []Release{
+		{
+			Name:     "r1",
+			Modified: &now,
+			Artifacts: []Image{
+				{
+					Id: "i1",
+				},
+			},
+			ArtifactsCount: 1,
+			Tags:           Tags{"t1", "t2"},
+		},
+	}
+	expected := []ReleaseV1{
+		{
+			Name:     "r1",
+			Modified: &now,
+			Artifacts: []Image{
+				{
+					Id: "i1",
+				},
+			},
+			ArtifactsCount: 1,
+			Tags:           Tags{"t1", "t2"},
+		},
+	}
+	releasesV1 := ConvertReleasesToV1(releases)
+	assert.Equal(t, expected, releasesV1)
 }

@@ -44,6 +44,177 @@ responses:
       $ref: "#/definitions/Error"
 
 paths:
+  /deployments/releases:
+    get:
+      operationId: List Releases with pagination
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: |
+        List releases
+      description: |
+        Returns a collection of releases, allows filtering by release name and sorting
+        by name or last modification date.
+      parameters:
+        - name: name
+          in: query
+          description: Release name filter.
+          required: false
+          type: string
+        - name: tag
+          in: query
+          description: Tag filter.
+          required: false
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+        - name: update_type
+          in: query
+          description: Update type filter.
+          required: false
+          type: string
+        - name: page
+          in: query
+          description: Starting page.
+          required: false
+          type: number
+          format: integer
+          default: 1
+        - name: per_page
+          in: query
+          description: Maximum number of results per page.
+          required: false
+          type: number
+          format: integer
+          default: 20
+          maximum: 500
+        - name: sort
+          in: query
+          description: |
+            Sort the release list by the specified field and direction.
+          required: false
+          type: string
+          enum:
+            - artifacts_count:asc
+            - artifacts_count:desc
+            - modified:asc
+            - modified:desc
+            - name:asc
+            - name:desc
+            - tags:asc
+            - tags:desc
+          default: "name:asc"
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Successful response.
+          examples:
+            application/json:
+              - name: my-app-v1.0.1
+                artifacts:
+                  - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                    name: Application 1.0.0
+                    description: Johns Monday test build
+                    device_types_compatible: [Beagle Bone]
+                    info:
+                      type_info:
+                        type: rootfs
+                    signed: false
+                    updates:
+                      - type_info:
+                          type: "rootfs-image"
+                        files:
+                          - name: rootfs-image-1
+                            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                            size: 123
+                            date: 2016-03-11T13:03:17.063+0000
+                        meta_data: {}
+                    artifact_provides:
+                      artifact_name: "test"
+                      rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+                      rootfs-image.version: "test"
+                    artifact_depends:
+                      device_type:
+                        - "test"
+                    clears_artifact_provides:
+                      - "rootfs-image.*"
+                    size: 36891648
+                    modified: "2016-03-11T13:03:17.063493443Z"
+                  - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                    name: Application 1.0.0
+                    description: Johns Monday test build
+                    device_types_compatible: [Raspberry Pi]
+                    info:
+                      type_info:
+                        type: rootfs
+                    signed: false
+                    updates:
+                      - type_info:
+                          type: "rootfs-image"
+                        files:
+                          - name: rootfs-image-1
+                            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                            size: 123
+                            date: 2016-03-11T13:03:17.063+0000
+                        meta_data: {}
+                    artifact_provides:
+                      artifact_name: "test"
+                      rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+                      rootfs-image.version: "test"
+                    artifact_depends:
+                      device_type:
+                        - "test"
+                    clears_artifact_provides:
+                      - "rootfs-image.*"
+                    size: 36891648
+                    modified: "2016-03-11T13:03:17.063493443Z"
+              - name: my-app-v2.0.0
+                artifacts:
+                  - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+                    name: Application 2.0.0
+                    description: Johns Monday test build
+                    device_types_compatible: [Beagle Bone]
+                    info:
+                      type_info:
+                        type: rootfs
+                    signed: false
+                    updates:
+                      - type_info:
+                          type: "rootfs-image"
+                        files:
+                          - name: rootfs-image-1
+                            checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                            size: 123
+                            date: 2016-03-11T13:03:17.063+0000
+                        meta_data: {}
+                    artifact_provides:
+                      artifact_name: "test"
+                      rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+                      rootfs-image.version: "test"
+                    artifact_depends:
+                      device_type:
+                        - "test"
+                    clears_artifact_provides:
+                      - "rootfs-image.*"
+                    size: 36891648
+                    modified: "2016-03-11T13:03:17.063493443Z"
+          schema:
+            $ref: '#/definitions/Releases'
+          headers:
+            Link:
+              type: string
+              description: Standard header, we support 'first', 'next', and 'prev'.
+            X-Total-Count:
+              type: integer
+              description: Total number of releases matching query.
+        401:
+          $ref: '#/responses/UnauthorizedError'
+        500:
+          $ref: "#/responses/InternalServerError"
+
   /deployments/releases/{release_name}:
     patch:
       operationId: Update Release information
@@ -181,6 +352,214 @@ paths:
 
 
 definitions:
+  Artifact:
+    description: Detailed artifact.
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      device_types_compatible:
+        type: array
+        description: An array of compatible device types.
+        items:
+          type: string
+      info:
+        $ref: "#/definitions/ArtifactInfo"
+      signed:
+        type: boolean
+        description: Idicates if artifact is signed or not.
+      updates:
+        type: array
+        items:
+          $ref: "#/definitions/Update"
+      artifact_provides:
+        type: object
+        description: |
+          List of Artifact provides.
+
+          Map of key/value pairs, where both keys and values are strings.
+        additionalProperties:
+          type: string
+      artifact_depends:
+        type: object
+        description: |
+          List of Artifact depends.
+
+          Map of key/value pairs, where keys are strings and values are lists of strings.
+        additionalProperties:
+          type: array
+          items:
+            type: string
+      clears_artifact_provides:
+        type: array
+        description: List of Clear Artifact provides.
+        items:
+          type: string
+      size:
+        type: number
+        format: integer
+        description: |
+            Artifact total size in bytes - the size of the actual file that will be transferred to the device (compressed).
+      modified:
+        type: string
+        format: date-time
+        description: |
+            Represents creation / last edition of any of the artifact properties.
+    required:
+      - name
+      - description
+      - device_types_compatible
+      - id
+      - modified
+    example:
+      id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+      name: Application 1.0.0
+      description: Johns Monday test build
+      device_types_compatible: [Beagle Bone]
+      info:
+        type_info:
+          type: rootfs
+      signed: false
+      updates:
+        - type_info:
+            type: "rootfs-image"
+          files:
+            - name: rootfs-image-1
+              checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+              size: 123
+              date: 2016-03-11T13:03:17.063+0000
+          meta_data: {}
+      artifact_provides:
+        artifact_name: "test"
+        rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+        rootfs-image.version: "test"
+      artifact_depends:
+        device_type:
+          - "test"
+      clears_artifact_provides:
+        - "rootfs-image.*"
+      size: 36891648
+      modified: "2016-03-11T13:03:17.063493443Z"
+
+  ArtifactInfo:
+    description: |
+        Information about artifact format and version.
+    type: object
+    properties:
+      format:
+        type: string
+      version:
+        type: integer
+
+  ArtifactTypeInfo:
+    description: |
+        Information about update type.
+    type: object
+    properties:
+      type:
+        type: string
+        description: Note that for emtpy Artifacts, the type is 'null'
+
+  Releases:
+    description: List of releases
+    type: array
+    items:
+      $ref: "#/definitions/Release"
+
+  Release:
+    description: Groups artifacts with the same release name into a single resource.
+    type: object
+    properties:
+      name:
+        type: string
+        description: |
+            release name.
+      modified:
+        type: string
+        format: date-time
+        description: |
+            Last modification time for the release.
+      artifacts:
+        type: array
+        description: List of artifacts for this release.
+        items:
+          $ref: "#/definitions/Artifact"
+      tags:
+        type: array
+        description: |-
+          Tags assigned to the release used for filtering releases. Each tag
+          must be valid a ASCII string and contain only lowercase and uppercase
+          letters, digits, underscores, periods and hyphens.
+        items:
+          type: string
+      notes:
+        type: string
+        description: |
+          Additional information describing a Release limited to 1024 characters. Please use the v2 API to set this field.
+    example:
+      name: my-app-v1.0.1
+      artifacts:
+        - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+          name: Application 1.0.0
+          description: Johns Monday test build
+          device_types_compatible: [Beagle Bone]
+          info:
+            type_info:
+              type: rootfs
+          signed: false
+          updates:
+            - type_info:
+                type: "rootfs-image"
+              files:
+                - name: rootfs-image-1
+                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                  size: 123
+                  date: 2016-03-11T13:03:17.063+0000
+              meta_data: {}
+          artifact_provides:
+            artifact_name: "test"
+            rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+            rootfs-image.version: "test"
+          artifact_depends:
+            device_type:
+              - "test"
+          clears_artifact_provides:
+            - "rootfs-image.*"
+          size: 36891648
+          modified: "2016-03-11T13:03:17.063493443Z"
+        - id: 0c13a0e6-6b63-475d-8260-ee42a590e8ff
+          name: Application 1.0.0
+          description: Johns Monday test build
+          device_types_compatible: [Raspberry Pi]
+          info:
+            type_info:
+              type: rootfs
+          signed: false
+          updates:
+            - type_info:
+                type: "rootfs-image"
+              files:
+                - name: rootfs-image-1
+                  checksum: cc436f982bc60a8255fe1926a450db5f195a19ad
+                  size: 123
+                  date: 2016-03-11T13:03:17.063+0000
+              meta_data: {}
+          artifact_provides:
+            artifact_name: "test"
+            rootfs-image.checksum: "32714818ad6f98ee0185a52e23a475d89122e3efd2b2c26c733781c28e798c99"
+            rootfs-image.version: "test"
+          artifact_depends:
+            device_type:
+              - "test"
+          clears_artifact_provides:
+            - "rootfs-image.*"
+          size: 36891648
+          modified: "2016-03-11T13:03:17.063493443Z"
+
   ReleaseUpdate:
     type: object
     description: |-
@@ -200,6 +579,37 @@ definitions:
       letters, digits, underscores, periods and hyphens.
     items:
       type: string
+
+  Update:
+    description: |
+        Single updated to be applied.
+    type: object
+    properties:
+      type_info:
+        $ref: "#/definitions/ArtifactTypeInfo"
+      files:
+        type: array
+        items:
+          $ref: "#/definitions/UpdateFile"
+      meta_data:
+        type: object
+        description: |
+            meta_data is an object of unknown structure as this is dependent of update type (also custom defined by user)
+
+  UpdateFile:
+      description: |
+          Information about particular update file.
+      type: object
+      properties:
+        name:
+          type: string
+        checksum:
+          type: string
+        size:
+          type: integer
+        date:
+          type: string
+          format: date-time
 
   UpdateTypes:
     type: array

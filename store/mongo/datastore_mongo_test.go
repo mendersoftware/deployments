@@ -255,21 +255,6 @@ func TestGetReleases_1_2_14(t *testing.T) {
 				},
 			},
 		},
-		"ok, device type": {
-			releaseFilt: &model.ReleaseOrImageFilter{
-				DeviceType: "bork",
-			},
-			releases: []model.Release{
-				{
-					Name: "App1 v1.0",
-					Artifacts: []model.Image{
-						*inputImgs[0],
-						*inputImgs[2],
-						*inputImgs[3],
-					},
-				},
-			},
-		},
 		"ok, with sort and pagination": {
 			releaseFilt: &model.ReleaseOrImageFilter{
 				Sort:    "name:desc",
@@ -534,6 +519,22 @@ func TestGetReleases_1_2_15(t *testing.T) {
 						*inputImgs[4],
 					},
 					ArtifactsCount: 2,
+				},
+			},
+		},
+		"ok, tag": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Tags: []string{"root-fs"},
+			},
+			releases: []model.Release{
+				{
+					Name: "App2 v0.1",
+					Artifacts: []model.Image{
+						*inputImgs[1],
+						*inputImgs[4],
+					},
+					ArtifactsCount: 2,
+					Tags:           releaseNameToTags["App2 v0.1"],
 				},
 			},
 		},

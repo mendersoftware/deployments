@@ -76,6 +76,7 @@ const (
 	ParamDeviceID     = "device_id"
 	ParamTenantID     = "tenant_id"
 	ParamName         = "name"
+	ParamTag          = "tag"
 	ParamDescription  = "description"
 	ParamPage         = "page"
 	ParamPerPage      = "per_page"
@@ -248,15 +249,20 @@ func (d *DeploymentsApiHandlers) HealthHandler(w rest.ResponseWriter, r *rest.Re
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func getReleaseOrImageFilter(r *rest.Request, paginated bool) *model.ReleaseOrImageFilter {
+func getReleaseOrImageFilter(r *rest.Request, version listReleasesVersion,
+	paginated bool) *model.ReleaseOrImageFilter {
 
 	q := r.URL.Query()
 
 	filter := &model.ReleaseOrImageFilter{
-		Name:        q.Get(ParamName),
-		Description: q.Get(ParamDescription),
-		DeviceType:  q.Get(ParamDeviceType),
-		UpdateType:  q.Get(ParamUpdateType),
+		Name:       q.Get(ParamName),
+		UpdateType: q.Get(ParamUpdateType),
+	}
+	if version == listReleasesV1 {
+		filter.Description = q.Get(ParamDescription)
+		filter.DeviceType = q.Get(ParamDeviceType)
+	} else if version == listReleasesV2 {
+		filter.Tags = q[ParamTag]
 	}
 
 	if paginated {
@@ -341,7 +347,7 @@ func (d *DeploymentsApiHandlers) GetImages(w rest.ResponseWriter, r *rest.Reques
 	l := requestlog.GetRequestLogger(r)
 
 	defer redactReleaseName(r)
-	filter := getReleaseOrImageFilter(r, false)
+	filter := getReleaseOrImageFilter(r, listReleasesV1, false)
 
 	list, _, err := d.app.ListImages(r.Context(), filter)
 	if err != nil {
@@ -356,7 +362,7 @@ func (d *DeploymentsApiHandlers) ListImages(w rest.ResponseWriter, r *rest.Reque
 	l := requestlog.GetRequestLogger(r)
 
 	defer redactReleaseName(r)
-	filter := getReleaseOrImageFilter(r, true)
+	filter := getReleaseOrImageFilter(r, listReleasesV1, true)
 
 	list, totalCount, err := d.app.ListImages(r.Context(), filter)
 	if err != nil {

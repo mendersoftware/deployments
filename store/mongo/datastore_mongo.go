@@ -767,16 +767,25 @@ func (db *DataStoreMongo) getReleases_1_2_15(
 	filter := bson.M{}
 	if filt != nil {
 		if filt.Name != "" {
-			filter[StorageKeyReleaseName] = bson.M{"$regex": filt.Name}
+			filter[StorageKeyReleaseName] = bson.M{"$regex": primitive.Regex{
+				Pattern: regexp.QuoteMeta(filt.Name) + ".*",
+				Options: "i",
+			}}
+		}
+		if len(filt.Tags) > 0 {
+			filter[StorageKeyReleaseTags] = bson.M{"$all": filt.Tags}
 		}
 		if filt.Description != "" {
-			filter[StorageKeyReleaseArtifactsDescription] = bson.M{"$regex": filt.Description}
+			filter[StorageKeyReleaseArtifactsDescription] = bson.M{"$regex": primitive.Regex{
+				Pattern: ".*" + regexp.QuoteMeta(filt.Description) + ".*",
+				Options: "i",
+			}}
 		}
 		if filt.DeviceType != "" {
-			filter[StorageKeyReleaseArtifactsDeviceTypes] = bson.M{"$regex": filt.DeviceType}
+			filter[StorageKeyReleaseArtifactsDeviceTypes] = filt.DeviceType
 		}
 		if filt.UpdateType != "" {
-			filter[StorageKeyReleaseArtifactsUpdateTypes] = bson.M{"$eq": filt.UpdateType}
+			filter[StorageKeyReleaseArtifactsUpdateTypes] = filt.UpdateType
 		}
 	}
 	releases := []model.Release{}

@@ -12,12 +12,8 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-import io
 import pytest
 from uuid import uuid4
-
-import bravado
-import requests
 
 from client import DeploymentsClient, ArtifactsClient
 from common import (
@@ -189,6 +185,53 @@ class TestRelease:
                 assert artifact["device_types_compatible"] == ["device-type-2"]
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")
+    def test_get_releases_with_pagination_by_update_type(self):
+        with Lock(MONGO_LOCK_FILE) as l:
+            with artifacts_update_module_added_from_data(
+                [
+                    ("foo", "device-type-1", "app"),
+                    ("foo", "device-type-2", "single-file"),
+                    ("bar", "device-type-2", "directory"),
+                ]
+            ):
+                rsp = self.d.client.Management_API.List_Releases_with_pagination(
+                    Authorization="foo", update_type="app"
+                ).result()
+                res = rsp[0]
+                assert len(res) == 1
+                release = res[0]
+                assert release.Name == "foo"
+                assert len(release.Artifacts) > 0
+                artifact = release.Artifacts[0]
+                assert artifact["name"] == "foo"
+                assert artifact["device_types_compatible"] == ["device-type-1"]
+
+                rsp = self.d.client.Management_API.List_Releases_with_pagination(
+                    Authorization="foo", update_type="single-file"
+                ).result()
+                res = rsp[0]
+                assert len(res) == 1
+                release = res[0]
+                assert release.Name == "foo"
+                assert len(release.Artifacts) > 0
+                artifact = release.Artifacts[1]
+                assert artifact["name"] == "foo"
+                assert artifact["device_types_compatible"] == ["device-type-2"]
+
+                rsp = self.d.client.Management_API.List_Releases_with_pagination(
+                    Authorization="foo", update_type="directory"
+                ).result()
+                res = rsp[0]
+                assert len(res) == 1
+                release = res[0]
+                assert release.Name == "bar"
+                assert len(release.Artifacts) > 0
+                artifact = release.Artifacts[0]
+                l.unlock()
+                assert artifact["name"] == "bar"
+                assert artifact["device_types_compatible"] == ["device-type-2"]
+
+    @pytest.mark.usefixtures("clean_minio", "clean_db")
     def test_get_releases_by_name_no_result(self):
         with Lock(MONGO_LOCK_FILE) as l:
             with artifacts_added_from_data(
@@ -199,6 +242,23 @@ class TestRelease:
                 ]
             ):
                 rsp = self.d.client.Management_API.List_Releases(
+                    Authorization="foo", name="baz"
+                ).result()
+                res = rsp[0]
+                l.unlock()
+                assert len(res) == 0
+
+    @pytest.mark.usefixtures("clean_minio", "clean_db")
+    def test_get_releases_paginated_by_name_no_result(self):
+        with Lock(MONGO_LOCK_FILE) as l:
+            with artifacts_added_from_data(
+                [
+                    ("foo", "device-type-1"),
+                    ("foo", "device-type-2"),
+                    ("bar", "device-type-2"),
+                ]
+            ):
+                rsp = self.d.client.Management_API.List_Releases_with_pagination(
                     Authorization="foo", name="baz"
                 ).result()
                 res = rsp[0]

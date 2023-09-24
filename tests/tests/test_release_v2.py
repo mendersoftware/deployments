@@ -12,20 +12,14 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-import io
-import os.path
 
 import pytest
-from uuid import uuid4
 
-import bravado
 import requests
-import time
 
-from client import DeploymentsClient, ArtifactsClient
+from client import DeploymentsClient
 from common import (
     artifacts_added_from_data,
-    artifact_bootstrap_from_data,
     artifacts_update_module_added_from_data,
     clean_db,
     clean_minio,
@@ -66,7 +60,7 @@ class TestRelease:
                 get_release_url = (
                     "http://"
                     + pytest_config.getoption("host")
-                    + f"/api/management/v1/deployments/deployments/releases?name=%s"
+                    + f"/api/management/v2/deployments/deployments/releases?name=%s"
                 )
                 get_types_url = (
                     "http://"
