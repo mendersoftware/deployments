@@ -29,7 +29,7 @@ type migration_1_2_19 struct {
 	db     string
 }
 
-// Up creates an index for filtering tags and retrieving distinct tag keys.
+// Up creates an index for filtering by artifacts_count
 func (m *migration_1_2_19) Up(from migrate.Version) error {
 	ctx := context.Background()
 	idxReleases := m.client.

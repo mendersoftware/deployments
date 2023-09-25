@@ -29,7 +29,7 @@ type migration_1_2_18 struct {
 	db     string
 }
 
-// Up creates an index for filtering tags and retrieving distinct tag keys.
+// Up creates a unique index for update types
 func (m *migration_1_2_18) Up(from migrate.Version) error {
 	ctx := context.Background()
 	idxReleases := m.client.

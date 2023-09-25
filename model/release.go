@@ -180,12 +180,29 @@ func (n Notes) Validate() error {
 }
 
 type Release struct {
-	Name           string     `json:"Name" bson:"_id"`
-	Modified       *time.Time `json:"Modified,omitempty" bson:"modified,omitempty"`
-	Artifacts      []Image    `json:"Artifacts" bson:"artifacts"`
-	ArtifactsCount int        `json:"ArtifactsCount" bson:"artifacts_count"`
+	Name           string     `json:"name" bson:"_id"`
+	Modified       *time.Time `json:"modified,omitempty" bson:"modified,omitempty"`
+	Artifacts      []Image    `json:"artifacts" bson:"artifacts"`
+	ArtifactsCount int        `json:"artifacts_count" bson:"artifacts_count"`
 	Tags           Tags       `json:"tags" bson:"tags,omitempty"`
 	Notes          Notes      `json:"notes" bson:"notes,omitempty"`
+}
+
+type ReleaseV1 struct {
+	Name           string     `json:"Name"`
+	Modified       *time.Time `json:"Modified,omitempty"`
+	Artifacts      []Image    `json:"Artifacts"`
+	ArtifactsCount int        `json:"ArtifactsCount"`
+	Tags           Tags       `json:"tags"`
+	Notes          Notes      `json:"notes"`
+}
+
+func ConvertReleasesToV1(releases []Release) []ReleaseV1 {
+	realesesV1 := make([]ReleaseV1, len(releases))
+	for i, release := range releases {
+		realesesV1[i] = ReleaseV1(release)
+	}
+	return realesesV1
 }
 
 type ReleasePatch struct {
@@ -197,11 +214,12 @@ func (r ReleasePatch) Validate() error {
 }
 
 type ReleaseOrImageFilter struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	DeviceType  string `json:"device_type"`
-	UpdateType  string `json:"update_type"`
-	Page        int    `json:"page"`
-	PerPage     int    `json:"per_page"`
-	Sort        string `json:"sort"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	DeviceType  string   `json:"device_type"`
+	Tags        []string `json:"tags"`
+	UpdateType  string   `json:"update_type"`
+	Page        int      `json:"page"`
+	PerPage     int      `json:"per_page"`
+	Sort        string   `json:"sort"`
 }
