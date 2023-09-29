@@ -1,4 +1,4 @@
-// Copyright 2022 Northern.tech AS
+// Copyright 2023 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -14,7 +14,10 @@
 
 package model
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 // Type info structure
 type ArtifactUpdateTypeInfo struct {
@@ -41,4 +44,31 @@ type Update struct {
 	TypeInfo ArtifactUpdateTypeInfo `json:"type_info" valid:"required"`
 	Files    []UpdateFile           `json:"files"`
 	MetaData interface{}            `json:"meta_data,omitempty" valid:"optional"`
+}
+
+func (u Update) Match(update Update) bool {
+	if len(u.Files) != len(update.Files) {
+		return false
+	}
+
+	lFiles := make(map[string]UpdateFile, len(u.Files))
+	for i, f := range u.Files {
+		lFiles[f.Name] = u.Files[i]
+	}
+	for _, f := range update.Files {
+		if _, ok := lFiles[f.Name]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+const maxUpdateFiles = 1024
+
+func (u Update) Validate() error {
+	if len(u.Files) > maxUpdateFiles {
+		return errors.New("too large update files array")
+	}
+
+	return nil
 }
