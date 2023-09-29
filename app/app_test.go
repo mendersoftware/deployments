@@ -993,7 +993,7 @@ func TestCompleteUpload(t *testing.T) {
 			defer objStore.AssertExpectations(t)
 			deploy := NewDeployments(ds, objStore)
 
-			err := deploy.CompleteUpload(ctx, intentID, tc.SkipVerify)
+			err := deploy.CompleteUpload(ctx, intentID, tc.SkipVerify, nil)
 			tc.ErrorAssertionFunc(t, tc, err)
 		})
 	}

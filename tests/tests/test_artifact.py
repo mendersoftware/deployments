@@ -13,8 +13,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import io
+import json
+import random
+
 import pytest
 import time
+import os
 from os import urandom
 from os.path import basename
 from uuid import uuid4
@@ -339,6 +343,80 @@ class TestDirectUpload:
             )
         rsp = ac.complete_upload(url.id)
         assert rsp.status_code == 202, "Unexpected HTTP status code"
+
+        doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
+        assert doc["status"] > 0
+
+        # Retry for half a minute
+        for _ in range(60):
+            try:
+                ac.show_artifact(artid=url.id)
+            except ArtifactsClientError:
+                time.sleep(0.5)
+            break
+        else:
+            raise TimeoutError("Timeout waiting for artifact to be processed")
+
+    def test_upload_with_meta(self, clean_db):
+        mgo = clean_db
+        ac = ArtifactsClient()
+
+        url = ac.make_upload_url()
+        doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
+        assert doc is not None, "Upload intent not found in database"
+        assert doc["status"] == 0
+
+        with artifact_rootfs_from_data(data=b"", compression="none") as artie:
+            requests.put(
+                url.uri,
+                artie.read(),
+                headers={"Content-Type": "application/octet-stream"},
+                verify=False,
+            )
+            artifact_size = int(artie.size)
+            file_name = basename(artie.data_file_name)
+        file_size = random.randint(1023, 65536)
+        file_checksum = "cxvbfg4h34erdsafcxvbdny4w3t"
+
+        rsp = ac.complete_upload(
+            url.id,
+            body=json.dumps(
+                {
+                    "size": artifact_size,
+                    "updates": [
+                        {
+                            "type_info": {"type": "directory"},
+                            "files": [
+                                {
+                                    "name": file_name,
+                                    "checksum": file_checksum,
+                                    "size": file_size,
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ),
+        )
+        assert rsp.status_code == 202, "Unexpected HTTP status code"
+
+        propagation_timeout_s = 4
+        time.sleep(propagation_timeout_s)
+        doc = mgo.deployment_service.releases.find_one({"_id": "foo"})
+        assert (
+            doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["size"]
+            == file_size
+        )
+        assert (
+            doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0][
+                "checksum"
+            ]
+            == file_checksum
+        )
+        assert (
+            doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["name"]
+            == file_name
+        )
 
         doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
         assert doc["status"] > 0
