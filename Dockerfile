@@ -50,6 +50,10 @@ COPY --from=builder /lib/aarch64-linux-gnu/libpthread.so.0 /lib/aarch64-linux-gn
 COPY --from=builder /lib/x86_64-linux-gnu/libpthread.so.0 /lib/x86_64-linux-gnu/libpthread.so.0
 COPY --from=builder /lib/aarch64-linux-gnu/libdl.so.2 /lib/aarch64-linux-gnu/libdl.so.2
 COPY --from=builder /lib/x86_64-linux-gnu/libdl.so.2 /lib/x86_64-linux-gnu/libdl.so.2
+COPY --from=builder /lib/x86_64-linux-gnu/libnss_dns.so.2 /lib/x86_64-linux-gnu/libnss_dns.so.2
+COPY --from=builder /lib/aarch64-linux-gnu/libnss_dns.so.2 /lib/aarch64-linux-gnu/libnss_dns.so.2
+COPY --from=builder /lib/x86_64-linux-gnu/libresolv.so.2 /lib/x86_64-linux-gnu/libresolv.so.2
+COPY --from=builder /lib/aarch64-linux-gnu/libresolv.so.2 /lib/aarch64-linux-gnu/libresolv.so.2
 COPY --chown=nobody --from=builder /tmp_extra/ /tmp/
 USER 65534
 WORKDIR /etc/deployments
