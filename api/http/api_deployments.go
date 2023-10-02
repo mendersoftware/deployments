@@ -444,14 +444,15 @@ func (d *DeploymentsApiHandlers) CompleteUpload(w rest.ResponseWriter, r *rest.R
 		r.Body.Close()
 		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 			l.Errorf("error reading post body data: %s (read: %d)", err.Error(), n)
-		}
-		err = json.Unmarshal(bodyBuffer[:n], &directMetadata)
-		if err == nil {
-			if directMetadata.Validate() == nil {
-				metadata = &directMetadata
-			}
 		} else {
-			l.Errorf("error parsing json data: %s", err.Error())
+			err = json.Unmarshal(bodyBuffer[:n], &directMetadata)
+			if err == nil {
+				if directMetadata.Validate() == nil {
+					metadata = &directMetadata
+				}
+			} else {
+				l.Errorf("error parsing json data: %s", err.Error())
+			}
 		}
 	}
 
