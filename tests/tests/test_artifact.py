@@ -14,6 +14,7 @@
 #    limitations under the License.
 import io
 import json
+import random
 
 import pytest
 import time
@@ -408,7 +409,7 @@ class TestDirectUpload:
                     verify=False,
                 )
                 artifact_size = int(artie.size)
-                file_name = basename(artie.data_file_name())
+                file_name = basename(artie.data_file_name)
             file_size = random.randint(1023, 65536)
             file_checksum = "cxvbfg4h34erdsafcxvbdny4w3t"
 
@@ -434,12 +435,23 @@ class TestDirectUpload:
             )
             assert rsp.status_code == 202, "Unexpected HTTP status code"
 
-            propagation_timeout_s=4
+            propagation_timeout_s = 4
             time.sleep(propagation_timeout_s)
-            doc = mgo.deployment_service.releases.find_one({"_id": 'foo'})
-            assert doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["size"] == file_size
-            assert doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["checksum"] == file_checksum
-            assert doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["name"] == file_name
+            doc = mgo.deployment_service.releases.find_one({"_id": "foo"})
+            assert (
+                doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["size"]
+                == file_size
+            )
+            assert (
+                doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0][
+                    "checksum"
+                ]
+                == file_checksum
+            )
+            assert (
+                doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["name"]
+                == file_name
+            )
 
             doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
             assert doc["status"] > 0

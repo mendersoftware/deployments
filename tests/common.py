@@ -124,6 +124,7 @@ class FileArtifact(io.RawIOBase, Artifact):
     def file_name(self):
         return self.file.name
 
+    @property
     def data_file_name(self):
         return self.rdata_file_name
 
