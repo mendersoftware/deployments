@@ -17,6 +17,7 @@ import json
 
 import pytest
 import time
+import os
 from os import urandom
 from os.path import basename
 from uuid import uuid4
@@ -406,10 +407,32 @@ class TestDirectUpload:
                     headers={"Content-Type": "application/octet-stream"},
                     verify=False,
                 )
+                artifact_size = int(artie.size)
+                file_name = basename(artie.data_file_name)
+                file_size = artie.data_file_size
             # {"size":10241024,"updates":[{"type_info":{"type":"directory"},"files":[{"name":"images.tar.gz","checksum":"cxvbfg4h34erdsafcxvbdny4w3t","size":10241024},{"name":"manifests.tar.gz","checksum":"2865tiueyrghrkjfwqer","size":20482048}]}]}
             # simulate updates, pass the filename to artifact_rootfs_from_data or get the created temp file
             # and push metadata, the get hte releases and verify that the meta is present
-            rsp = ac.complete_upload(url.id,body=json.dumps({"size":artie.size(),"updates":[{"type_info":{"type":"directory"},"files":[{"name":"images.tar.gz","checksum":"cxvbfg4h34erdsafcxvbdny4w3t","size":10241024},{"name":"manifests.tar.gz","checksum":"2865tiueyrghrkjfwqer","size":20482048}]}]}))
+            rsp = ac.complete_upload(
+                url.id,
+                body=json.dumps(
+                    {
+                        "size": artifact_size,
+                        "updates": [
+                            {
+                                "type_info": {"type": "directory"},
+                                "files": [
+                                    {
+                                        "name": file_name,
+                                        "checksum": "cxvbfg4h34erdsafcxvbdny4w3t",
+                                        "size": file_size,
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ),
+            )
             assert rsp.status_code == 202, "Unexpected HTTP status code"
 
             doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
