@@ -311,10 +311,10 @@ class ArtifactsClient(SwaggerApiClient):
         body = rsp.json()
         return ArtifactsClient.UploadURL(body["id"], body["uri"], body["expire"])
 
-    def complete_upload(self, identifier):
+    def complete_upload(self, identifier, body=""):
         rsp = requests.post(
             self.make_api_url(f"/artifacts/directupload/{identifier}/complete"),
-            "",
+            data=body,
             headers={"Authorization": f"Bearer {self._jwt}"},
         )
         try:

@@ -118,6 +118,15 @@ class FileArtifact(io.RawIOBase, Artifact):
     def checksum(self):
         return self._checksum
 
+    @property
+    def file_name(self):
+        return self.file.name
+
+    @property
+    def file_size(self):
+        file_stats = os.stat(self.file.name)
+        return file_stats.st_size
+
 
 class MinioClient:
     access_key = "minio"

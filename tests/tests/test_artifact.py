@@ -13,6 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import io
+import json
+
 import pytest
 import time
 from os import urandom
@@ -371,6 +373,43 @@ class TestDirectUpload:
                     verify=False,
                 )
             rsp = ac.complete_upload(url.id)
+            assert rsp.status_code == 202, "Unexpected HTTP status code"
+
+            doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
+            assert doc["status"] > 0
+
+            # Retry for half a minute
+            for _ in range(60):
+                try:
+                    ac.show_artifact(artid=url.id)
+                except ArtifactsClientError:
+                    time.sleep(0.5)
+                break
+            else:
+                raise TimeoutError("Timeout waiting for artifact to be processed")
+            l.unlock()
+
+    def test_upload_with_meta(self, clean_db):
+        with Lock(MONGO_LOCK_FILE) as l:
+            mgo = clean_db
+            ac = ArtifactsClient()
+
+            url = ac.make_upload_url()
+            doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
+            assert doc is not None, "Upload intent not found in database"
+            assert doc["status"] == 0
+
+            with artifact_rootfs_from_data(data=b"", compression="none") as artie:
+                requests.put(
+                    url.uri,
+                    artie.read(),
+                    headers={"Content-Type": "application/octet-stream"},
+                    verify=False,
+                )
+            # {"size":10241024,"updates":[{"type_info":{"type":"directory"},"files":[{"name":"images.tar.gz","checksum":"cxvbfg4h34erdsafcxvbdny4w3t","size":10241024},{"name":"manifests.tar.gz","checksum":"2865tiueyrghrkjfwqer","size":20482048}]}]}
+            # simulate updates, pass the filename to artifact_rootfs_from_data or get the created temp file
+            # and push metadata, the get hte releases and verify that the meta is present
+            rsp = ac.complete_upload(url.id,body=json.dumps({"size":artie.size(),"updates":[{"type_info":{"type":"directory"},"files":[{"name":"images.tar.gz","checksum":"cxvbfg4h34erdsafcxvbdny4w3t","size":10241024},{"name":"manifests.tar.gz","checksum":"2865tiueyrghrkjfwqer","size":20482048}]}]}))
             assert rsp.status_code == 202, "Unexpected HTTP status code"
 
             doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
