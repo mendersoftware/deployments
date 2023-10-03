@@ -99,7 +99,7 @@ class FileArtifact(io.RawIOBase, Artifact):
     def __init__(self, size, openedfile, data_file_name=""):
         self.file = openedfile
         self._size = size
-        self.data_file_name = data_file_name
+        self.rdata_file_name = data_file_name
 
         d = sha256()
         with open(openedfile.name, "rb") as inf:
@@ -124,18 +124,12 @@ class FileArtifact(io.RawIOBase, Artifact):
     def file_name(self):
         return self.file.name
 
-    @property
     def data_file_name(self):
-        return self.data_file_name
+        return self.rdata_file_name
 
     @property
     def file_size(self):
         file_stats = os.stat(self.file.name)
-        return file_stats.st_size
-
-    @property
-    def data_file_size(self):
-        file_stats = os.stat(self.data_file_name)
         return file_stats.st_size
 
 

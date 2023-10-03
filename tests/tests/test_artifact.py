@@ -408,11 +408,10 @@ class TestDirectUpload:
                     verify=False,
                 )
                 artifact_size = int(artie.size)
-                file_name = basename(artie.data_file_name)
-                file_size = artie.data_file_size
-            # {"size":10241024,"updates":[{"type_info":{"type":"directory"},"files":[{"name":"images.tar.gz","checksum":"cxvbfg4h34erdsafcxvbdny4w3t","size":10241024},{"name":"manifests.tar.gz","checksum":"2865tiueyrghrkjfwqer","size":20482048}]}]}
-            # simulate updates, pass the filename to artifact_rootfs_from_data or get the created temp file
-            # and push metadata, the get hte releases and verify that the meta is present
+                file_name = basename(artie.data_file_name())
+            file_size = random.randint(1023, 65536)
+            file_checksum = "cxvbfg4h34erdsafcxvbdny4w3t"
+
             rsp = ac.complete_upload(
                 url.id,
                 body=json.dumps(
@@ -424,7 +423,7 @@ class TestDirectUpload:
                                 "files": [
                                     {
                                         "name": file_name,
-                                        "checksum": "cxvbfg4h34erdsafcxvbdny4w3t",
+                                        "checksum": file_checksum,
                                         "size": file_size,
                                     }
                                 ],
@@ -434,6 +433,13 @@ class TestDirectUpload:
                 ),
             )
             assert rsp.status_code == 202, "Unexpected HTTP status code"
+
+            propagation_timeout_s=4
+            time.sleep(propagation_timeout_s)
+            doc = mgo.deployment_service.releases.find_one({"_id": 'foo'})
+            assert doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["size"] == file_size
+            assert doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["checksum"] == file_checksum
+            assert doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["name"] == file_name
 
             doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
             assert doc["status"] > 0
