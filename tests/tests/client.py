@@ -311,11 +311,14 @@ class ArtifactsClient(SwaggerApiClient):
         body = rsp.json()
         return ArtifactsClient.UploadURL(body["id"], body["uri"], body["expire"])
 
-    def complete_upload(self, identifier):
+    def complete_upload(self, identifier, body=""):
         rsp = requests.post(
             self.make_api_url(f"/artifacts/directupload/{identifier}/complete"),
-            "",
-            headers={"Authorization": f"Bearer {self._jwt}"},
+            data=body,
+            headers={
+                "Authorization": f"Bearer {self._jwt}",
+                "Content-Type": "application/json",
+            },
         )
         try:
             assert rsp.status_code == 202

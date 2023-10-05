@@ -1253,6 +1253,12 @@ paths:
     post:
       operationId: Complete Direct Upload
       parameters:
+        - name: metadata
+          in: body
+          description: Metadata for contents of the artifact.
+          required: false
+          schema:
+            $ref: "#/definitions/DirectUploadMetadata"
         - name: id
           in: path
           description: >-
@@ -1265,7 +1271,9 @@ paths:
         - ManagementJWT: []
       summary: >-
         Notify the server that the direct upload is completed to make it
-        available in the artifacts API.
+        available in the artifacts API. Optionally you can provide files metadata
+        which will be absent otherwise if skip-verify flag is present in the deployments
+        service.
       produces:
         - application/json
       responses:
@@ -2325,3 +2333,16 @@ definitions:
             - "rootfs-image.*"
           size: 36891648
           modified: "2016-03-11T13:03:17.063493443Z"
+  DirectUploadMetadata:
+    description: Artifact metadata
+    type: object
+    properties:
+      size:
+        type: integer
+        description: |
+          wsize of the artifact file.
+      updates:
+        type: array
+        description: List of updates for this artifact.
+        items:
+          $ref: "#/definitions/Update"
