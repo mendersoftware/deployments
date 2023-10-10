@@ -142,6 +142,9 @@ const (
 	// pre-signed url.
 	SettingPresignScheme        = "presign.url_scheme"
 	SettingPresignSchemeDefault = "https"
+
+	SettingDisableNewReleasesFeature        = "disable_new_releases_feature"
+	SettingDisableNewReleasesFeatureDefault = false
 )
 
 const (
@@ -302,5 +305,6 @@ var (
 		{Key: SettingPresignExpireSeconds, Value: SettingPresignExpireSecondsDefault},
 		{Key: SettingPresignHost, Value: SettingPresignHostDefault},
 		{Key: SettingPresignScheme, Value: SettingPresignSchemeDefault},
+		{Key: SettingDisableNewReleasesFeature, Value: SettingDisableNewReleasesFeatureDefault},
 	}
 )

@@ -256,14 +256,21 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 		return []*rest.Route{}
 	}
 
-	return []*rest.Route{
-		rest.Get(ApiUrlManagementReleases, controller.GetReleases),
-		rest.Get(ApiUrlManagementReleasesList, controller.ListReleases),
-		rest.Get(ApiUrlManagementV2Releases, controller.ListReleasesV2),
-		rest.Put(ApiUrlManagementV2ReleaseTags, controller.PutReleaseTags),
-		rest.Get(ApiUrlManagementV2ReleaseAllTags, controller.GetReleaseTagKeys),
-		rest.Get(ApiUrlManagementV2ReleaseAllUpdateTypes, controller.GetReleasesUpdateTypes),
-		rest.Patch(ApiUrlManagementV2ReleasesName, controller.PatchRelease),
+	if controller.config.DisableNewReleasesFeature {
+		return []*rest.Route{
+			rest.Get(ApiUrlManagementReleases, controller.GetReleases),
+			rest.Get(ApiUrlManagementReleasesList, controller.ListReleases),
+		}
+	} else {
+		return []*rest.Route{
+			rest.Get(ApiUrlManagementReleases, controller.GetReleases),
+			rest.Get(ApiUrlManagementReleasesList, controller.ListReleases),
+			rest.Get(ApiUrlManagementV2Releases, controller.ListReleasesV2),
+			rest.Put(ApiUrlManagementV2ReleaseTags, controller.PutReleaseTags),
+			rest.Get(ApiUrlManagementV2ReleaseAllTags, controller.GetReleaseTagKeys),
+			rest.Get(ApiUrlManagementV2ReleaseAllUpdateTypes, controller.GetReleasesUpdateTypes),
+			rest.Patch(ApiUrlManagementV2ReleasesName, controller.PatchRelease),
+		}
 	}
 }
 

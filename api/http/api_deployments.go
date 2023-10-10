@@ -143,6 +143,8 @@ type Config struct {
 	EnableDirectUpload bool
 	// EnableDirectUploadSkipVerify allows turning off the verification of uploaded artifacts
 	EnableDirectUploadSkipVerify bool
+
+	DisableNewReleasesFeature bool
 }
 
 func NewConfig() *Config {
@@ -185,6 +187,11 @@ func (conf *Config) SetEnableDirectUpload(enable bool) *Config {
 
 func (conf *Config) SetEnableDirectUploadSkipVerify(enable bool) *Config {
 	conf.EnableDirectUploadSkipVerify = enable
+	return conf
+}
+
+func (conf *Config) SetDisableNewReleasesFeature(disable bool) *Config {
+	conf.DisableNewReleasesFeature = disable
 	return conf
 }
 
