@@ -94,7 +94,6 @@ class BytesArtifact(io.BytesIO, Artifact):
         return self._checksum
 
 
-# here
 class FileArtifact(io.RawIOBase, Artifact):
     def __init__(self, size, openedfile, data_file_name=""):
         self.file = openedfile
@@ -158,7 +157,6 @@ def artifact_from_raw_data(data):
     yield BytesArtifact(data)
 
 
-# here
 @contextmanager
 def artifact_rootfs_from_data(
     name: str = "foo", data: bytes = None, devicetype: str = "hammer", compression=""
