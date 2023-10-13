@@ -231,6 +231,7 @@ func NewDeploymentsApiHandlers(
 		if c.MaxImageSize > 0 {
 			conf.MaxImageSize = c.MaxImageSize
 		}
+		conf.DisableNewReleasesFeature = c.DisableNewReleasesFeature
 		conf.EnableDirectUpload = c.EnableDirectUpload
 		conf.EnableDirectUploadSkipVerify = c.EnableDirectUploadSkipVerify
 	}
