@@ -72,6 +72,13 @@ inventory_addr: "http://mender-inventory:8080"
 mender-workflows: "http://mender-workflows-server:8080"
 
 
+# This is a flag that turns off the new API end-points related to releases
+# Defaults to: false
+# Overwrite with environment variable: DEPLOYMENTS_DISABLE_NEW_RELEASES_FEATURE
+
+# disable_new_releases_feature: false
+
+
 storage:
     # storage.default: Default storage service
     # Must be one of ["aws", "azure"]

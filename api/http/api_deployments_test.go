@@ -2579,3 +2579,13 @@ func TestListDeviceDeploymentsByIDsInternal(t *testing.T) {
 		})
 	}
 }
+
+func TestNewConfig(t *testing.T) {
+	conf := NewConfig()
+
+	conf.SetDisableNewReleasesFeature(false)
+	assert.False(t, conf.DisableNewReleasesFeature)
+
+	conf.SetDisableNewReleasesFeature(true)
+	assert.True(t, conf.DisableNewReleasesFeature)
+}

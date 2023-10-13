@@ -144,6 +144,9 @@ type Config struct {
 	// EnableDirectUploadSkipVerify allows turning off the verification of uploaded artifacts
 	EnableDirectUploadSkipVerify bool
 
+	// DisableNewReleasesFeature is a flag that turns off the new API end-points
+	// related to releases; helpful in performing long-running maintenance and data
+	// migrations on the artifacts and releases collections.
 	DisableNewReleasesFeature bool
 }
 
