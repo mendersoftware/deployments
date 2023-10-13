@@ -25,18 +25,18 @@ import (
 	mgopts "go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func TestMigration_1_2_6(t *testing.T) {
+func TestMigration_1_2_15(t *testing.T) {
 	ctx := context.Background()
 	client := db.Client()
 
 	t.Run("ok", func(t *testing.T) {
-		migration := &migration_1_2_16{
+		migration := &migration_1_2_15{
 			client: client,
 			db:     "deployments_test",
 		}
 		err := migration.Up(migrate.MakeVersion(1, 2, 15))
 		assert.NoError(t, err)
-		assert.Equal(t, migrate.MakeVersion(1, 2, 16), migration.Version())
+		assert.Equal(t, migrate.MakeVersion(1, 2, 15), migration.Version())
 	})
 
 	t.Run("error/indexAlreadyExist", func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestMigration_1_2_6(t *testing.T) {
 				SetName(IndexNameReleaseTags),
 		})
 
-		migration_fail := &migration_1_2_16{
+		migration_fail := &migration_1_2_15{
 			client: client,
 			db:     "deployments_test_bad",
 		}

@@ -190,7 +190,8 @@ func RunServer(ctx context.Context) error {
 		SetPresignScheme(c.GetString(dconfig.SettingPresignScheme)).
 		SetMaxImageSize(c.GetInt64(dconfig.SettingStorageMaxImageSize)).
 		SetEnableDirectUpload(c.GetBool(dconfig.SettingStorageEnableDirectUpload)).
-		SetEnableDirectUploadSkipVerify(c.GetBool(dconfig.SettingStorageDirectUploadSkipVerify))
+		SetEnableDirectUploadSkipVerify(c.GetBool(dconfig.SettingStorageDirectUploadSkipVerify)).
+		SetDisableNewReleasesFeature(c.GetBool(dconfig.SettingDisableNewReleasesFeature))
 	if key, err := base64.RawStdEncoding.DecodeString(
 		base64Repl.Replace(
 			c.GetString(dconfig.SettingPresignSecret),

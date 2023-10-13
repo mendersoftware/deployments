@@ -143,6 +143,11 @@ type Config struct {
 	EnableDirectUpload bool
 	// EnableDirectUploadSkipVerify allows turning off the verification of uploaded artifacts
 	EnableDirectUploadSkipVerify bool
+
+	// DisableNewReleasesFeature is a flag that turns off the new API end-points
+	// related to releases; helpful in performing long-running maintenance and data
+	// migrations on the artifacts and releases collections.
+	DisableNewReleasesFeature bool
 }
 
 func NewConfig() *Config {
@@ -188,6 +193,11 @@ func (conf *Config) SetEnableDirectUploadSkipVerify(enable bool) *Config {
 	return conf
 }
 
+func (conf *Config) SetDisableNewReleasesFeature(disable bool) *Config {
+	conf.DisableNewReleasesFeature = disable
+	return conf
+}
+
 type DeploymentsApiHandlers struct {
 	view   RESTView
 	store  store.DataStore
@@ -221,6 +231,7 @@ func NewDeploymentsApiHandlers(
 		if c.MaxImageSize > 0 {
 			conf.MaxImageSize = c.MaxImageSize
 		}
+		conf.DisableNewReleasesFeature = c.DisableNewReleasesFeature
 		conf.EnableDirectUpload = c.EnableDirectUpload
 		conf.EnableDirectUploadSkipVerify = c.EnableDirectUploadSkipVerify
 	}
