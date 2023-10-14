@@ -1574,8 +1574,9 @@ func (d *Deployments) saveDeviceDeploymentRequest(ctx context.Context, deviceID 
 	deviceDeployment *model.DeviceDeployment, request *model.DeploymentNextRequest) error {
 	if deviceDeployment.Request != nil {
 		if !reflect.DeepEqual(deviceDeployment.Request, request) {
-			// the device reported different device type and/or artifact name
-			// during the update process, which should never happen;
+			// the device reported different device type and/or artifact name during the
+			// update process, this can happen if the mender-store DB in the client is not
+			// persistent so a new deployment start without a previous one is still ongoing;
 			// mark deployment for this device as failed to force client to rollback
 			l := log.FromContext(ctx)
 			l.Errorf(
