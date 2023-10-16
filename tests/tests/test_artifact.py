@@ -402,21 +402,6 @@ class TestDirectUpload:
 
         propagation_timeout_s = 16
         time.sleep(propagation_timeout_s)
-        doc = mgo.deployment_service.releases.find_one({"_id": "foo"})
-        assert (
-            doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["size"]
-            == file_size
-        )
-        assert (
-            doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0][
-                "checksum"
-            ]
-            == file_checksum
-        )
-        assert (
-            doc["artifacts"][0]["meta_artifact"]["updates"][0]["files"][0]["name"]
-            == file_name
-        )
 
         doc = mgo.deployment_service.uploads.find_one({"_id": url.id})
         assert doc["status"] > 0
@@ -424,9 +409,23 @@ class TestDirectUpload:
         # Retry for half a minute
         for _ in range(60):
             try:
-                ac.show_artifact(artid=url.id)
+                resp = ac.show_artifact(artid=url.id).json()
             except ArtifactsClientError:
                 time.sleep(0.5)
+            assert (
+                resp["updates"][0]["files"][0]["size"]
+                == file_size
+            )
+            assert (
+                resp["updates"][0]["files"][0][
+                    "checksum"
+                ]
+                == file_checksum
+            )
+            assert (
+                resp["updates"][0]["files"][0]["name"]
+                == file_name
+            )
             break
         else:
             raise TimeoutError("Timeout waiting for artifact to be processed")
