@@ -16,6 +16,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -462,13 +463,35 @@ func (d *DeploymentsApiHandlers) UploadLink(w rest.ResponseWriter, r *rest.Reque
 	d.view.RenderSuccessGet(w, link)
 }
 
+const maxMetadataSize = 2048
+
 func (d *DeploymentsApiHandlers) CompleteUpload(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	l := log.FromContext(ctx)
 
 	artifactID := r.PathParam(ParamID)
 
-	err := d.app.CompleteUpload(ctx, artifactID, d.config.EnableDirectUploadSkipVerify)
+	var metadata *model.DirectUploadMetadata
+	if d.config.EnableDirectUploadSkipVerify {
+		var directMetadata model.DirectUploadMetadata
+		bodyBuffer := make([]byte, maxMetadataSize)
+		n, err := io.ReadFull(r.Body, bodyBuffer)
+		r.Body.Close()
+		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+			l.Errorf("error reading post body data: %s (read: %d)", err.Error(), n)
+		} else {
+			err = json.Unmarshal(bodyBuffer[:n], &directMetadata)
+			if err == nil {
+				if directMetadata.Validate() == nil {
+					metadata = &directMetadata
+				}
+			} else {
+				l.Errorf("error parsing json data: %s", err.Error())
+			}
+		}
+	}
+
+	err := d.app.CompleteUpload(ctx, artifactID, d.config.EnableDirectUploadSkipVerify, metadata)
 	switch errors.Cause(err) {
 	case nil:
 		// w.Header().Set("Link", "FEAT: Upload status API")

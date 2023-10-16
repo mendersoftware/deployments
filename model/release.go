@@ -13,6 +13,8 @@
 //	limitations under the License.
 package model
 
+import "github.com/pkg/errors"
+
 type Release struct {
 	Name      string
 	Artifacts []Image
@@ -25,4 +27,27 @@ type ReleaseOrImageFilter struct {
 	Page        int    `json:"page"`
 	PerPage     int    `json:"per_page"`
 	Sort        string `json:"sort"`
+}
+
+type DirectUploadMetadata struct {
+	Size    int64    `json:"size,omitempty" valid:"-"`
+	Updates []Update `json:"updates" valid:"-"`
+}
+
+const maxDirectUploadUpdatesMetadata = 1024
+
+func (m DirectUploadMetadata) Validate() error {
+	if len(m.Updates) < 1 {
+		return errors.New("empty updates update")
+	}
+	if len(m.Updates) > maxDirectUploadUpdatesMetadata {
+		return errors.New("updates array too large")
+	}
+	for _, f := range m.Updates {
+		err := f.Validate()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

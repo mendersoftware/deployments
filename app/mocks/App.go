@@ -62,13 +62,13 @@ func (_m *App) AbortDeviceDeployments(ctx context.Context, deviceID string) erro
 	return r0
 }
 
-// CompleteUpload provides a mock function with given fields: ctx, intentID, skipVerify
-func (_m *App) CompleteUpload(ctx context.Context, intentID string, skipVerify bool) error {
-	ret := _m.Called(ctx, intentID, skipVerify)
+// CompleteUpload provides a mock function with given fields: ctx, intentID, skipVerify, metadata
+func (_m *App) CompleteUpload(ctx context.Context, intentID string, skipVerify bool, metadata *model.DirectUploadMetadata) error {
+	ret := _m.Called(ctx, intentID, skipVerify, metadata)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool) error); ok {
-		r0 = rf(ctx, intentID, skipVerify)
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool, *model.DirectUploadMetadata) error); ok {
+		r0 = rf(ctx, intentID, skipVerify, metadata)
 	} else {
 		r0 = ret.Error(0)
 	}

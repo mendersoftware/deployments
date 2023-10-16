@@ -365,7 +365,7 @@ func TestCompleteUpload(t *testing.T) {
 		ID: sampleID,
 		App: func(t *testing.T) *mapp.App {
 			app := new(mapp.App)
-			app.On("CompleteUpload", contextMatcher(), sampleID, false).
+			app.On("CompleteUpload", contextMatcher(), sampleID, false, mock.AnythingOfType("*model.DirectUploadMetadata")).
 				Return(nil)
 			return app
 		},
@@ -380,7 +380,7 @@ func TestCompleteUpload(t *testing.T) {
 		ID: sampleID,
 		App: func(t *testing.T) *mapp.App {
 			app := new(mapp.App)
-			app.On("CompleteUpload", contextMatcher(), sampleID, false).
+			app.On("CompleteUpload", contextMatcher(), sampleID, false, mock.AnythingOfType("*model.DirectUploadMetadata")).
 				Return(errors.New("internal error"))
 
 			return app
@@ -400,7 +400,7 @@ func TestCompleteUpload(t *testing.T) {
 		ID: sampleID,
 		App: func(t *testing.T) *mapp.App {
 			mockApp := new(mapp.App)
-			mockApp.On("CompleteUpload", contextMatcher(), sampleID, false).
+			mockApp.On("CompleteUpload", contextMatcher(), sampleID, false, mock.AnythingOfType("*model.DirectUploadMetadata")).
 				Return(app.ErrUploadNotFound)
 			return mockApp
 		},
