@@ -13,6 +13,8 @@
 //	limitations under the License.
 package model
 
+import "github.com/pkg/errors"
+
 type Release struct {
 	Name      string
 	Artifacts []Image
