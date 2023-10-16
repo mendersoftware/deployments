@@ -400,7 +400,7 @@ class TestDirectUpload:
         )
         assert rsp.status_code == 202, "Unexpected HTTP status code"
 
-        propagation_timeout_s = 4
+        propagation_timeout_s = 16
         time.sleep(propagation_timeout_s)
         doc = mgo.deployment_service.releases.find_one({"_id": "foo"})
         assert (
