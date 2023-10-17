@@ -89,6 +89,9 @@ func newFromParent(defaults *storageSettings, parent *model.StorageSettings) *st
 	if parent.ExternalUri != "" {
 		ret.ExternalURI = &parent.ExternalUri
 	}
+	if parent.ProxyURI != nil {
+		ret.ProxyURI, _ = url.Parse(*parent.ProxyURI)
+	}
 	if parent.Uri != "" {
 		ret.URI = &parent.Uri
 	}
