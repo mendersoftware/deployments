@@ -141,6 +141,10 @@ func (s storageSettings) presignOptions(opts *s3.PresignOptions) {
 			s.options,
 			s3.WithEndpointResolver(resolver),
 		)(opts)
+	} else {
+		s3.WithPresignClientFromClientOptions(
+			s.options,
+		)(opts)
 	}
 }
 
