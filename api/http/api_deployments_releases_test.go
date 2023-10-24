@@ -231,6 +231,13 @@ func TestGetReleasesFilter(t *testing.T) {
 				Tags: []string{"foo", "bar"},
 			},
 		},
+		"ok, v2, tags, name, case": {
+			queryString: "tag=fOO&tag=bAr",
+			version:     listReleasesV2,
+			filter: &dmodel.ReleaseOrImageFilter{
+				Tags: []string{"foo", "bar"},
+			},
+		},
 	}
 
 	for name, tc := range testCases {
