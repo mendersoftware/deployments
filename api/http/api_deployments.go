@@ -275,6 +275,9 @@ func getReleaseOrImageFilter(r *rest.Request, version listReleasesVersion,
 		filter.DeviceType = q.Get(ParamDeviceType)
 	} else if version == listReleasesV2 {
 		filter.Tags = q[ParamTag]
+		for i, t := range filter.Tags {
+			filter.Tags[i] = strings.ToLower(t)
+		}
 	}
 
 	if paginated {
