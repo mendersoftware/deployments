@@ -1236,7 +1236,7 @@ paths:
         - Management API
       security:
         - ManagementJWT: []
-      summary: Request link for uploading artifact directly to the storage backend
+      summary: Request link for uploading artifact directly to the storage backend. This is an on-prem endpoint only, not available on Hosted Mender.
       produces:
         - application/json
       responses:
@@ -1273,7 +1273,7 @@ paths:
         Notify the server that the direct upload is completed to make it
         available in the artifacts API. Optionally you can provide files metadata
         which will be absent otherwise if skip-verify flag is present in the deployments
-        service.
+        service. This is an on-prem endpoint only, not available on Hosted Mender.
       produces:
         - application/json
       responses:
