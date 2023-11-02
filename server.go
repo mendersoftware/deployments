@@ -47,8 +47,7 @@ func SetupS3(ctx context.Context, defaultOptions *s3.Options) (storage.ObjectSto
 	// Copy / merge defaultOptions
 	options := s3.NewOptions(defaultOptions).
 		SetBucketName(bucket).
-		SetForcePathStyle(c.GetBool(dconfig.SettingAwsS3ForcePathStyle)).
-		SetUseAccelerate(c.GetBool(dconfig.SettingAwsS3UseAccelerate))
+		SetForcePathStyle(c.GetBool(dconfig.SettingAwsS3ForcePathStyle))
 
 	// The following parameters falls back on AWS_* environment if not set
 	if c.IsSet(dconfig.SettingAwsS3Region) {
@@ -63,8 +62,16 @@ func SetupS3(ctx context.Context, defaultOptions *s3.Options) (storage.ObjectSto
 			c.GetString(dconfig.SettingAwsAuthToken),
 		)
 	}
+	useAccelerate := c.GetBool(dconfig.SettingAwsS3UseAccelerate)
 	if c.IsSet(dconfig.SettingAwsURI) {
 		options.SetURI(c.GetString(dconfig.SettingAwsURI))
+		if useAccelerate {
+			log.FromContext(ctx).
+				Warn(`cannot use s3 transfer acceleration with custom "uri": ` +
+					"disabling transfer acceleration")
+		}
+	} else {
+		options.SetUseAccelerate(c.GetBool(dconfig.SettingAwsS3UseAccelerate))
 	}
 	if c.IsSet(dconfig.SettingAwsExternalURI) {
 		options.SetExternalURI(c.GetString(dconfig.SettingAwsExternalURI))

@@ -271,10 +271,17 @@ func (d *Deployments) contextWithStorageSettings(
 	settings, ok := storage.SettingsFromContext(ctx)
 	if !ok {
 		settings, err = d.db.GetStorageSettings(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if err != nil {
-		return nil, err
-	} else if settings != nil {
+	if settings != nil {
+		if settings.UseAccelerate && settings.Uri != "" {
+			log.FromContext(ctx).
+				Warn(`storage settings: custom "uri" and "use_accelerate" ` +
+					`are not allowed: disabling transfer acceleration`)
+			settings.UseAccelerate = false
+		}
 		err = settings.Validate()
 		if err != nil {
 			return nil, err
