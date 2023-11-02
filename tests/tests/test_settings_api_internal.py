@@ -33,7 +33,7 @@ class TestInternalApiStorageSettings:
             "secret": "secret",
             "token": "token",
             "force_path_style": True,
-            "use_accelerate": True,
+            "use_accelerate": False,
         }
         api_client_int.set_settings(tenant_id, data)
         rx_data = api_client_int.get_settings(tenant_id)
@@ -50,7 +50,7 @@ class TestInternalApiStorageSettings:
             "secret": "secret",
             "token": "token",
             "force_path_style": True,
-            "use_accelerate": True,
+            "use_accelerate": False,
         }
         data2 = {
             "type": "s3",
@@ -81,7 +81,7 @@ class TestInternalApiStorageSettings:
             "secret": "secret",
             "token": "token",
             "force_path_style": True,
-            "use_accelerate": True,
+            "use_accelerate": False,
         }
         data2 = {}
         api_client_int.set_settings(tenant_id, data1)
