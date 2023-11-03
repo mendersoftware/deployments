@@ -142,6 +142,12 @@ const (
 	// pre-signed url.
 	SettingPresignScheme        = "presign.url_scheme"
 	SettingPresignSchemeDefault = "https"
+
+	// SettingDisableNewReleasesFeature is a flag that turns off the new API end-points
+	// related to releases; helpful in performing long-running maintenance and data
+	// migrations on the artifacts and releases collections.
+	SettingDisableNewReleasesFeature        = "disable_new_releases_feature"
+	SettingDisableNewReleasesFeatureDefault = false
 )
 
 const (
@@ -302,5 +308,6 @@ var (
 		{Key: SettingPresignExpireSeconds, Value: SettingPresignExpireSecondsDefault},
 		{Key: SettingPresignHost, Value: SettingPresignHostDefault},
 		{Key: SettingPresignScheme, Value: SettingPresignSchemeDefault},
+		{Key: SettingDisableNewReleasesFeature, Value: SettingDisableNewReleasesFeatureDefault},
 	}
 )

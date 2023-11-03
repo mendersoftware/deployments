@@ -98,16 +98,10 @@ var (
 	// Indexes 1.2.13
 	IndexArtifactProvidesName = "artifact_provides"
 
-	// Indexes 1.2.16
-	IndexNameReleaseTags = "release_tags"
-
-	// Indexes 1.2.17
-	IndexNameReleaseUpdateTypes = "release_update_types"
-
-	// Indexes 1.2.18
+	// Indexes 1.2.15
+	IndexNameReleaseTags           = "release_tags"
+	IndexNameReleaseUpdateTypes    = "release_update_types"
 	IndexNameAggregatedUpdateTypes = "aggregated_release_update_types"
-
-	// Indexes 1.2.19
 	IndexNameReleaseArtifactsCount = "release_artifacts_count"
 
 	_false         = false
@@ -2617,7 +2611,7 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 
 		tq := bson.M{
 			"$text": bson.M{
-				"$search": match.SearchText,
+				"$search": "\"" + match.SearchText + "\"",
 			},
 		}
 

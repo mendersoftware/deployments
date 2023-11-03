@@ -16,6 +16,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -142,6 +143,11 @@ type Config struct {
 	EnableDirectUpload bool
 	// EnableDirectUploadSkipVerify allows turning off the verification of uploaded artifacts
 	EnableDirectUploadSkipVerify bool
+
+	// DisableNewReleasesFeature is a flag that turns off the new API end-points
+	// related to releases; helpful in performing long-running maintenance and data
+	// migrations on the artifacts and releases collections.
+	DisableNewReleasesFeature bool
 }
 
 func NewConfig() *Config {
@@ -187,6 +193,11 @@ func (conf *Config) SetEnableDirectUploadSkipVerify(enable bool) *Config {
 	return conf
 }
 
+func (conf *Config) SetDisableNewReleasesFeature(disable bool) *Config {
+	conf.DisableNewReleasesFeature = disable
+	return conf
+}
+
 type DeploymentsApiHandlers struct {
 	view   RESTView
 	store  store.DataStore
@@ -220,6 +231,7 @@ func NewDeploymentsApiHandlers(
 		if c.MaxImageSize > 0 {
 			conf.MaxImageSize = c.MaxImageSize
 		}
+		conf.DisableNewReleasesFeature = c.DisableNewReleasesFeature
 		conf.EnableDirectUpload = c.EnableDirectUpload
 		conf.EnableDirectUploadSkipVerify = c.EnableDirectUploadSkipVerify
 	}
@@ -263,6 +275,9 @@ func getReleaseOrImageFilter(r *rest.Request, version listReleasesVersion,
 		filter.DeviceType = q.Get(ParamDeviceType)
 	} else if version == listReleasesV2 {
 		filter.Tags = q[ParamTag]
+		for i, t := range filter.Tags {
+			filter.Tags[i] = strings.ToLower(t)
+		}
 	}
 
 	if paginated {
@@ -427,13 +442,35 @@ func (d *DeploymentsApiHandlers) UploadLink(w rest.ResponseWriter, r *rest.Reque
 	d.view.RenderSuccessGet(w, link)
 }
 
+const maxMetadataSize = 2048
+
 func (d *DeploymentsApiHandlers) CompleteUpload(w rest.ResponseWriter, r *rest.Request) {
 	ctx := r.Context()
 	l := log.FromContext(ctx)
 
 	artifactID := r.PathParam(ParamID)
 
-	err := d.app.CompleteUpload(ctx, artifactID, d.config.EnableDirectUploadSkipVerify)
+	var metadata *model.DirectUploadMetadata
+	if d.config.EnableDirectUploadSkipVerify {
+		var directMetadata model.DirectUploadMetadata
+		bodyBuffer := make([]byte, maxMetadataSize)
+		n, err := io.ReadFull(r.Body, bodyBuffer)
+		r.Body.Close()
+		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+			l.Errorf("error reading post body data: %s (read: %d)", err.Error(), n)
+		} else {
+			err = json.Unmarshal(bodyBuffer[:n], &directMetadata)
+			if err == nil {
+				if directMetadata.Validate() == nil {
+					metadata = &directMetadata
+				}
+			} else {
+				l.Errorf("error parsing json data: %s", err.Error())
+			}
+		}
+	}
+
+	err := d.app.CompleteUpload(ctx, artifactID, d.config.EnableDirectUploadSkipVerify, metadata)
 	switch errors.Cause(err) {
 	case nil:
 		// w.Header().Set("Link", "FEAT: Upload status API")

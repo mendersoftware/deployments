@@ -89,6 +89,9 @@ func newFromParent(defaults *storageSettings, parent *model.StorageSettings) *st
 	if parent.ExternalUri != "" {
 		ret.ExternalURI = &parent.ExternalUri
 	}
+	if parent.ProxyURI != nil {
+		ret.ProxyURI, _ = url.Parse(*parent.ProxyURI)
+	}
 	if parent.Uri != "" {
 		ret.URI = &parent.Uri
 	}
@@ -137,6 +140,10 @@ func (s storageSettings) presignOptions(opts *s3.PresignOptions) {
 		s3.WithPresignClientFromClientOptions(
 			s.options,
 			s3.WithEndpointResolver(resolver),
+		)(opts)
+	} else {
+		s3.WithPresignClientFromClientOptions(
+			s.options,
 		)(opts)
 	}
 }

@@ -127,7 +127,12 @@ type App interface {
 		expire time.Duration,
 		skipVerify bool,
 	) (*model.UploadLink, error)
-	CompleteUpload(ctx context.Context, intentID string, skipVerify bool) error
+	CompleteUpload(
+		ctx context.Context,
+		intentID string,
+		skipVerify bool,
+		metadata *model.DirectUploadMetadata,
+	) error
 	GetImage(ctx context.Context, id string) (*model.Image, error)
 	DeleteImage(ctx context.Context, imageID string) error
 	CreateImage(ctx context.Context,
@@ -305,7 +310,7 @@ func (d *Deployments) ProvisionTenant(ctx context.Context, tenant_id string) err
 // Returns image ID and nil on success.
 func (d *Deployments) CreateImage(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg) (string, error) {
-	return d.handleArtifact(ctx, multipartUploadMsg, false)
+	return d.handleArtifact(ctx, multipartUploadMsg, false, nil)
 }
 
 func (d *Deployments) saveUpdateTypes(ctx context.Context, image *model.Image) {
@@ -336,6 +341,7 @@ func (d *Deployments) saveUpdateTypes(ctx context.Context, image *model.Image) {
 func (d *Deployments) handleArtifact(ctx context.Context,
 	multipartUploadMsg *model.MultipartUploadMsg,
 	skipVerify bool,
+	metadata *model.DirectUploadMetadata,
 ) (string, error) {
 
 	l := log.FromContext(ctx)
@@ -389,6 +395,16 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		<-ch
 		return artifactID, errors.Wrap(ErrModelParsingArtifactFailed, err.Error())
 	}
+	validMetadata := false
+	if skipVerify && metadata != nil {
+		// this means we got files and metadata separately
+		// we can now put it in the metaArtifactConstructor
+		// after validating that the files information match the artifact
+		validMetadata = validUpdates(metaArtifactConstructor.Updates, metadata.Updates)
+		if validMetadata {
+			metaArtifactConstructor.Updates = metadata.Updates
+		}
+	}
 	// validate artifact metadata
 	if err = metaArtifactConstructor.Validate(); err != nil {
 		return artifactID, ErrModelInvalidMetadata
@@ -414,11 +430,15 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 		return artifactID, uploadResponseErr
 	}
 
+	size := artifactReader.Count()
+	if skipVerify && validMetadata {
+		size = metadata.Size
+	}
 	image := model.NewImage(
 		artifactID,
 		multipartUploadMsg.MetaConstructor,
 		metaArtifactConstructor,
-		artifactReader.Count(),
+		size,
 	)
 
 	// save image structure in the system
@@ -449,6 +469,22 @@ func (d *Deployments) handleArtifact(ctx context.Context,
 	}
 
 	return artifactID, nil
+}
+
+func validUpdates(constructorUpdates []model.Update, metadataUpdates []model.Update) bool {
+	valid := false
+	if len(constructorUpdates) == len(metadataUpdates) {
+		valid = true
+		for _, update := range constructorUpdates {
+			for _, updateExternal := range metadataUpdates {
+				if !update.Match(updateExternal) {
+					valid = false
+					break
+				}
+			}
+		}
+	}
+	return valid
 }
 
 // GenerateImage parses raw data and uploads it to the file storage - in parallel,
@@ -791,6 +827,7 @@ func (d *Deployments) processUploadedArtifact(
 	artifactID string,
 	artifact io.ReadCloser,
 	skipVerify bool,
+	metadata *model.DirectUploadMetadata,
 ) error {
 	linkStatus := model.LinkStatusCompleted
 
@@ -826,6 +863,7 @@ func (d *Deployments) processUploadedArtifact(
 		ArtifactReader: artifact,
 	},
 		skipVerify,
+		metadata,
 	)
 	if err != nil {
 		l.Warnf("failed to process artifact %s: %s", artifactID, err)
@@ -845,6 +883,7 @@ func (d *Deployments) CompleteUpload(
 	ctx context.Context,
 	intentID string,
 	skipVerify bool,
+	metadata *model.DirectUploadMetadata,
 ) error {
 	l := log.FromContext(ctx)
 	idty := identity.FromContext(ctx)
@@ -896,7 +935,7 @@ func (d *Deployments) CompleteUpload(
 		return err
 	}
 	go d.processUploadedArtifact( // nolint:errcheck
-		ctxAsync, intentID, artifactReader, skipVerify,
+		ctxAsync, intentID, artifactReader, skipVerify, metadata,
 	)
 	return nil
 }
@@ -1535,8 +1574,9 @@ func (d *Deployments) saveDeviceDeploymentRequest(ctx context.Context, deviceID 
 	deviceDeployment *model.DeviceDeployment, request *model.DeploymentNextRequest) error {
 	if deviceDeployment.Request != nil {
 		if !reflect.DeepEqual(deviceDeployment.Request, request) {
-			// the device reported different device type and/or artifact name
-			// during the update process, which should never happen;
+			// the device reported different device type and/or artifact name during the
+			// update process, this can happen if the mender-store DB in the client is not
+			// persistent so a new deployment start without a previous one is still ongoing;
 			// mark deployment for this device as failed to force client to rollback
 			l := log.FromContext(ctx)
 			l.Errorf(

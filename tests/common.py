@@ -95,9 +95,10 @@ class BytesArtifact(io.BytesIO, Artifact):
 
 
 class FileArtifact(io.RawIOBase, Artifact):
-    def __init__(self, size, openedfile):
+    def __init__(self, size, openedfile, data_file_name=""):
         self.file = openedfile
         self._size = size
+        self.rdata_file_name = data_file_name
 
         d = sha256()
         with open(openedfile.name, "rb") as inf:
@@ -118,6 +119,19 @@ class FileArtifact(io.RawIOBase, Artifact):
     def checksum(self):
         return self._checksum
 
+    @property
+    def file_name(self):
+        return self.file.name
+
+    @property
+    def data_file_name(self):
+        return self.rdata_file_name
+
+    @property
+    def file_size(self):
+        file_stats = os.stat(self.file.name)
+        return file_stats.st_size
+
 
 class MinioClient:
     access_key = "minio"
@@ -130,10 +144,10 @@ class MinioClient:
 
 
 @contextmanager
-def artifact_from_mender_file(path):
+def artifact_from_mender_file(path, data_file_name=""):
     with open(path, "rb") as infile:
         sz = str(os.stat(path).st_size)
-        yield FileArtifact(sz, infile)
+        yield FileArtifact(sz, infile, data_file_name=data_file_name)
 
 
 @contextmanager
@@ -171,7 +185,9 @@ def artifact_rootfs_from_data(
                 )
 
             # bring up temp mender artifact
-            with artifact_from_mender_file(tmender.name) as fa:
+            with artifact_from_mender_file(
+                tmender.name, data_file_name=tdata.name
+            ) as fa:
                 yield fa
 
 

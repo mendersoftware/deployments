@@ -16,6 +16,7 @@ package http
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -128,18 +129,27 @@ func NewImagesResourceRoutes(controller *DeploymentsApiHandlers, cfg *Config) []
 	}
 
 	routes := []*rest.Route{
-		rest.Post(ApiUrlManagementArtifacts, controller.NewImage),
-		rest.Post(ApiUrlManagementArtifactsGenerate, controller.GenerateImage),
 		rest.Get(ApiUrlManagementArtifacts, controller.GetImages),
 		rest.Get(ApiUrlManagementArtifactsList, controller.ListImages),
-
 		rest.Get(ApiUrlManagementArtifactsId, controller.GetImage),
-		rest.Delete(ApiUrlManagementArtifactsId, controller.DeleteImage),
-		rest.Put(ApiUrlManagementArtifactsId, controller.EditImage),
-
 		rest.Get(ApiUrlManagementArtifactsIdDownload, controller.DownloadLink),
 	}
-	if cfg.EnableDirectUpload {
+	if !controller.config.DisableNewReleasesFeature {
+		routes = append(routes,
+			rest.Post(ApiUrlManagementArtifacts, controller.NewImage),
+			rest.Post(ApiUrlManagementArtifactsGenerate, controller.GenerateImage),
+			rest.Delete(ApiUrlManagementArtifactsId, controller.DeleteImage),
+			rest.Put(ApiUrlManagementArtifactsId, controller.EditImage),
+		)
+	} else {
+		routes = append(routes,
+			rest.Post(ApiUrlManagementArtifacts, ServiceUnavailable),
+			rest.Post(ApiUrlManagementArtifactsGenerate, ServiceUnavailable),
+			rest.Delete(ApiUrlManagementArtifactsId, ServiceUnavailable),
+			rest.Put(ApiUrlManagementArtifactsId, ServiceUnavailable),
+		)
+	}
+	if !controller.config.DisableNewReleasesFeature && cfg.EnableDirectUpload {
 		log.NewEmpty().Infof(
 			"direct upload enabled: POST %s",
 			ApiUrlManagementArtifactsDirectUpload,
@@ -168,7 +178,6 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 	}
 
 	return []*rest.Route{
-
 		// Deployments
 		rest.Post(ApiUrlManagementDeployments, controller.PostDeployment),
 		rest.Post(ApiUrlManagementDeploymentsGroup, controller.DeployToGroup),
@@ -234,7 +243,7 @@ func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 		return []*rest.Route{}
 	}
 
-	return []*rest.Route{
+	routes := []*rest.Route{
 		rest.Post(ApiUrlInternalTenants, controller.ProvisionTenantsHandler),
 		rest.Get(ApiUrlInternalTenantDeployments, controller.DeploymentsPerTenantHandler),
 		rest.Get(ApiUrlInternalTenantDeploymentsDevices,
@@ -243,12 +252,22 @@ func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 			controller.ListDeviceDeploymentsInternal),
 		rest.Delete(ApiUrlInternalTenantDeploymentsDevice,
 			controller.AbortDeviceDeploymentsInternal),
-		rest.Post(ApiUrlInternalTenantArtifacts, controller.NewImageForTenantHandler),
-
 		// per-tenant storage settings
 		rest.Get(ApiUrlInternalTenantStorageSettings, controller.GetTenantStorageSettingsHandler),
 		rest.Put(ApiUrlInternalTenantStorageSettings, controller.PutTenantStorageSettingsHandler),
 	}
+
+	if !controller.config.DisableNewReleasesFeature {
+		routes = append(routes,
+			rest.Post(ApiUrlInternalTenantArtifacts, controller.NewImageForTenantHandler),
+		)
+	} else {
+		routes = append(routes,
+			rest.Post(ApiUrlInternalTenantArtifacts, ServiceUnavailable),
+		)
+	}
+
+	return routes
 }
 
 func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
@@ -256,14 +275,21 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 		return []*rest.Route{}
 	}
 
-	return []*rest.Route{
-		rest.Get(ApiUrlManagementReleases, controller.GetReleases),
-		rest.Get(ApiUrlManagementReleasesList, controller.ListReleases),
-		rest.Get(ApiUrlManagementV2Releases, controller.ListReleasesV2),
-		rest.Put(ApiUrlManagementV2ReleaseTags, controller.PutReleaseTags),
-		rest.Get(ApiUrlManagementV2ReleaseAllTags, controller.GetReleaseTagKeys),
-		rest.Get(ApiUrlManagementV2ReleaseAllUpdateTypes, controller.GetReleasesUpdateTypes),
-		rest.Patch(ApiUrlManagementV2ReleasesName, controller.PatchRelease),
+	if controller.config.DisableNewReleasesFeature {
+		return []*rest.Route{
+			rest.Get(ApiUrlManagementReleases, controller.GetReleases),
+			rest.Get(ApiUrlManagementReleasesList, controller.ListReleases),
+		}
+	} else {
+		return []*rest.Route{
+			rest.Get(ApiUrlManagementReleases, controller.GetReleases),
+			rest.Get(ApiUrlManagementReleasesList, controller.ListReleases),
+			rest.Get(ApiUrlManagementV2Releases, controller.ListReleasesV2),
+			rest.Put(ApiUrlManagementV2ReleaseTags, controller.PutReleaseTags),
+			rest.Get(ApiUrlManagementV2ReleaseAllTags, controller.GetReleaseTagKeys),
+			rest.Get(ApiUrlManagementV2ReleaseAllUpdateTypes, controller.GetReleasesUpdateTypes),
+			rest.Patch(ApiUrlManagementV2ReleasesName, controller.PatchRelease),
+		}
 	}
 }
 
@@ -274,4 +300,8 @@ func FMTConfigURL(scheme, hostname, deploymentID, deviceType, deviceID string) s
 		"#"+ParamDeviceID, url.PathEscape(deviceID),
 	)
 	return scheme + "://" + hostname + repl.Replace(ApiUrlDevicesDownloadConfig)
+}
+
+func ServiceUnavailable(w rest.ResponseWriter, r *rest.Request) {
+	w.WriteHeader(http.StatusServiceUnavailable)
 }
