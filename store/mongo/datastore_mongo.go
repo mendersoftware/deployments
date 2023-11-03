@@ -441,6 +441,7 @@ const (
 	StorageKeyDeviceDeploymentCreated        = "created"
 	StorageKeyDeviceDeploymentDeviceId       = "deviceid"
 	StorageKeyDeviceDeploymentStatus         = "status"
+	StorageKeyDeviceDeploymentStarted        = "started"
 	StorageKeyDeviceDeploymentSubState       = "substate"
 	StorageKeyDeviceDeploymentDeploymentID   = "deploymentid"
 	StorageKeyDeviceDeploymentFinished       = "finished"
@@ -1384,6 +1385,11 @@ func (db *DataStoreMongo) InsertDeviceDeployment(
 ) error {
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	c := database.Collection(CollectionDevices)
+
+	if deviceDeployment.Status == model.DeviceDeploymentStatusPending {
+		startedTime := time.Now().UTC()
+		deviceDeployment.Started = &startedTime
+	}
 
 	if _, err := c.InsertOne(ctx, deviceDeployment); err != nil {
 		return err

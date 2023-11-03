@@ -219,6 +219,9 @@ type DeviceDeployment struct {
 	// Internal field of initial creation of deployment
 	Created *time.Time `json:"created" bson:"created"`
 
+	// Internal field of start of the deployment (after /next call)
+	Started *time.Time `json:"started,omitempty" bson:"started"`
+
 	// Update finish time
 	Finished *time.Time `json:"finished,omitempty" bson:"finished,omitempty"`
 
