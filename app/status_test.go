@@ -71,7 +71,9 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 			assert.Equal(t, model.DeviceDeploymentStatusInstalling, ddStatus.Status)
 
 			return true
-		})).Return(model.DeviceDeploymentStatusDownloading, nil).Once()
+		}),
+		mock.AnythingOfType("model.DeviceDeploymentStatus"),
+	).Return(model.DeviceDeploymentStatusDownloading, nil).Once()
 
 	db.On("UpdateStatsInc", ctx,
 		fakeDeployment.Id,
@@ -167,7 +169,9 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 			assert.Equal(t, model.DeviceDeploymentStatusAlreadyInst, ddStatus.Status)
 
 			return true
-		})).Return(model.DeviceDeploymentStatusPending, nil)
+		}),
+		mock.AnythingOfType("model.DeviceDeploymentStatus"),
+	).Return(model.DeviceDeploymentStatusPending, nil)
 
 	db.On("UpdateStatsInc", ctx,
 		fakeDeployment.Id,
@@ -336,7 +340,8 @@ func TestDecommissionDevice(t *testing.T) {
 				tc.getDeviceDeploymentDeployment, tc.getDeviceDeploymentError)
 
 			db.On("UpdateDeviceDeploymentStatus", ctx, tc.inputDeviceId,
-				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentState")).Return(
+				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentState"),
+				mock.AnythingOfType("model.DeviceDeploymentStatus")).Return(
 				tc.updateDeviceDeploymentStatusStatus, tc.updateDeviceDeploymentStatusError)
 
 			db.On("FindLatestInactiveDeviceDeployment",
@@ -531,7 +536,8 @@ func TestAbortDeviceDeployments(t *testing.T) {
 				tc.getDeviceDeploymentDeployment, tc.getDeviceDeploymentError)
 
 			db.On("UpdateDeviceDeploymentStatus", ctx, tc.inputDeviceId,
-				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentState")).Return(
+				tc.inputDeploymentId, mock.AnythingOfType("model.DeviceDeploymentState"),
+				mock.AnythingOfType("model.DeviceDeploymentStatus")).Return(
 				tc.updateDeviceDeploymentStatusStatus, tc.updateDeviceDeploymentStatusError)
 
 			db.On("FindLatestInactiveDeviceDeployment",

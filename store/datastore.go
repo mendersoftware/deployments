@@ -97,6 +97,7 @@ type DataStore interface {
 		deviceID string,
 		deploymentID string,
 		state model.DeviceDeploymentState,
+		currentStatus model.DeviceDeploymentStatus,
 	) (model.DeviceDeploymentStatus, error)
 	UpdateDeviceDeploymentLogAvailability(ctx context.Context,
 		deviceID string, deploymentID string, log bool) error

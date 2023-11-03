@@ -18,6 +18,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"strconv"
 	"testing"
 	"time"
 
@@ -279,7 +281,9 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 					Status:     testCase.InputStatus,
 					SubState:   testCase.InputSubState,
 					FinishTime: testCase.InputFinishTime,
-				})
+				},
+				testCase.InputStatus,
+			)
 
 			if testCase.OutputError != nil {
 				assert.EqualError(t, err, testCase.OutputError.Error())
@@ -298,7 +302,9 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 							Status:     testCase.InputStatus,
 							FinishTime: testCase.InputFinishTime,
 							SubState:   testCase.InputSubState,
-						})
+						},
+						testCase.InputStatus,
+					)
 					t.Logf("error: %+v", err)
 					assert.EqualError(t, err, ErrStorageNotFound.Error())
 				}
@@ -339,6 +345,125 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 						assert.Equal(t, testCase.InputSubState, deployment.SubState)
 					}
 				}
+			}
+		})
+	}
+}
+
+func TestUpdateDeviceDeploymentStatusStarted(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("skipping TestUpdateDeviceDeploymentStatus in short mode.")
+	}
+
+	deviceDeployments := []model.DeviceDeployment{}
+
+	dds := []struct {
+		did   string
+		depid string
+	}{
+		{"456", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"567", "30b3e62c-9ec2-4312-a7fa-cff24cc7397a"},
+		{"678", "30b3e62c-9ec2-4312-a7fa-cff24cc7397d"},
+		{"12345", "30b3e62c-9ec2-4312-a7fa-cff24cc7397e"},
+	}
+
+	for _, dd := range dds {
+		newdd := model.NewDeviceDeployment(dd.did, dd.depid)
+		deviceDeployments = append(deviceDeployments, *newdd)
+	}
+
+	testCases := []struct {
+		InputDeviceID         string
+		InputDeploymentID     string
+		InputStatus           model.DeviceDeploymentStatus
+		InputCurrentStatus    model.DeviceDeploymentStatus
+		InputSubState         string
+		InputDeviceDeployment []*model.DeviceDeployment
+		InputFinishTime       *time.Time
+		InputTenant           string
+
+		OutputError     error
+		OutputOldStatus model.DeviceDeploymentStatus
+	}{
+		{
+			InputDeviceID:      "12345",
+			InputDeploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397e",
+			InputCurrentStatus: model.DeviceDeploymentStatusPending,
+			InputStatus:        model.DeviceDeploymentStatusDownloading,
+			InputSubState:      "foobar 123",
+			InputDeviceDeployment: []*model.DeviceDeployment{
+				&deviceDeployments[3],
+			},
+			OutputError:     nil,
+			OutputOldStatus: model.DeviceDeploymentStatusPending,
+		},
+		{
+			InputDeviceID:      "12345",
+			InputDeploymentID:  "30b3e62c-9ec2-4312-a7fa-cff24cc7397e",
+			InputCurrentStatus: model.DeviceDeploymentStatusDownloading,
+			InputStatus:        model.DeviceDeploymentStatusDownloading,
+			InputSubState:      "foobar 123",
+			InputDeviceDeployment: []*model.DeviceDeployment{
+				&deviceDeployments[3],
+			},
+			OutputError:     nil,
+			OutputOldStatus: model.DeviceDeploymentStatusPending,
+		},
+	}
+
+	for testCaseNumber, testCase := range testCases {
+		t.Run(fmt.Sprintf("test case %d", testCaseNumber+1), func(t *testing.T) {
+
+			t.Logf("testing case %s %s %s %v",
+				testCase.InputDeviceID, testCase.InputDeploymentID,
+				testCase.InputStatus, testCase.OutputError)
+
+			// Make sure we start test with empty database
+			db.Wipe()
+
+			client := db.Client()
+
+			store := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+			if testCase.InputTenant != "" {
+				ctx = identity.WithContext(ctx, &identity.Identity{
+					Tenant: testCase.InputTenant,
+				})
+			} else {
+				ctx = context.Background()
+			}
+
+			// deployments are created with status DeviceDeploymentStatusPending
+			err := store.InsertMany(ctx, testCase.InputDeviceDeployment...)
+			assert.NoError(t, err)
+
+			dt := rand.Intn(15) + 4
+			time.Sleep(time.Duration(dt) * time.Second)
+			_, err = store.UpdateDeviceDeploymentStatus(ctx,
+				testCase.InputDeviceID, testCase.InputDeploymentID,
+				model.DeviceDeploymentState{
+					Status:     testCase.InputStatus,
+					SubState:   testCase.InputSubState,
+					FinishTime: testCase.InputFinishTime,
+				},
+				testCase.InputCurrentStatus,
+			)
+			collDevs := client.Database(DbName).Collection(CollectionDevices)
+			r, err := collDevs.Find(ctx, bson.M{})
+			var deviceDeploymentsStored []model.DeviceDeployment
+			err = r.All(ctx, &deviceDeploymentsStored)
+			if testCase.InputCurrentStatus == testCase.InputStatus {
+				assert.Nil(t, deviceDeploymentsStored[0].Started)
+			} else {
+				assert.NotNil(t, deviceDeploymentsStored[0].Started)
+				startedInterval := deviceDeploymentsStored[0].Started.Sub(*deviceDeploymentsStored[0].Created)
+				assert.True(
+					t,
+					startedInterval.Seconds() >= float64(dt),
+					"difference between created and started times should be at least "+
+						strconv.Itoa(dt)+"s")
 			}
 		})
 	}
