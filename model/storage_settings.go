@@ -115,6 +115,7 @@ func ParseStorageSettingsRequest(source io.Reader) (settings *StorageSettings, e
 			}
 		}
 		settings = s.StorageSettings
+		settings.UseAccelerate = settings.UseAccelerate && settings.Uri == ""
 		err = errors.WithMessage(
 			settings.Validate(),
 			"invalid settings schema",

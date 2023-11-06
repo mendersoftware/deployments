@@ -192,7 +192,7 @@ func TestNewClient(t *testing.T) {
 		SetStaticCredentials(keyID, secret, token).
 		SetURI("https://" + hostName).
 		SetForcePathStyle(false).
-		SetUseAccelerate(true).
+		SetUseAccelerate(false).
 		SetUnsignedHeaders([]string{"Accept-Encoding"}).
 		SetTransport(rt)
 	t.Log(options.storageSettings)
