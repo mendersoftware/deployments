@@ -1386,7 +1386,7 @@ func (db *DataStoreMongo) InsertDeviceDeployment(
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
 	c := database.Collection(CollectionDevices)
 
-	if deviceDeployment.Status == model.DeviceDeploymentStatusPending {
+	if deviceDeployment.Status != model.DeviceDeploymentStatusPending {
 		startedTime := time.Now().UTC()
 		deviceDeployment.Started = &startedTime
 	}
@@ -1429,6 +1429,10 @@ func (db *DataStoreMongo) InsertMany(ctx context.Context,
 		}
 
 		list = append(list, deployment)
+		if deployment.Status != model.DeviceDeploymentStatusPending {
+			startedTime := time.Now().UTC()
+			deployment.Started = &startedTime
+		}
 		deviceCountIncrements[deployment.DeploymentId]++
 	}
 
@@ -1608,6 +1612,11 @@ func (db *DataStoreMongo) UpdateDeviceDeploymentStatus(
 
 	if len(ddState.SubState) > 0 {
 		set[StorageKeyDeviceDeploymentSubState] = ddState.SubState
+	}
+
+	if ddState.Status != model.DeviceDeploymentStatusPending {
+		startedTime := time.Now().UTC()
+		set[StorageKeyDeviceDeploymentStarted] = startedTime
 	}
 
 	update := bson.D{

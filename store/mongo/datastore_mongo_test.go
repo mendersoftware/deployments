@@ -1991,6 +1991,8 @@ func TestGetDeviceDeploymentsForDevice(t *testing.T) {
 				for i, _ := range res {
 					// ignore Created field when comparing the results
 					res[i].Created = tc.res[i].Created
+					// ignore Started field when comparing the results
+					res[i].Started = tc.res[i].Started
 				}
 				assert.Equal(t, tc.res, res)
 				assert.Nil(t, err)
@@ -2125,9 +2127,10 @@ func TestGetDeviceDeployments(t *testing.T) {
 			assert.NoError(t, err)
 
 			for i, _ := range res {
-				// ignore Created and Deleted fields when comparing the results
+				// ignore Created, Started, and Deleted fields when comparing the results
 				res[i].Created = tc.res[i].Created
 				res[i].Deleted = tc.res[i].Deleted
+				res[i].Started = tc.res[i].Started
 			}
 			assert.Equal(t, tc.res, res)
 			assert.Nil(t, err)
