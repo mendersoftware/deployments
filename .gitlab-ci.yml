@@ -63,3 +63,6 @@ publish:image:mender:
 # FIXME Revert the image overrides once templates in mendertesting is updated
 test:static:
   image: golangci/golangci-lint:v1.53.3
+
+test:validate-open-api:
+  allow_failure: false
