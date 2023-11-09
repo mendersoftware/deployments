@@ -197,6 +197,7 @@ type DataStore interface {
 	ListReleaseTags(ctx context.Context) (model.Tags, error)
 	SaveUpdateTypes(ctx context.Context, updateTypes []string) error
 	GetUpdateTypes(ctx context.Context) ([]string, error)
+	FindOldestActiveDeploymentForDevice(ctx context.Context, deviceID string, createdAfter *time.Time) (*model.Deployment, error)
 }
 
 var ErrNotFound = errors.New("document not found")
