@@ -34,6 +34,10 @@ responses:
     description: Unauthorized.
     schema:
       $ref: "#/definitions/Error"
+  ConflictError: # 409
+    description: Conflict.
+    schema:
+      $ref: "#/definitions/ReleasesDeleteError"
   UnprocessableEntityError: # 422
     description: Unprocessable Entity.
     schema:
@@ -212,6 +216,37 @@ paths:
               description: Total number of releases matching query.
         401:
           $ref: '#/responses/UnauthorizedError'
+        500:
+          $ref: "#/responses/InternalServerError"
+
+    delete:
+      operationId: Delete Releases
+      tags:
+        - Management API
+      security:
+        - ManagementJWT: []
+      summary: Delete the releases with given names
+      description: |
+        Deletes releases with names provided in the message body.
+        Releases used by deployments in progress can not be deleted
+        until deployment finishes.
+      produces:
+        - application/json
+      parameters:
+        - name: name
+          in: query
+          description: Name of the release to be deleted
+          required: true
+          type: string
+      responses:
+        204:
+          description: Releases deleted successfully.
+        400:
+          $ref: '#/responses/InvalidRequestError'
+        401:
+          $ref: '#/responses/UnauthorizedError'
+        409:
+          $ref: "#/responses/ConflictError"
         500:
           $ref: "#/responses/InternalServerError"
 
@@ -631,3 +666,26 @@ definitions:
     example:
       error: "failed to decode device group data: JSON payload is empty"
       request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+
+  ReleasesDeleteError:
+    description: Releases used by active deployment.
+    type: object
+    properties:
+      error:
+        description: Description of the error.
+        type: string
+      active_deployments:
+        description: List of IDs of active deployments which are using releases from the request.
+        type: array
+        items:
+          type: string
+      request_id:
+        description: Request ID (same as in X-MEN-RequestID header).
+        type: string
+    example:
+      error: "active deployments are using some of the releases from the request"
+      request_id: "f7881e82-0492-49fb-b459-795654e7188a"
+        #active_deployments:
+        #  - "34d39c31-2a81-4882-a016-d96f46b19f3b"
+        #  - "9afc6156-9e92-4467-9ead-c71298dc1f4b"
+        #  - "ebff371c-2256-429e-87a9-20274c50946f"
