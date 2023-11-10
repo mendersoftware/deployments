@@ -82,8 +82,6 @@ type DataStore interface {
 		incrementDeviceCount bool) error
 	InsertMany(ctx context.Context,
 		deployment ...*model.DeviceDeployment) error
-	ExistAssignedImageWithIDAndStatuses(ctx context.Context,
-		id string, statuses ...model.DeviceDeploymentStatus) (bool, error)
 	FindOldestActiveDeviceDeployment(
 		ctx context.Context,
 		deviceID string,

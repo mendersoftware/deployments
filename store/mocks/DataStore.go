@@ -160,34 +160,6 @@ func (_m *DataStore) DeviceCountByDeployment(ctx context.Context, id string) (in
 	return r0, r1
 }
 
-// ExistAssignedImageWithIDAndStatuses provides a mock function with given fields: ctx, id, statuses
-func (_m *DataStore) ExistAssignedImageWithIDAndStatuses(ctx context.Context, id string, statuses ...model.DeviceDeploymentStatus) (bool, error) {
-	_va := make([]interface{}, len(statuses))
-	for _i := range statuses {
-		_va[_i] = statuses[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, id)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 bool
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...model.DeviceDeploymentStatus) bool); ok {
-		r0 = rf(ctx, id, statuses...)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, ...model.DeviceDeploymentStatus) error); ok {
-		r1 = rf(ctx, id, statuses...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // ExistByArtifactId provides a mock function with given fields: ctx, id
 func (_m *DataStore) ExistByArtifactId(ctx context.Context, id string) (bool, error) {
 	ret := _m.Called(ctx, id)
