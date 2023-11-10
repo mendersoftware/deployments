@@ -1308,26 +1308,14 @@ func TestImageUsedInActiveDeployment(t *testing.T) {
 		ExistUnfinishedByArtifactIdResponse bool
 		ExistUnfinishedByArtifactIdError    error
 
-		CallExistAssignedImageWithIDAndStatuses     bool
-		ExistAssignedImageWithIDAndStatusesResponse bool
-		ExistAssignedImageWithIDAndStatusesError    error
-
 		OutputError error
 		OutputBool  bool
 	}{
 		"ok": {
-			InputID: "ID:1234",
-			ExistAssignedImageWithIDAndStatusesResponse: true,
-			CallExistAssignedImageWithIDAndStatuses:     true,
+			InputID:                             "ID:1234",
+			ExistUnfinishedByArtifactIdResponse: true,
 
 			OutputBool: true,
-		},
-		"ExistAssignedImageWithIDAndStatuses error": {
-			InputID:                                  "ID:1234",
-			ExistAssignedImageWithIDAndStatusesError: errors.New("Some error"),
-			CallExistAssignedImageWithIDAndStatuses:  true,
-
-			OutputError: errors.New("Checking if image is used by active deployment: Some error"),
 		},
 		"ExistUnfinishedByArtifactId error": {
 			InputID:                             "ID:1234",
@@ -1348,18 +1336,6 @@ func TestImageUsedInActiveDeployment(t *testing.T) {
 				mock.AnythingOfType("string")).
 				Return(tc.ExistUnfinishedByArtifactIdResponse,
 					tc.ExistUnfinishedByArtifactIdError)
-
-			if tc.CallExistAssignedImageWithIDAndStatuses {
-				call := db.On("ExistAssignedImageWithIDAndStatuses",
-					h.ContextMatcher(),
-					tc.InputID).
-					Return(tc.ExistAssignedImageWithIDAndStatusesResponse,
-						tc.ExistAssignedImageWithIDAndStatusesError)
-				varArgs := model.ActiveDeploymentStatuses()
-				for i := range varArgs {
-					call.Arguments = append(call.Arguments, varArgs[i])
-				}
-			}
 
 			ds := &Deployments{
 				db: &db,

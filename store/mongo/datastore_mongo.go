@@ -1457,38 +1457,6 @@ func (db *DataStoreMongo) InsertMany(ctx context.Context,
 	return nil
 }
 
-// ExistAssignedImageWithIDAndStatuses checks if image is used by deployment with specified status.
-func (db *DataStoreMongo) ExistAssignedImageWithIDAndStatuses(ctx context.Context,
-	imageID string, statuses ...model.DeviceDeploymentStatus) (bool, error) {
-
-	// Verify ID formatting
-	if len(imageID) == 0 {
-		return false, ErrStorageInvalidID
-	}
-
-	query := bson.M{StorageKeyDeviceDeploymentAssignedImageId: imageID}
-
-	if len(statuses) > 0 {
-		query[StorageKeyDeviceDeploymentStatus] = bson.M{
-			"$in": statuses,
-		}
-	}
-
-	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
-	collDevs := database.Collection(CollectionDevices)
-
-	// if found at least one then image in active deployment
-	var tmp interface{}
-	if err := collDevs.FindOne(ctx, query).Decode(&tmp); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
-}
-
 // FindOldestActiveDeviceDeployment finds the oldest deployment that has not finished yet.
 func (db *DataStoreMongo) FindOldestActiveDeviceDeployment(
 	ctx context.Context,
