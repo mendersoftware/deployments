@@ -139,6 +139,34 @@ func (_m *DataStore) DeleteImage(ctx context.Context, id string) error {
 	return r0
 }
 
+// DeleteImagesByNames provides a mock function with given fields: ctx, names
+func (_m *DataStore) DeleteImagesByNames(ctx context.Context, names []string) error {
+	ret := _m.Called(ctx, names)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, []string) error); ok {
+		r0 = rf(ctx, names)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteReleasesByNames provides a mock function with given fields: ctx, names
+func (_m *DataStore) DeleteReleasesByNames(ctx context.Context, names []string) error {
+	ret := _m.Called(ctx, names)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, []string) error); ok {
+		r0 = rf(ctx, names)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // DeviceCountByDeployment provides a mock function with given fields: ctx, id
 func (_m *DataStore) DeviceCountByDeployment(ctx context.Context, id string) (int, error) {
 	ret := _m.Called(ctx, id)
@@ -458,6 +486,29 @@ func (_m *DataStore) FindUploadLinks(ctx context.Context, expired time.Time) (st
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, time.Time) error); ok {
 		r1 = rf(ctx, expired)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetDeploymentIDsByArtifactNames provides a mock function with given fields: ctx, artifactNames
+func (_m *DataStore) GetDeploymentIDsByArtifactNames(ctx context.Context, artifactNames []string) ([]string, error) {
+	ret := _m.Called(ctx, artifactNames)
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(context.Context, []string) []string); ok {
+		r0 = rf(ctx, artifactNames)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(ctx, artifactNames)
 	} else {
 		r1 = ret.Error(1)
 	}

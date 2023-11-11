@@ -1318,6 +1318,18 @@ func (db *DataStoreMongo) ListImages(
 	return images, int(count), nil
 }
 
+func (db *DataStoreMongo) DeleteImagesByNames(ctx context.Context, names []string) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionImages)
+	query := bson.M{
+		StorageKeyImageName: bson.M{
+			"$in": names,
+		},
+	}
+	_, err := collDevs.DeleteMany(ctx, query)
+	return err
+}
+
 // device deployment log
 func (db *DataStoreMongo) SaveDeviceDeploymentLog(ctx context.Context,
 	log model.DeploymentLog) error {
@@ -2925,6 +2937,48 @@ func (db *DataStoreMongo) UpdateDeploymentsWithArtifactName(
 
 	_, err := collDpl.UpdateMany(ctx, query, update)
 	return err
+}
+
+func (db *DataStoreMongo) GetDeploymentIDsByArtifactNames(
+	ctx context.Context,
+	artifactNames []string,
+) ([]string, error) {
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDpl := database.Collection(CollectionDeployments)
+
+	query := bson.M{
+		StorageKeyDeploymentArtifactName: bson.M{
+			"$in": artifactNames,
+		},
+	}
+
+	projection := bson.M{
+		"_id": 1,
+	}
+	findOptions := mopts.Find()
+	findOptions.SetProjection(projection)
+
+	cursor, err := collDpl.Find(ctx, query, findOptions)
+	if err != nil {
+		return []string{}, err
+	}
+	defer cursor.Close(ctx)
+
+	var deployments []*model.Deployment
+	if err = cursor.All(ctx, &deployments); err != nil {
+		if err == mongo.ErrNoDocuments {
+			err = nil
+		}
+		return []string{}, err
+	}
+
+	ids := make([]string, len(deployments))
+	for i, d := range deployments {
+		ids[i] = d.Id
+	}
+
+	return ids, nil
 }
 
 func (db *DataStoreMongo) GetTenantDbs() ([]string, error) {

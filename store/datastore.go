@@ -49,7 +49,7 @@ type DataStore interface {
 	//tenants
 	ProvisionTenant(ctx context.Context, tenantId string) error
 
-	//images
+	// images
 	Exists(ctx context.Context, id string) (bool, error)
 	Update(ctx context.Context, image *model.Image) (bool, error)
 	InsertImage(ctx context.Context, image *model.Image) error
@@ -58,6 +58,7 @@ type DataStore interface {
 		deviceTypesCompatible []string) (bool, error)
 	DeleteImage(ctx context.Context, id string) error
 	ListImages(ctx context.Context, filt *model.ReleaseOrImageFilter) ([]*model.Image, int, error)
+	DeleteImagesByNames(ctx context.Context, names []string) error
 
 	//artifact getter
 	ImagesByName(ctx context.Context,
@@ -171,6 +172,7 @@ type DataStore interface {
 		artifactName string,
 		artifactIDs []string,
 	) error
+	GetDeploymentIDsByArtifactNames(ctx context.Context, artifactNames []string) ([]string, error)
 
 	GetTenantDbs() ([]string, error)
 	SaveLastDeviceDeploymentStatus(
@@ -196,6 +198,7 @@ type DataStore interface {
 	ListReleaseTags(ctx context.Context) (model.Tags, error)
 	SaveUpdateTypes(ctx context.Context, updateTypes []string) error
 	GetUpdateTypes(ctx context.Context) ([]string, error)
+	DeleteReleasesByNames(ctx context.Context, names []string) error
 }
 
 var ErrNotFound = errors.New("document not found")
