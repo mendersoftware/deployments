@@ -3444,3 +3444,288 @@ func TestInsertDeviceDeployment(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteReleasesByNames(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestDeleteReleasesByNames in short mode.")
+	}
+
+	testCases := map[string]struct {
+		inputReleases  []interface{}
+		names          []string
+		outputReleases []model.Release
+	}{
+		"ok": {
+			inputReleases: []interface{}{
+				&model.Release{
+					Name: "foo",
+				},
+				&model.Release{
+					Name: "bar",
+				},
+				&model.Release{
+					Name: "baz",
+				},
+			},
+			names: []string{"foo", "bar"},
+			outputReleases: []model.Release{
+				{
+					Name: "baz",
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db.Wipe()
+
+			client := db.Client()
+			ds := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+
+			collReleases := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionReleases)
+
+			if tc.inputReleases != nil {
+				_, err := collReleases.InsertMany(
+					ctx, tc.inputReleases)
+				assert.NoError(t, err)
+			}
+
+			err := ds.DeleteReleasesByNames(ctx, tc.names)
+			assert.NoError(t, err)
+			cur, err := collReleases.Find(ctx, bson.M{})
+			assert.NoError(t, err)
+			var releases []model.Release
+			err = cur.All(ctx, &releases)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.outputReleases, releases)
+		})
+	}
+}
+
+func TestDeleteImage(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestDeleteImage in short mode.")
+	}
+
+	testCases := map[string]struct {
+		inputImages  []interface{}
+		id           string
+		outputImages []model.Image
+	}{
+		"ok": {
+			inputImages: []interface{}{
+				&model.Image{
+					Id: "foo",
+				},
+				&model.Image{
+					Id: "bar",
+				},
+			},
+			id: "foo",
+			outputImages: []model.Image{
+				{
+					Id: "bar",
+				},
+			},
+		},
+		"not found": {
+			inputImages: []interface{}{
+				&model.Image{
+					Id: "foo",
+				},
+			},
+			id: "bar",
+			outputImages: []model.Image{
+				{
+					Id: "foo",
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db.Wipe()
+
+			client := db.Client()
+			ds := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+
+			collImages := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionImages)
+
+			if tc.inputImages != nil {
+				_, err := collImages.InsertMany(
+					ctx, tc.inputImages)
+				assert.NoError(t, err)
+			}
+
+			err := ds.DeleteImage(ctx, tc.id)
+			assert.NoError(t, err)
+			cur, err := collImages.Find(ctx, bson.M{})
+			assert.NoError(t, err)
+			var images []model.Image
+			err = cur.All(ctx, &images)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.outputImages, images)
+		})
+	}
+}
+
+func TestDeleteImagesByNames(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestDeleteImagesByNames in short mode.")
+	}
+
+	testCases := map[string]struct {
+		inputImages  []interface{}
+		names        []string
+		outputImages []model.Image
+	}{
+		"ok": {
+			inputImages: []interface{}{
+				&model.Image{
+					Id: "1",
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "foo",
+						DeviceTypesCompatible: []string{"foo"},
+					},
+				},
+				&model.Image{
+					Id: "2",
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "bar",
+						DeviceTypesCompatible: []string{"bar"},
+					},
+				},
+				&model.Image{
+					Id: "3",
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "baz",
+						DeviceTypesCompatible: []string{"baz"},
+					},
+				},
+			},
+			names: []string{"foo", "baz"},
+			outputImages: []model.Image{
+				{
+					Id: "2",
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "bar",
+						DeviceTypesCompatible: []string{"bar"},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db.Wipe()
+
+			client := db.Client()
+			ds := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+
+			collImages := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionImages)
+
+			if tc.inputImages != nil {
+				_, err := collImages.InsertMany(
+					ctx, tc.inputImages)
+				assert.NoError(t, err)
+			}
+
+			err := ds.DeleteImagesByNames(ctx, tc.names)
+			assert.NoError(t, err)
+			cur, err := collImages.Find(ctx, bson.M{})
+			assert.NoError(t, err)
+			var images []model.Image
+			err = cur.All(ctx, &images)
+			// clear depends; not relevant for this test
+			for i := range images {
+				images[i].Depends = nil
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tc.outputImages, images)
+		})
+	}
+}
+
+func TestGetDeploymentIDsByArtifactNames(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestGetDeploymentIDsByArtifactNames in short mode.")
+	}
+
+	testCases := map[string]struct {
+		inputDeployments []interface{}
+
+		artifactNames []string
+
+		outputIDs []string
+	}{
+		"ok": {
+			inputDeployments: []interface{}{
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "foo",
+					},
+					Id: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "bar",
+					},
+					Id: "d1804903-5caa-4a73-a3ae-0efcc3205405",
+				},
+				&model.Deployment{
+					DeploymentConstructor: &model.DeploymentConstructor{
+						ArtifactName: "baz",
+					},
+					Id: "d1804903-5caa-4a73-a3ae-0efcc3205406",
+				},
+			},
+			artifactNames: []string{"foo", "baz"},
+			outputIDs:     []string{"a108ae14-bb4e-455f-9b40-2ef4bab97bb7", "d1804903-5caa-4a73-a3ae-0efcc3205406"},
+		},
+		"no deployments": {
+			artifactNames: []string{"foo", "baz"},
+			outputIDs:     []string{},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			// Make sure we start test with empty database
+			db.Wipe()
+
+			client := db.Client()
+			ds := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+
+			collDep := client.Database(ctxstore.
+				DbFromContext(ctx, DatabaseName)).
+				Collection(CollectionDeployments)
+
+			if tc.inputDeployments != nil {
+				_, err := collDep.InsertMany(
+					ctx, tc.inputDeployments)
+				assert.NoError(t, err)
+			}
+
+			ids, err := ds.GetDeploymentIDsByArtifactNames(ctx, tc.artifactNames)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.outputIDs, ids)
+		})
+	}
+}

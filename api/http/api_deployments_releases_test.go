@@ -1045,3 +1045,102 @@ func TestPatchRelease(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteReleases(t *testing.T) {
+	type testCase struct {
+		name         string
+		releaseNames []string
+		app          func(t *testing.T, self *testCase) *mapp.App
+		checker      mt.ResponseChecker
+	}
+	testCases := []testCase{
+		{
+			name:         "ok",
+			releaseNames: []string{"foo", "bar"},
+			app: func(t *testing.T, self *testCase) *mapp.App {
+				appie := new(mapp.App)
+				appie.On("DeleteReleases",
+					contextMatcher(),
+					self.releaseNames,
+				).Return([]string{}, nil)
+				return appie
+			},
+			checker: mt.NewJSONResponse(
+				http.StatusNoContent,
+				nil,
+				nil,
+			),
+		},
+		{
+			name:         "no release name",
+			releaseNames: []string{},
+			app: func(t *testing.T, self *testCase) *mapp.App {
+				appie := new(mapp.App)
+				return appie
+			},
+			checker: mt.NewJSONResponse(
+				http.StatusBadRequest,
+				nil,
+				deployments_testing.RestError(ErrReleaseNameNotProvided.Error()),
+			),
+		},
+		{
+			name:         "conflict",
+			releaseNames: []string{"foo", "bar"},
+			app: func(t *testing.T, self *testCase) *mapp.App {
+				appie := new(mapp.App)
+				appie.On("DeleteReleases",
+					contextMatcher(),
+					self.releaseNames,
+				).Return([]string{"id1", "id2"}, nil)
+				return appie
+			},
+			checker: mt.NewJSONResponse(
+				http.StatusConflict,
+				nil,
+				model.ReleasesDeleteError{
+					Error:             ErrReleaseUsedInActiveDeployment.Error(),
+					RequestID:         "test",
+					ActiveDeployments: []string{"id1", "id2"},
+				},
+			),
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+
+			restView := new(view.RESTView)
+			appie := tc.app(t, &tc)
+			defer appie.AssertExpectations(t)
+
+			c := NewDeploymentsApiHandlers(nil, restView, appie)
+
+			api := deployments_testing.SetUpTestApi(ApiUrlManagementV2Releases, rest.Delete, c.DeleteReleases)
+
+			reqUrl := "http://1.2.3.4" + ApiUrlManagementV2Releases
+
+			if len(tc.releaseNames) > 0 {
+				reqUrl += "?"
+				for i, n := range tc.releaseNames {
+					if i > 0 {
+						reqUrl += "&"
+					}
+					reqUrl += "name=" + n
+				}
+			}
+
+			req := test.MakeSimpleRequest("DELETE",
+				reqUrl,
+				nil)
+
+			req.Header.Add(requestid.RequestIdHeader, "test")
+
+			recorded := test.RunRequest(t, api, req)
+
+			mt.CheckResponse(t, tc.checker, recorded)
+		})
+	}
+}
