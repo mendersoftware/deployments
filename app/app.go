@@ -1658,7 +1658,7 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 	ddState.FinishTime = finishTime
 
 	old, err := d.db.UpdateDeviceDeploymentStatus(ctx,
-		deviceID, deploymentID, ddState)
+		deviceID, deploymentID, ddState, dd.Status)
 	if err != nil {
 		return err
 	}

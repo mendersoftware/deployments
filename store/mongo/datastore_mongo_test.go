@@ -1991,6 +1991,8 @@ func TestGetDeviceDeploymentsForDevice(t *testing.T) {
 				for i, _ := range res {
 					// ignore Created field when comparing the results
 					res[i].Created = tc.res[i].Created
+					// ignore Started field when comparing the results
+					res[i].Started = tc.res[i].Started
 				}
 				assert.Equal(t, tc.res, res)
 				assert.Nil(t, err)
@@ -2125,9 +2127,10 @@ func TestGetDeviceDeployments(t *testing.T) {
 			assert.NoError(t, err)
 
 			for i, _ := range res {
-				// ignore Created and Deleted fields when comparing the results
+				// ignore Created, Started, and Deleted fields when comparing the results
 				res[i].Created = tc.res[i].Created
 				res[i].Deleted = tc.res[i].Deleted
+				res[i].Started = tc.res[i].Started
 			}
 			assert.Equal(t, tc.res, res)
 			assert.Nil(t, err)
@@ -3325,6 +3328,119 @@ func TestSaveUpdateTypes(t *testing.T) {
 			assert.NoError(t, err)
 			updateTypes, err := ds.GetUpdateTypes(tc.Context)
 			assert.Equal(t, tc.ExpectedUpdateTypes, updateTypes)
+		})
+	}
+}
+
+func TestInsertDeviceDeployment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestGetDeviceDeployments in short mode.")
+	}
+
+	now := time.Now()
+
+	ctx := context.Background()
+	client := db.Client()
+	ds := NewDataStoreMongoWithClient(client)
+
+	const deviceID = "d50eda0d-2cea-4de1-8d42-9cd3e7e86700"
+	const differentDeviceID = "d50eda0d-2cea-4de1-8d42-9cd3e7e86701"
+	deviceDeployments := []*model.DeviceDeployment{
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+			Created: func() *time.Time {
+				ret := now.Add(5 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusPauseBeforeInstall,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86701",
+			Active:       true,
+		},
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
+			Created: func() *time.Time {
+				ret := now.Add(4 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusSuccess,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86702",
+			Deleted:      &now,
+		},
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86703",
+			Created: func() *time.Time {
+				ret := now.Add(3 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusSuccess,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86703",
+		},
+		{
+			Id: "d50eda0d-2cea-4de1-8d42-9cd3e7e86704",
+			Created: func() *time.Time {
+				ret := now.Add(2 * time.Hour)
+				return &ret
+			}(),
+			Status:       model.DeviceDeploymentStatusPending,
+			DeviceId:     deviceID,
+			DeploymentId: "d50eda0d-2cea-4de1-8d42-9cd3e7e86704",
+			Active:       true,
+		},
+	}
+
+	testCases := map[string]struct {
+		DeviceDeploymentsToInsert []*model.DeviceDeployment
+		ExpectedStarted           []bool
+	}{
+		"inserted one pending": {
+			DeviceDeploymentsToInsert: []*model.DeviceDeployment{
+				deviceDeployments[3],
+			},
+			ExpectedStarted: []bool{false},
+		},
+		"inserted one non pending": {
+			DeviceDeploymentsToInsert: []*model.DeviceDeployment{
+				deviceDeployments[2],
+			},
+			ExpectedStarted: []bool{true},
+		},
+		"inserted more than one pending": {
+			DeviceDeploymentsToInsert: []*model.DeviceDeployment{
+				deviceDeployments[2],
+				deviceDeployments[3],
+			},
+			ExpectedStarted: []bool{true, false},
+		},
+		"inserted more than one non pending": {
+			DeviceDeploymentsToInsert: []*model.DeviceDeployment{
+				deviceDeployments[0],
+				deviceDeployments[1],
+				deviceDeployments[2],
+			},
+			ExpectedStarted: []bool{true, true, true},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db.Wipe()
+			if len(tc.DeviceDeploymentsToInsert) > 1 {
+				ds.InsertMany(ctx, tc.DeviceDeploymentsToInsert...)
+			} else {
+				ds.InsertDeviceDeployment(ctx, tc.DeviceDeploymentsToInsert[0], true)
+			}
+			d := client.Database(DbName)
+			c := d.Collection(CollectionDevices)
+			r, _ := c.Find(ctx, bson.M{})
+			var results []model.DeviceDeployment
+			r.All(ctx, &results)
+			assert.Equal(t, len(tc.DeviceDeploymentsToInsert), len(results))
+			for i, e := range results {
+				assert.Equal(t, tc.ExpectedStarted[i], e.Started != nil)
+			}
 		})
 	}
 }
