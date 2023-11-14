@@ -126,3 +126,18 @@ func (d *Deployments) UpdateRelease(
 	}
 	return err
 }
+
+func (d *Deployments) DeleteReleases(
+	ctx context.Context,
+	releaseNames []string,
+) ([]string, error) {
+	ids, err := d.db.GetDeploymentIDsByArtifactNames(ctx, releaseNames)
+	if err != nil || len(ids) > 0 {
+		return ids, err
+	}
+	if err := d.db.DeleteImagesByNames(ctx, releaseNames); err != nil {
+		return ids, err
+	}
+	err = d.db.DeleteReleasesByNames(ctx, releaseNames)
+	return ids, err
+}

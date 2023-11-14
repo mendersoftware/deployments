@@ -289,6 +289,7 @@ func ReleasesRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 			rest.Get(ApiUrlManagementV2ReleaseAllTags, controller.GetReleaseTagKeys),
 			rest.Get(ApiUrlManagementV2ReleaseAllUpdateTypes, controller.GetReleasesUpdateTypes),
 			rest.Patch(ApiUrlManagementV2ReleasesName, controller.PatchRelease),
+			rest.Delete(ApiUrlManagementV2Releases, controller.DeleteReleases),
 		}
 	}
 }

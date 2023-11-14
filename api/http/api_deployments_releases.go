@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/mendersoftware/go-lib-micro/requestid"
 	"github.com/mendersoftware/go-lib-micro/requestlog"
 	"github.com/mendersoftware/go-lib-micro/rest_utils"
 
@@ -35,6 +36,12 @@ type listReleasesVersion int64
 const (
 	listReleasesV1 listReleasesVersion = iota
 	listReleasesV2
+)
+
+// Errors
+var (
+	ErrReleaseNameNotProvided        = errors.New("at least one release name has to be provided")
+	ErrReleaseUsedInActiveDeployment = errors.New("release(s) used in active deployment")
 )
 
 func redactReleaseName(r *rest.Request) {
@@ -220,4 +227,43 @@ func (d *DeploymentsApiHandlers) GetReleasesUpdateTypes(
 	if err != nil {
 		l.Errorf("failed to serialize JSON response: %s", err.Error())
 	}
+}
+
+func (d *DeploymentsApiHandlers) DeleteReleases(
+	w rest.ResponseWriter,
+	r *rest.Request,
+) {
+	ctx := r.Context()
+	l := log.FromContext(ctx)
+
+	names := r.URL.Query()[ParamName]
+
+	if len(names) == 0 {
+		rest_utils.RestErrWithLog(w, r, l,
+			ErrReleaseNameNotProvided,
+			http.StatusBadRequest)
+		return
+	}
+
+	ids, err := d.app.DeleteReleases(ctx, names)
+	if err != nil {
+		rest_utils.RestErrWithLog(w, r, l, err, http.StatusInternalServerError)
+		return
+	}
+
+	if len(ids) > 0 {
+		w.WriteHeader(http.StatusConflict)
+		deleteErr := model.ReleasesDeleteError{
+			Error:             ErrReleaseUsedInActiveDeployment.Error(),
+			RequestID:         requestid.GetReqId(r),
+			ActiveDeployments: ids,
+		}
+		err = w.WriteJson(deleteErr)
+		if err != nil {
+			l.Errorf("failed to serialize JSON response: %s", err.Error())
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

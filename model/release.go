@@ -246,3 +246,9 @@ func (m DirectUploadMetadata) Validate() error {
 	}
 	return nil
 }
+
+type ReleasesDeleteError struct {
+	Error             string   `json:"error"`
+	RequestID         string   `json:"request_id"`
+	ActiveDeployments []string `json:"active_deployments"`
+}

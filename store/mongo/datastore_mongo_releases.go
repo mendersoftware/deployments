@@ -289,3 +289,15 @@ func (db *DataStoreMongo) GetUpdateTypes(ctx context.Context) ([]string, error) 
 		return updateTypes.UpdateTypes, nil
 	}
 }
+
+func (db *DataStoreMongo) DeleteReleasesByNames(ctx context.Context, names []string) error {
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	collDevs := database.Collection(CollectionReleases)
+	query := bson.M{
+		StorageKeyReleaseName: bson.M{
+			"$in": names,
+		},
+	}
+	_, err := collDevs.DeleteMany(ctx, query)
+	return err
+}

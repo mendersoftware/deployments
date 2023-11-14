@@ -197,6 +197,7 @@ type App interface {
 	UpdateRelease(ctx context.Context, releaseName string, release model.ReleasePatch) error
 	ListReleaseTags(ctx context.Context) (model.Tags, error)
 	GetReleasesUpdateTypes(ctx context.Context) ([]string, error)
+	DeleteReleases(ctx context.Context, releaseNames []string) ([]string, error)
 }
 
 type Deployments struct {
@@ -1268,7 +1269,7 @@ func (d *Deployments) GetDeployment(ctx context.Context,
 	return deployment, nil
 }
 
-// ImageUsedInActiveDeployment checks if specified image is in use by deployments Image is
+// ImageUsedInActiveDeployment checks if specified image is in use by deployments. Image is
 // considered to be in use if it's participating in at lest one non success/error deployment.
 func (d *Deployments) ImageUsedInActiveDeployment(ctx context.Context,
 	imageID string) (bool, error) {
@@ -1280,37 +1281,18 @@ func (d *Deployments) ImageUsedInActiveDeployment(ctx context.Context,
 		return false, errors.Wrap(err, "Checking if image is used by active deployment")
 	}
 
-	if found {
-		return found, nil
-	}
-
-	found, err = d.db.ExistAssignedImageWithIDAndStatuses(ctx,
-		imageID, model.ActiveDeploymentStatuses()...)
-	if err != nil {
-		return false, errors.Wrap(err, "Checking if image is used by active deployment")
-	}
-
 	return found, nil
 }
 
-// ImageUsedInDeployment checks if specified image is in use by deployments
+// ImageUsedInDeployment checks if specified image is in use by deployments.
 // Image is considered to be in use if it's participating in any deployment.
 func (d *Deployments) ImageUsedInDeployment(ctx context.Context, imageID string) (bool, error) {
 
 	var found bool
 
-	found, err := d.db.ExistUnfinishedByArtifactId(ctx, imageID)
+	found, err := d.db.ExistByArtifactId(ctx, imageID)
 	if err != nil {
 		return false, errors.Wrap(err, "Checking if image is used by active deployment")
-	}
-
-	if found {
-		return found, nil
-	}
-
-	found, err = d.db.ExistAssignedImageWithIDAndStatuses(ctx, imageID)
-	if err != nil {
-		return false, errors.Wrap(err, "Checking if image is used in deployment")
 	}
 
 	return found, nil

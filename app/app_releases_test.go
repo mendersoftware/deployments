@@ -313,3 +313,123 @@ func TestUpdateRelease(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteReleases(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		Name string
+
+		context.Context
+		ReleaseNames []string
+
+		GetDatabase func(t *testing.T, self *testCase) *mocks.DataStore
+
+		ids   []string
+		Error error
+	}
+	testCases := []testCase{
+		{
+			Name: "ok",
+
+			Context:      context.Background(),
+			ReleaseNames: []string{"foo", "bar"},
+
+			GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+				ds := new(mocks.DataStore)
+				ds.On("GetDeploymentIDsByArtifactNames", self.Context, self.ReleaseNames).
+					Return([]string{}, nil)
+				ds.On("DeleteImagesByNames", self.Context, self.ReleaseNames).
+					Return(nil)
+				ds.On("DeleteReleasesByNames", self.Context, self.ReleaseNames).
+					Return(nil)
+				return ds
+			},
+		},
+		{
+			Name: "release in active deployment",
+
+			Context:      context.Background(),
+			ReleaseNames: []string{"foo", "bar"},
+
+			GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+				ds := new(mocks.DataStore)
+				ds.On("GetDeploymentIDsByArtifactNames", self.Context, self.ReleaseNames).
+					Return([]string{"foo"}, nil)
+				return ds
+			},
+			ids: []string{"foo"},
+		},
+		{
+			Name: "error: get deployment IDs error",
+
+			Context:      context.Background(),
+			ReleaseNames: []string{"foo", "bar"},
+
+			GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+				ds := new(mocks.DataStore)
+				ds.On("GetDeploymentIDsByArtifactNames", self.Context, self.ReleaseNames).
+					Return([]string{}, errors.New("some error"))
+				return ds
+			},
+			Error: errors.New("some error"),
+		},
+		{
+			Name: "error: delete images error",
+
+			Context:      context.Background(),
+			ReleaseNames: []string{"foo", "bar"},
+
+			GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+				ds := new(mocks.DataStore)
+				ds.On("GetDeploymentIDsByArtifactNames", self.Context, self.ReleaseNames).
+					Return([]string{}, nil)
+				ds.On("DeleteImagesByNames", self.Context, self.ReleaseNames).
+					Return(errors.New("some error"))
+				return ds
+			},
+			Error: errors.New("some error"),
+		},
+		{
+			Name: "error: delete releases error",
+
+			Context:      context.Background(),
+			ReleaseNames: []string{"foo", "bar"},
+
+			GetDatabase: func(t *testing.T, self *testCase) *mocks.DataStore {
+				ds := new(mocks.DataStore)
+				ds.On("GetDeploymentIDsByArtifactNames", self.Context, self.ReleaseNames).
+					Return([]string{}, nil)
+				ds.On("DeleteImagesByNames", self.Context, self.ReleaseNames).
+					Return(nil)
+				ds.On("DeleteReleasesByNames", self.Context, self.ReleaseNames).
+					Return(errors.New("some error"))
+				return ds
+			},
+			Error: errors.New("some error"),
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			ds := tc.GetDatabase(t, &tc)
+			defer ds.AssertExpectations(t)
+
+			app := NewDeployments(ds, nil, 0, false)
+
+			ids, err := app.DeleteReleases(tc.Context, tc.ReleaseNames)
+			if tc.Error != nil {
+				assert.EqualError(t, err, tc.Error.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			if len(tc.ids) > 0 {
+				assert.Equal(t, tc.ids, ids)
+			} else {
+				assert.Len(t, tc.ids, 0)
+			}
+		})
+	}
+}
