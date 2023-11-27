@@ -20,6 +20,7 @@ include:
     file: '.gitlab-ci-check-license.yml'
   - project: 'Northern.tech/Mender/mendertesting'
     file: '.gitlab-ci-check-docker-acceptance.yml'
+    ref: 'QA-505-poc-multi-project-pipeline'
   - project: 'Northern.tech/Mender/mendertesting'
     file: '.gitlab-ci-check-apidocs.yml'
   - project: 'Northern.tech/Mender/mendertesting'
