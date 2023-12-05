@@ -195,15 +195,9 @@ paths:
       parameters:
         - name: deployment_ids
           in: body
-          description: Deployment identifier
           required: true
           schema:
-            type: array
-            items:
-                type: string
-                description: >-
-                    The list of deployment IDs
-            maximum: 100
+            $ref: "#/definitions/DeploymentIdentifier"
       produces:
         - application/json
       responses:
@@ -2355,3 +2349,15 @@ definitions:
         description: List of updates for this artifact.
         items:
           $ref: "#/definitions/Update"
+
+  DeploymentIdentifier:
+    description: Deployment identifier
+    type: object
+    properties:
+      deployment_ids:
+        type: array
+        items:
+          type: string
+          description: >-
+              The list of deployment IDs
+        maximum: 100
