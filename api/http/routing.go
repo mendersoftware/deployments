@@ -16,12 +16,17 @@ package http
 
 import (
 	"context"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mendersoftware/go-lib-micro/accesslog"
+	"github.com/mendersoftware/go-lib-micro/identity"
 	"github.com/mendersoftware/go-lib-micro/log"
+	"github.com/mendersoftware/go-lib-micro/requestid"
+	"github.com/mendersoftware/go-lib-micro/requestlog"
 
 	"github.com/mendersoftware/deployments/app"
 	"github.com/mendersoftware/deployments/store"
@@ -92,13 +97,62 @@ const (
 		"/tenants/#tenant/devices/deployments/last"
 )
 
+func contentTypeMiddleware(h rest.HandlerFunc) rest.HandlerFunc {
+	checkJSON := (&rest.ContentTypeCheckerMiddleware{}).
+		MiddlewareFunc(h)
+	checkMultipart := func(w rest.ResponseWriter, r *rest.Request) {
+		mediatype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if r.ContentLength > 0 && !(mediatype == "multipart/form-data") {
+			rest.Error(w,
+				"Bad Content-Type, expected 'multipart/form-data'",
+				http.StatusUnsupportedMediaType)
+			return
+		}
+		h(w, r)
+	}
+	return func(w rest.ResponseWriter, r *rest.Request) {
+		if r.Method == http.MethodPost &&
+			(r.URL.Path == ApiUrlManagementArtifacts ||
+				r.URL.Path == ApiUrlManagementArtifactsGenerate) {
+			checkMultipart(w, r)
+		} else {
+			checkJSON(w, r)
+		}
+	}
+}
+
+func wrapMiddleware(middleware rest.Middleware, routes ...*rest.Route) []*rest.Route {
+	for _, route := range routes {
+		route.Func = middleware.MiddlewareFunc(route.Func)
+	}
+	return routes
+}
+
 // NewRouter defines all REST API routes.
-func NewRouter(
+func NewHandler(
 	ctx context.Context,
 	app app.App,
 	ds store.DataStore,
 	cfg *Config,
-) (rest.App, error) {
+) (http.Handler, error) {
+	api := rest.NewApi()
+	api.Use(
+		// logging
+		&requestlog.RequestLogMiddleware{},
+		&requestid.RequestIdMiddleware{},
+		&accesslog.AccessLogMiddleware{
+			Format: accesslog.SimpleLogFormat,
+			DisableLog: func(statusCode int, r *rest.Request) bool {
+				if statusCode < 300 {
+					if r.URL.Path == ApiUrlInternalHealth ||
+						r.URL.Path == ApiUrlInternalAlive {
+						return true
+					}
+				}
+				return false
+			},
+		},
+	)
 
 	// Create and configure API handlers
 	//
@@ -111,15 +165,32 @@ func NewRouter(
 	imageRoutes := NewImagesResourceRoutes(deploymentsHandlers, cfg)
 	deploymentsRoutes := NewDeploymentsResourceRoutes(deploymentsHandlers)
 	limitsRoutes := NewLimitsResourceRoutes(deploymentsHandlers)
-	tenantsRoutes := TenantRoutes(deploymentsHandlers)
+	internalRoutes := InternalRoutes(deploymentsHandlers)
 	releasesRoutes := ReleasesRoutes(deploymentsHandlers)
 
-	routes := append(releasesRoutes, deploymentsRoutes...)
-	routes = append(routes, limitsRoutes...)
-	routes = append(routes, tenantsRoutes...)
-	routes = append(routes, imageRoutes...)
+	publicRoutes := append(releasesRoutes, deploymentsRoutes...)
+	publicRoutes = append(publicRoutes, limitsRoutes...)
+	publicRoutes = append(publicRoutes, imageRoutes...)
+	publicRoutes = restutil.AutogenOptionsRoutes(
+		restutil.NewOptionsHandler,
+		publicRoutes...,
+	)
+	publicRoutes = wrapMiddleware(&identity.IdentityMiddleware{
+		UpdateLogger: true,
+	}, publicRoutes...)
+	publicRoutes = wrapMiddleware(
+		rest.MiddlewareSimple(contentTypeMiddleware),
+		publicRoutes...,
+	)
+	routes := append(publicRoutes, internalRoutes...)
 
-	return rest.MakeRouter(restutil.AutogenOptionsRoutes(restutil.NewOptionsHandler, routes...)...)
+	restApp, err := rest.MakeRouter(routes...)
+	if err != nil {
+		return nil, err
+	}
+
+	api.SetApp(restApp)
+	return api.MakeHandler(), nil
 }
 
 func NewImagesResourceRoutes(controller *DeploymentsApiHandlers, cfg *Config) []*rest.Route {
@@ -202,14 +273,6 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 		rest.Get(ApiUrlManagementDeploymentsDeviceList,
 			controller.GetDeploymentDeviceList),
 
-		// Configuration deployments (internal)
-		rest.Post(ApiUrlInternalDeviceConfigurationDeployments,
-			controller.PostDeviceConfigurationDeployment),
-
-		// Last device deployment status deployments (internal)
-		rest.Post(ApiUrlInternalDeviceDeploymentLastStatusDeployments,
-			controller.GetDeviceDeploymentLastStatus),
-
 		// Devices
 		rest.Get(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
 		rest.Post(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
@@ -219,10 +282,6 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 			controller.PutDeploymentLogForDevice),
 		rest.Get(ApiUrlDevicesDownloadConfig,
 			controller.DownloadConfiguration),
-
-		// Health Check
-		rest.Get(ApiUrlInternalAlive, controller.AliveHandler),
-		rest.Get(ApiUrlInternalHealth, controller.HealthHandler),
 	}
 }
 
@@ -238,7 +297,7 @@ func NewLimitsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	}
 }
 
-func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
+func InternalRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 	if controller == nil {
 		return []*rest.Route{}
 	}
@@ -255,6 +314,18 @@ func TenantRoutes(controller *DeploymentsApiHandlers) []*rest.Route {
 		// per-tenant storage settings
 		rest.Get(ApiUrlInternalTenantStorageSettings, controller.GetTenantStorageSettingsHandler),
 		rest.Put(ApiUrlInternalTenantStorageSettings, controller.PutTenantStorageSettingsHandler),
+
+		// Configuration deployments (internal)
+		rest.Post(ApiUrlInternalDeviceConfigurationDeployments,
+			controller.PostDeviceConfigurationDeployment),
+
+		// Last device deployment status deployments (internal)
+		rest.Post(ApiUrlInternalDeviceDeploymentLastStatusDeployments,
+			controller.GetDeviceDeploymentLastStatus),
+
+		// Health Check
+		rest.Get(ApiUrlInternalAlive, controller.AliveHandler),
+		rest.Get(ApiUrlInternalHealth, controller.HealthHandler),
 	}
 
 	if !controller.config.DisableNewReleasesFeature {
