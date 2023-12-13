@@ -22,10 +22,9 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/smithy-go/middleware"
-	smithyhttp "github.com/aws/smithy-go/transport/http"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 
 	"github.com/mendersoftware/deployments/model"
@@ -292,54 +291,49 @@ func (opts *Options) SetTransport(transport http.RoundTripper) *Options {
 	return opts
 }
 
-type apiOptions func(*middleware.Stack) error
+type Signer struct {
+	v4.Signer
+	// Google Cloud Storage does not tolerate signing the Accept-Encoding header
+	UnsignedHeaders []string
+}
 
-// Google Cloud Storage does not tolerate signing the Accept-Encoding header
-func unsignedHeadersMiddleware(headers []string) apiOptions {
-	signMiddlewareID := (&v4.SignHTTPRequestMiddleware{}).ID()
-	for i := range headers {
-		headers[i] = textproto.CanonicalMIMEHeaderKey(headers[i])
+func NewSigner(
+	unsignedHeaders []string,
+	optFns ...func(signer *v4.SignerOptions),
+) v4.HTTPSigner {
+	for i := range unsignedHeaders {
+		unsignedHeaders[i] = textproto.CanonicalMIMEHeaderKey(unsignedHeaders[i])
 	}
-	return func(stack *middleware.Stack) error {
-		if _, ok := stack.Finalize.Get("Signing"); !ok {
-			// If the operation does not invoke signing, we're done.
-			return nil
-		}
-		// ... -> RemoveUnsignedHeaders -> Signing -> AddUnsignedHeaders
-		var unsignedHeaders http.Header = make(http.Header)
-		err := stack.Finalize.Insert(middleware.FinalizeMiddlewareFunc(
-			"RemoveUnsignedHeaders", func(
-				ctx context.Context,
-				in middleware.FinalizeInput,
-				next middleware.FinalizeHandler,
-			) (middleware.FinalizeOutput, middleware.Metadata, error) {
-				if req, ok := in.Request.(*smithyhttp.Request); ok {
-					for _, hdr := range headers {
-						if value, ok := req.Header[hdr]; ok {
-							unsignedHeaders[hdr] = value
-							req.Header.Del(hdr)
-						}
-					}
-				}
-				return next.HandleFinalize(ctx, in)
-			}), signMiddlewareID, middleware.Before)
-		if err != nil {
-			return err
-		}
-		return stack.Finalize.Insert(middleware.FinalizeMiddlewareFunc(
-			"AddUnsignedHeaders", func(
-				ctx context.Context,
-				in middleware.FinalizeInput,
-				next middleware.FinalizeHandler,
-			) (middleware.FinalizeOutput, middleware.Metadata, error) {
-				if req, ok := in.Request.(*smithyhttp.Request); ok {
-					for key, value := range unsignedHeaders {
-						req.Header[key] = value
-					}
-				}
-				return next.HandleFinalize(ctx, in)
-			}), signMiddlewareID, middleware.After)
+	return &Signer{
+		Signer:          *v4.NewSigner(optFns...),
+		UnsignedHeaders: unsignedHeaders,
 	}
+}
+
+func (s Signer) SignHTTP(
+	ctx context.Context,
+	credentials aws.Credentials,
+	r *http.Request,
+	payloadHash, service, region string,
+	signingTime time.Time,
+	optFns ...func(*v4.SignerOptions)) error {
+	unsignedHeaders := make(http.Header)
+	for _, hdr := range s.UnsignedHeaders {
+		if value, ok := r.Header[hdr]; ok {
+			unsignedHeaders[hdr] = value
+			delete(r.Header, hdr)
+		}
+	}
+	err := s.Signer.SignHTTP(
+		ctx, credentials,
+		r, payloadHash,
+		service, region,
+		signingTime, optFns...,
+	)
+	for key, value := range unsignedHeaders {
+		r.Header[key] = value
+	}
+	return err
 }
 
 func (opts *Options) toS3Options() (
@@ -349,10 +343,7 @@ func (opts *Options) toS3Options() (
 	clientOpts = func(s3Opts *s3.Options) {
 		opts.options(s3Opts)
 		if len(opts.UnsignedHeaders) > 0 {
-			s3Opts.APIOptions = append(
-				s3Opts.APIOptions,
-				unsignedHeadersMiddleware(opts.UnsignedHeaders),
-			)
+			s3Opts.HTTPSignerV4 = NewSigner(opts.UnsignedHeaders)
 		}
 		roundTripper := opts.Transport
 		if roundTripper == nil {
