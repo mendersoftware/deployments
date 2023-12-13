@@ -311,7 +311,7 @@ class Device:
 
     @property
     def fake_token(self):
-        claims = json.dumps({"sub": self.devid, "iss": "Mender"})
+        claims = json.dumps({"sub": self.devid, "iss": "Mender", "mender.device": True})
         hdr = '{"typ": "JWT"}'
         signature = "fake-signature"
         return ".".join(
@@ -321,7 +321,12 @@ class Device:
 
     def fake_token_mt(self, tenant):
         claims = json.dumps(
-            {"sub": self.devid, "iss": "Mender", "mender.tenant": tenant}
+            {
+                "sub": self.devid,
+                "iss": "Mender",
+                "mender.tenant": tenant,
+                "mender.device": True,
+            }
         )
         hdr = '{"typ": "JWT"}'
         signature = "fake-signature"
