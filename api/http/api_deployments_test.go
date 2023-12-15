@@ -324,7 +324,7 @@ func TestUploadLink(t *testing.T) {
 
 			conf := NewConfig().
 				SetEnableDirectUpload(true)
-			apiHandler, err := NewRouter(
+			apiHandler, err := NewHandler(
 				ctx,
 				app,
 				nil,
@@ -333,11 +333,8 @@ func TestUploadLink(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			api := rest.NewApi()
-			api.SetApp(apiHandler)
-
 			w := httptest.NewRecorder()
-			api.MakeHandler().ServeHTTP(w, req)
+			apiHandler.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.StatusCode, w.Code, "Unexpected HTTP status code")
 			tc.BodyAssertionFunc(t, w.Body.String())
@@ -431,7 +428,7 @@ func TestCompleteUpload(t *testing.T) {
 
 			conf := NewConfig().
 				SetEnableDirectUpload(true)
-			apiHandler, err := NewRouter(
+			apiHandler, err := NewHandler(
 				ctx,
 				app,
 				nil,
@@ -440,11 +437,9 @@ func TestCompleteUpload(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			api := rest.NewApi()
-			api.SetApp(apiHandler)
 
 			w := httptest.NewRecorder()
-			api.MakeHandler().ServeHTTP(w, req)
+			apiHandler.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.StatusCode, w.Code, "Unexpected HTTP status code")
 			tc.BodyAssertionFunc(t, w.Body.String())

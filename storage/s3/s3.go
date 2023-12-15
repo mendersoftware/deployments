@@ -272,7 +272,7 @@ func (s *SimpleStorageService) GetObject(
 	}
 	return objectReader{
 		ReadCloser: out.Body,
-		length:     out.ContentLength,
+		length:     *out.ContentLength,
 	}, nil
 }
 
@@ -338,7 +338,7 @@ func (s *SimpleStorageService) StatObject(
 	return &storage.ObjectInfo{
 		Path:         path,
 		LastModified: rsp.LastModified,
-		Size:         &rsp.ContentLength,
+		Size:         rsp.ContentLength,
 	}, nil
 }
 
@@ -385,7 +385,7 @@ func (s *SimpleStorageService) uploadMultipart(
 		Bucket:     opts.BucketName,
 		Key:        &objectPath,
 		UploadId:   rspCreate.UploadId,
-		PartNumber: partNum,
+		PartNumber: aws.Int32(partNum),
 	}
 
 	// Upload the first chunk already stored in buffer
@@ -404,7 +404,7 @@ func (s *SimpleStorageService) uploadMultipart(
 		completedParts,
 		types.CompletedPart{
 			ETag:       rspUpload.ETag,
-			PartNumber: partNum,
+			PartNumber: aws.Int32(partNum),
 		},
 	)
 
@@ -416,7 +416,7 @@ func (s *SimpleStorageService) uploadMultipart(
 		if offset > 0 {
 			r := bytes.NewReader(buf[:offset])
 			// Readjust upload parameters
-			uploadParams.PartNumber = partNum
+			uploadParams.PartNumber = aws.Int32(partNum)
 			uploadParams.Body = r
 			rspUpload, err = s.client.UploadPart(
 				ctx,
@@ -430,7 +430,7 @@ func (s *SimpleStorageService) uploadMultipart(
 				completedParts,
 				types.CompletedPart{
 					ETag:       rspUpload.ETag,
-					PartNumber: partNum,
+					PartNumber: aws.Int32(partNum),
 				},
 			)
 		} else {
@@ -515,7 +515,7 @@ func (s *SimpleStorageService) PutObject(
 			Bucket:        opts.BucketName,
 			Key:           &path,
 			ContentType:   s.contentType,
-			ContentLength: l,
+			ContentLength: &l,
 		}
 		_, err = s.client.PutObject(
 			ctx,

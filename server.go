@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/pkg/errors"
 
 	"github.com/mendersoftware/go-lib-micro/config"
@@ -206,14 +205,10 @@ func RunServer(ctx context.Context) error {
 	); err == nil {
 		apiConf.SetPresignSecret(key)
 	}
-	router, err := api.NewRouter(ctx, app, ds, apiConf)
+	handler, err := api.NewHandler(ctx, app, ds, apiConf)
 	if err != nil {
 		return err
 	}
-
-	api := rest.NewApi()
-	SetupMiddleware(c, api)
-	api.SetApp(router)
 
 	listen := c.GetString(dconfig.SettingListen)
 
@@ -222,8 +217,8 @@ func RunServer(ctx context.Context) error {
 		cert := c.GetString(dconfig.SettingHttpsCertificate)
 		key := c.GetString(dconfig.SettingHttpsKey)
 
-		return http.ListenAndServeTLS(listen, cert, key, api.MakeHandler())
+		return http.ListenAndServeTLS(listen, cert, key, handler)
 	}
 
-	return http.ListenAndServe(listen, api.MakeHandler())
+	return http.ListenAndServe(listen, handler)
 }

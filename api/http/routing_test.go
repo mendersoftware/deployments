@@ -20,7 +20,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ant0ine/go-json-rest/rest"
 	mapp "github.com/mendersoftware/deployments/app/mocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -62,7 +61,7 @@ func TestNewRouter(t *testing.T) {
 			app := new(mapp.App)
 			defer app.AssertExpectations(t)
 
-			apiHandler, err := NewRouter(
+			apiHandler, err := NewHandler(
 				ctx,
 				app,
 				nil,
@@ -70,16 +69,13 @@ func TestNewRouter(t *testing.T) {
 			)
 			assert.NoError(t, err)
 
-			api := rest.NewApi()
-			api.SetApp(apiHandler)
-
 			req, _ := http.NewRequest(
 				http.MethodPost,
 				"https://localhost:8443"+ApiUrlManagementArtifactsGenerate,
 				nil)
 
 			w := httptest.NewRecorder()
-			api.MakeHandler().ServeHTTP(w, req)
+			apiHandler.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.statusCode, w.Code, "Unexpected HTTP status code")
 		})
