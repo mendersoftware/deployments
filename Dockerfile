@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.19.3-buster as builder
+FROM --platform=$BUILDPLATFORM golang:1.21.5 as builder
 ARG TARGETARCH
 # Multiple architectures: we must have every library for every
 # architecture for every arch build
@@ -36,24 +36,9 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then CC=aarch64-linux-gnu-gcc && CC_FOR_TARG
 FROM scratch
 EXPOSE 8080
 COPY --from=builder /etc_extra/ /etc/
-COPY --from=builder /lib/aarch64-linux-gnu/libc.so.6 /lib/aarch64-linux-gnu/libc.so.6
-COPY --from=builder /lib/x86_64-linux-gnu/libc.so.6 /lib/x86_64-linux-gnu/libc.so.6
-COPY --from=builder /lib64/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
-COPY --from=builder /lib/ld-linux-aarch64.so.1 /lib/ld-linux-aarch64.so.1
-COPY --from=builder /lib/x86_64-linux-gnu/liblzma.so.5 /lib/x86_64-linux-gnu/liblzma.so.5
-COPY --from=builder /lib/aarch64-linux-gnu/liblzma.so.5 /lib/aarch64-linux-gnu/liblzma.so.5
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libssl.so.1.1 /usr/lib/x86_64-linux-gnu/libssl.so.1.1 
-COPY --from=builder /usr/lib/aarch64-linux-gnu/libssl.so.1.1 /usr/lib/aarch64-linux-gnu/libssl.so.1.1
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1
-COPY --from=builder /usr/lib/aarch64-linux-gnu/libcrypto.so.1.1 /usr/lib/aarch64-linux-gnu/libcrypto.so.1.1
-COPY --from=builder /lib/aarch64-linux-gnu/libpthread.so.0 /lib/aarch64-linux-gnu/libpthread.so.0
-COPY --from=builder /lib/x86_64-linux-gnu/libpthread.so.0 /lib/x86_64-linux-gnu/libpthread.so.0
-COPY --from=builder /lib/aarch64-linux-gnu/libdl.so.2 /lib/aarch64-linux-gnu/libdl.so.2
-COPY --from=builder /lib/x86_64-linux-gnu/libdl.so.2 /lib/x86_64-linux-gnu/libdl.so.2
-COPY --from=builder /lib/x86_64-linux-gnu/libnss_dns.so.2 /lib/x86_64-linux-gnu/libnss_dns.so.2
-COPY --from=builder /lib/aarch64-linux-gnu/libnss_dns.so.2 /lib/aarch64-linux-gnu/libnss_dns.so.2
-COPY --from=builder /lib/x86_64-linux-gnu/libresolv.so.2 /lib/x86_64-linux-gnu/libresolv.so.2
-COPY --from=builder /lib/aarch64-linux-gnu/libresolv.so.2 /lib/aarch64-linux-gnu/libresolv.so.2
+COPY --from=builder /lib64 /lib64
+COPY --from=builder /lib /lib
+COPY --from=builder /usr/lib /usr/lib
 COPY --chown=nobody --from=builder /tmp_extra/ /tmp/
 USER 65534
 WORKDIR /etc/deployments
