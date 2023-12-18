@@ -21,29 +21,40 @@ RUN apt-get update && \
        binutils-aarch64-linux-gnu \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /go/src/github.com/mendersoftware/deployments
-RUN mkdir -p /etc_extra
-RUN echo 'nobody:x:65534:' > /etc_extra/group
-RUN echo 'nobody:!::0:::::' > /etc_extra/shadow
-RUN echo 'nobody:x:65534:65534:Nobody:/:' > /etc_extra/passwd
-RUN chown -R 65534:65534 /etc_extra
-RUN mkdir -p /tmp_extra && chown 65534:65534 /tmp_extra
 COPY ./ .
 
-# when building aarch64 we have to target aarch64-linux-gnu-gcc compiler
-RUN if [ "$TARGETARCH" = "arm64" ]; then CC=aarch64-linux-gnu-gcc && CC_FOR_TARGET=gcc-aarch64-linux-gnu; fi && \
-  CGO_ENABLED=1 GOOS=linux GOARCH=$TARGETARCH CC=$CC CC_FOR_TARGET=$CC_FOR_TARGET go build
+RUN --mount=type=cache,target=/go/pkg/mod/ \
+    --mount=type=cache,target=/root/.cache/go-build \
+    # when building aarch64 we have to target aarch64-linux-gnu-gcc compiler
+    if [ "$TARGETARCH" = "arm64" ]; then \
+    export CC=aarch64-linux-gnu-gcc; \
+    export CC_FOR_TARGET=gcc-aarch64-linux-gnu; \
+    export OBJDUMP=aarch64-linux-gnu-objdump; \
+    export LD_LINUX="/lib/ld-linux-aarch64.so.1"; \
+    export LIBS_PATH="/usr/lib/aarch64-linux-gnu/"; \
+    else \
+    export OBJDUMP=objdump; \
+    export LD_LINUX="/lib64/ld-linux-x86-64.so.2"; \
+    export CC=gcc; \
+    export LIBS_PATH="/usr/lib/x86_64-linux-gnu/"; \
+    fi && \
+    CGO_ENABLED=1 GOOS=linux GOARCH=$TARGETARCH CC=$CC CC_FOR_TARGET=$CC_FOR_TARGET go build && \
+    install -D /go/src/github.com/mendersoftware/deployments/deployments /mnt/usr/bin/deployments && \
+    mkdir -p /mnt/etc /mnt/tmp && \
+    echo 'nobody:x:65534:' > /mnt/etc/group && \
+    echo 'nobody:!::0:::::' > /mnt/etc/shadow && \
+    echo 'nobody:x:65534:65534:Nobody:/:' > /mnt/etc/passwd && \
+    chown -R 65534:65534 /mnt && \
+    install -D /etc/ssl/certs/ca-certificates.crt /mnt/etc/ssl/certs/ca-certificates.crt && \
+    install -D ./config.yaml /mnt/etc/deployments/config.yaml && \
+    install -D $LD_LINUX "/mnt${LD_LINUX}" && \
+    $OBJDUMP -p ./deployments | sed -nE 's/^.*NEEDED.*?(lib.+$)/\1/p' | \
+    while read lib; do install -D "${LIBS_PATH}${lib}" "/mnt${LIBS_PATH}${lib}"; done
 
 FROM scratch
 EXPOSE 8080
-COPY --from=builder /etc_extra/ /etc/
-COPY --from=builder /lib64 /lib64
-COPY --from=builder /lib /lib
-COPY --from=builder /usr/lib /usr/lib
-COPY --chown=nobody --from=builder /tmp_extra/ /tmp/
+COPY --from=builder /mnt /
 USER 65534
 WORKDIR /etc/deployments
-COPY --from=builder --chown=nobody /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --chown=nobody ./config.yaml .
-COPY --from=builder --chown=nobody /go/src/github.com/mendersoftware/deployments/deployments /usr/bin/
 
 ENTRYPOINT ["/usr/bin/deployments", "--config", "/etc/deployments/config.yaml"]
