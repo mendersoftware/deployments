@@ -49,7 +49,10 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
     install -D ./config.yaml /mnt/etc/deployments/config.yaml && \
     install -D $LD_LINUX "/mnt${LD_LINUX}" && \
     $OBJDUMP -p ./deployments | sed -nE 's/^.*NEEDED.*?(lib.+$)/\1/p' | \
-    while read lib; do install -D "${LIBS_PATH}${lib}" "/mnt${LIBS_PATH}${lib}"; done
+    while read lib; do install -D "${LIBS_PATH}${lib}" "/mnt${LIBS_PATH}${lib}"; done ; \
+    find /mnt -iname '*libresolv*' -exec rm {} \; ; \
+    find /mnt -iname '*libnss_dns*' -exec rm {} \; ;
+
 
 FROM scratch
 EXPOSE 8080

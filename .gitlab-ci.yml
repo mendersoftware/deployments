@@ -1,7 +1,7 @@
 variables:
   DOCKER_REPOSITORY: mendersoftware/deployments
   MULTIPLATFORM_BUILD: "true"
-  MULTIPLATFORM_PLATFORMS: "linux/amd64,linux/arm64"
+  MULTIPLATFORM_PLATFORMS: "linux/amd64"
 
 stages:
   - test_prep
