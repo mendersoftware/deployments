@@ -1,4 +1,4 @@
-// Copyright 2023 Northern.tech AS
+// Copyright 2024 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -75,6 +75,9 @@ const (
 	ApiUrlManagementV2ReleaseAllTags        = ApiUrlManagementV2 + "/releases/all/tags"
 	ApiUrlManagementV2ReleaseAllUpdateTypes = ApiUrlManagementV2 + "/releases/all/types"
 
+	ApiUrlDevicesArtifacts        = ApiUrlDevices + "/artifacts"
+	ApiUrlDevicesArtifactShow     = ApiUrlDevices + "/artifacts/#id"
+	ApiUrlDevicesArtifactDownload = ApiUrlDevices + "/artifacts/#id/download"
 	ApiUrlDevicesDeploymentsNext  = ApiUrlDevices + "/device/deployments/next"
 	ApiUrlDevicesDeploymentStatus = ApiUrlDevices + "/device/deployments/#id/status"
 	ApiUrlDevicesDeploymentsLog   = ApiUrlDevices + "/device/deployments/#id/log"
@@ -274,6 +277,9 @@ func NewDeploymentsResourceRoutes(controller *DeploymentsApiHandlers) []*rest.Ro
 			controller.GetDeploymentDeviceList),
 
 		// Devices
+		rest.Get(ApiUrlDevicesArtifacts, controller.GetImagesForDevice),
+		rest.Get(ApiUrlDevicesArtifactShow, controller.GetImageForDevice),
+		rest.Get(ApiUrlDevicesArtifactDownload, controller.DownloadImageForDevice),
 		rest.Get(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
 		rest.Post(ApiUrlDevicesDeploymentsNext, controller.GetDeploymentForDevice),
 		rest.Put(ApiUrlDevicesDeploymentStatus,
