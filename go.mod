@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.26.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.48.1
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/mendersoftware/go-lib-micro v0.0.0-20231212090330-dbd92a22bbee
 	github.com/mendersoftware/mender-artifact v0.0.0-20231212103022-6d868906d9ac
 	github.com/pkg/errors v0.9.1
