@@ -778,8 +778,8 @@ paths:
                     description: Johns Monday test build
                     device_types_compatible: [Beagle Bone]
                     info:
-                      type_info:
-                        type: rootfs
+                      format: mender
+                      version: 3
                     signed: false
                     updates:
                       - type_info:
@@ -806,8 +806,8 @@ paths:
                     description: Johns Monday test build
                     device_types_compatible: [Raspberry Pi]
                     info:
-                      type_info:
-                        type: rootfs
+                      format: mender
+                      version: 3
                     signed: false
                     updates:
                       - type_info:
@@ -836,8 +836,8 @@ paths:
                     description: Johns Monday test build
                     device_types_compatible: [Beagle Bone]
                     info:
-                      type_info:
-                        type: rootfs
+                      format: mender
+                      version: 3
                     signed: false
                     updates:
                       - type_info:
@@ -949,8 +949,8 @@ paths:
                     description: Johns Monday test build
                     device_types_compatible: [Beagle Bone]
                     info:
-                      type_info:
-                        type: rootfs
+                      format: mender
+                      version: 3
                     signed: false
                     updates:
                       - type_info:
@@ -977,8 +977,8 @@ paths:
                     description: Johns Monday test build
                     device_types_compatible: [Raspberry Pi]
                     info:
-                      type_info:
-                        type: rootfs
+                      format: mender
+                      version: 3
                     signed: false
                     updates:
                       - type_info:
@@ -1007,8 +1007,8 @@ paths:
                     description: Johns Monday test build
                     device_types_compatible: [Beagle Bone]
                     info:
-                      type_info:
-                        type: rootfs
+                      format: mender
+                      version: 3
                     signed: false
                     updates:
                       - type_info:
@@ -1388,8 +1388,8 @@ paths:
               description: Johns Monday test build
               device_types_compatible: [Beagle Bone]
               info:
-                type_info:
-                  type: rootfs
+                format: mender
+                version: 3
               signed: false
               updates:
                 - type_info:
@@ -1937,8 +1937,8 @@ definitions:
           name: Application 1.0.0
           device_types_compatible: [Beagle Bone]
           info:
-            type_info:
-              type: rootfs
+            format: mender
+            version: 3
           signed: false
           updates:
             - type_info:
@@ -2000,8 +2000,8 @@ definitions:
             name: Application 1.0.0
             device_types_compatible: [Beagle Bone]
             info:
-              type_info:
-                type: rootfs
+              format: mender
+              version: 3
             signed: false
             updates:
               - type_info:
@@ -2146,8 +2146,8 @@ definitions:
       description: Johns Monday test build
       device_types_compatible: [Beagle Bone]
       info:
-        type_info:
-          type: rootfs
+        format: mender
+        version: 3
       signed: false
       updates:
         - type_info:
@@ -2285,8 +2285,8 @@ definitions:
           description: Johns Monday test build
           device_types_compatible: [Beagle Bone]
           info:
-            type_info:
-              type: rootfs
+            format: mender
+            version: 3
           signed: false
           updates:
             - type_info:
@@ -2313,8 +2313,8 @@ definitions:
           description: Johns Monday test build
           device_types_compatible: [Raspberry Pi]
           info:
-            type_info:
-              type: rootfs
+            format: mender
+            version: 3
           signed: false
           updates:
             - type_info:
