@@ -6,7 +6,10 @@ updates:
     package-ecosystem: gomod
     schedule:
       interval: monthly
-      day: saturday
+    groups:
+      golang-dependencies:
+        patterns:
+          - "*"
     reviewers:
       - "mendersoftware/backend-dependabot-reviewers"
   - commit-message:
@@ -15,6 +18,9 @@ updates:
     package-ecosystem: docker
     schedule:
       interval: monthly
-      day: saturday
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"
     reviewers:
       - "mendersoftware/backend-dependabot-reviewers"
