@@ -39,12 +39,14 @@ const (
 
 	SettingStorage = "storage"
 
-	SettingDefaultStorage             = SettingStorage + ".default"
-	SettingDefaultStorageDefault      = "aws"
-	SettingStorageBucket              = SettingStorage + ".bucket"
-	SettingStorageBucketDefault       = "mender-artifact-storage"
-	SettingStorageMaxImageSize        = SettingStorage + ".max_image_size"
-	SettingStorageMaxImageSizeDefault = 10 * 1024 * 1024 * 1024 // 10 GiB
+	SettingDefaultStorage                = SettingStorage + ".default"
+	SettingDefaultStorageDefault         = "aws"
+	SettingStorageBucket                 = SettingStorage + ".bucket"
+	SettingStorageBucketDefault          = "mender-artifact-storage"
+	SettingStorageMaxImageSize           = SettingStorage + ".max_image_size"
+	SettingStorageMaxImageSizeDefault    = 10 * 1024 * 1024 * 1024 // 10 GiB
+	SettingStorageMaxGenerateSize        = SettingStorage + ".max_generate_data_size"
+	SettingStorageMaxGenerateSizeDefault = 512 * 1024 * 1024 // 512 MiB
 
 	SettingStorageProxyURI = SettingStorage + ".proxy_uri"
 
@@ -292,6 +294,7 @@ var (
 		{Key: SettingAwsS3UseAccelerate, Value: SettingAwsS3UseAccelerateDefault},
 		{Key: SettingAwsUnsignedHeaders, Value: SettingAwsUnsignedHeadersDefault},
 		{Key: SettingStorageMaxImageSize, Value: SettingStorageMaxImageSizeDefault},
+		{Key: SettingStorageMaxGenerateSize, Value: SettingStorageMaxGenerateSizeDefault},
 		{Key: SettingsStorageDownloadExpireSeconds,
 			Value: SettingsStorageDownloadExpireSecondsDefault},
 		{Key: SettingsStorageUploadExpireSeconds, Value: SettingsStorageUploadExpireSecondsDefault},
