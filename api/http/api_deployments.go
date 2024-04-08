@@ -865,8 +865,6 @@ func (d *DeploymentsApiHandlers) ParseMultipart(
 			if err != nil {
 				return nil, err
 			}
-			// Add one since this will impose the upper limit on the
-			// artifact size.
 			if size > d.config.MaxImageSize {
 				return nil, ErrModelArtifactFileTooLarge
 			}
@@ -985,8 +983,6 @@ ParseLoop:
 			if err != nil {
 				return nil, err
 			}
-			// Add one since this will impose the upper limit on the
-			// artifact size.
 			if size > d.config.MaxGenerateDataSize {
 				return nil, ErrModelArtifactFileTooLarge
 			}
