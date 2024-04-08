@@ -195,6 +195,7 @@ func RunServer(ctx context.Context) error {
 		SetPresignHostname(c.GetString(dconfig.SettingPresignHost)).
 		SetPresignScheme(c.GetString(dconfig.SettingPresignScheme)).
 		SetMaxImageSize(c.GetInt64(dconfig.SettingStorageMaxImageSize)).
+		SetMaxGenerateDataSize(c.GetInt64(dconfig.SettingStorageMaxGenerateSize)).
 		SetEnableDirectUpload(c.GetBool(dconfig.SettingStorageEnableDirectUpload)).
 		SetEnableDirectUploadSkipVerify(c.GetBool(dconfig.SettingStorageDirectUploadSkipVerify)).
 		SetDisableNewReleasesFeature(c.GetBool(dconfig.SettingDisableNewReleasesFeature))

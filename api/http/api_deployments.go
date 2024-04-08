@@ -52,8 +52,9 @@ const (
 	// 15 minutes
 	DefaultDownloadLinkExpire = 15 * time.Minute
 	// 10 Mb
-	DefaultMaxMetaSize  = 1024 * 1024 * 10
-	DefaultMaxImageSize = 10 * 1024 * 1024 * 1024 // 10GiB
+	DefaultMaxMetaSize         = 1024 * 1024 * 10
+	DefaultMaxImageSize        = 10 * 1024 * 1024 * 1024 // 10GiB
+	DefaultMaxGenerateDataSize = 512 * 1024 * 1024       // 512MiB
 
 	// Pagination
 	DefaultPerPage                      = 20
@@ -138,7 +139,8 @@ type Config struct {
 	// PresignScheme is the URL scheme used for generating signed URLs.
 	PresignScheme string
 	// MaxImageSize is the maximum image size
-	MaxImageSize int64
+	MaxImageSize        int64
+	MaxGenerateDataSize int64
 
 	EnableDirectUpload bool
 	// EnableDirectUploadSkipVerify allows turning off the verification of uploaded artifacts
@@ -152,9 +154,10 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		PresignExpire: DefaultDownloadLinkExpire,
-		PresignScheme: "https",
-		MaxImageSize:  DefaultMaxImageSize,
+		PresignExpire:       DefaultDownloadLinkExpire,
+		PresignScheme:       "https",
+		MaxImageSize:        DefaultMaxImageSize,
+		MaxGenerateDataSize: DefaultMaxGenerateDataSize,
 	}
 }
 
@@ -180,6 +183,11 @@ func (conf *Config) SetPresignScheme(scheme string) *Config {
 
 func (conf *Config) SetMaxImageSize(size int64) *Config {
 	conf.MaxImageSize = size
+	return conf
+}
+
+func (conf *Config) SetMaxGenerateDataSize(size int64) *Config {
+	conf.MaxGenerateDataSize = size
 	return conf
 }
 
@@ -230,6 +238,9 @@ func NewDeploymentsApiHandlers(
 		}
 		if c.MaxImageSize > 0 {
 			conf.MaxImageSize = c.MaxImageSize
+		}
+		if c.MaxGenerateDataSize > 0 {
+			conf.MaxGenerateDataSize = c.MaxGenerateDataSize
 		}
 		conf.DisableNewReleasesFeature = c.DisableNewReleasesFeature
 		conf.EnableDirectUpload = c.EnableDirectUpload
@@ -854,8 +865,6 @@ func (d *DeploymentsApiHandlers) ParseMultipart(
 			if err != nil {
 				return nil, err
 			}
-			// Add one since this will impose the upper limit on the
-			// artifact size.
 			if size > d.config.MaxImageSize {
 				return nil, ErrModelArtifactFileTooLarge
 			}
@@ -942,7 +951,7 @@ ParseLoop:
 			if size > 0 {
 				msg.FileReader = utils.ReadExactly(part, size)
 			} else {
-				msg.FileReader = utils.ReadAtMost(part, d.config.MaxImageSize)
+				msg.FileReader = utils.ReadAtMost(part, d.config.MaxGenerateDataSize)
 			}
 			break ParseLoop
 
@@ -974,9 +983,7 @@ ParseLoop:
 			if err != nil {
 				return nil, err
 			}
-			// Add one since this will impose the upper limit on the
-			// artifact size.
-			if size > d.config.MaxImageSize {
+			if size > d.config.MaxGenerateDataSize {
 				return nil, ErrModelArtifactFileTooLarge
 			}
 
