@@ -581,13 +581,13 @@ func (db *DataStoreMongo) GetReleases(
 ) ([]model.Release, int, error) {
 	current, err := db.getCurrentDbVersion(ctx)
 	if err != nil {
-		return nil, 0, err
+		return []model.Release{}, 0, err
 	} else if current == nil {
-		return nil, 0, errors.New("couldn't get current database version")
+		return []model.Release{}, 0, errors.New("couldn't get current database version")
 	}
 	target, err := migrate.NewVersion(DbVersion)
 	if err != nil {
-		return nil, 0, errors.Wrap(err, "failed to get latest DB version")
+		return []model.Release{}, 0, errors.Wrap(err, "failed to get latest DB version")
 	}
 	if migrate.VersionIsLess(*current, *target) {
 		return db.getReleases_1_2_14(ctx, filt)
@@ -700,7 +700,7 @@ func (db *DataStoreMongo) getReleases_1_2_14(
 
 	cursor, err := collImg.Aggregate(ctx, pipe)
 	if err != nil {
-		return nil, 0, err
+		return []model.Release{}, 0, err
 	}
 	defer cursor.Close(ctx)
 
@@ -709,9 +709,9 @@ func (db *DataStoreMongo) getReleases_1_2_14(
 		Count   []struct{ Count int } `bson:"count"`
 	}{}
 	if !cursor.Next(ctx) {
-		return nil, 0, nil
+		return []model.Release{}, 0, nil
 	} else if err = cursor.Decode(&result); err != nil {
-		return nil, 0, err
+		return []model.Release{}, 0, err
 	} else if len(result.Count) == 0 {
 		return []model.Release{}, 0, err
 	}
@@ -786,19 +786,22 @@ func (db *DataStoreMongo) getReleases_1_2_15(
 	releases := []model.Release{}
 	cursor, err := collReleases.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, 0, err
+		return []model.Release{}, 0, err
 	}
 	if err := cursor.All(ctx, &releases); err != nil {
-		return nil, 0, err
+		return []model.Release{}, 0, err
 	}
 
 	// TODO: can we return number of all documents in the collection
 	// using EstimatedDocumentCount?
 	count, err := collReleases.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, 0, err
+		return []model.Release{}, 0, err
 	}
 
+	if count < 1 {
+		return []model.Release{}, int(count), nil
+	}
 	return releases, int(count), nil
 }
 
