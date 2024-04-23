@@ -619,7 +619,7 @@ func TestPostArtifactsGenerate(t *testing.T) {
 				},
 			},
 			requestContentType:       "multipart/form-data",
-			responseCode:             http.StatusBadRequest,
+			responseCode:             http.StatusRequestEntityTooLarge,
 			responseBody:             "Artifact file too large",
 			appGenerateImage:         true,
 			appGenerateImageResponse: "",

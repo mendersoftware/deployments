@@ -752,9 +752,12 @@ func (d *DeploymentsApiHandlers) newImageWithContext(
 		l.Error(err.Error())
 		d.view.RenderError(w, r, formatArtifactUploadError(err), http.StatusBadRequest, l)
 		return
+	case utils.ErrStreamTooLarge, ErrModelArtifactFileTooLarge:
+		d.view.RenderError(w, r, ErrModelArtifactFileTooLarge, http.StatusRequestEntityTooLarge, l)
+		return
 	case app.ErrModelMissingInputMetadata, app.ErrModelMissingInputArtifact,
 		app.ErrModelInvalidMetadata, app.ErrModelMultipartUploadMsgMalformed,
-		io.ErrUnexpectedEOF, utils.ErrStreamTooLarge, ErrModelArtifactFileTooLarge:
+		io.ErrUnexpectedEOF:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 		return
@@ -818,9 +821,11 @@ func (d *DeploymentsApiHandlers) GenerateImage(w rest.ResponseWriter, r *rest.Re
 	case app.ErrModelParsingArtifactFailed:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, formatArtifactUploadError(err), http.StatusBadRequest, l)
+	case utils.ErrStreamTooLarge, ErrModelArtifactFileTooLarge:
+		d.view.RenderError(w, r, ErrModelArtifactFileTooLarge, http.StatusRequestEntityTooLarge, l)
 	case app.ErrModelMissingInputMetadata, app.ErrModelMissingInputArtifact,
 		app.ErrModelInvalidMetadata, app.ErrModelMultipartUploadMsgMalformed,
-		io.ErrUnexpectedEOF, utils.ErrStreamTooLarge, ErrModelArtifactFileTooLarge:
+		io.ErrUnexpectedEOF:
 		l.Error(err.Error())
 		d.view.RenderError(w, r, cause, http.StatusBadRequest, l)
 	}
