@@ -1030,8 +1030,10 @@ func (d *DeploymentsApiHandlers) createDeployment(
 		d.view.RenderSuccessPost(w, r, id)
 	case app.ErrNoArtifact:
 		d.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
-	case app.ErrNoDevices, app.ErrConflictingDeployment:
+	case app.ErrNoDevices:
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
+	case app.ErrConflictingDeployment:
+		d.view.RenderError(w, r, err, http.StatusConflict, l)
 	default:
 		d.view.RenderInternalError(w, r, err, l)
 	}

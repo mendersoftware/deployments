@@ -206,7 +206,7 @@ class TestDeployment:
             try:
                 self.d.add_deployment(newdep)
             except bravado.exception.HTTPError as err:
-                assert err.response.status_code == 400
+                assert err.response.status_code == 409
             else:
                 raise AssertionError("expected to fail")
 

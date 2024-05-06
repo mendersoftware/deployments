@@ -517,7 +517,7 @@ func TestPostDeployment(t *testing.T) {
 			AllDevices:   true,
 		},
 		AppError:     app.ErrConflictingDeployment,
-		ResponseCode: http.StatusBadRequest,
+		ResponseCode: http.StatusConflict,
 		ResponseBody: rest_utils.ApiError{
 			Err:   app.ErrConflictingDeployment.Error(),
 			ReqId: "test",
