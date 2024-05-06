@@ -1,4 +1,4 @@
-// Copyright 2023 Northern.tech AS
+// Copyright 2024 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -507,6 +507,19 @@ func TestPostDeployment(t *testing.T) {
 		ResponseCode: http.StatusBadRequest,
 		ResponseBody: rest_utils.ApiError{
 			Err:   app.ErrNoDevices.Error(),
+			ReqId: "test",
+		},
+	}, {
+		Name: "error: app error: conflict",
+		InputBody: &model.DeploymentConstructor{
+			Name:         "foo",
+			ArtifactName: "bar",
+			AllDevices:   true,
+		},
+		AppError:     app.ErrConflictingDeployment,
+		ResponseCode: http.StatusBadRequest,
+		ResponseBody: rest_utils.ApiError{
+			Err:   app.ErrConflictingDeployment.Error(),
 			ReqId: "test",
 		},
 	}, {

@@ -373,7 +373,7 @@ def mongo_cleanup(mongo):
     for c in collections:
         if c == "migration_info":
             continue
-        db.drop_collection(c)
+        db[c].delete_many({})
 
 
 @pytest.fixture(scope="session")

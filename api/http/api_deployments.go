@@ -1,4 +1,4 @@
-// Copyright 2023 Northern.tech AS
+// Copyright 2024 Northern.tech AS
 //
 //	Licensed under the Apache License, Version 2.0 (the "License");
 //	you may not use this file except in compliance with the License.
@@ -1030,7 +1030,7 @@ func (d *DeploymentsApiHandlers) createDeployment(
 		d.view.RenderSuccessPost(w, r, id)
 	case app.ErrNoArtifact:
 		d.view.RenderError(w, r, err, http.StatusUnprocessableEntity, l)
-	case app.ErrNoDevices:
+	case app.ErrNoDevices, app.ErrConflictingDeployment:
 		d.view.RenderError(w, r, err, http.StatusBadRequest, l)
 	default:
 		d.view.RenderInternalError(w, r, err, l)

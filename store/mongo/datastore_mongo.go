@@ -1,4 +1,4 @@
-// Copyright 2023 Northern.tech AS
+// Copyright 2024 Northern.tech AS
 //
 //	Licensed under the Apache License, Version 2.0 (the "License");
 //	you may not use this file except in compliance with the License.
@@ -103,6 +103,9 @@ var (
 	IndexNameReleaseUpdateTypes    = "release_update_types"
 	IndexNameAggregatedUpdateTypes = "aggregated_release_update_types"
 	IndexNameReleaseArtifactsCount = "release_artifacts_count"
+
+	// Indexes 1.2.16
+	IndexNameDeploymentConstructorChecksum = "deployment_deploymentconstructor_checksum"
 
 	_false         = false
 	_true          = true
@@ -388,6 +391,9 @@ var (
 	ErrConflictingDepends = errors.New(
 		"an artifact with the same name and depends already exists",
 	)
+	ErrConflictingDeployment = errors.New(
+		"an active deployment with the same parameter already exists",
+	)
 )
 
 // Database keys
@@ -450,19 +456,20 @@ const (
 	StorageKeyDeviceDeploymentRequest        = "request"
 	StorageKeyDeviceDeploymentDeleted        = "deleted"
 
-	StorageKeyDeploymentName         = "deploymentconstructor.name"
-	StorageKeyDeploymentArtifactName = "deploymentconstructor.artifactname"
-	StorageKeyDeploymentStats        = "stats"
-	StorageKeyDeploymentActive       = "active"
-	StorageKeyDeploymentStatus       = "status"
-	StorageKeyDeploymentCreated      = "created"
-	StorageKeyDeploymentStatsCreated = "created"
-	StorageKeyDeploymentFinished     = "finished"
-	StorageKeyDeploymentArtifacts    = "artifacts"
-	StorageKeyDeploymentDeviceCount  = "device_count"
-	StorageKeyDeploymentMaxDevices   = "max_devices"
-	StorageKeyDeploymentType         = "type"
-	StorageKeyDeploymentTotalSize    = "statistics.total_size"
+	StorageKeyDeploymentName                = "deploymentconstructor.name"
+	StorageKeyDeploymentArtifactName        = "deploymentconstructor.artifactname"
+	StorageKeyDeploymentConstructorChecksum = "deploymentconstructor_checksum"
+	StorageKeyDeploymentStats               = "stats"
+	StorageKeyDeploymentActive              = "active"
+	StorageKeyDeploymentStatus              = "status"
+	StorageKeyDeploymentCreated             = "created"
+	StorageKeyDeploymentStatsCreated        = "created"
+	StorageKeyDeploymentFinished            = "finished"
+	StorageKeyDeploymentArtifacts           = "artifacts"
+	StorageKeyDeploymentDeviceCount         = "device_count"
+	StorageKeyDeploymentMaxDevices          = "max_devices"
+	StorageKeyDeploymentType                = "type"
+	StorageKeyDeploymentTotalSize           = "statistics.total_size"
 
 	StorageKeyStorageSettingsDefaultID      = "settings"
 	StorageKeyStorageSettingsBucket         = "bucket"
@@ -2279,6 +2286,9 @@ func (db *DataStoreMongo) InsertDeployment(
 	collDpl := database.Collection(CollectionDeployments)
 
 	if _, err := collDpl.InsertOne(ctx, deployment); err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return ErrConflictingDeployment
+		}
 		return err
 	}
 	return nil
