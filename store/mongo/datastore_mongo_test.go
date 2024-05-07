@@ -1,4 +1,4 @@
-// Copyright 2023 Northern.tech AS
+// Copyright 2024 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -424,6 +424,85 @@ func TestFindNewerActiveDeployments(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, testCase.OutputDeployments, deployments)
+			}
+		})
+	}
+}
+
+func TestInsertDeploymentConflict(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestInsertDeploymentConflict in short mode.")
+	}
+	testCases := map[string]struct {
+		constructor1 *model.DeploymentConstructor
+		constructor2 *model.DeploymentConstructor
+		not_active   bool
+		err          error
+	}{
+		"ok": {
+			constructor1: &model.DeploymentConstructor{
+				Name:         "name",
+				ArtifactName: "artifact",
+				Devices:      []string{"device-1"},
+			},
+			constructor2: &model.DeploymentConstructor{
+				Name:         "name",
+				ArtifactName: "artifact",
+				Devices:      []string{"device-2"},
+			},
+		},
+		"ko, conflict": {
+			constructor1: &model.DeploymentConstructor{
+				Name:         "name",
+				ArtifactName: "artifact",
+				Devices:      []string{"device-1"},
+			},
+			constructor2: &model.DeploymentConstructor{
+				Name:         "name",
+				ArtifactName: "artifact",
+				Devices:      []string{"device-1"},
+			},
+			err: ErrConflictingDeployment,
+		},
+		"ok, conflict but deployment 1 is not active, so no error": {
+			constructor1: &model.DeploymentConstructor{
+				Name:         "name",
+				ArtifactName: "artifact",
+				Devices:      []string{"device-1"},
+			},
+			constructor2: &model.DeploymentConstructor{
+				Name:         "name",
+				ArtifactName: "artifact",
+				Devices:      []string{"device-1"},
+			},
+			not_active: true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			client := db.Client()
+			db.Wipe()
+
+			ctx := context.Background()
+			ds := NewDataStoreMongoWithClient(client)
+
+			err := MigrateSingle(ctx, DbName, DbVersion, client, true)
+			assert.Nil(t, err)
+
+			deployment1, _ := model.NewDeploymentFromConstructor(tc.constructor1)
+			if tc.not_active {
+				deployment1.Status = model.DeploymentStatusFinished
+			}
+			err = ds.InsertDeployment(ctx, deployment1)
+			assert.Nil(t, err)
+
+			deployment2, _ := model.NewDeploymentFromConstructor(tc.constructor2)
+			err = ds.InsertDeployment(ctx, deployment2)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+			} else {
+				assert.Nil(t, err)
 			}
 		})
 	}

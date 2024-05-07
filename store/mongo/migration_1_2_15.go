@@ -198,7 +198,7 @@ func (m *migration_1_2_15) indexReleaseUpdateType() error {
 			SetSparse(true),
 	})
 	if err != nil {
-		return fmt.Errorf("mongo(1.2.17): failed to create index: %w", err)
+		return fmt.Errorf("mongo(1.2.15): failed to create index: %w", err)
 	}
 	return nil
 }
@@ -220,7 +220,7 @@ func (m *migration_1_2_15) indexUpdateTypes() error {
 		Options: mopts.Index().SetName(IndexNameAggregatedUpdateTypes).SetUnique(true),
 	})
 	if err != nil {
-		return fmt.Errorf("mongo(1.2.18): failed to create index: %w", err)
+		return fmt.Errorf("mongo(1.2.15): failed to create index: %w", err)
 	}
 	return nil
 }

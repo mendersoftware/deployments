@@ -15,7 +15,9 @@
 package model
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -120,6 +122,14 @@ func (c DeploymentConstructor) ValidateNew() error {
 	return nil
 }
 
+func (c DeploymentConstructor) Checksum() string {
+	json, err := json.Marshal(c)
+	if err == nil {
+		return fmt.Sprintf("%x", sha256.Sum256(json))
+	}
+	return ""
+}
+
 type DeploymentStatistics struct {
 	Status    Stats `json:"status" bson:"-"`
 	TotalSize int   `json:"total_size" bson:"total_size"`
@@ -128,6 +138,9 @@ type DeploymentStatistics struct {
 type Deployment struct {
 	// User provided field set
 	*DeploymentConstructor
+
+	// Set the DeploymentConstructor checksum
+	DeploymentConstructorChecksum string `json:"-" bson:"deploymentconstructor_checksum,omitempty"`
 
 	// Auto set on create, required
 	Created *time.Time `json:"created"`
@@ -208,6 +221,9 @@ func NewDeploymentFromConstructor(constructor *DeploymentConstructor) (*Deployme
 	}
 
 	deployment.DeploymentConstructor = constructor
+	if constructor != nil {
+		deployment.DeploymentConstructorChecksum = constructor.Checksum()
+	}
 	deployment.Status = DeploymentStatusPending
 
 	deviceCount := 0

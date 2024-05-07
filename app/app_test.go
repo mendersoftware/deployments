@@ -1,4 +1,4 @@
-// Copyright 2023 Northern.tech AS
+// Copyright 2024 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import (
 	fs_mocks "github.com/mendersoftware/deployments/storage/mocks"
 	"github.com/mendersoftware/deployments/store"
 	"github.com/mendersoftware/deployments/store/mocks"
+	"github.com/mendersoftware/deployments/store/mongo"
 	h "github.com/mendersoftware/deployments/utils/testing"
 	"github.com/mendersoftware/go-lib-micro/config"
 	"github.com/mendersoftware/go-lib-micro/identity"
@@ -282,6 +283,17 @@ func TestDeploymentModelCreateDeployment(t *testing.T) {
 
 			SearchError: errors.New("error searching inventory"),
 			OutputError: ErrModelInternal,
+		},
+		"ko, conflict": {
+			InputConstructor: &model.DeploymentConstructor{
+				Name:         "NYC Production",
+				ArtifactName: "App 123",
+				Devices:      []string{"b532b01a-9313-404f-8d19-e7fcbe5cc347"},
+			},
+			CallGetDeviceGroups:               true,
+			InputDeploymentStorageInsertError: mongo.ErrConflictingDeployment,
+
+			OutputError: ErrConflictingDeployment,
 		},
 	}
 

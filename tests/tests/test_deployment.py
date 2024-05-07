@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2023 Northern.tech AS
+# Copyright 2024 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -179,6 +179,36 @@ class TestDeployment:
 
             # deleting artifact should succeed
             ac.delete_artifact(artid)
+
+    def test_deployments_conflict(self):
+        """Add a new valid deployment, verify its status, verify a new identical deployment cannot be created"""
+        dev = Device()
+        self.d.log.info("fake device with ID: %s", dev.devid)
+        self.inventory_add_dev(dev)
+
+        data = b"foo_bar"
+        artifact_name = "hammer-update-" + str(uuid4())
+
+        # create an artifact
+        with artifact_rootfs_from_data(
+            name=artifact_name, data=data, devicetype=dev.device_type
+        ) as art:
+            ac = SimpleArtifactsClient()
+            ac.add_artifact(description="some description", size=art.size, data=art)
+            newdep = self.d.make_new_deployment(
+                name="fake deployment", artifact_name=artifact_name, devices=[dev.devid]
+            )
+
+            # create the deployment
+            self.d.add_deployment(newdep)
+
+            # creating the same deployment again will fail
+            try:
+                self.d.add_deployment(newdep)
+            except bravado.exception.HTTPError as err:
+                assert err.response.status_code == 409
+            else:
+                raise AssertionError("expected to fail")
 
     def test_single_device_deployment_device_not_in_inventory(self):
         """Try to create single device deployment for a device wich is not

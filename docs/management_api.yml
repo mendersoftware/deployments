@@ -38,6 +38,10 @@ responses:
     description: Invalid Request.
     schema:
       $ref: "#/definitions/Error"
+  ConflictError: # 409
+    description: An active deployment with the same parameters already exists.
+    schema:
+      $ref: "#/definitions/Error"
   UnauthorizedError: # 401
     description: Unauthorized.
     schema:
@@ -178,6 +182,8 @@ paths:
           $ref: "#/responses/InvalidRequestError"
         401:
           $ref: '#/responses/UnauthorizedError'
+        409:
+          $ref: "#/responses/ConflictError"
         422:
           $ref: "#/responses/UnprocessableEntityError"
         500:

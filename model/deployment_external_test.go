@@ -204,6 +204,46 @@ func TestDeploymentValidate(t *testing.T) {
 
 }
 
+func TestDeploymentConstructorChecksum(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		InputName         string
+		InputArtifactName string
+		InputDevices      []string
+		IsValid           bool
+		Checksum          string
+	}{
+		{
+			InputName:         "",
+			InputArtifactName: "",
+			InputDevices:      nil,
+			IsValid:           false,
+			Checksum:          "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+		},
+		{
+			InputName:         "f826484e-1157-4109-af21-304e6d711560",
+			InputArtifactName: "f826484e-1157-4109-af21-304e6d711560",
+			InputDevices:      []string{"f826484e-1157-4109-af21-304e6d711560"},
+			IsValid:           true,
+			Checksum:          "abd7a7e46d0c50fa4bffa4ccea26b63e54d9ee17b1d242f35d40a046e9f92e00",
+		},
+	}
+
+	for i, test := range testCases {
+		t.Run(fmt.Sprintf("test #%d", i), func(t *testing.T) {
+			pub := &DeploymentConstructor{}
+			pub.Name = test.InputName
+			pub.ArtifactName = test.InputArtifactName
+			pub.Devices = test.InputDevices
+
+			checksum := pub.Checksum()
+			assert.Equal(t, test.Checksum, checksum)
+		})
+	}
+
+}
+
 func TestDeploymentMarshalJSON(t *testing.T) {
 
 	t.Parallel()

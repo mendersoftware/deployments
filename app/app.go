@@ -1,4 +1,4 @@
-// Copyright 2023 Northern.tech AS
+// Copyright 2024 Northern.tech AS
 //
 //	Licensed under the Apache License, Version 2.0 (the "License");
 //	you may not use this file except in compliance with the License.
@@ -100,6 +100,10 @@ var (
 	ErrDuplicateDeployment     = errors.New("Deployment with given ID already exists")
 	ErrInvalidDeploymentID     = errors.New("Deployment ID must be a valid UUID")
 	ErrConflictingRequestData  = errors.New("Device provided conflicting request data")
+	ErrConflictingDeployment   = errors.New(
+		"Invalid deployment definition: there is already an active deployment with " +
+			"the same parameters",
+	)
 )
 
 //deployments
@@ -1141,7 +1145,7 @@ func (d *Deployments) CreateDeviceConfigurationDeployment(
 	deployment.Groups = groups
 
 	if err := d.db.InsertDeployment(ctx, deployment); err != nil {
-		if strings.Contains(err.Error(), "duplicate key error") {
+		if err == mongo.ErrConflictingDeployment {
 			return "", ErrDuplicateDeployment
 		}
 		if strings.Contains(err.Error(), "id: must be a valid UUID") {
@@ -1209,6 +1213,9 @@ func (d *Deployments) CreateDeployment(ctx context.Context,
 	}
 
 	if err := d.db.InsertDeployment(ctx, deployment); err != nil {
+		if err == mongo.ErrConflictingDeployment {
+			return "", ErrConflictingDeployment
+		}
 		return "", errors.Wrap(err, "Storing deployment data")
 	}
 
