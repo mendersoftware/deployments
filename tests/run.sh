@@ -17,6 +17,8 @@
 
 DIR=$(readlink -f $(dirname $0))
 
+pip install boto3 # FIXME
+
 export PYTHONDONTWRITEBYTECODE=1
 export AWS_ENDPOINT_URL="http://minio:9000"
 export AWS_ACCESS_KEY_ID="minio"
