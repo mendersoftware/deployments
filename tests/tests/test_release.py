@@ -22,7 +22,7 @@ from common import (
     artifacts_update_module_added_from_data,
     clean_db,
     clean_minio,
-    MinioClient,
+    s3_bucket,
     mongo,
     Lock,
     MONGO_LOCK_FILE,
@@ -30,7 +30,6 @@ from common import (
 
 
 class TestRelease:
-    m = MinioClient()
     d = DeploymentsClient()
 
     @pytest.mark.usefixtures("clean_db")

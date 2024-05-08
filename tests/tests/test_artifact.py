@@ -34,7 +34,7 @@ from common import (
     artifact_bootstrap_from_data,
     clean_db,
     clean_minio,
-    MinioClient,
+    s3_bucket,
     mongo,
     Lock,
     MONGO_LOCK_FILE,
@@ -42,15 +42,13 @@ from common import (
 
 
 class TestArtifact:
-    m = MinioClient()
     ac = ArtifactsClient()
 
     def test_artifacts_all(self):
         res = self.ac.client.Management_API.List_Artifacts().result()
         self.ac.log.debug("result: %s", res)
 
-    @pytest.mark.usefixtures("clean_minio", "clean_db")
-    def test_artifacts_new_bogus_empty(self):
+    def test_artifacts_new_bogus_empty(self, clean_minio, clean_db):
         with Lock(MONGO_LOCK_FILE) as l:
             # try bogus image data
             try:
@@ -62,14 +60,13 @@ class TestArtifact:
                 ).result()
             except bravado.exception.HTTPError as e:
                 assert (
-                    sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
+                    sum(1 for x in clean_minio.objects.all()) == 0
                 )
                 assert e.response.status_code == 400
             else:
                 raise AssertionError("expected to fail")
 
-    @pytest.mark.usefixtures("clean_minio", "clean_db")
-    def test_artifacts_new_bogus_data(self):
+    def test_artifacts_new_bogus_data(self, clean_minio, clean_db):
         with Lock(MONGO_LOCK_FILE) as l:
             with artifact_from_raw_data(b"foo_bar") as art:
                 files = ArtifactsClient.make_upload_meta(
@@ -83,12 +80,11 @@ class TestArtifact:
                 rsp = requests.post(self.ac.make_api_url("/artifacts"), files=files)
                 l.unlock()
                 assert (
-                    sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 0
+                    sum(1 for x in clean_minio.objects.all()) == 0
                 )
                 assert rsp.status_code == 400
 
-    @pytest.mark.usefixtures("clean_minio", "clean_db")
-    def test_artifacts_valid(self):
+    def test_artifacts_valid(self, clean_minio, clean_db):
         with Lock(MONGO_LOCK_FILE) as l:
             artifact_name = str(uuid4())
             description = f"description for foo {artifact_name}"
@@ -138,7 +134,7 @@ class TestArtifact:
 
                 assert rsp.status_code == 200
                 assert (
-                    sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
+                    sum(1 for x in clean_minio.objects.all()) == 1
                 )
 
                 # receive artifact and compare its checksum
@@ -169,8 +165,7 @@ class TestArtifact:
                     raise AssertionError("expected to fail")
             l.unlock()
 
-    @pytest.mark.usefixtures("clean_minio", "clean_db")
-    def test_artifacts_bootstrap_valid(self):
+    def test_artifacts_bootstrap_valid(self, clean_minio, clean_db):
         with Lock(MONGO_LOCK_FILE) as l:
             artifact_name = str(uuid4())
             description = f"description for foo {artifact_name}"
@@ -213,7 +208,7 @@ class TestArtifact:
 
                 assert rsp.status_code == 200
                 assert (
-                    sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
+                    sum(1 for x in clean_minio.objects.all()) == 1
                 )
 
                 # receive artifact and compare its checksum
@@ -309,8 +304,7 @@ class TestArtifact:
                 raise AssertionError("expected to fail")
             l.unlock()
 
-    @pytest.mark.usefixtures("clean_minio", "clean_db")
-    def test_artifacts_generate_valid(self):
+    def test_artifacts_generate_valid(self, clean_minio, clean_db):
         with Lock(MONGO_LOCK_FILE) as l:
             artifact_name = str(uuid4())
             description = "description for foo " + artifact_name
@@ -329,7 +323,7 @@ class TestArtifact:
             )
 
             # the file has been stored
-            assert sum(1 for x in self.m.list_objects("mender-artifact-storage")) == 1
+            assert sum(1 for x in clean_minio.objects.all()) == 1
             l.unlock()
 
     @pytest.mark.usefixtures("clean_minio", "clean_db")

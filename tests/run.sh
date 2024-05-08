@@ -18,6 +18,9 @@
 DIR=$(readlink -f $(dirname $0))
 
 export PYTHONDONTWRITEBYTECODE=1
+export AWS_ENDPOINT_URL="http://minio:9000"
+export AWS_ACCESS_KEY_ID="minio"
+export AWS_SECRET_ACCESS_KEY="minio123"
 
 HOST=${HOST="mender-deployments:8080"}
 INVENTORY_HOST=${INVENTORY_HOST="mender-inventory:8080"}
@@ -37,5 +40,9 @@ py.test -s --tb=short --host $HOST \
           --spec $DIR/management_api.yml \
           --device-spec $DIR/devices_api.yml \
           --internal-spec $DIR/internal_api.yml \
+          --s3-bucket "mender-artifact-storage" \
+          --s3-key-id "minio" \
+          --s3-secret-key "minio123" \
+          --s3-endpoint-url="http://minio:9000" \
           --verbose --junitxml=$DIR/results.xml \
           $DIR/tests/test_*.py "$@"

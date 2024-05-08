@@ -22,10 +22,11 @@ import random
 import string
 import json
 import pytest
-import minio
 import time
 
 from typing import List
+
+import boto3
 
 from hashlib import sha256
 from contextlib import contextmanager
@@ -131,16 +132,6 @@ class FileArtifact(io.RawIOBase, Artifact):
     def file_size(self):
         file_stats = os.stat(self.file.name)
         return file_stats.st_size
-
-
-class MinioClient:
-    access_key = "minio"
-    secret_key = "minio123"
-
-    def __new__(self):
-        return minio.Minio(
-            "minio:9000", access_key="minio", secret_key="minio123", secure=False
-        )
 
 
 @contextmanager
@@ -266,7 +257,7 @@ def artifacts_added_from_data(artifacts):
     out_artifacts = []
     ac = ArtifactsClient()
 
-    for (name, device_type) in artifacts:
+    for name, device_type in artifacts:
         # generate artifact
         with artifact_rootfs_from_data(
             name=name, data=data, devicetype=device_type
@@ -287,7 +278,7 @@ def artifacts_update_module_added_from_data(artifacts):
     out_artifacts = []
     ac = ArtifactsClient()
 
-    for (name, device_type, update_type) in artifacts:
+    for name, device_type, update_type in artifacts:
         # generate artifact
         with artifact_update_module_from_data(
             name=name, data=data, devicetype=device_type, update_type=update_type
@@ -353,12 +344,26 @@ def clean_db(mongo):
     mongo_cleanup(mongo)
 
 
-@pytest.fixture(scope="function")
-def clean_minio():
-    m = MinioClient()
+@pytest.fixture(scope="session")
+def s3_bucket(request):
+    bucket_name = request.config.getoption("s3_bucket")
+    key_id = request.config.getoption("s3_key_id")
+    secret = request.config.getoption("s3_secret_key")
+    endpoint = request.config.getoption("s3_endpoint_url")
+    bucket = boto3.resource(
+        "s3",
+        aws_access_key_id=key_id,
+        aws_secret_access_key=secret,
+        endpoint_url=endpoint,
+    ).Bucket(bucket_name)
+    return bucket
 
-    for obj in m.list_objects("mender-artifact-storage", recursive=True):
-        m.remove_object("mender-artifact-storage", obj.object_name)
+
+@pytest.fixture(scope="function")
+def clean_minio(s3_bucket):
+    for obj in s3_bucket.objects.all():
+        obj.delete()
+    return s3_bucket
 
 
 def mongo_cleanup(mongo):

@@ -13,6 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import logging
+import os
+
 from config import init
 
 
@@ -29,6 +31,26 @@ def pytest_addoption(parser):
     parser.addoption("--spec", default="../docs/management_api.yml")
     parser.addoption("--device-spec", default="../docs/devices_api.yml")
     parser.addoption("--internal-spec", default="../docs/internal_api.yml")
+    parser.addoption(
+        "--s3-bucket",
+        default=os.environ.get("AWS_S3_BUCKET_NAME", "mender-artifact-storage"),
+        help="The s3 bucket name",
+    )
+    parser.addoption(
+        "--s3-key-id",
+        default=os.environ.get("AWS_ACCESS_KEY_ID", "mender"),
+        help="The key ID for s3",
+    )
+    parser.addoption(
+        "--s3-secret-key",
+        default=os.environ.get("AWS_SECRET_ACCESS_KEY", "correcthorsebatterystaple"),
+        help="The access key secret for s3",
+    )
+    parser.addoption(
+        "--s3-endpoint-url",
+        default=os.environ.get("AWS_ENDPOINT_URL", "http://s3.mender.local:8080"),
+        help="The endpoint URL for s3",
+    )
 
 
 def pytest_configure(config):
