@@ -40,6 +40,7 @@ py.test -s --tb=short --host $HOST \
           --spec $DIR/management_api.yml \
           --device-spec $DIR/devices_api.yml \
           --internal-spec $DIR/internal_api.yml \
+          --mongo-url "mongodb://mender-mongo" \
           --s3-bucket "mender-artifact-storage" \
           --s3-key-id "minio" \
           --s3-secret-key "minio123" \

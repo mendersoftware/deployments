@@ -334,8 +334,8 @@ def cli(request):
 
 
 @pytest.fixture(scope="session")
-def mongo():
-    return MongoClient("mender-mongo:27017")
+def mongo(request):
+    return MongoClient(request.config.getoption("mongo_url"))
 
 
 @pytest.yield_fixture(scope="function")
