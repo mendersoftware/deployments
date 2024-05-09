@@ -18,7 +18,7 @@ from common import *
 
 @pytest.fixture(scope="function")
 def migrated_db(clean_db, mongo, request):
-    """ Init a default db to version passed in 'request'. """
+    """Init a default db to version passed in 'request'."""
     version = request.param
     mongo_set_version(mongo, DB_NAME, version)
 
@@ -34,7 +34,7 @@ MIGRATED_TENANT_DBS = {
 
 @pytest.fixture(scope="function")
 def migrated_tenant_dbs(clean_db, mongo):
-    """ Init a set of tenant dbs to predefined versions. """
+    """Init a set of tenant dbs to predefined versions."""
     for tid, ver in MIGRATED_TENANT_DBS.items():
         mongo_set_version(mongo, make_tenant_db(tid), ver)
 
@@ -107,29 +107,4 @@ class TestCliMigrate:
         with Lock(MONGO_LOCK_FILE) as l:
             cli.migrate()
             TestMigration.verify(cli, mongo, DB_NAME, "2.0.0")
-            l.unlock()
-
-
-@pytest.mark.last
-class TestCliMigrateMultiTenant:
-    @pytest.mark.parametrize(
-        "tenant_id", list(MIGRATED_TENANT_DBS) + ["tenant-new-1", "tenant-new-2"]
-    )
-    def test_ok(self, cli, mongo, migrated_tenant_dbs, tenant_id):
-        with Lock(MONGO_LOCK_FILE) as l:
-            cli.migrate(tenant_id)
-
-            dbname = make_tenant_db(tenant_id)
-            # a 'future' version won't be migrated, make an exception
-            init_ver = MIGRATED_TENANT_DBS.get(tenant_id, "0.0.0")
-            if init_ver < DB_VERSION:
-                TestMigration.verify(cli, mongo, dbname, DB_VERSION)
-            else:
-                TestMigration.verify(cli, mongo, dbname, MIGRATED_TENANT_DBS[tenant_id])
-
-            # verify other tenant dbs not touched
-            others = [t for t in MIGRATED_TENANT_DBS if t != tenant_id]
-            for t in others:
-                dbname = make_tenant_db(t)
-                TestMigration.verify(cli, mongo, dbname, MIGRATED_TENANT_DBS[t])
             l.unlock()

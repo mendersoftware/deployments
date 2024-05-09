@@ -7,7 +7,6 @@ services:
         volumes:
             - "${TESTS_DIR}:/testing"
             - "/var/run/docker.sock:/var/run/docker.sock"
-        command: -k 'not MultiTenant'
         depends_on:
             - mender-deployments
             - mender-inventory
