@@ -27,6 +27,7 @@ from common import (
     mongo,
     clean_db,
     clean_minio,
+    s3_bucket,
     Lock,
     MONGO_LOCK_FILE,
 )

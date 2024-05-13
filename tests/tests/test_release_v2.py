@@ -23,7 +23,7 @@ from common import (
     artifacts_update_module_added_from_data,
     clean_db,
     clean_minio,
-    MinioClient,
+    s3_bucket,
     mongo,
     cli,
     Lock,
@@ -35,7 +35,6 @@ import json
 
 
 class TestRelease:
-    m = MinioClient()
     d = DeploymentsClient()
 
     @pytest.mark.usefixtures("clean_minio")
