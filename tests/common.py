@@ -370,7 +370,9 @@ def clean_minio(s3_bucket):
 def mongo_cleanup(mongo):
     dbs = mongo.list_database_names()
     dbs = [
-        d for d in dbs if d not in ["local", "admin", "config", "deployment_service"]
+        d
+        for d in dbs
+        if d not in ["local", "admin", "config", "deployment_service", "workflows"]
     ]
     for d in dbs:
         mongo.drop_database(d)

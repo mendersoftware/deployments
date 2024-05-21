@@ -163,8 +163,8 @@ class TestInternalApiPostConfigurationDeployment:
 
 
 class TestDevicesApiGetConfigurationDeploymentLink:
-    """ 
-        Tests /download/configuration/... download links.
+    """
+    Tests /download/configuration/... download links.
     """
 
     @pytest.mark.parametrize(
@@ -175,9 +175,9 @@ class TestDevicesApiGetConfigurationDeploymentLink:
         ],
     )
     def test_ok(self, api_client_int, clean_db, mongo, test_set):
-        """ 
-             Happy path - correct link obtained from the service, leading to a successful download
-             of a correct artifact.
+        """
+        Happy path - correct link obtained from the service, leading to a successful download
+        of a correct artifact.
         """
 
         # set up deployment
@@ -234,8 +234,8 @@ class TestDevicesApiGetConfigurationDeploymentLink:
             l.unlock()
 
     def test_failures(self, api_client_int, clean_db, mongo):
-        """ 
-             Simulate invalid or malicious download requests.
+        """
+        Simulate invalid or malicious download requests.
         """
         # for reference - get a real, working link to an actual deployment
         with Lock(MONGO_LOCK_FILE) as l:
@@ -312,7 +312,7 @@ class TestDevicesApiGetConfigurationDeploymentLink:
             l.unlock()
 
     def verify_artifact(self, fname, name, dtype, config):
-        stdout = subprocess.check_output(["/testing/mender-artifact", "read", fname])
+        stdout = subprocess.check_output(["mender-artifact", "read", fname])
         stdout = stdout.decode("utf-8")
         # sanitize varying whitespaces
         stdout = " ".join(stdout.split())
@@ -339,10 +339,10 @@ class TestDevicesApiGetConfigurationDeploymentLink:
 
 
 class TestDeviceApiGetConfigurationDeploymentNext:
-    """ 
-        Verify expected failures when asking for a configuration upgrade,
-        i.e. that devices that are not eligible won't get it.
-        (happy path is tested in GetConfigurationDeploymentLink::test_ok)
+    """
+    Verify expected failures when asking for a configuration upgrade,
+    i.e. that devices that are not eligible won't get it.
+    (happy path is tested in GetConfigurationDeploymentLink::test_ok)
     """
 
     def test_fail_no_upgrade(self, api_client_int, clean_db, mongo):
