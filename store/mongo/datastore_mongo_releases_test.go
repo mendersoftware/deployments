@@ -1,4 +1,4 @@
-// Copyright 2023 Northern.tech AS
+// Copyright 2024 Northern.tech AS
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -510,6 +510,31 @@ func TestGetReleases_1_2_15(t *testing.T) {
 					},
 					ArtifactsCount: 2,
 					Tags:           releaseNameToTags["App2 v0.1"],
+				},
+			},
+		},
+		"ok, tags": {
+			releaseFilt: &model.ReleaseOrImageFilter{
+				Tags: []string{"production", "demo"},
+			},
+			releases: []model.Release{
+				{
+					Name: "App1 v1.0",
+					Artifacts: []model.Image{
+						*inputImgs[0],
+						*inputImgs[2],
+						*inputImgs[3],
+					},
+					ArtifactsCount: 3,
+					Tags:           releaseNameToTags["App1 v1.0"],
+				},
+				{
+					Name: "App4 v2.0",
+					Artifacts: []model.Image{
+						*inputImgs[5],
+					},
+					ArtifactsCount: 1,
+					Tags:           releaseNameToTags["App4 v2.0"],
 				},
 			},
 		},
