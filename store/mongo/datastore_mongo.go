@@ -775,7 +775,7 @@ func (db *DataStoreMongo) getReleases_1_2_15(
 			}}
 		}
 		if len(filt.Tags) > 0 {
-			filter[StorageKeyReleaseTags] = bson.M{"$all": filt.Tags}
+			filter[StorageKeyReleaseTags] = bson.M{"$in": filt.Tags}
 		}
 		if filt.Description != "" {
 			filter[StorageKeyReleaseArtifactsDescription] = bson.M{"$regex": primitive.Regex{
