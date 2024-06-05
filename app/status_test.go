@@ -237,8 +237,8 @@ func TestDecommissionDevice(t *testing.T) {
 		updateDeviceDeploymentStatusError                     error
 		findLatestDeploymentForDeviceIDWithStatusesDeployment *model.DeviceDeployment
 		findLatestDeploymentForDeviceIDWithStatusesError      error
-		findNewerActiveDeploymentsDeployments                 []*model.Deployment
-		findNewerActiveDeploymentsError                       error
+		findNewerActiveDeploymentDeployment                   *model.Deployment
+		findNewerActiveDeploymentError                        error
 		findDeploymentByIDDeployment                          *model.Deployment
 		findDeploymentByIDError                               error
 		insertDeviceDeploymentError                           error
@@ -280,36 +280,30 @@ func TestDecommissionDevice(t *testing.T) {
 		},
 		"ok 2": {},
 		"ok 3": {
-			findNewerActiveDeploymentsDeployments: []*model.Deployment{
-				{},
-			},
+			findNewerActiveDeploymentDeployment: nil,
 		},
 		"ok 4": {
 			inputDeviceId:     "foo",
 			inputDeploymentId: "foo",
-			findNewerActiveDeploymentsDeployments: []*model.Deployment{
-				{
-					DeviceList:  []string{"foo"},
-					Id:          "foo",
-					Created:     timePtr(time.Now()),
-					DeviceCount: intPtr(0),
-					MaxDevices:  1,
-					Stats:       model.Stats{},
-				},
+			findNewerActiveDeploymentDeployment: &model.Deployment{
+				DeviceList:  []string{"foo"},
+				Id:          "foo",
+				Created:     timePtr(time.Now()),
+				DeviceCount: intPtr(0),
+				MaxDevices:  1,
+				Stats:       model.Stats{},
 			},
 		},
 		"ok, pending": {
 			inputDeviceId:     "foo",
 			inputDeploymentId: "pending",
-			findNewerActiveDeploymentsDeployments: []*model.Deployment{
-				{
-					DeviceList:  []string{"foo"},
-					Id:          "pending",
-					Created:     timePtr(time.Now()),
-					DeviceCount: intPtr(0),
-					MaxDevices:  2,
-					Stats:       model.Stats{},
-				},
+			findNewerActiveDeploymentDeployment: &model.Deployment{
+				DeviceList:  []string{"foo"},
+				Id:          "pending",
+				Created:     timePtr(time.Now()),
+				DeviceCount: intPtr(0),
+				MaxDevices:  2,
+				Stats:       model.Stats{},
 			},
 		},
 		"FindOldestActiveDeviceDeployment error": {
@@ -351,11 +345,11 @@ func TestDecommissionDevice(t *testing.T) {
 				tc.findLatestDeploymentForDeviceIDWithStatusesError,
 			)
 
-			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
-				0, 100).Return(
-				tc.findNewerActiveDeploymentsDeployments, tc.findNewerActiveDeploymentsError)
+			db.On("FindNewerActiveDeployment", ctx, mock.AnythingOfType("*time.Time"),
+				tc.inputDeviceId).Return(
+				tc.findNewerActiveDeploymentDeployment, tc.findNewerActiveDeploymentError)
 
-			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
+			db.On("FindNewerActiveDeployment", ctx, mock.AnythingOfType("*time.Time"),
 				100, 100).Return(nil, nil)
 
 			db.On("InsertDeviceDeployment", ctx, mock.AnythingOfType("*model.DeviceDeployment"), true).Return(
@@ -417,8 +411,8 @@ func TestAbortDeviceDeployments(t *testing.T) {
 		updateDeviceDeploymentStatusError                     error
 		findLatestDeploymentForDeviceIDWithStatusesDeployment *model.DeviceDeployment
 		findLatestDeploymentForDeviceIDWithStatusesError      error
-		findNewerActiveDeploymentsDeployments                 []*model.Deployment
-		findNewerActiveDeploymentsError                       error
+		findNewerActiveDeploymentDeployment                   *model.Deployment
+		findNewerActiveDeploymentError                        error
 		findDeploymentByIDDeployment                          *model.Deployment
 		findDeploymentByIDError                               error
 		insertDeviceDeploymentError                           error
@@ -461,50 +455,42 @@ func TestAbortDeviceDeployments(t *testing.T) {
 		},
 		"ok 2": {},
 		"ok 3": {
-			findNewerActiveDeploymentsDeployments: []*model.Deployment{
-				{},
-			},
+			findNewerActiveDeploymentDeployment: nil,
 		},
 		"ok 4": {
 			inputDeviceId:     "foo",
 			inputDeploymentId: "foo",
-			findNewerActiveDeploymentsDeployments: []*model.Deployment{
-				{
-					DeviceList:  []string{"foo"},
-					Id:          "foo",
-					Created:     timePtr(time.Now()),
-					DeviceCount: intPtr(0),
-					MaxDevices:  1,
-					Stats:       model.Stats{},
-				},
+			findNewerActiveDeploymentDeployment: &model.Deployment{
+				DeviceList:  []string{"foo"},
+				Id:          "foo",
+				Created:     timePtr(time.Now()),
+				DeviceCount: intPtr(0),
+				MaxDevices:  1,
+				Stats:       model.Stats{},
 			},
 		},
 		"ok, pending": {
 			inputDeviceId:     "foo",
 			inputDeploymentId: "pending",
-			findNewerActiveDeploymentsDeployments: []*model.Deployment{
-				{
-					DeviceList:  []string{"foo"},
-					Id:          "pending",
-					Created:     timePtr(time.Now()),
-					DeviceCount: intPtr(0),
-					MaxDevices:  1,
-					Stats:       model.Stats{},
-				},
+			findNewerActiveDeploymentDeployment: &model.Deployment{
+				DeviceList:  []string{"foo"},
+				Id:          "pending",
+				Created:     timePtr(time.Now()),
+				DeviceCount: intPtr(0),
+				MaxDevices:  1,
+				Stats:       model.Stats{},
 			},
 		},
 		"ok, pending with max devices = 2": {
 			inputDeviceId:     "foo",
 			inputDeploymentId: "pending",
-			findNewerActiveDeploymentsDeployments: []*model.Deployment{
-				{
-					DeviceList:  []string{"foo"},
-					Id:          "pending",
-					Created:     timePtr(time.Now()),
-					DeviceCount: intPtr(0),
-					MaxDevices:  2,
-					Stats:       model.Stats{},
-				},
+			findNewerActiveDeploymentDeployment: &model.Deployment{
+				DeviceList:  []string{"foo"},
+				Id:          "pending",
+				Created:     timePtr(time.Now()),
+				DeviceCount: intPtr(0),
+				MaxDevices:  2,
+				Stats:       model.Stats{},
 			},
 			isDeploymentInProgress: true,
 		},
@@ -547,12 +533,14 @@ func TestAbortDeviceDeployments(t *testing.T) {
 				tc.findLatestDeploymentForDeviceIDWithStatusesError,
 			)
 
-			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
-				0, 100).Return(
-				tc.findNewerActiveDeploymentsDeployments, tc.findNewerActiveDeploymentsError)
+			db.On("FindNewerActiveDeployment", ctx, mock.AnythingOfType("*time.Time"),
+				tc.inputDeviceId).Return(
+				tc.findNewerActiveDeploymentDeployment, tc.findNewerActiveDeploymentError).
+				Once()
 
 			db.On("FindNewerActiveDeployments", ctx, mock.AnythingOfType("*time.Time"),
-				100, 100).Return(nil, nil)
+				tc.inputDeviceId).Return(nil, nil).
+				Once()
 
 			db.On("InsertDeviceDeployment", ctx, mock.AnythingOfType("*model.DeviceDeployment"), true).Return(
 				tc.insertDeviceDeploymentError)
