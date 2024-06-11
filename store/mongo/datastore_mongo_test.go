@@ -2127,7 +2127,6 @@ func TestSaveUpdateTypes(t *testing.T) {
 	for i := range testCases {
 		tc := testCases[i]
 		t.Run(tc.Name, func(t *testing.T) {
-			t.Parallel()
 			ctx := context.Background()
 			var tenantID string
 			if id := identity.FromContext(tc.Context); id != nil {
