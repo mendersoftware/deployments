@@ -158,6 +158,8 @@ type DataStore interface {
 		status model.DeploymentStatus,
 		now time.Time,
 	) error
+	FindNewerActiveDeployment(ctx context.Context,
+		createdAfter *time.Time, deviceID string) (*model.Deployment, error)
 	FindNewerActiveDeployments(ctx context.Context,
 		createdAfter *time.Time, skip, limit int) ([]*model.Deployment, error)
 	ExistUnfinishedByArtifactId(ctx context.Context, id string) (bool, error)

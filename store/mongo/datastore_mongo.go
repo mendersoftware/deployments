@@ -463,6 +463,7 @@ const (
 	StorageKeyDeploymentActive              = "active"
 	StorageKeyDeploymentStatus              = "status"
 	StorageKeyDeploymentCreated             = "created"
+	StorageKeyDeploymentDeviceList          = "device_list"
 	StorageKeyDeploymentStatsCreated        = "created"
 	StorageKeyDeploymentFinished            = "finished"
 	StorageKeyDeploymentArtifacts           = "artifacts"
@@ -2727,6 +2728,7 @@ func (db *DataStoreMongo) findOptions(match model.Query) *mopts.FindOptions {
 
 // FindNewerActiveDeployments finds active deployments which were created
 // after createdAfter
+// Deprecated: No longer in use
 func (db *DataStoreMongo) FindNewerActiveDeployments(ctx context.Context,
 	createdAfter *time.Time, skip, limit int) ([]*model.Deployment, error) {
 
@@ -2758,6 +2760,40 @@ func (db *DataStoreMongo) FindNewerActiveDeployments(ctx context.Context,
 	}
 
 	return deployments, nil
+}
+
+// FindNewerActiveDeployment finds active deployments which were created
+// after createdAfter where deviceID is part of the device list.
+func (db *DataStoreMongo) FindNewerActiveDeployment(ctx context.Context,
+	createdAfter *time.Time, deviceID string) (*model.Deployment, error) {
+
+	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
+	c := database.Collection(CollectionDeployments)
+
+	findQuery := bson.D{
+		{Key: StorageKeyDeploymentActive, Value: true},
+		{Key: StorageKeyDeploymentCreated, Value: bson.M{"$gt": createdAfter}},
+		{Key: StorageKeyDeploymentDeviceList, Value: deviceID},
+	}
+	findOptions := mopts.FindOne().
+		SetSort(bson.D{{Key: StorageKeyDeploymentCreated, Value: 1}}).
+		SetProjection(bson.M{
+			// Discard information we don't need
+			StorageKeyDeploymentConstructorChecksum: 0,
+			StorageKeyDeploymentDeviceList:          0,
+		})
+
+	var deployment = new(model.Deployment)
+	err := c.FindOne(ctx, findQuery, findOptions).
+		Decode(deployment)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "failed to get deployments")
+	}
+
+	return deployment, nil
 }
 
 // SetDeploymentStatus simply sets the status field

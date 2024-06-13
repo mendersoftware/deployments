@@ -401,6 +401,29 @@ func (_m *DataStore) FindLatestInactiveDeviceDeployment(ctx context.Context, dev
 	return r0, r1
 }
 
+// FindNewerActiveDeployment provides a mock function with given fields: ctx, createdAfter, deviceID
+func (_m *DataStore) FindNewerActiveDeployment(ctx context.Context, createdAfter *time.Time, deviceID string) (*model.Deployment, error) {
+	ret := _m.Called(ctx, createdAfter, deviceID)
+
+	var r0 *model.Deployment
+	if rf, ok := ret.Get(0).(func(context.Context, *time.Time, string) *model.Deployment); ok {
+		r0 = rf(ctx, createdAfter, deviceID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Deployment)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *time.Time, string) error); ok {
+		r1 = rf(ctx, createdAfter, deviceID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FindNewerActiveDeployments provides a mock function with given fields: ctx, createdAfter, skip, limit
 func (_m *DataStore) FindNewerActiveDeployments(ctx context.Context, createdAfter *time.Time, skip int, limit int) ([]*model.Deployment, error) {
 	ret := _m.Called(ctx, createdAfter, skip, limit)

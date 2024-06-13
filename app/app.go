@@ -1355,32 +1355,19 @@ func (d *Deployments) getNewDeploymentForDevice(ctx context.Context,
 
 	//get deployments newer then last device deployment
 	//iterate over deployments and check if the device is part of the deployment or not
-	for skip := 0; true; skip += 100 {
-		deployments, err := d.db.FindNewerActiveDeployments(ctx, lastDeployment, skip, 100)
-		if err != nil {
-			return nil, nil, errors.Wrap(err,
-				"Failed to search for newer active deployments")
-		}
-		if len(deployments) == 0 {
-			return nil, nil, nil
-		}
-
-		for _, deployment := range deployments {
-			ok, err := d.isDevicePartOfDeployment(ctx, deviceID, deployment)
-			if err != nil {
-				return nil, nil, err
-			}
-			if ok {
-				deviceDeployment, err := d.createDeviceDeploymentWithStatus(ctx,
-					deviceID, deployment, model.DeviceDeploymentStatusPending)
-				if err != nil {
-					return nil, nil, err
-				}
-				return deployment, deviceDeployment, nil
-			}
-		}
+	var deploy *model.Deployment
+	deploy, err = d.db.FindNewerActiveDeployment(ctx, lastDeployment, deviceID)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to search for newer active deployments")
 	}
-
+	if deploy != nil {
+		deviceDeployment, err := d.createDeviceDeploymentWithStatus(ctx,
+			deviceID, deploy, model.DeviceDeploymentStatusPending)
+		if err != nil {
+			return nil, nil, err
+		}
+		return deploy, deviceDeployment, nil
+	}
 	return nil, nil, nil
 }
 
@@ -1440,19 +1427,6 @@ func (d *Deployments) createDeviceDeploymentWithStatus(
 	}
 
 	return deviceDeployment, nil
-}
-
-func (d *Deployments) isDevicePartOfDeployment(
-	ctx context.Context,
-	deviceID string,
-	deployment *model.Deployment,
-) (bool, error) {
-	for _, id := range deployment.DeviceList {
-		if id == deviceID {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // GetDeploymentForDeviceWithCurrent returns deployment for the device
@@ -1971,32 +1945,22 @@ func (d *Deployments) updateDeviceDeploymentsStatus(
 	// get deployments newer then last device deployment
 	// iterate over deployments and check if the device is part of the deployment or not
 	// if the device is part of the deployment create new, decommisioned device deployment
-	for skip := 0; true; skip += 100 {
-		deployments, err := d.db.FindNewerActiveDeployments(ctx, latestDeployment, skip, 100)
+	var deploy *model.Deployment
+	deploy, err = d.db.FindNewerActiveDeployment(ctx, latestDeployment, deviceId)
+	if err != nil {
+		return errors.Wrap(err, "Failed to search for newer active deployments")
+	}
+	if deploy != nil {
+		deviceDeployment, err = d.createDeviceDeploymentWithStatus(ctx,
+			deviceId, deploy, status)
 		if err != nil {
-			return errors.Wrap(err, "Failed to search for newer active deployments")
+			return err
 		}
-		if len(deployments) == 0 {
-			break
-		}
-		for _, deployment := range deployments {
-			ok, err := d.isDevicePartOfDeployment(ctx, deviceId, deployment)
-			if err != nil {
-				return err
-			}
-			if ok {
-				deviceDeployment, err := d.createDeviceDeploymentWithStatus(ctx,
-					deviceId, deployment, status)
-				if err != nil {
-					return err
-				}
-				if !status.Active() {
-					if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
-						deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
-						l := log.FromContext(ctx)
-						l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
-					}
-				}
+		if !status.Active() {
+			if err := d.reindexDeployment(ctx, deviceDeployment.DeviceId,
+				deviceDeployment.DeploymentId, deviceDeployment.Id); err != nil {
+				l := log.FromContext(ctx)
+				l.Warn(errors.Wrap(err, "failed to trigger a deployment reindex"))
 			}
 		}
 	}
