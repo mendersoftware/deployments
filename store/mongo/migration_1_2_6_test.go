@@ -230,12 +230,33 @@ func TestMigration126(t *testing.T) {
 			}, {
 				Key: "verbosity", Value: "queryPlanner",
 			}})
-			var explain map[string]interface{}
+			type InputStage struct {
+				IndexName string `json:"indexName"`
+			}
+			var explain struct {
+				ExplainVersion string `json:"explainVersion"`
+				QueryPlanner   struct {
+					WinningPlan struct {
+						InputStage InputStage `json:"inputStage"`
+						QueryPlan  struct {
+							// For schema v2 the input stage is here
+							InputStage InputStage `json:"inputStage"`
+						}
+					} `json:"winningPlan"`
+				} `json:"queryPlanner"`
+			}
 			assert.NoError(t, singleRes.Decode(&explain))
-			queryPlanner := explain["queryPlanner"].(map[string]interface{})
-			winningPlan := queryPlanner["winningPlan"].(map[string]interface{})
-			inputStage := winningPlan["inputStage"].(map[string]interface{})
-			indexName := inputStage["indexName"].(string)
+			var indexName string
+			switch explain.ExplainVersion {
+			case "1", "":
+				indexName = explain.QueryPlanner.WinningPlan.InputStage.IndexName
+			case "2":
+				indexName = explain.QueryPlanner.WinningPlan.
+					QueryPlan.InputStage.IndexName
+			default:
+				t.Error("could not determine which index was used in query")
+				t.FailNow()
+			}
 			assert.Equal(t, IndexDeviceDeploymentStatusName, indexName)
 		})
 	}

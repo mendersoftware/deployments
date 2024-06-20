@@ -17,6 +17,7 @@ package http
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"testing"
 
@@ -192,14 +193,13 @@ func TestPostArtifacts(t *testing.T) {
 				tc.requestContentType, tc.requestBodyObject)
 			req.Header.Set("Authorization", HTTPHeaderAuthorizationBearer+" TOKEN")
 
-			recorded := test.RunRequest(t, api.MakeHandler(), req)
-			recorded.CodeIs(tc.responseCode)
+			w := httptest.NewRecorder()
+			api.MakeHandler().ServeHTTP(w, req)
+			assert.Equal(t, tc.responseCode, w.Code)
 			if tc.responseBody == "" {
-				recorded.BodyIs(tc.responseBody)
+				assert.Empty(t, w.Body.String())
 			} else {
-				body, _ := recorded.DecodedBody()
-				assert.Contains(t, string(body), tc.responseBody,
-					`"%s" not in "%s"`, string(body), tc.responseBody)
+				assert.Contains(t, w.Body.String(), tc.responseBody)
 			}
 
 			if tc.appCreateImage {
@@ -362,13 +362,13 @@ func TestPostArtifactsInternal(t *testing.T) {
 				tc.requestContentType, tc.requestBodyObject)
 			req.Header.Set("Authorization", HTTPHeaderAuthorizationBearer+" TOKEN")
 
-			recorded := test.RunRequest(t, api.MakeHandler(), req)
-			recorded.CodeIs(tc.responseCode)
+			w := httptest.NewRecorder()
+			api.MakeHandler().ServeHTTP(w, req)
+			assert.Equal(t, tc.responseCode, w.Code, "unexpected HTTP status code")
 			if tc.responseBody == "" {
-				recorded.BodyIs(tc.responseBody)
+				assert.Empty(t, w.Body.String(), "HTTP body not empty")
 			} else {
-				body, _ := recorded.DecodedBody()
-				assert.Contains(t, string(body), tc.responseBody)
+				assert.Contains(t, w.Body.String(), tc.responseBody)
 			}
 
 			if tc.appCreateImage {
@@ -736,13 +736,13 @@ func TestPostArtifactsGenerate(t *testing.T) {
 				tc.requestContentType, tc.requestBodyObject)
 			req.Header.Set("Authorization", HTTPHeaderAuthorizationBearer+" TOKEN")
 
-			recorded := test.RunRequest(t, api.MakeHandler(), req)
-			recorded.CodeIs(tc.responseCode)
+			w := httptest.NewRecorder()
+			api.MakeHandler().ServeHTTP(w, req)
+			assert.Equal(t, tc.responseCode, w.Code, "unexpected HTTP code")
 			if tc.responseBody == "" {
-				recorded.BodyIs(tc.responseBody)
+				assert.Empty(t, w.Body.String(), "HTTP body not empty")
 			} else {
-				body, _ := recorded.DecodedBody()
-				assert.Contains(t, string(body), tc.responseBody)
+				assert.Contains(t, w.Body.String(), tc.responseBody)
 			}
 
 			if tc.appGenerateImage {

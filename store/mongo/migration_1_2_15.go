@@ -131,22 +131,24 @@ func (m *migration_1_2_15) indexReleaseArtifactsCount() error {
 		return fmt.Errorf("mongo(1.2.15): failed to create index: %w", err)
 	}
 
-	collectionReleases := m.client.
+	_, err = m.client.
 		Database(m.db).
-		Collection(CollectionReleases)
-	_, err = collectionReleases.UpdateMany(
-		ctx,
-		bson.M{},
-		[]bson.M{
-			{
+		Collection(CollectionReleases).
+		UpdateMany(
+			ctx,
+			bson.M{},
+			[]bson.M{{
 				"$set": bson.M{
 					"artifacts_count": bson.M{
-						"$size": "$artifacts",
+						"$size": bson.M{
+							"$ifNull": bson.A{
+								"$artifacts",
+								bson.A{},
+							}},
 					},
 				},
-			},
-		},
-	)
+			}},
+		)
 	if err != nil {
 		return fmt.Errorf("mongo(1.2.15): failed to update adrtifact counts: %w", err)
 	}
