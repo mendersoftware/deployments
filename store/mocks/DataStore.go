@@ -1294,7 +1294,7 @@ func (_m *DataStore) UpdateDeviceDeploymentLogAvailability(ctx context.Context, 
 	return r0
 }
 
-// UpdateDeviceDeploymentStatus provides a mock function with given fields: ctx, deviceID, deploymentID, state
+// UpdateDeviceDeploymentStatus provides a mock function with given fields: ctx, deviceID, deploymentID, state, currentStatus
 func (_m *DataStore) UpdateDeviceDeploymentStatus(ctx context.Context, deviceID string, deploymentID string, state model.DeviceDeploymentState, currentStatus model.DeviceDeploymentStatus) (model.DeviceDeploymentStatus, error) {
 	ret := _m.Called(ctx, deviceID, deploymentID, state, currentStatus)
 
@@ -1372,17 +1372,26 @@ func (_m *DataStore) UpdateStats(ctx context.Context, id string, stats model.Sta
 }
 
 // UpdateStatsInc provides a mock function with given fields: ctx, id, stateFrom, stateTo
-func (_m *DataStore) UpdateStatsInc(ctx context.Context, id string, stateFrom model.DeviceDeploymentStatus, stateTo model.DeviceDeploymentStatus) error {
+func (_m *DataStore) UpdateStatsInc(ctx context.Context, id string, stateFrom model.DeviceDeploymentStatus, stateTo model.DeviceDeploymentStatus) (model.Stats, error) {
 	ret := _m.Called(ctx, id, stateFrom, stateTo)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, model.DeviceDeploymentStatus, model.DeviceDeploymentStatus) error); ok {
+	var r0 model.Stats
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.DeviceDeploymentStatus, model.DeviceDeploymentStatus) model.Stats); ok {
 		r0 = rf(ctx, id, stateFrom, stateTo)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(model.Stats)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, model.DeviceDeploymentStatus, model.DeviceDeploymentStatus) error); ok {
+		r1 = rf(ctx, id, stateFrom, stateTo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // UpdateUploadIntentStatus provides a mock function with given fields: ctx, id, from, to

@@ -2526,20 +2526,20 @@ func (db *DataStoreMongo) UpdateStats(ctx context.Context,
 }
 
 func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
-	stateFrom, stateTo model.DeviceDeploymentStatus) error {
+	stateFrom, stateTo model.DeviceDeploymentStatus) (model.Stats, error) {
 
 	if len(id) == 0 {
-		return ErrStorageInvalidID
+		return nil, ErrStorageInvalidID
 	}
 
 	if _, err := stateTo.MarshalText(); err != nil {
-		return ErrStorageInvalidInput
+		return nil, ErrStorageInvalidInput
 	}
 
 	// does not need any extra operations
 	// following query won't handle this case well and increase the state_to value
 	if stateFrom == stateTo {
-		return nil
+		return nil, nil
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -2564,13 +2564,24 @@ func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 		}
 	}
 
-	res, err := collDpl.UpdateOne(ctx, bson.M{"_id": id}, update)
+	var res struct {
+		Stats model.Stats `bson:"stats"`
+	}
+	err := collDpl.FindOneAndUpdate(ctx,
+		bson.M{StorageKeyId: id},
+		update,
+		mopts.FindOneAndUpdate().
+			SetReturnDocument(mopts.After).
+			SetProjection(bson.M{
+				StorageKeyDeploymentStats: 1,
+			}),
+	).Decode(&res)
 
-	if res != nil && res.MatchedCount == 0 {
-		return ErrStorageInvalidID
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, ErrStorageInvalidID
 	}
 
-	return err
+	return res.Stats, err
 }
 
 func (db *DataStoreMongo) IncrementDeploymentTotalSize(
