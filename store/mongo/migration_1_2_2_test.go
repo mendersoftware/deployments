@@ -100,12 +100,7 @@ func TestMigration_1_2_2(t *testing.T) {
 		}
 
 		deploymentsCollectionIndicesNames := []string{
-			IndexDeploymentStatusFinishedName,
-			IndexDeploymentStatusPendingName,
 			IndexDeploymentCreatedName,
-			IndexDeploymentDeviceStatusRebootingName,
-			IndexDeploymentDeviceStatusPendingName,
-			IndexDeploymentDeviceStatusInstallingName,
 			IndexDeploymentDeviceStatusFinishedName,
 		}
 		// verify new deployment indices present

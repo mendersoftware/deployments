@@ -38,12 +38,7 @@ func (m *migration_1_2_2) Up(from migrate.Version) error {
 		return err
 	}
 	return storage.EnsureIndexes(m.db, CollectionDeployments,
-		DeploymentStatusFinishedIndex,
-		DeploymentStatusPendingIndex,
 		DeploymentCreatedIndex,
-		DeploymentDeviceStatusRebootingIndex,
-		DeploymentDeviceStatusPendingIndex,
-		DeploymentDeviceStatusInstallingIndex,
 		DeploymentDeviceStatusFinishedIndex)
 
 }
