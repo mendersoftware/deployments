@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.22.3 as builder
+FROM --platform=$BUILDPLATFORM golang:1.22.4 as builder
 ARG TARGETARCH
 # Multiple architectures: we must have every library for every
 # architecture for every arch build
