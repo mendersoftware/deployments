@@ -1397,20 +1397,28 @@ func (d *Deployments) createDeviceDeploymentWithStatus(
 		return nil, err
 	}
 
-	// after inserting new device deployment update deployment stats
-	// in the database and locally, and update deployment status
-	if err := d.db.UpdateStatsInc(
-		ctx, deployment.Id,
-		prevStatus, status,
-	); err != nil {
-		return nil, err
-	}
-
-	deployment.Stats.Inc(status)
-
-	err = d.recalcDeploymentStatus(ctx, deployment)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to update deployment status")
+	if prevStatus != status {
+		beforeStatus := deployment.GetStatus()
+		// after inserting new device deployment update deployment stats
+		// in the database, and update deployment status
+		deployment.Stats, err = d.db.UpdateStatsInc(
+			ctx, deployment.Id,
+			prevStatus, status,
+		)
+		if err != nil {
+			return nil, err
+		}
+		newStatus := deployment.GetStatus()
+		if beforeStatus != newStatus {
+			err = d.db.SetDeploymentStatus(
+				ctx, deployment.Id,
+				newStatus, time.Now(),
+			)
+			if err != nil {
+				return nil, errors.Wrap(err,
+					"failed to update deployment status")
+			}
+		}
 	}
 
 	if !status.Active() {
@@ -1554,7 +1562,7 @@ func (d *Deployments) saveDeviceDeploymentRequest(ctx context.Context, deviceID 
 					"old data: %s",
 				deviceID, request, deviceDeployment.Request)
 
-			if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId, deviceID,
+			if err := d.updateDeviceDeploymentStatus(ctx, deviceDeployment,
 				model.DeviceDeploymentState{
 					Status: model.DeviceDeploymentStatusFailure,
 				}); err != nil {
@@ -1580,26 +1588,41 @@ func (d *Deployments) saveDeviceDeploymentRequest(ctx context.Context, deviceID 
 	return nil
 }
 
-// UpdateDeviceDeploymentStatus will update the deployment status for device of
+// updateDeviceDeploymentStatus will update the deployment status for device of
 // ID `deviceID`. Returns nil if update was successful.
-func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deploymentID string,
-	deviceID string, ddState model.DeviceDeploymentState) error {
+func (d *Deployments) UpdateDeviceDeploymentStatus(
+	ctx context.Context,
+	deviceID, deploymentID string,
+	ddState model.DeviceDeploymentState,
+) error {
+	deviceDeployment, err := d.db.GetDeviceDeployment(
+		ctx, deviceID, deploymentID, false,
+	)
+	if err == mongo.ErrStorageNotFound {
+		return ErrStorageNotFound
+	} else if err != nil {
+		return err
+	}
+
+	return d.updateDeviceDeploymentStatus(ctx, deviceDeployment, ddState)
+}
+
+func (d *Deployments) updateDeviceDeploymentStatus(
+	ctx context.Context,
+	dd *model.DeviceDeployment,
+	ddState model.DeviceDeploymentState,
+) error {
 
 	l := log.FromContext(ctx)
 
-	l.Infof("New status: %s for device %s deployment: %v", ddState.Status, deviceID, deploymentID)
+	l.Infof("New status: %s for device %s deployment: %v",
+		ddState.Status, dd.DeviceId, dd.DeploymentId,
+	)
 
 	var finishTime *time.Time = nil
 	if model.IsDeviceDeploymentStatusFinished(ddState.Status) {
 		now := time.Now()
 		finishTime = &now
-	}
-
-	dd, err := d.db.GetDeviceDeployment(ctx, deploymentID, deviceID, false)
-	if err == mongo.ErrStorageNotFound {
-		return ErrStorageNotFound
-	} else if err != nil {
-		return err
 	}
 
 	currentStatus := dd.Status
@@ -1621,24 +1644,30 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 	ddState.FinishTime = finishTime
 
 	old, err := d.db.UpdateDeviceDeploymentStatus(ctx,
-		deviceID, deploymentID, ddState, dd.Status)
+		dd.DeviceId, dd.DeploymentId, ddState, dd.Status)
 	if err != nil {
 		return err
 	}
 
-	if err = d.db.UpdateStatsInc(ctx, deploymentID, old, ddState.Status); err != nil {
-		return err
-	}
+	if old != ddState.Status {
+		// fetch deployment stats and update deployment status
+		deployment, err := d.db.FindDeploymentByID(ctx, dd.DeploymentId)
+		if err != nil {
+			return errors.Wrap(err, "failed when searching for deployment")
+		}
+		beforeStatus := deployment.GetStatus()
 
-	// fetch deployment stats and update deployment status
-	deployment, err := d.db.FindDeploymentByID(ctx, deploymentID)
-	if err != nil {
-		return errors.Wrap(err, "failed when searching for deployment")
-	}
-
-	err = d.recalcDeploymentStatus(ctx, deployment)
-	if err != nil {
-		return errors.Wrap(err, "failed to update deployment status")
+		deployment.Stats, err = d.db.UpdateStatsInc(ctx, dd.DeploymentId, old, ddState.Status)
+		if err != nil {
+			return err
+		}
+		newStatus := deployment.GetStatus()
+		if beforeStatus != newStatus {
+			err = d.db.SetDeploymentStatus(ctx, dd.DeploymentId, newStatus, time.Now())
+			if err != nil {
+				return errors.Wrap(err, "failed to update deployment status")
+			}
+		}
 	}
 
 	if !ddState.Status.Active() {
@@ -1652,25 +1681,12 @@ func (d *Deployments) UpdateDeviceDeploymentStatus(ctx context.Context, deployme
 		if err := d.db.SaveLastDeviceDeploymentStatus(ctx, ldd); err != nil {
 			l.Error(errors.Wrap(err, "failed to save last device deployment status").Error())
 		}
-		if err := d.reindexDevice(ctx, deviceID); err != nil {
+		if err := d.reindexDevice(ctx, dd.DeviceId); err != nil {
 			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 		}
 		if err := d.reindexDeployment(ctx, dd.DeviceId, dd.DeploymentId, dd.Id); err != nil {
 			l.Warn(errors.Wrap(err, "failed to trigger a device reindex"))
 		}
-	}
-
-	return nil
-}
-
-// recalcDeploymentStatus inspects the deployment stats and
-// recalculates and updates its status
-// it should be used whenever deployment stats are touched
-func (d *Deployments) recalcDeploymentStatus(ctx context.Context, dep *model.Deployment) error {
-	status := dep.GetStatus()
-
-	if err := d.db.SetDeploymentStatus(ctx, dep.Id, status, time.Now()); err != nil {
-		return err
 	}
 
 	return nil
@@ -1925,8 +1941,9 @@ func (d *Deployments) updateDeviceDeploymentsStatus(
 			Status:     status,
 			FinishTime: &now,
 		}
-		if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId,
-			deviceId, ddStatus); err != nil {
+		if err := d.updateDeviceDeploymentStatus(
+			ctx, deviceDeployment, ddStatus,
+		); err != nil {
 			return errors.Wrap(err, "updating device deployment status")
 		}
 		latestDeployment = deviceDeployment.Created

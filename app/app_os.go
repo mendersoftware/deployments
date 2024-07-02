@@ -46,10 +46,9 @@ func (d *Deployments) handleAlreadyInstalled(
 	deviceDeployment *model.DeviceDeployment,
 ) error {
 	l := log.FromContext(ctx)
-	if err := d.UpdateDeviceDeploymentStatus(
+	if err := d.updateDeviceDeploymentStatus(
 		ctx,
-		deviceDeployment.DeploymentId,
-		deviceDeployment.DeviceId,
+		deviceDeployment,
 		model.DeviceDeploymentState{
 			Status: model.DeviceDeploymentStatusAlreadyInst,
 		}); err != nil {
@@ -137,8 +136,7 @@ func (d *Deployments) assignNoArtifact(
 	deviceDeployment *model.DeviceDeployment,
 ) error {
 	l := log.FromContext(ctx)
-	if err := d.UpdateDeviceDeploymentStatus(ctx, deviceDeployment.DeploymentId,
-		deviceDeployment.DeviceId,
+	if err := d.updateDeviceDeploymentStatus(ctx, deviceDeployment,
 		model.DeviceDeploymentState{
 			Status: model.DeviceDeploymentStatusNoArtifact,
 		}); err != nil {
