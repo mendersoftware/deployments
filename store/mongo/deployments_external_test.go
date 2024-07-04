@@ -785,17 +785,7 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 			InputStateTo:   model.DeviceDeploymentStatusInstalling,
 
 			OutputError: nil,
-			OutputStats: model.Stats{
-				model.DeviceDeploymentStatusDownloadingStr: 1,
-				model.DeviceDeploymentStatusInstallingStr:  2,
-				model.DeviceDeploymentStatusRebootingStr:   3,
-				model.DeviceDeploymentStatusPendingStr:     10,
-				model.DeviceDeploymentStatusSuccessStr:     15,
-				model.DeviceDeploymentStatusFailureStr:     4,
-				model.DeviceDeploymentStatusNoArtifactStr:  5,
-				model.DeviceDeploymentStatusAlreadyInstStr: 0,
-				model.DeviceDeploymentStatusAbortedStr:     0,
-			},
+			OutputStats: nil,
 		},
 		"tenant, pending -> finished": {
 			InputID: "a108ae14-bb4e-455f-9b40-2ef4bab97bb7",
@@ -871,21 +861,13 @@ func TestDeploymentStorageUpdateStatsInc(t *testing.T) {
 				}
 			}
 
-			err := store.UpdateStatsInc(ctx,
+			stats, err := store.UpdateStatsInc(ctx,
 				tc.InputID, tc.InputStateFrom, tc.InputStateTo)
 
 			if tc.OutputError != nil {
 				assert.EqualError(t, err, tc.OutputError.Error())
 			} else {
-				var deployment *model.Deployment
-				collDep := client.Database(ctxstore.
-					DbFromContext(ctx, DatabaseName)).
-					Collection(CollectionDeployments)
-				err := collDep.FindOne(ctx,
-					bson.M{"_id": tc.InputID}).
-					Decode(&deployment)
-				assert.NoError(t, err)
-				assert.Equal(t, tc.OutputStats, deployment.Stats)
+				assert.Equal(t, tc.OutputStats, stats)
 
 				// if there's a tenant, verify that deployment
 				// in default DB remains unchanged, again only

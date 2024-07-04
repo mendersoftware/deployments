@@ -187,37 +187,6 @@ var (
 		Options: mopts.Index().
 			SetName(IndexDeviceDeploymentStatusName),
 	}
-	DeploymentStatusFinishedIndex = mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "stats.downloading", Value: 1},
-			{Key: "stats.installing", Value: 1},
-			{Key: "stats.pending", Value: 1},
-			{Key: "stats.rebooting", Value: 1},
-			{Key: "created", Value: -1},
-		},
-		Options: &mopts.IndexOptions{
-			Background: &_false,
-			Name:       &IndexDeploymentStatusFinishedName,
-		},
-	}
-	DeploymentStatusPendingIndex = mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "stats.aborted", Value: 1},
-			{Key: "stats.already-installed", Value: 1},
-			{Key: "stats.decommissioned", Value: 1},
-			{Key: "stats.downloading", Value: 1},
-			{Key: "stats.failure", Value: 1},
-			{Key: "stats.installing", Value: 1},
-			{Key: "stats.noartifact", Value: 1},
-			{Key: "stats.rebooting", Value: 1},
-			{Key: "stats.success", Value: 1},
-			{Key: "created", Value: -1},
-		},
-		Options: &mopts.IndexOptions{
-			Background: &_false,
-			Name:       &IndexDeploymentStatusPendingName,
-		},
-	}
 	DeploymentCreatedIndex = mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "created", Value: -1},
@@ -225,33 +194,6 @@ var (
 		Options: &mopts.IndexOptions{
 			Background: &_false,
 			Name:       &IndexDeploymentCreatedName,
-		},
-	}
-	DeploymentDeviceStatusRebootingIndex = mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "stats.rebooting", Value: 1},
-		},
-		Options: &mopts.IndexOptions{
-			Background: &_false,
-			Name:       &IndexDeploymentDeviceStatusRebootingName,
-		},
-	}
-	DeploymentDeviceStatusPendingIndex = mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "stats.pending", Value: 1},
-		},
-		Options: &mopts.IndexOptions{
-			Background: &_false,
-			Name:       &IndexDeploymentDeviceStatusPendingName,
-		},
-	}
-	DeploymentDeviceStatusInstallingIndex = mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "stats.installing", Value: 1},
-		},
-		Options: &mopts.IndexOptions{
-			Background: &_false,
-			Name:       &IndexDeploymentDeviceStatusInstallingName,
 		},
 	}
 	DeploymentDeviceStatusFinishedIndex = mongo.IndexModel{
@@ -2526,20 +2468,20 @@ func (db *DataStoreMongo) UpdateStats(ctx context.Context,
 }
 
 func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
-	stateFrom, stateTo model.DeviceDeploymentStatus) error {
+	stateFrom, stateTo model.DeviceDeploymentStatus) (model.Stats, error) {
 
 	if len(id) == 0 {
-		return ErrStorageInvalidID
+		return nil, ErrStorageInvalidID
 	}
 
 	if _, err := stateTo.MarshalText(); err != nil {
-		return ErrStorageInvalidInput
+		return nil, ErrStorageInvalidInput
 	}
 
 	// does not need any extra operations
 	// following query won't handle this case well and increase the state_to value
 	if stateFrom == stateTo {
-		return nil
+		return nil, nil
 	}
 
 	database := db.client.Database(mstore.DbFromContext(ctx, DatabaseName))
@@ -2564,13 +2506,24 @@ func (db *DataStoreMongo) UpdateStatsInc(ctx context.Context, id string,
 		}
 	}
 
-	res, err := collDpl.UpdateOne(ctx, bson.M{"_id": id}, update)
+	var res struct {
+		Stats model.Stats `bson:"stats"`
+	}
+	err := collDpl.FindOneAndUpdate(ctx,
+		bson.M{StorageKeyId: id},
+		update,
+		mopts.FindOneAndUpdate().
+			SetReturnDocument(mopts.After).
+			SetProjection(bson.M{
+				StorageKeyDeploymentStats: 1,
+			}),
+	).Decode(&res)
 
-	if res != nil && res.MatchedCount == 0 {
-		return ErrStorageInvalidID
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, ErrStorageInvalidID
 	}
 
-	return err
+	return res.Stats, err
 }
 
 func (db *DataStoreMongo) IncrementDeploymentTotalSize(

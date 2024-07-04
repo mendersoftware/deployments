@@ -147,7 +147,7 @@ type DataStore interface {
 		id string,
 		stateFrom,
 		stateTo model.DeviceDeploymentStatus,
-	) error
+	) (model.Stats, error)
 	UpdateStats(ctx context.Context,
 		id string, stats model.Stats) error
 	Find(ctx context.Context,

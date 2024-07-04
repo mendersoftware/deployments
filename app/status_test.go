@@ -78,10 +78,10 @@ func TestUpdateDeviceDeploymentStatus(t *testing.T) {
 	db.On("UpdateStatsInc", ctx,
 		fakeDeployment.Id,
 		model.DeviceDeploymentStatusDownloading,
-		model.DeviceDeploymentStatusInstalling).Return(nil).Once()
-
-	// fake updated stats
-	fakeDeployment.Stats.Set(model.DeviceDeploymentStatusInstalling, 1)
+		model.DeviceDeploymentStatusInstalling).Run(func(args mock.Arguments) {
+		// fake updated stats
+		fakeDeployment.Stats.Inc(model.DeviceDeploymentStatusInstalling)
+	}).Return(fakeDeployment.Stats, nil).Once()
 
 	db.On("FindDeploymentByID", ctx, fakeDeployment.Id).Return(
 		fakeDeployment, nil).Once()
@@ -176,7 +176,10 @@ func TestGetDeploymentForDeviceWithCurrent(t *testing.T) {
 	db.On("UpdateStatsInc", ctx,
 		fakeDeployment.Id,
 		model.DeviceDeploymentStatusPending,
-		model.DeviceDeploymentStatusAlreadyInst).Return(nil)
+		model.DeviceDeploymentStatusAlreadyInst).Run(func(args mock.Arguments) {
+		// fake updated stats
+		fakeDeployment.Stats.Inc(model.DeviceDeploymentStatusAlreadyInst)
+	}).Return(fakeDeployment.Stats, nil).Once()
 
 	// fake updated stats
 	fakeDeployment.Stats.Set(model.DeviceDeploymentStatusNoArtifact, 1)
@@ -255,11 +258,13 @@ func TestDecommissionDevice(t *testing.T) {
 
 			findOldestDeploymentForDeviceIDWithStatusesDeployment: &model.DeviceDeployment{
 				Id:           "bar",
+				DeviceId:     "foo",
 				DeploymentId: "bar",
 				Status:       model.DeviceDeploymentStatusDownloading,
 			},
 			getDeviceDeploymentDeployment: &model.DeviceDeployment{
 				Id:           "bar",
+				DeviceId:     "foo",
 				DeploymentId: "bar",
 				Status:       model.DeviceDeploymentStatusDownloading,
 			},
@@ -358,9 +363,20 @@ func TestDecommissionDevice(t *testing.T) {
 			db.On("FindDeploymentByID", ctx, tc.inputDeploymentId).Return(
 				tc.findDeploymentByIDDeployment, tc.findDeploymentByIDError)
 
+			var stats model.Stats
+			if tc.findDeploymentByIDDeployment != nil {
+				stats = tc.findDeploymentByIDDeployment.Stats
+			}
 			db.On("UpdateStatsInc", ctx, tc.inputDeploymentId,
 				tc.updateDeviceDeploymentStatusStatus,
-				model.DeviceDeploymentStatusDecommissioned).Return(tc.updateStatsIncError)
+				model.DeviceDeploymentStatusDecommissioned).
+				Run(func(args mock.Arguments) {
+					if stats != nil {
+						stats.Inc(model.DeviceDeploymentStatusDecommissioned)
+					}
+				}).
+				Return(stats, tc.updateStatsIncError).
+				Once()
 
 			db.On("SetDeploymentStatus", ctx,
 				tc.inputDeploymentId,
@@ -430,11 +446,13 @@ func TestAbortDeviceDeployments(t *testing.T) {
 
 			findOldestDeploymentForDeviceIDWithStatusesDeployment: &model.DeviceDeployment{
 				Id:           "bar",
+				DeviceId:     "foo",
 				DeploymentId: "bar",
 				Status:       model.DeviceDeploymentStatusDownloading,
 			},
 			getDeviceDeploymentDeployment: &model.DeviceDeployment{
 				Id:           "bar",
+				DeviceId:     "foo",
 				DeploymentId: "bar",
 				Status:       model.DeviceDeploymentStatusDownloading,
 			},
@@ -548,9 +566,22 @@ func TestAbortDeviceDeployments(t *testing.T) {
 			db.On("FindDeploymentByID", ctx, tc.inputDeploymentId).Return(
 				tc.findDeploymentByIDDeployment, tc.findDeploymentByIDError)
 
+			var stats model.Stats
+			if tc.findDeploymentByIDDeployment != nil {
+				stats = tc.findDeploymentByIDDeployment.Stats
+			}
 			db.On("UpdateStatsInc", ctx, tc.inputDeploymentId,
 				tc.updateDeviceDeploymentStatusStatus,
-				model.DeviceDeploymentStatusAborted).Return(tc.updateStatsIncError)
+				model.DeviceDeploymentStatusAborted).
+				Run(func(args mock.Arguments) {
+					if stats != nil {
+						stats.Inc(model.DeviceDeploymentStatusAborted)
+					}
+				}).
+				Return(
+					stats,
+					tc.updateStatsIncError,
+				)
 
 			status := model.DeploymentStatusFinished
 			if tc.isDeploymentInProgress {
