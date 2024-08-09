@@ -322,7 +322,7 @@ class TestDevicesApiGetConfigurationDeploymentLink:
         assert "Type: mender-configure" in stdout
         assert "Name: {}".format(name) in stdout
         assert "Version: 3" in stdout
-        assert "Compatible devices: '[{}]'".format(dtype) in stdout
+        assert "Compatible devices: [{}]".format(dtype) in stdout
 
         # configuration contents
         metapos = stdout.index("Metadata")
@@ -334,8 +334,8 @@ class TestDevicesApiGetConfigurationDeploymentLink:
             "Provides: data-partition.mender-configure.version: {}".format(name)
             in stdout
         )
-        assert 'Clears Provides: ["data-partition.mender-configure.*"]' in stdout
-        assert "Depends: Nothing" in stdout
+        assert "Clears Provides: [data-partition.mender-configure.*]" in stdout
+        assert "Depends: {}" in stdout
 
 
 class TestDeviceApiGetConfigurationDeploymentNext:
