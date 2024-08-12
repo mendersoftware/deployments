@@ -57,6 +57,7 @@ github.com/spf13/pflag,BSD-3-Clause
 github.com/spf13/viper,MIT
 github.com/subosito/gotenv,MIT
 github.com/ugorji/go/codec,MIT
+github.com/ulikunitz/xz,BSD-3-Clause
 github.com/urfave/cli,MIT
 github.com/xdg-go/pbkdf2,Apache-2.0
 github.com/xdg-go/scram,Apache-2.0
