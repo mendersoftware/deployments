@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 		db = d
 		defer db.Client().Disconnect(db.CTX())
 		return m.Run()
-	})
+	}, nil)
 
 	os.Exit(status)
 }
