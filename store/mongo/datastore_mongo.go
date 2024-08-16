@@ -2408,7 +2408,7 @@ func (db *DataStoreMongo) Find(ctx context.Context,
 
 		tq := bson.M{
 			"$text": bson.M{
-				"$search": "\"" + match.SearchText + "\"",
+				"$search": match.SearchText,
 			},
 		}
 
