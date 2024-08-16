@@ -1286,11 +1286,14 @@ func TestDeploymentStorageFindBy(t *testing.T) {
 		},
 		{
 			InputModelQuery: model.Query{
-				SearchText: "NYC Production Inc.",
+				SearchText: "NYC foo",
 			},
 			InputDeploymentsCollection: someDeployments,
 			OutputError:                nil,
 			OutputID: []string{
+				"a108ae14-bb4e-455f-9b40-000000000005",
+				"a108ae14-bb4e-455f-9b40-000000000004",
+				"a108ae14-bb4e-455f-9b40-000000000003",
 				"a108ae14-bb4e-455f-9b40-000000000002",
 				"a108ae14-bb4e-455f-9b40-000000000001",
 			},
