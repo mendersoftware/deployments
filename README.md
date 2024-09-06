@@ -1,3 +1,7 @@
+# MOVED
+
+This repository has been moved to the mender-server monorepo: https://github.com/mendersoftware/mender-server
+
 # Deployments
 [![Build Status](https://gitlab.com/Northern.tech/Mender/deployments/badges/master/pipeline.svg)](https://gitlab.com/Northern.tech/Mender/deployments/pipelines)
 [![Coverage Status](https://coveralls.io/repos/github/mendersoftware/deployments/badge.svg?branch=master)](https://coveralls.io/github/mendersoftware/deployments?branch=master)
