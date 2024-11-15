@@ -13,12 +13,14 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import json
+import os
+import re
+import subprocess
+
 import bravado
 import pytest
 import requests
-import os
-import subprocess
-import json
 
 from uuid import uuid4
 
@@ -163,8 +165,8 @@ class TestInternalApiPostConfigurationDeployment:
 
 
 class TestDevicesApiGetConfigurationDeploymentLink:
-    """ 
-        Tests /download/configuration/... download links.
+    """
+    Tests /download/configuration/... download links.
     """
 
     @pytest.mark.parametrize(
@@ -175,9 +177,9 @@ class TestDevicesApiGetConfigurationDeploymentLink:
         ],
     )
     def test_ok(self, api_client_int, clean_db, mongo, test_set):
-        """ 
-             Happy path - correct link obtained from the service, leading to a successful download
-             of a correct artifact.
+        """
+        Happy path - correct link obtained from the service, leading to a successful download
+        of a correct artifact.
         """
 
         # set up deployment
@@ -234,8 +236,8 @@ class TestDevicesApiGetConfigurationDeploymentLink:
             l.unlock()
 
     def test_failures(self, api_client_int, clean_db, mongo):
-        """ 
-             Simulate invalid or malicious download requests.
+        """
+        Simulate invalid or malicious download requests.
         """
         # for reference - get a real, working link to an actual deployment
         with Lock(MONGO_LOCK_FILE) as l:
@@ -322,7 +324,8 @@ class TestDevicesApiGetConfigurationDeploymentLink:
         assert "Type: mender-configure" in stdout
         assert "Name: {}".format(name) in stdout
         assert "Version: 3" in stdout
-        assert "Compatible devices: '[{}]'".format(dtype) in stdout
+        # NOTE: Using regular expression for backward compatibility
+        assert re.search(rf"Compatible devices: (\[{dtype}\]|'\[{dtype}\]')", stdout)
 
         # configuration contents
         metapos = stdout.index("Metadata")
@@ -334,15 +337,19 @@ class TestDevicesApiGetConfigurationDeploymentLink:
             "Provides: data-partition.mender-configure.version: {}".format(name)
             in stdout
         )
-        assert 'Clears Provides: ["data-partition.mender-configure.*"]' in stdout
-        assert "Depends: Nothing" in stdout
+        # NOTE: Using regular expression for backward compatibility
+        assert re.search(
+            rf"Clears Provides: (\[data-partition.mender-configure.*\]|\[\"data-partition.mender-configure.*\"\])",
+            stdout,
+        )
+        assert re.search(r"Depends: (\{\}|Nothing)", stdout)
 
 
 class TestDeviceApiGetConfigurationDeploymentNext:
-    """ 
-        Verify expected failures when asking for a configuration upgrade,
-        i.e. that devices that are not eligible won't get it.
-        (happy path is tested in GetConfigurationDeploymentLink::test_ok)
+    """
+    Verify expected failures when asking for a configuration upgrade,
+    i.e. that devices that are not eligible won't get it.
+    (happy path is tested in GetConfigurationDeploymentLink::test_ok)
     """
 
     def test_fail_no_upgrade(self, api_client_int, clean_db, mongo):
