@@ -17,6 +17,7 @@ package http
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"testing"
 
@@ -870,6 +871,78 @@ func TestListImages(t *testing.T) {
 				},
 			),
 		},
+		"ok with exact name": {
+			filter: &dmodel.ReleaseOrImageFilter{
+				Name:      "foo",
+				ExactName: true,
+				Page:      1,
+				PerPage:   20,
+			},
+			images: []*dmodel.Image{
+				{
+					Id:   "1",
+					Size: 1000,
+				},
+			},
+			checker: mt.NewJSONResponse(
+				http.StatusOK,
+				nil,
+				[]*dmodel.Image{
+					{
+						Id:   "1",
+						Size: 1000,
+					},
+				},
+			),
+		},
+		"ok with exact description": {
+			filter: &dmodel.ReleaseOrImageFilter{
+				Description:      "foo",
+				ExactDescription: true,
+				Page:             1,
+				PerPage:          20,
+			},
+			images: []*dmodel.Image{
+				{
+					Id:   "1",
+					Size: 1000,
+				},
+			},
+			checker: mt.NewJSONResponse(
+				http.StatusOK,
+				nil,
+				[]*dmodel.Image{
+					{
+						Id:   "1",
+						Size: 1000,
+					},
+				},
+			),
+		},
+		"ok with exact device type": {
+			filter: &dmodel.ReleaseOrImageFilter{
+				DeviceType:      "raspberrypi4",
+				ExactDeviceType: true,
+				Page:            1,
+				PerPage:         20,
+			},
+			images: []*dmodel.Image{
+				{
+					Id:   "1",
+					Size: 1000,
+				},
+			},
+			checker: mt.NewJSONResponse(
+				http.StatusOK,
+				nil,
+				[]*dmodel.Image{
+					{
+						Id:   "1",
+						Size: 1000,
+					},
+				},
+			),
+		},
 		"ok, empty": {
 			filter: &dmodel.ReleaseOrImageFilter{Page: 1, PerPage: 20},
 			images: []*dmodel.Image{},
@@ -920,17 +993,33 @@ func TestListImages(t *testing.T) {
 			reqUrl := "http://1.2.3.4/api/management/v1/artifacts/list"
 
 			if tc.filter != nil {
-				reqUrl += "?name=" + tc.filter.Name
+				v := url.Values{}
+				if tc.filter.Name != "" {
+					v.Set("name", tc.filter.Name)
+					if tc.filter.ExactName {
+						v.Set("exact_name", "true")
+					}
+				}
+				if tc.filter.Description != "" {
+					v.Set("description", tc.filter.Description)
+					if tc.filter.ExactDescription {
+						v.Set("exact_description", "true")
+					}
+				}
+				if tc.filter.DeviceType != "" {
+					v.Set("device_type", tc.filter.DeviceType)
+					if tc.filter.ExactDeviceType {
+						v.Set("exact_device_type", "true")
+					}
+				}
+				if len(v) > 0 {
+					reqUrl += "?" + v.Encode()
+				}
 			}
 
-			req := test.MakeSimpleRequest("GET",
-				reqUrl,
-				nil)
-
+			req := test.MakeSimpleRequest("GET", reqUrl, nil)
 			req.Header.Add(requestid.RequestIdHeader, "test")
-
 			recorded := test.RunRequest(t, api, req)
-
 			mt.CheckResponse(t, tc.checker, recorded)
 		})
 	}

@@ -1162,19 +1162,37 @@ paths:
       parameters:
         - name: name
           in: query
-          description: Artifact name filter.
+          description: Artifact name filter (partial match by default).
           required: false
           type: string
         - name: description
           in: query
-          description: Artifact description filter.
+          description: Artifact description filter (partial match by default).
           required: false
           type: string
         - name: device_type
           in: query
-          description: Artifact device type filter.
+          description: Artifact device type filter (partial match by default).
           required: false
           type: string
+        - name: exact_name
+          in: query
+          description: If true, name filter will require exact match instead of partial match.
+          required: false
+          type: boolean
+          default: false
+        - name: exact_description
+          in: query
+          description: If true, description filter will require exact match instead of partial match.
+          required: false
+          type: boolean
+          default: false
+        - name: exact_device_type
+          in: query
+          description: If true, device type filter will require exact match instead of partial match.
+          required: false
+          type: boolean
+          default: false
         - name: page
           in: query
           description: Starting page.

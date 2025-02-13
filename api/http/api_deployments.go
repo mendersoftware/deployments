@@ -70,19 +70,22 @@ const (
 // storage keys
 const (
 	// Common HTTP form parameters
-	ParamArtifactName = "artifact_name"
-	ParamDeviceType   = "device_type"
-	ParamUpdateType   = "update_type"
-	ParamDeploymentID = "deployment_id"
-	ParamDeviceID     = "device_id"
-	ParamTenantID     = "tenant_id"
-	ParamName         = "name"
-	ParamTag          = "tag"
-	ParamDescription  = "description"
-	ParamPage         = "page"
-	ParamPerPage      = "per_page"
-	ParamSort         = "sort"
-	ParamID           = "id"
+	ParamArtifactName     = "artifact_name"
+	ParamDeviceType       = "device_type"
+	ParamUpdateType       = "update_type"
+	ParamDeploymentID     = "deployment_id"
+	ParamDeviceID         = "device_id"
+	ParamTenantID         = "tenant_id"
+	ParamName             = "name"
+	ParamTag              = "tag"
+	ParamDescription      = "description"
+	ParamPage             = "page"
+	ParamPerPage          = "per_page"
+	ParamSort             = "sort"
+	ParamID               = "id"
+	ParamExactName        = "exact_name"
+	ParamExactDescription = "exact_description"
+	ParamExactDeviceType  = "exact_device_type"
 )
 
 const Redacted = "REDACTED"
@@ -269,10 +272,13 @@ func getReleaseOrImageFilter(r *rest.Request, version listReleasesVersion,
 	filter := &model.ReleaseOrImageFilter{
 		Name:       q.Get(ParamName),
 		UpdateType: q.Get(ParamUpdateType),
+		ExactName:  q.Get(ParamExactName) == "true",
 	}
 	if version == listReleasesV1 {
 		filter.Description = q.Get(ParamDescription)
 		filter.DeviceType = q.Get(ParamDeviceType)
+		filter.ExactDescription = q.Get(ParamExactDescription) == "true"
+		filter.ExactDeviceType = q.Get(ParamExactDeviceType) == "true"
 	} else if version == listReleasesV2 {
 		filter.Tags = q[ParamTag]
 		for i, t := range filter.Tags {
