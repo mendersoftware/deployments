@@ -2486,3 +2486,154 @@ func TestGetDeploymentIDsByArtifactNames(t *testing.T) {
 		})
 	}
 }
+
+func TestMongoListImages_ExactMatches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestMongoListImages_ExactMatches in short mode.")
+	}
+
+	testCases := []struct {
+		Name           string
+		InputImages    []interface{}
+		InputFilter    *model.ReleaseOrImageFilter
+		ExpectedCount  int
+		ExpectedImages []string
+	}{
+		{
+			Name: "exact name match",
+			InputImages: []interface{}{
+				model.Image{
+					Id: "1",
+					ImageMeta: &model.ImageMeta{
+						Description: "test description",
+					},
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "test-image",
+						DeviceTypesCompatible: []string{"device1"},
+					},
+				},
+				model.Image{
+					Id: "2",
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "test-image-2",
+						DeviceTypesCompatible: []string{"device1"},
+					},
+				},
+			},
+			InputFilter: &model.ReleaseOrImageFilter{
+				Name:      "test-image",
+				ExactName: true,
+			},
+			ExpectedCount:  1,
+			ExpectedImages: []string{"1"},
+		},
+		{
+			Name: "exact description match",
+			InputImages: []interface{}{
+				model.Image{
+					Id: "1",
+					ImageMeta: &model.ImageMeta{
+						Description: "test description",
+					},
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "test-image",
+						DeviceTypesCompatible: []string{"device1"},
+					},
+				},
+				model.Image{
+					Id: "2",
+					ImageMeta: &model.ImageMeta{
+						Description: "test description extended",
+					},
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "test-image-2",
+						DeviceTypesCompatible: []string{"device1"},
+					},
+				},
+			},
+			InputFilter: &model.ReleaseOrImageFilter{
+				Description:      "test description",
+				ExactDescription: true,
+			},
+			ExpectedCount:  1,
+			ExpectedImages: []string{"1"},
+		},
+		{
+			Name: "exact device type match",
+			InputImages: []interface{}{
+				model.Image{
+					Id: "1",
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "test-image",
+						DeviceTypesCompatible: []string{"raspberrypi4"},
+					},
+				},
+				model.Image{
+					Id: "2",
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "test-image-2",
+						DeviceTypesCompatible: []string{"raspberrypi4-64"},
+					},
+				},
+			},
+			InputFilter: &model.ReleaseOrImageFilter{
+				DeviceType:      "raspberrypi4",
+				ExactDeviceType: true,
+			},
+			ExpectedCount:  1,
+			ExpectedImages: []string{"1"},
+		},
+		{
+			Name: "non-exact matches (regex)",
+			InputImages: []interface{}{
+				model.Image{
+					Id: "1",
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "test-image",
+						DeviceTypesCompatible: []string{"raspberrypi4"},
+					},
+				},
+				model.Image{
+					Id: "2",
+					ArtifactMeta: &model.ArtifactMeta{
+						Name:                  "test-image-2",
+						DeviceTypesCompatible: []string{"raspberrypi4"},
+					},
+				},
+			},
+			InputFilter: &model.ReleaseOrImageFilter{
+				Name: "test-image",
+			},
+			ExpectedCount:  2,
+			ExpectedImages: []string{"1", "2"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			db.Wipe()
+
+			client := db.Client()
+			store := NewDataStoreMongoWithClient(client)
+
+			ctx := context.Background()
+
+			collImg := client.Database(DatabaseName).Collection(CollectionImages)
+			if len(tc.InputImages) > 0 {
+				_, err := collImg.InsertMany(ctx, tc.InputImages)
+				assert.NoError(t, err)
+			}
+
+			images, count, err := store.ListImages(ctx, tc.InputFilter)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.ExpectedCount, count)
+			assert.Len(t, images, len(tc.ExpectedImages))
+
+			imageIDs := make([]string, len(images))
+			for i, img := range images {
+				imageIDs[i] = img.Id
+			}
+			assert.ElementsMatch(t, tc.ExpectedImages, imageIDs)
+		})
+	}
+}

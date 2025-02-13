@@ -115,3 +115,107 @@ func TestConvertReleasesToV1(t *testing.T) {
 	releasesV1 := ConvertReleasesToV1(releases)
 	assert.Equal(t, expected, releasesV1)
 }
+
+func TestReleaseOrImageFilter_ExactMatches(t *testing.T) {
+	testCases := []struct {
+		Name         string
+		Filter       ReleaseOrImageFilter
+		ExpectedJSON string
+	}{
+		{
+			Name:   "empty filter",
+			Filter: ReleaseOrImageFilter{},
+			ExpectedJSON: `{
+				"name": "",
+				"description": "",
+				"device_type": "",
+				"exact_name": false,
+				"exact_description": false,
+				"exact_device_type": false,
+				"tags": null,
+				"update_type": "",
+				"page": 0,
+				"per_page": 0,
+				"sort": ""
+			}`,
+		},
+		{
+			Name: "filter with exact matches",
+			Filter: ReleaseOrImageFilter{
+				Name:             "test-release",
+				Description:      "test description",
+				DeviceType:       "raspberrypi4",
+				ExactName:        true,
+				ExactDescription: true,
+				ExactDeviceType:  true,
+				Tags:             []string{"test"},
+				Page:             1,
+				PerPage:          10,
+			},
+			ExpectedJSON: `{
+				"name": "test-release",
+				"description": "test description",
+				"device_type": "raspberrypi4",
+				"exact_name": true,
+				"exact_description": true,
+				"exact_device_type": true,
+				"tags": ["test"],
+				"update_type": "",
+				"page": 1,
+				"per_page": 10,
+				"sort": ""
+			}`,
+		},
+		{
+			Name: "filter with mixed exact and non-exact matches",
+			Filter: ReleaseOrImageFilter{
+				Name:             "test-release",
+				Description:      "test description",
+				DeviceType:       "raspberrypi4",
+				ExactName:        true,
+				ExactDescription: false,
+				ExactDeviceType:  true,
+				Tags:             []string{"test"},
+				Page:             1,
+				PerPage:          10,
+			},
+			ExpectedJSON: `{
+				"name": "test-release",
+				"description": "test description",
+				"device_type": "raspberrypi4",
+				"exact_name": true,
+				"exact_description": false,
+				"exact_device_type": true,
+				"tags": ["test"],
+				"update_type": "",
+				"page": 1,
+				"per_page": 10,
+				"sort": ""
+			}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			// Marshal the filter to JSON
+			filterJSON, err := json.Marshal(tc.Filter)
+			assert.NoError(t, err)
+
+			// Create a normalized version of expected and actual JSON for comparison
+			var expected, actual interface{}
+			err = json.Unmarshal([]byte(tc.ExpectedJSON), &expected)
+			assert.NoError(t, err)
+			err = json.Unmarshal(filterJSON, &actual)
+			assert.NoError(t, err)
+
+			// Compare the JSON structures
+			assert.Equal(t, expected, actual)
+
+			// Test unmarshaling back to struct
+			var unmarshaledFilter ReleaseOrImageFilter
+			err = json.Unmarshal(filterJSON, &unmarshaledFilter)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.Filter, unmarshaledFilter)
+		})
+	}
+}

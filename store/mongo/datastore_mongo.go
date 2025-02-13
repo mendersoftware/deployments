@@ -1200,30 +1200,41 @@ func (db *DataStoreMongo) ListImages(
 	filters := bson.M{}
 	if filt != nil {
 		if filt.Name != "" {
-			filters[StorageKeyImageName] = bson.M{
-				"$regex": primitive.Regex{
-					Pattern: ".*" + regexp.QuoteMeta(filt.Name) + ".*",
-					Options: "i",
-				},
+			if filt.ExactName {
+				filters[StorageKeyImageName] = filt.Name
+			} else {
+				filters[StorageKeyImageName] = bson.M{
+					"$regex": primitive.Regex{
+						Pattern: ".*" + regexp.QuoteMeta(filt.Name) + ".*",
+						Options: "i",
+					},
+				}
 			}
 		}
 		if filt.Description != "" {
-			filters[StorageKeyImageDescription] = bson.M{
-				"$regex": primitive.Regex{
-					Pattern: ".*" + regexp.QuoteMeta(filt.Description) + ".*",
-					Options: "i",
-				},
+			if filt.ExactDescription {
+				filters[StorageKeyImageDescription] = filt.Description
+			} else {
+				filters[StorageKeyImageDescription] = bson.M{
+					"$regex": primitive.Regex{
+						Pattern: ".*" + regexp.QuoteMeta(filt.Description) + ".*",
+						Options: "i",
+					},
+				}
 			}
 		}
 		if filt.DeviceType != "" {
-			filters[StorageKeyImageDeviceTypes] = bson.M{
-				"$regex": primitive.Regex{
-					Pattern: ".*" + regexp.QuoteMeta(filt.DeviceType) + ".*",
-					Options: "i",
-				},
+			if filt.ExactDeviceType {
+				filters[StorageKeyImageDeviceTypes] = filt.DeviceType
+			} else {
+				filters[StorageKeyImageDeviceTypes] = bson.M{
+					"$regex": primitive.Regex{
+						Pattern: ".*" + regexp.QuoteMeta(filt.DeviceType) + ".*",
+						Options: "i",
+					},
+				}
 			}
 		}
-
 	}
 
 	projection := bson.M{

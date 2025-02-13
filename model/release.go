@@ -214,14 +214,17 @@ func (r ReleasePatch) Validate() error {
 }
 
 type ReleaseOrImageFilter struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	DeviceType  string   `json:"device_type"`
-	Tags        []string `json:"tags"`
-	UpdateType  string   `json:"update_type"`
-	Page        int      `json:"page"`
-	PerPage     int      `json:"per_page"`
-	Sort        string   `json:"sort"`
+	Name             string   `json:"name"`
+	Description      string   `json:"description"`
+	DeviceType       string   `json:"device_type"`
+	ExactName        bool     `json:"exact_name"`
+	ExactDescription bool     `json:"exact_description"`
+	ExactDeviceType  bool     `json:"exact_device_type"`
+	Tags             []string `json:"tags"`
+	UpdateType       string   `json:"update_type"`
+	Page             int      `json:"page"`
+	PerPage          int      `json:"per_page"`
+	Sort             string   `json:"sort"`
 }
 
 type DirectUploadMetadata struct {

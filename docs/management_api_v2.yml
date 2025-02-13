@@ -628,6 +628,8 @@ definitions:
           $ref: "#/definitions/UpdateFile"
       meta_data:
         type: array
+        items:
+          type: object
         description: |
             meta_data is an array of objects of unknown structure as this
             is dependent of update type (also custom defined by user)
