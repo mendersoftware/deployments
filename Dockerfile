@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.23.3-bullseye as builder
+FROM --platform=$BUILDPLATFORM golang:1.23.6-bullseye as builder
 ARG TARGETARCH
 # Multiple architectures: we must have every library for every
 # architecture for every arch build
